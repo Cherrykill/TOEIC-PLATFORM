@@ -13,10 +13,12 @@ const {
   getStats,
 } = require('../controllers/uploadController');
 const { protect, authorize } = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const { vocabUpload } = require('../validators/schemas');
 
 // User routes
 router.get('/check', protect, checkPermission);
-router.post('/vocabulary', protect, uploadVocabulary);
+router.post('/vocabulary', protect, validate(vocabUpload), uploadVocabulary);
 router.get('/my-topics', protect, getMyTopics);
 router.get('/expiring', protect, getExpiringTopics);
 router.get('/my-vocabulary/:source', protect, getMyVocabulary);

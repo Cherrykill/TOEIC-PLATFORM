@@ -33,6 +33,19 @@ exports.handler = async (req, res, next) => {   // luôn nhận `next`
   activity) còn trả 500 kèm message tuỳ biến + field `error`. Khi đụng
   tới, chuyển sang `next(ApiError(...))` (giữ message), bỏ field `error`.
 
+## Input validation (route ghi)
+
+Validate ở biên bằng `middleware/validate.js` (zero-dep) + schema trong
+`validators/schemas.js`. Gắn TRƯỚC controller:
+
+```js
+router.post('/x', protect, validate(xSchema), controller.x);
+```
+
+Message trong schema phải **khớp y hệt** message controller đang trả →
+adopt không đổi UX text. Đã áp: `shop/purchase`, `upload/vocabulary`.
+Route ghi mới nên có schema; auth/saveState chưa migrate (adopt khi chạm).
+
 ## Layering (đích đến)
 
 ```
