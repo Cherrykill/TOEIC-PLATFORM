@@ -8,6 +8,7 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const logger = require('../utils/logger');
 const { buildFullState, applyEnergyRegen, applyLevelUp } = require('../utils/userStateHelper');
+const { applyShopEffect } = require('../services/shopEffects');
 
 function expireBoosts(stats) {
     const now = Date.now();
@@ -398,46 +399,7 @@ exports.updateQuests = async (req, res, next) => {
     }
 };
 
-function applyShopEffect(stats, effect) {
-    switch (effect.type) {
-        case 'energy':
-            stats.energy = Math.min(stats.energy + effect.amount, stats.maxEnergy);
-            break;
-        case 'hints':
-            stats.hints += effect.amount;
-            break;
-        case 'shield':
-            stats.shields += effect.amount;
-            break;
-        case 'timeFreeze':
-            stats.timeFreezes += effect.amount;
-            break;
-        case 'coins':
-            stats.coins += effect.amount;
-            break;
-        case 'gems':
-            stats.gems += effect.amount;
-            break;
-        case 'boost': {
-            const expiresAt = new Date(Date.now() + effect.duration * 1000);
-            if (effect.boostType === 'xp') {
-                stats.xpBoostActive = true;
-                stats.xpBoostMultiplier = effect.multiplier;
-                stats.xpBoostExpiresAt = expiresAt;
-            } else if (effect.boostType === 'coins') {
-                stats.coinsBoostActive = true;
-                stats.coinsBoostMultiplier = effect.multiplier;
-                stats.coinsBoostExpiresAt = expiresAt;
-            }
-            break;
-        }
-        case 'combo':
-            for (const sub of effect.items) applyShopEffect(stats, sub);
-            break;
-        default:
-            break;
-    }
-}
+// applyShopEffect moved to services/shopEffects.js (Phase 3).
 
 exports.purchaseItem = async (req, res, next) => {
     try {
