@@ -86,7 +86,7 @@ function weightedSample(items, n) {
 
 // ── Controllers ───────────────────────────────────────────────────────────────
 
-const getQuests = async (req, res) => {
+const getQuests = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const type = ['daily', 'weekly', 'monthly', 'special'].includes(req.query.type)
@@ -115,13 +115,13 @@ const getQuests = async (req, res) => {
         });
     } catch (err) {
         logger.error('getQuests error', { error: err.message });
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // Sync progress from client after a game session
 // Body: { type, updates: [{ code, value }] }  — value is the NEW total, not delta
-const syncProgress = async (req, res) => {
+const syncProgress = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { type = 'daily', updates = [] } = req.body;
@@ -156,13 +156,13 @@ const syncProgress = async (req, res) => {
         res.json({ success: true, data: { quests: doc.quests, totalCompleted: doc.totalCompleted } });
     } catch (err) {
         logger.error('syncProgress error', { error: err.message });
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // Claim reward for a completed quest
 // Body: { type, periodKey, code }
-const claimReward = async (req, res) => {
+const claimReward = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const { type = 'daily', code } = req.body;
@@ -200,12 +200,12 @@ const claimReward = async (req, res) => {
         });
     } catch (err) {
         logger.error('claimReward error', { error: err.message });
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // Seed default quest definitions (admin only)
-const seedDefaults = async (req, res) => {
+const seedDefaults = async (req, res, next) => {
     try {
         const defaults = [
             // Daily
@@ -238,7 +238,7 @@ const seedDefaults = async (req, res) => {
         res.json({ success: true, message: `Seeded ${created} quest definitions (${skipped} already existed)` });
     } catch (err) {
         logger.error('seedDefaults error', { error: err.message });
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 

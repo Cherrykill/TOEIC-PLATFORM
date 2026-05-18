@@ -201,6 +201,10 @@ export const GameEvents = {
     GAME_READY: 'game:ready',
     GAME_PAUSED: 'game:paused',
     GAME_RESUMED: 'game:resumed',
-    GAME_RESET: 'game:reset'
+    GAME_RESET: 'game:reset',
+
+    // Canonical "GameState was mutated, React should re-read" signal.
+    // Emit via GameState.commit() instead of calling syncFromState() by hand.
+    STATE_CHANGED: 'state:changed'
 };
 

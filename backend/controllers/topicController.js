@@ -17,27 +17,27 @@ async function countWords(sourceKeys) {
 }
 
 // GET /api/topics — public, dùng cho frontend chọn đề
-exports.getTopics = async (req, res) => {
+exports.getTopics = async (req, res, next) => {
     try {
         const topics = await Topic.find({ isPublic: true }).sort({ order: 1, displayName: 1 });
         res.json({ success: true, data: topics });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // GET /api/topics/all — admin, bao gồm cả isPublic: false
-exports.getAllTopics = async (req, res) => {
+exports.getAllTopics = async (req, res, next) => {
     try {
         const topics = await Topic.find().sort({ order: 1, displayName: 1 });
         res.json({ success: true, data: topics });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // POST /api/topics — tạo topic mới
-exports.createTopic = async (req, res) => {
+exports.createTopic = async (req, res, next) => {
     try {
         const { sourceKeys: rawKeys, displayName, description, icon, color, order, isPublic } = req.body;
 
@@ -61,12 +61,12 @@ exports.createTopic = async (req, res) => {
 
         res.status(201).json({ success: true, data: topic });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // PUT /api/topics/:id — cập nhật topic
-exports.updateTopic = async (req, res) => {
+exports.updateTopic = async (req, res, next) => {
     try {
         const { sourceKeys: rawKeys, displayName, description, icon, color, order, isPublic } = req.body;
 
@@ -85,23 +85,23 @@ exports.updateTopic = async (req, res) => {
 
         res.json({ success: true, data: topic });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // DELETE /api/topics/:id
-exports.deleteTopic = async (req, res) => {
+exports.deleteTopic = async (req, res, next) => {
     try {
         const topic = await Topic.findByIdAndDelete(req.params.id);
         if (!topic) return res.status(404).json({ success: false, message: 'Không tìm thấy topic' });
         res.json({ success: true, message: 'Đã xóa topic' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // POST /api/topics/:id/sync-count
-exports.syncWordCount = async (req, res) => {
+exports.syncWordCount = async (req, res, next) => {
     try {
         const topic = await Topic.findById(req.params.id);
         if (!topic) return res.status(404).json({ success: false, message: 'Không tìm thấy topic' });
@@ -111,12 +111,12 @@ exports.syncWordCount = async (req, res) => {
 
         res.json({ success: true, data: topic });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // POST /api/topics/sync-all
-exports.syncAllWordCounts = async (req, res) => {
+exports.syncAllWordCounts = async (req, res, next) => {
     try {
         const topics = await Topic.find();
         const updates = await Promise.all(
@@ -128,6 +128,6 @@ exports.syncAllWordCounts = async (req, res) => {
         );
         res.json({ success: true, data: updates });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

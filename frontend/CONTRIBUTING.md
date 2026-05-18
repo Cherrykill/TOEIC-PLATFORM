@@ -32,6 +32,28 @@ import { getToken, authHeaders } from '@/auth/token.js';
 fetch(url, { headers: authHeaders() });
 ```
 
+## State: GameState ↔ React
+
+`GameState.state` (singleton) là **nguồn chân lý** domain (user/resources/streak/
+settings/progress…). React đọc qua `useGame()`. Quy tắc khi mutate trực tiếp:
+
+```js
+import { GameState } from '@game/state.js';
+GameState.state.resources.coins = newCoins;   // 1) mutate
+GameState.commit();                            // 2) báo React re-đọc
+await GameState.save();                         // 3) nếu cần lưu (tùy)
+```
+
+- **KHÔNG** import/gọi `syncFromState()` rải rác trong component sau khi
+  mutate — đó là nguồn của lớp bug "UI không cập nhật tới khi F5"
+  (vd practiceSound, shop coins). Dùng `GameState.commit()`.
+- `commit()` chỉ báo đồng bộ UI, **không** persist. `save()` mới ghi
+  localStorage/server — gọi riêng khi thật sự cần lưu.
+- Method có sẵn của GameState (addXp/addCoins/learnWord…) đã tự emit
+  event riêng — không cần `commit()` thêm.
+- Lý do không gỡ hẳn mirror: GameState còn phục vụ code vanilla ngoài
+  React (engine luyện tập, gameLoop…). Xem memory `project-refactor-roadmap`.
+
 ## Naming
 
 | Loại | Quy ước | Ví dụ |

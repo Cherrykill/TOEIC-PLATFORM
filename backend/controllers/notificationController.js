@@ -7,7 +7,7 @@ const TAB_TYPES = {
 };
 
 // GET /api/notifications?tab=system|account|violation — 30 thông báo mới nhất
-exports.list = async (req, res) => {
+exports.list = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const tab    = req.query.tab;
@@ -34,22 +34,22 @@ exports.list = async (req, res) => {
 
         res.json({ success: true, data: notifications, counts });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // GET /api/notifications/unread-count
-exports.unreadCount = async (req, res) => {
+exports.unreadCount = async (req, res, next) => {
     try {
         const count = await Notification.countDocuments({ userId: req.user.id, read: false });
         res.json({ success: true, data: { count } });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // PUT /api/notifications/read-all
-exports.readAll = async (req, res) => {
+exports.readAll = async (req, res, next) => {
     try {
         await Notification.updateMany(
             { userId: req.user.id, read: false },
@@ -57,12 +57,12 @@ exports.readAll = async (req, res) => {
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // PUT /api/notifications/:id/read
-exports.readOne = async (req, res) => {
+exports.readOne = async (req, res, next) => {
     try {
         await Notification.findOneAndUpdate(
             { _id: req.params.id, userId: req.user.id },
@@ -70,6 +70,6 @@ exports.readOne = async (req, res) => {
         );
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

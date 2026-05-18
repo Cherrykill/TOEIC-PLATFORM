@@ -5,8 +5,6 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "dev1": "nodemon server1.js",
-    "dev2": "nodemon server2.js",
     "seed": "node utils/seedDatabase.js",
     "seed:vocab": "node utils/seedVocabulary.js",
     "seed:vocab:dry": "node utils/seedVocabulary.js --dry-run",
@@ -57,7 +55,7 @@
     "prettier": "^3.8.2"
   },
   "description": "Ứng dụng web học từ vựng TOEIC theo phong cách gamification — kết hợp 12 chế độ luyện tập tương tác, hệ thống thi TOEIC 7 Part đầy đủ, và cơ chế XP/level/streak để duy trì động lực học tập.",
-  "main": "change-password.js",
+  "main": "server.js",
   "directories": {
     "test": "tests"
   },

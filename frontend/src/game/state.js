@@ -273,6 +273,16 @@ export const GameState = {
         }
     },
 
+    /**
+     * Signal that GameState was mutated so the React layer re-reads it.
+     * Use this ONE call instead of importing/calling syncFromState() by hand
+     * after a direct GameState mutation (that pattern caused stale-UI bugs).
+     * Pure notification — does not persist (call save() separately if needed).
+     */
+    commit() {
+        EventBus.emit(GameEvents.STATE_CHANGED);
+    },
+
     getState() {
         return Utils.deepClone(this.state);
     },

@@ -65,6 +65,9 @@ export function GameProvider({ children }) {
             EventBus.on(GameEvents.GAME_INITIALIZED, syncFromState),
             EventBus.on(GameEvents.USER_LOGIN, syncFromState),
             EventBus.on(GameEvents.USER_LOGOUT, syncFromState),
+            // Canonical signal — new code uses GameState.commit() instead of
+            // calling syncFromState() by hand.
+            EventBus.on(GameEvents.STATE_CHANGED, syncFromState),
         ];
 
         return () => unsubs.forEach(fn => fn());

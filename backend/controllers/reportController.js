@@ -32,7 +32,7 @@ exports.submitReport = [
         if (err) return res.status(400).json({ success: false, message: err.message });
         next();
     }),
-    async (req, res) => {
+    async (req, res, next) => {
         try {
             const { content } = req.body;
             if (!content || content.trim().length < 5) {
@@ -59,13 +59,13 @@ exports.submitReport = [
             res.json({ success: true, message: 'Báo cáo đã được gửi thành công', data: report });
         } catch (err) {
             logger.error('submitReport error:', err);
-            res.status(500).json({ success: false, message: err.message });
+            next(err);
         }
     },
 ];
 
 // ── List reports (admin) ──
-exports.listReports = async (req, res) => {
+exports.listReports = async (req, res, next) => {
     try {
         const page   = Math.max(1, parseInt(req.query.page)  || 1);
         const limit  = Math.min(50, parseInt(req.query.limit) || 20);
@@ -85,12 +85,12 @@ exports.listReports = async (req, res) => {
             pagination: { total, page, limit, pages: Math.ceil(total / limit) },
         });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // ── Update report status / add admin note (admin) ──
-exports.updateReport = async (req, res) => {
+exports.updateReport = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { status, adminNote } = req.body;
@@ -104,12 +104,12 @@ exports.updateReport = async (req, res) => {
 
         res.json({ success: true, data: report });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // ── Delete a report (admin) ──
-exports.deleteReport = async (req, res) => {
+exports.deleteReport = async (req, res, next) => {
     try {
         const report = await Report.findByIdAndDelete(req.params.id);
         if (!report) return res.status(404).json({ success: false, message: 'Không tìm thấy báo cáo' });
@@ -122,7 +122,7 @@ exports.deleteReport = async (req, res) => {
 
         res.json({ success: true, message: 'Đã xóa báo cáo' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -137,7 +137,7 @@ exports.deleteAllReports = async (_req, res) => {
         await Report.deleteMany({});
         res.json({ success: true, message: 'Đã xóa tất cả báo cáo' });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
@@ -153,6 +153,6 @@ exports.reportStats = async (_req, res) => {
         ]);
         res.json({ success: true, data: { total, pending, reviewed, resolved, dismissed } });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };

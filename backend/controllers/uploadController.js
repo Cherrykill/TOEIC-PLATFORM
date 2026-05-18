@@ -25,7 +25,7 @@ const capFirst = (s) => {
 
 // GET /api/upload/check
 // Permission gating disabled — all authenticated users can upload.
-exports.checkPermission = async (req, res) => {
+exports.checkPermission = async (req, res, next) => {
   res.json({
     success: true,
     hasPermission: true,
@@ -35,7 +35,7 @@ exports.checkPermission = async (req, res) => {
 };
 
 // POST /api/upload/vocabulary - save a single vocab entry as PRIVATE doc
-exports.uploadVocabulary = async (req, res) => {
+exports.uploadVocabulary = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const userDoc = await User.findById(userId).select('email').lean();
@@ -79,12 +79,12 @@ exports.uploadVocabulary = async (req, res) => {
     });
   } catch (err) {
     console.error('uploadVocabulary error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // GET /api/upload/my-topics - list unique private sources for current user
-exports.getMyTopics = async (req, res) => {
+exports.getMyTopics = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
@@ -110,13 +110,13 @@ exports.getMyTopics = async (req, res) => {
     res.json({ success: true, data: topics });
   } catch (err) {
     console.error('getMyTopics error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // GET /api/upload/expiring - private sources expiring within EXPIRY_WARN_DAYS.
 // Used to force the user to export before auto-deletion.
-exports.getExpiringTopics = async (req, res) => {
+exports.getExpiringTopics = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
@@ -146,12 +146,12 @@ exports.getExpiringTopics = async (req, res) => {
     res.json({ success: true, warnDays: EXPIRY_WARN_DAYS, data: topics });
   } catch (err) {
     console.error('getExpiringTopics error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // GET /api/upload/my-vocabulary/:source - load words by source for current user
-exports.getMyVocabulary = async (req, res) => {
+exports.getMyVocabulary = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
@@ -164,12 +164,12 @@ exports.getMyVocabulary = async (req, res) => {
     res.json({ success: true, data: words });
   } catch (err) {
     console.error('getMyVocabulary error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // DELETE /api/upload/my-vocabulary/:wordId — delete a single word owned by current user
-exports.deleteMyWord = async (req, res) => {
+exports.deleteMyWord = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
@@ -182,13 +182,13 @@ exports.deleteMyWord = async (req, res) => {
     res.json({ success: true, message: `Đã xóa "${word.en}"` });
   } catch (err) {
     console.error('deleteMyWord error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // POST /api/upload/extend/:source — push expiry of all words in a private
 // source forward by DEFAULT_RETENTION_DAYS (renew, no data loss).
-exports.extendMySource = async (req, res) => {
+exports.extendMySource = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
@@ -213,12 +213,12 @@ exports.extendMySource = async (req, res) => {
     });
   } catch (err) {
     console.error('extendMySource error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // DELETE /api/upload/my-source/:source — delete all words in a source owned by current user
-exports.deleteMySource = async (req, res) => {
+exports.deleteMySource = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
@@ -228,12 +228,12 @@ exports.deleteMySource = async (req, res) => {
     res.json({ success: true, message: `Đã xóa ${result.deletedCount} từ trong "${source}"`, deletedCount: result.deletedCount });
   } catch (err) {
     console.error('deleteMySource error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // GET /api/admin/upload/monitoring
-exports.getMonitoring = async (req, res) => {
+exports.getMonitoring = async (req, res, next) => {
   try {
     const uploads = await Vocabulary.aggregate([
       { $match: { scope: 'private' } },
@@ -262,12 +262,12 @@ exports.getMonitoring = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     console.error('getMonitoring error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };
 
 // GET /api/admin/upload/stats
-exports.getStats = async (req, res) => {
+exports.getStats = async (req, res, next) => {
   try {
     const totalWords = await Vocabulary.countDocuments({ scope: 'private' });
     const totalUsers = await Vocabulary.distinct('ownerEmail', { scope: 'private' }).then(a => a.filter(Boolean).length);
@@ -278,6 +278,6 @@ exports.getStats = async (req, res) => {
     });
   } catch (err) {
     console.error('getStats error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 };

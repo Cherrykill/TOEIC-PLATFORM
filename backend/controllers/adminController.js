@@ -7,7 +7,7 @@ const Notification    = require('../models/Notification');
 
 // ── GET /api/admin/users-stats  ──────────────────────────────────────────────
 // Danh sách user kèm profile + stats (cho tab "User Stats" trong dashboard)
-exports.getUsersStats = async (req, res) => {
+exports.getUsersStats = async (req, res, next) => {
     try {
         const page  = Math.max(1, parseInt(req.query.page)  || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 30);
@@ -70,13 +70,13 @@ exports.getUsersStats = async (req, res) => {
 
         res.json({ success: true, data, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // ── GET /api/admin/user-achievements  ───────────────────────────────────────
 // Thành tích của 1 user cụ thể
-exports.getUserAchievements = async (req, res) => {
+exports.getUserAchievements = async (req, res, next) => {
     try {
         const { userId } = req.query;
         if (!userId) return res.status(400).json({ success: false, message: 'userId required' });
@@ -99,13 +99,13 @@ exports.getUserAchievements = async (req, res) => {
 
         res.json({ success: true, data });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // ── GET /api/admin/notifications  ───────────────────────────────────────────
 // Xem tất cả notification trong hệ thống
-exports.listNotifications = async (req, res) => {
+exports.listNotifications = async (req, res, next) => {
     try {
         const page  = Math.max(1, parseInt(req.query.page)  || 1);
         const limit = Math.min(100, parseInt(req.query.limit) || 30);
@@ -122,13 +122,13 @@ exports.listNotifications = async (req, res) => {
 
         res.json({ success: true, data: items, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // ── POST /api/admin/notifications/broadcast  ────────────────────────────────
 // Gửi thông báo đến TẤT CẢ user hoặc 1 user cụ thể
-exports.broadcastNotification = async (req, res) => {
+exports.broadcastNotification = async (req, res, next) => {
     try {
         const { title, body, type = 'system', userId, userEmail } = req.body;
         if (!title) return res.status(400).json({ success: false, message: 'title required' });
@@ -160,16 +160,16 @@ exports.broadcastNotification = async (req, res) => {
 
         res.json({ success: true, sent: docs.length });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
 
 // ── DELETE /api/admin/notifications/:id  ────────────────────────────────────
-exports.deleteNotification = async (req, res) => {
+exports.deleteNotification = async (req, res, next) => {
     try {
         await Notification.findByIdAndDelete(req.params.id);
         res.json({ success: true });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        next(err);
     }
 };
