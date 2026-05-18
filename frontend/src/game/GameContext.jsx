@@ -74,6 +74,15 @@ export function GameProvider({ children }) {
     }, [syncFromState]);
 
     const showScreen = useCallback((screenId) => {
+        // Single chokepoint: leaving an active (uncompleted) practice session
+        // — via any nav (back btn, Home, avatar, side menu) — must go through
+        // PracticeManager.exit() so the "Thoát luyện tập?" confirm always shows.
+        const sess = PracticeManager.currentSession;
+        if (screenId !== 'practice-screen' && sess && !sess.completed) {
+            setMenuOpen(false); // close side menu so the confirm modal is visible
+            PracticeManager.exit(screenId); // confirms, then navigates on accept
+            return;
+        }
         setCurrentScreen(screenId);
         setMenuOpen(false);
         EventBus.emit(GameEvents.SCREEN_CHANGED, { screen: screenId });

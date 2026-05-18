@@ -554,37 +554,115 @@ export const GameLogic = {
         return Utils.randomSample(unlearned, count);
     },
 
+    // Split a `synonyms` field into clean unique tokens.
+    _synonymTokens(raw) {
+        if (!raw) return [];
+        const seen = new Set();
+        const out = [];
+        for (const t of String(raw).split(',').map(s => s.trim()).filter(Boolean)) {
+            const k = t.toLowerCase();
+            if (!seen.has(k)) { seen.add(k); out.push(t); }
+        }
+        return out;
+    },
+
+    // Build (once per vocabulary set) a global index of synonym tokens,
+    // also grouped by word `type`. Reused across every question in a
+    // generation pass → distractor lookup is O(1)-ish instead of scanning
+    // the whole vocabulary per question (was O(N²) + per-call string split).
+    _buildSynIndex() {
+        const vocab = this.vocabularyData || [];
+        if (this._synIndexRef === vocab && this._synIndex) return this._synIndex;
+        const all = [];
+        const byType = {};
+        const seen = new Set();
+        for (const w of vocab) {
+            if (!w.synonyms) continue;
+            const type = (w.type || '').toLowerCase().trim();
+            for (const tok of this._synonymTokens(w.synonyms)) {
+                const k = tok.toLowerCase();
+                if (seen.has(k)) continue;
+                seen.add(k);
+                const entry = { tok, k };
+                all.push(entry);
+                if (type) (byType[type] = byType[type] || []).push(entry);
+            }
+        }
+        this._synIndex = { all, byType };
+        this._synIndexRef = vocab;
+        return this._synIndex;
+    },
+
+    /**
+     * Question = the word (en + vn shown by the mode). Options = English
+     * synonym tokens: 1 from THIS word's `synonyms` (the only correct one)
+     * + 3 distractors. Distractors are pulled preferentially from words of
+     * the SAME `type` (so they're plausible, not obviously off-topic),
+     * falling back to the global pool. Single-select.
+     * Falls back to plain MC when the word has no synonyms.
+     */
     generateSynonymCheck(word, optionsCount = 4) {
-        if (!word.synonyms || !word.synonyms_vn) {
+        const correctPool = this._synonymTokens(word.synonyms);
+        if (correctPool.length < 1) {
             return this.generateMultipleChoice(word, optionsCount);
         }
 
-        const correctAnswer = word.synonyms_vn;
+        const correctAnswers = Utils.shuffleArray([...correctPool]).slice(0, 1);
+        const exclude = new Set([
+            ...correctPool.map(s => s.toLowerCase()),
+            (word.en || '').toLowerCase(),
+            (word.vn || '').toLowerCase(),
+        ]);
 
-        const otherWords = this.vocabularyData.filter(w =>
-            w.en !== word.en && w.synonyms_vn && w.synonyms_vn.trim() !== ''
+        const idx = this._buildSynIndex();
+        const wt = (word.type || '').toLowerCase().trim();
+        const pick = (entries) => Utils.shuffleArray(
+            (entries || []).filter(e => !exclude.has(e.k))
         );
 
-        const wrongPool = otherWords.length >= optionsCount - 1
-            ? otherWords
-            : this.vocabularyData.filter(w => w.en !== word.en);
+        // Smart distractors: same type first, then top up from global pool.
+        const ordered = [...pick(idx.byType[wt]), ...pick(idx.all)];
+        const need = Math.max(0, optionsCount - correctAnswers.length);
+        const distractors = [];
+        const used = new Set(exclude);
+        for (const e of ordered) {
+            if (used.has(e.k)) continue;
+            used.add(e.k);
+            distractors.push(e.tok);
+            if (distractors.length >= need) break;
+        }
+        if (distractors.length < need) {
+            // Last-resort pad with other headwords.
+            const pad = Utils.shuffleArray(
+                this.vocabularyData
+                    .map(w => w.en)
+                    .filter(en => en && !used.has(en.toLowerCase()))
+            );
+            for (const en of pad) {
+                distractors.push(en);
+                if (distractors.length >= need) break;
+            }
+        }
 
-        const wrongAnswers = Utils.randomSample(wrongPool, optionsCount - 1)
-            .map(w => w.synonyms_vn || w.vn);
-
-        const options = Utils.shuffleArray([correctAnswer, ...wrongAnswers]);
+        const options = Utils.shuffleArray([...correctAnswers, ...distractors]);
 
         return {
             word,
-            question: `Nghĩa tiếng Việt của các từ đồng nghĩa trên là gì?`,
+            question: 'Chọn từ đồng nghĩa (tiếng Anh):',
             options,
-            correctAnswer,
-            correctIndex: options.indexOf(correctAnswer)
+            correctAnswers,                          // single correct token
+            correctIndex: options.indexOf(correctAnswers[0]),
         };
     },
 
-    checkSynonymCheck(selectedAnswer, correctAnswer) {
-        return selectedAnswer.trim().toLowerCase() === correctAnswer.trim().toLowerCase();
+    // Multi-select: correct only when the selected set equals the correct
+    // set exactly (both correct chosen, no wrong chosen).
+    checkSynonymCheck(selectedAnswers, correctAnswers) {
+        const norm = a => (Array.isArray(a) ? a : [a])
+            .map(x => String(x).trim().toLowerCase());
+        const sel = new Set(norm(selectedAnswers));
+        const cor = norm(correctAnswers);
+        return sel.size === cor.length && cor.every(c => sel.has(c));
     },
 
     generateWordTypeCheck(word, optionsCount = 6) {

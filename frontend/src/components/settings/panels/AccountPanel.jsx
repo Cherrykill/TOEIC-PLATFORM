@@ -20,6 +20,7 @@ export default function AccountPanel({
     handleBackup,
     handleRestore,
     handleReset,
+    handleResetSettings,
 }) {
     return (
         <>
@@ -62,6 +63,9 @@ export default function AccountPanel({
                         <i className="fas fa-upload"></i> Khôi phục
                     </button>
                 </div>
+                <button className="btn btn-secondary" style={{ width: '100%', marginTop: 10 }} onClick={handleResetSettings}>
+                    <i className="fas fa-rotate-left"></i> Khôi phục cài đặt mặc định
+                </button>
                 <button className="btn btn-danger" style={{ width: '100%', marginTop: 10 }} onClick={handleReset}>
                     <i className="fas fa-trash-alt"></i> Xóa toàn bộ tiến độ
                 </button>

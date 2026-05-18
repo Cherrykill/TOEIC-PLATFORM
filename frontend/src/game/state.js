@@ -7,6 +7,26 @@ import { Utils } from '@lib/utils.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Storage } from '@lib/storage.js';
 
+// Canonical default settings — single source for both the initial state
+// and "restore default settings" (avoids the two drifting apart).
+export const DEFAULT_SETTINGS = {
+    randomQuestions: false,
+    soundEnabled: true,
+    soundEffects: true,
+    autoPronunciation: false,
+    practiceSoundEnabled: true,
+    notificationsEnabled: true,
+    volume: 70,
+    questionsPerSession: 10,
+    timeLimitEnabled: true,
+    timePerQuestion: 30,
+    difficulty: "adaptive",
+    levelFilter: null,
+    autoSync: true,
+    soundVolume: 1.0,
+    musicVolume: 0.7,
+};
+
 export const GameState = {
 
     _saveTimeout: null,
@@ -79,23 +99,7 @@ export const GameState = {
             coins: { active: false, multiplier: 1, expiresAt: null }
         },
 
-        settings: {
-            randomQuestions: false,
-            soundEnabled: true,
-            soundEffects: true,
-            autoPronunciation: false,
-            practiceSoundEnabled: true,
-            notificationsEnabled: true,
-            volume: 70,
-            questionsPerSession: 10,
-            timeLimitEnabled: true,
-            timePerQuestion: 30,
-            difficulty: "adaptive",
-            levelFilter: null,
-            autoSync: true,
-            soundVolume: 1.0,
-            musicVolume: 0.7
-        },
+        settings: { ...DEFAULT_SETTINGS },
 
 
         session: {
@@ -281,6 +285,12 @@ export const GameState = {
      */
     commit() {
         EventBus.emit(GameEvents.STATE_CHANGED);
+    },
+
+    /** Restore settings (only) to their canonical defaults + persist. */
+    async resetSettings() {
+        this.state.settings = { ...DEFAULT_SETTINGS };
+        await this.save?.();
     },
 
     getState() {

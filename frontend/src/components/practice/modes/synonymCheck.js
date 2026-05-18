@@ -11,7 +11,8 @@ export const SynonymCheck = {
     config: null,
     questions: [],
     currentIndex: 0,
-    selectedAnswer: null,
+    selected: new Set(),   // multi-select: chosen option indices
+    answered: false,
     hintUsed: false,
 
     async start(config) {
@@ -62,7 +63,8 @@ export const SynonymCheck = {
         }
 
         const question = this.questions[this.currentIndex];
-        this.selectedAnswer = null;
+        this.selected = new Set();
+        this.answered = false;
         this.hintUsed = false;
 
         PracticeManager.updateProgress(
@@ -82,14 +84,14 @@ export const SynonymCheck = {
             <div class="question-container">
                 <div class="question-word question-word--split">
                     <div class="question-text-col">
-                        <div class="synonyms-label">
-                            Đồng nghĩa (EN)
-                            <button class="btn-speak" id="speak-synonyms-btn" title="Nghe phát âm từ đồng nghĩa" style="margin-left:6px">
+                        <div class="word-display" style="font-size:1.8rem; font-weight:700">
+                            ${question.word.en}
+                            <button class="btn-speak" id="speak-word-btn" title="Nghe phát âm" style="margin-left:6px">
                                 <i class="fas fa-volume-up"></i>
                             </button>
                         </div>
-                        <div class="synonyms-list" style="font-size:1.05rem; font-weight:600; color:var(--primary-color)">
-                            ${question.word.synonyms || ''}
+                        <div class="word-meaning" style="color:var(--text-secondary); margin-top:4px">
+                            ${question.word.vn || ''}
                         </div>
                     </div>
                     <div class="question-synonyms-col">
@@ -123,65 +125,68 @@ export const SynonymCheck = {
     },
 
     attachListeners() {
-        const choices = document.querySelectorAll('.choice-btn');
-        choices.forEach((btn, index) => {
-            btn.addEventListener('click', () => {
-                this.selectAnswer(index);
-            });
+        document.querySelectorAll('.choice-btn').forEach((btn, index) => {
+            btn.addEventListener('click', () => this.pickOption(index));
         });
 
-        document.getElementById('speak-synonyms-btn')?.addEventListener('click', e => {
+        document.getElementById('speak-word-btn')?.addEventListener('click', e => {
             e.stopPropagation();
             const q = this.questions?.[this.currentIndex];
-            if (q?.word?.synonyms) this.speakSynonyms(q.word.synonyms);
+            if (q?.word?.en) GameLogic.speakWord(q.word.en, 'en-US');
         });
     },
 
-    speakSynonyms(synonyms) {
-        const words = synonyms.split(',').map(w => w.trim()).filter(Boolean);
-        let i = 0;
-        const speakNext = () => {
-            if (i >= words.length) return;
-            const word = words[i++];
-            GameLogic.speakWord(word, 'en-US', () => {
-                setTimeout(speakNext, 400);
-            });
-        };
-        speakNext();
+    // Instant feedback: tap a cell → if correct it locks green; collect all
+    // correct → pass. Any wrong tap → reveal answers + fail. Max picks =
+    // number of correct answers (no submit button).
+    pickOption(index) {
+        if (this.answered) return;
+        const btn = document.querySelector(`.choice-btn[data-index="${index}"]`);
+        if (!btn || btn.disabled) return;
+
+        const question = this.questions[this.currentIndex];
+        const correctTexts = question.correctAnswers
+            || [question.options[question.correctIndex]];
+        const norm = s => String(s).trim().toLowerCase();
+        const correctSet = new Set(correctTexts.map(norm));
+
+        const isOptCorrect = correctSet.has(norm(question.options[index]));
+        btn.disabled = true;
+
+        if (!isOptCorrect) {
+            btn.classList.add('wrong');
+            return this.concludeQuestion(false, correctSet, norm);
+        }
+
+        // Correct pick → lock it in.
+        btn.classList.add('correct');
+        this.selected.add(index);
+        if (this.selected.size >= correctSet.size) {
+            this.concludeQuestion(true, correctSet, norm);
+        }
     },
 
-    selectAnswer(index) {
+    concludeQuestion(isCorrect, correctSet, norm) {
+        this.answered = true;
         const question = this.questions[this.currentIndex];
-        this.selectedAnswer = index;
-
         const choices = document.querySelectorAll('.choice-btn');
-        choices.forEach(btn => btn.disabled = true);
-
-        const isCorrect = index === question.correctIndex;
-
-        if (isCorrect) {
-            choices[index].classList.add('correct');
-            PracticeManager.recordAnswer(true, question.word);
-
-            if (GameState.state.settings.soundEnabled) {
-                Utils.playSound(Config.sounds.correct, 0.5);
+        choices.forEach((b, i) => {
+            b.disabled = true;
+            // On a miss, reveal every correct option.
+            if (!isCorrect && correctSet.has(norm(question.options[i]))) {
+                b.classList.add('correct');
             }
-        } else {
-            choices[index].classList.add('wrong');
-            choices[question.correctIndex].classList.add('correct');
-            PracticeManager.recordAnswer(false, question.word);
+        });
 
-            if (GameState.state.settings.soundEnabled) {
-                Utils.playSound(Config.sounds.wrong, 0.5);
-            }
+        PracticeManager.recordAnswer(isCorrect, question.word);
+        if (GameState.state.settings.soundEnabled) {
+            Utils.playSound(isCorrect ? Config.sounds.correct : Config.sounds.wrong, 0.5);
         }
 
         this.showWordInfo(question.word);
 
-        const delay = question.word.example ? 2000 : 1000;
-        setTimeout(() => {
-            this.nextQuestion();
-        }, delay);
+        const delay = question.word.example ? 2200 : 1100;
+        setTimeout(() => this.nextQuestion(), delay);
     },
 
     showWordInfo(word) {
@@ -231,25 +236,33 @@ export const SynonymCheck = {
 
     showHint() {
         const question = this.questions[this.currentIndex];
-        if (!question || this.hintUsed) return;
+        if (!question || this.hintUsed || this.answered) return;
 
+        const correctTexts = question.correctAnswers
+            || [question.options[question.correctIndex]];
+        const norm = s => String(s).trim().toLowerCase();
+        const correctSet = new Set(correctTexts.map(norm));
+
+        // Remove exactly ONE wrong option per use — with 2 correct + 2 wrong,
+        // removing more would reveal the answer.
         const choices = document.querySelectorAll('.choice-btn');
-        let removed = 0;
-
-        choices.forEach((btn, index) => {
-            if (index !== question.correctIndex && removed < 2) {
-                btn.style.opacity = '0.3';
-                btn.disabled = true;
-                removed++;
-            }
-        });
+        for (let i = 0; i < choices.length; i++) {
+            const btn = choices[i];
+            if (btn.disabled) continue;
+            if (correctSet.has(norm(question.options[i]))) continue; // never hide a correct one
+            btn.style.opacity = '0.3';
+            btn.disabled = true;
+            this.selected.delete(i);
+            btn.classList.remove('selected');
+            break;
+        }
 
         this.hintUsed = true;
 
         Notification.show({
             type: 'info',
             title: '💡 Gợi ý',
-            message: 'Đã loại bỏ 2 đáp án sai'
+            message: 'Đã loại bỏ 1 đáp án sai',
         });
     },
 

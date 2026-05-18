@@ -9,6 +9,7 @@ import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { ReportsAPI } from '@api/reports.js';
 import { applyColorTheme, applyUiTheme, currentColorThemeKey } from '@/services/theme.js';
 import { downloadBackup, pickAndRestoreBackup, resetProgress } from '@/services/backup.js';
+import { resetAllSettings } from '@/services/settings.js';
 import { STORAGE_KEYS, COLOR_THEME_GUEST_KEY } from '@/constants/storageKeys.js';
 import GeneralPanel from './panels/GeneralPanel.jsx';
 import SoundPanel from './panels/SoundPanel.jsx';
@@ -208,6 +209,25 @@ export default function SettingsScreen({ active }) {
         });
     };
 
+    const handleResetSettings = () => {
+        Modal.show({
+            title: '↩️ Khôi phục cài đặt mặc định',
+            content: `
+                <p>Đưa <strong>toàn bộ cài đặt</strong> về mặc định: giao diện,
+                màu chủ đề, âm thanh, giọng đọc, luyện tập, đảo chiều…</p>
+                <p style="color:var(--text-secondary);margin-top:8px">
+                Tiến độ học (từ vựng, điểm, coins) <strong>không bị ảnh hưởng</strong>.</p>`,
+            buttons: [
+                { text: 'Hủy', className: 'btn-secondary', onClick: () => {} },
+                { text: 'Khôi phục', className: 'btn-primary', onClick: async () => {
+                    await resetAllSettings();
+                    Notification.success('Đã khôi phục cài đặt mặc định');
+                    setTimeout(() => location.reload(), 800);
+                }},
+            ],
+        });
+    };
+
     const handleReportImageChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -309,6 +329,7 @@ export default function SettingsScreen({ active }) {
                             handleBackup={handleBackup}
                             handleRestore={handleRestore}
                             handleReset={handleReset}
+                            handleResetSettings={handleResetSettings}
                         />
                     </div>
 

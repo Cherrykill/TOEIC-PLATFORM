@@ -105,6 +105,11 @@ export const Listening = {
                             <div class="synonyms-label">Đồng nghĩa</div>
                             <div class="synonyms-list">${question.word.synonyms}</div>
                         ` : `<div class="synonyms-prompt">${isReversed ? 'Chọn từ tiếng Anh tương ứng:' : 'Chọn nghĩa đúng của từ bạn vừa nghe:'}</div>`}
+                        ${question.word.example ? `
+                            <div class="word-info-example" style="margin-top:10px">
+                                <i class="fas fa-quote-left" style="opacity:.5;margin-right:6px"></i>${this.maskTarget(question.word.example, question.word.en)}
+                            </div>
+                        ` : ''}
                     </div>
                     ${question.word.image ? `
                         <div class="question-image-col">
@@ -125,6 +130,14 @@ export const Listening = {
         `;
 
         this.attachListeners(question);
+    },
+
+    // Hide the target word in the example so showing it upfront doesn't
+    // give away the listening answer (case-insensitive, whole-word).
+    maskTarget(text, word) {
+        if (!text || !word) return text || '';
+        const esc = String(word).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return String(text).replace(new RegExp(`\\b${esc}\\b`, 'gi'), '______');
     },
 
     attachListeners(question) {
