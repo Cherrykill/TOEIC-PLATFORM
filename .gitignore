@@ -1,0 +1,16 @@
+node_modules/
+node_module/
+public/tts-cache/
+
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Cache & uploads
+public/images/pages/
+uploads/
+cache.json
+
+node_modules

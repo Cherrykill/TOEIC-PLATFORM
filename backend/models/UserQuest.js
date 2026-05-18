@@ -1,0 +1,52 @@
+const mongoose = require('mongoose');
+
+const questEntrySchema = new mongoose.Schema(
+    {
+        questDefinitionId: { type: mongoose.Schema.Types.ObjectId, ref: 'QuestDefinition' },
+        code:        { type: String, required: true },
+        name:        { type: String, required: true },
+        description: { type: String, default: '' },
+        icon:        { type: String, default: '' },
+        mode:        { type: String, default: 'any' },
+        target:      { type: Number, required: true },
+        rewardCoins: { type: Number, default: 0 },
+        rewardXp:    { type: Number, default: 0 },
+        rewardGems:  { type: Number, default: 0 },
+        progress:    { type: Number, default: 0 },
+        completed:   { type: Boolean, default: false },
+        completedAt: { type: Date, default: null },
+        claimedAt:   { type: Date, default: null },
+    },
+    { _id: false }
+);
+
+const userQuestSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        // 'daily' | 'weekly' | 'monthly' | 'special'
+        questType: { type: String, required: true },
+        // 'YYYY-MM-DD' | 'YYYY-WNN' | 'YYYY-MM' | definition code
+        periodKey:  { type: String, required: true },
+
+        quests:         { type: [questEntrySchema], default: [] },
+        totalCompleted: { type: Number, default: 0 },
+        totalRewards: {
+            xp:    { type: Number, default: 0 },
+            coins: { type: Number, default: 0 },
+            gems:  { type: Number, default: 0 },
+        },
+    },
+    {
+        timestamps: true,
+        collection: 'user_quests',
+        versionKey: false,
+    }
+);
+
+userQuestSchema.index({ userId: 1, questType: 1, periodKey: 1 }, { unique: true });
+
+module.exports = mongoose.model('UserQuest', userQuestSchema);

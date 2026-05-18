@@ -1,0 +1,420 @@
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const UserSchema = new mongoose.Schema({
+    username: {
+        type: String,
+        required: [true, 'Please provide username'],
+        unique: true,
+        trim: true,
+        minlength: [3, 'Username must be at least 3 characters'],
+        maxlength: [20, 'Username cannot exceed 20 characters'],
+    },
+    email: {
+        type: String,
+        required: [true, 'Please provide email'],
+        unique: true,
+        lowercase: true,
+        trim: true,
+        match: [
+            /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
+            'Please provide a valid email',
+        ],
+    },
+    password: {
+        type: String,
+        required: [true, 'Please provide password'],
+        minlength: [6, 'Password must be at least 6 characters'],
+        select: false, // Don't return password by default
+    },
+    avatar: {
+        type: String,
+        default: function() {
+            return this.username.charAt(0).toUpperCase();
+        },
+    },
+    level: {
+        type: Number,
+        default: 1,
+    },
+    xp: {
+        type: Number,
+        default: 0,
+    },
+    totalXp: {
+        type: Number,
+        default: 0,
+    },
+    token: {
+        type: String,
+        select: false,
+    },
+    resources: {
+        energy: {
+            type: Number,
+            default: 100,
+        },
+        maxEnergy: {
+            type: Number,
+            default: 100,
+        },
+        coins: {
+            type: Number,
+            default: 0,
+        },
+        gems: {
+            type: Number,
+            default: 0,
+        },
+        hints: {
+            type: Number,
+            default: 0,
+        },
+        shields: {
+            type: Number,
+            default: 0,
+        },
+        lastEnergyUpdate: {
+            type: Date,
+            default: Date.now,
+        },
+    },
+    streak: {
+        current: {
+            type: Number,
+            default: 0,
+        },
+        longest: {
+            type: Number,
+            default: 0,
+        },
+        lastPlayDate: {
+            type: Date,
+            default: null,
+        },
+        shieldsUsed: {
+            type: Number,
+            default: 0,
+        },
+    },
+    progress: {
+        wordsLearned: [{
+            type: String,
+        }],
+        wordsMastered: [{
+            type: String,
+        }],
+        totalGamesPlayed: {
+            type: Number,
+            default: 0,
+        },
+        totalCorrectAnswers: {
+            type: Number,
+            default: 0,
+        },
+        totalWrongAnswers: {
+            type: Number,
+            default: 0,
+        },
+        perfectRounds: {
+            type: Number,
+            default: 0,
+        },
+        highestScore: {
+            type: Number,
+            default: 0,
+        },
+        totalPlayTime: {
+            type: Number,
+            default: 0,
+        },
+        modeStats: {
+            type: Map,
+            of: {
+                played: { type: Number, default: 0 },
+                score: { type: Number, default: 0 },
+                correct: { type: Number, default: 0 },
+                total: { type: Number, default: 0 },
+            },
+            default: {},
+        },
+    },
+    quests: {
+        daily: [{
+            id: String,
+            name: String,
+            description: String,
+            icon: String,
+            type: String,
+            mode: String,
+            target: Number,
+            progress: Number,
+            reward: {
+                coins: Number,
+                xp: Number,
+            },
+            completed: Boolean,
+        }],
+        lastResetDate: {
+            type: Number,
+            default: null,
+        },
+    },
+    achievements: [{
+        id: String,
+        name: String,
+        description: String,
+        icon: String,
+        condition: {
+            type: Map,
+            of: mongoose.Schema.Types.Mixed,
+        },
+        reward: {
+            coins: Number,
+            xp: Number,
+            gems: Number,
+        },
+        unlocked: {
+            type: Boolean,
+            default: false,
+        },
+        unlockedAt: {
+            type: Date,
+            default: null,
+        },
+    }],
+    boosts: {
+        xp: {
+            active: { type: Boolean, default: false },
+            multiplier: { type: Number, default: 1 },
+            expiresAt: { type: Date, default: null },
+        },
+        coins: {
+            active: { type: Boolean, default: false },
+            multiplier: { type: Number, default: 1 },
+            expiresAt: { type: Date, default: null },
+        },
+    },
+    settings: {
+        randomQuestions: {
+            type: Boolean,
+            default: false,
+        },
+        soundEnabled: {
+            type: Boolean,
+            default: true,
+        },
+        soundEffects: {
+            type: Boolean,
+            default: true,
+        },
+        volume: {
+            type: Number,
+            default: 70,
+        },
+        autoPronunciation: {
+            type: Boolean,
+            default: false,
+        },
+        notificationsEnabled: {
+            type: Boolean,
+            default: true,
+        },
+        questionsPerSession: {
+            type: Number,
+            default: 10,
+        },
+        timePerQuestion: {
+            type: Number,
+            default: 30,
+        },
+        difficulty: {
+            type: String,
+            enum: ['easy', 'medium', 'hard'],
+            default: 'medium',
+        },
+        autoSync: {
+            type: Boolean,
+            default: true,
+        },
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user',
+    },
+    isActive: {
+        type: Boolean,
+        default: true,
+    },
+    lastLoginAt: {
+        type: Date,
+        default: Date.now,
+    },
+}, {
+    timestamps: true, // createdAt, updatedAt
+});
+
+// ===================================
+// MIDDLEWARE: Hash password before save
+// ===================================
+UserSchema.pre('save', async function() {
+    // Only hash if password is modified
+    if (!this.isModified('password')) {
+        return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+});
+
+// ===================================
+// METHODS
+// ===================================
+
+/**
+ * Compare password
+ */
+UserSchema.methods.comparePassword = async function(candidatePassword) {
+    try {
+        return await bcrypt.compare(candidatePassword, this.password);
+    } catch (error) {
+        throw error;
+    }
+};
+
+/**
+ * Generate JWT token
+ */
+UserSchema.methods.generateToken = function() {
+    return jwt.sign(
+        { 
+            id: this._id,
+            username: this.username,
+            role: this.role,
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    );
+};
+
+/**
+ * Get public profile (without sensitive data)
+ */
+UserSchema.methods.getPublicProfile = function() {
+    return {
+        id: this._id,
+        username: this.username,
+        email: this.email,
+        avatar: this.avatar,
+        level: this.level,
+        xp: this.xp,
+        totalXp: this.totalXp,
+        resources: this.resources,
+        streak: this.streak,
+        progress: this.progress,
+        achievements: this.achievements,
+        settings: this.settings,
+        createdAt: this.createdAt,
+        lastLoginAt: this.lastLoginAt,
+    };
+};
+
+/**
+ * Add XP and check level up
+ */
+UserSchema.methods.addXp = function(amount) {
+    this.xp += amount;
+    this.totalXp += amount;
+
+    // Calculate XP needed for next level
+    const xpNeeded = Math.floor(100 * Math.pow(this.level, 1.5));
+
+    if (this.xp >= xpNeeded) {
+        this.level += 1;
+        this.xp = this.xp - xpNeeded;
+        return { leveledUp: true, newLevel: this.level };
+    }
+
+    return { leveledUp: false };
+};
+
+/**
+ * Add coins
+ */
+UserSchema.methods.addCoins = function(amount) {
+    this.resources.coins += amount;
+};
+
+/**
+ * Use coins
+ */
+UserSchema.methods.useCoins = function(amount) {
+    if (this.resources.coins < amount) {
+        throw new Error('Not enough coins');
+    }
+    this.resources.coins -= amount;
+};
+
+/**
+ * Add gems
+ */
+UserSchema.methods.addGems = function(amount) {
+    this.resources.gems += amount;
+};
+
+/**
+ * Use energy
+ */
+UserSchema.methods.useEnergy = function(amount) {
+    if (this.resources.energy < amount) {
+        throw new Error('Not enough energy');
+    }
+    this.resources.energy -= amount;
+    this.resources.lastEnergyUpdate = Date.now();
+};
+
+/**
+ * Regenerate energy
+ */
+UserSchema.methods.regenerateEnergy = function() {
+    const now = Date.now();
+    const lastUpdate = this.resources.lastEnergyUpdate.getTime();
+    const minutesPassed = Math.floor((now - lastUpdate) / 60000);
+
+    if (minutesPassed > 0 && this.resources.energy < this.resources.maxEnergy) {
+        const energyToAdd = Math.min(
+            minutesPassed,
+            this.resources.maxEnergy - this.resources.energy
+        );
+        this.resources.energy += energyToAdd;
+        this.resources.lastEnergyUpdate = now;
+    }
+};
+
+/**
+ * Update streak
+ */
+UserSchema.methods.updateStreak = function() {
+    const today = new Date().setHours(0, 0, 0, 0);
+    const lastPlay = this.streak.lastPlayDate 
+        ? new Date(this.streak.lastPlayDate).setHours(0, 0, 0, 0) 
+        : null;
+
+    if (!lastPlay || lastPlay < today - 86400000) {
+        // More than 1 day passed - reset streak
+        this.streak.current = 1;
+    } else if (lastPlay === today - 86400000) {
+        // Exactly 1 day - continue streak
+        this.streak.current += 1;
+        if (this.streak.current > this.streak.longest) {
+            this.streak.longest = this.streak.current;
+        }
+    }
+    // Same day - don't change streak
+
+    this.streak.lastPlayDate = Date.now();
+};
+
+module.exports = mongoose.model('User', UserSchema);

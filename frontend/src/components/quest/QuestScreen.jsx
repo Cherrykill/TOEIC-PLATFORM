@@ -1,0 +1,204 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useGame } from '@game/GameContext.jsx';
+import { EventBus, GameEvents } from '@game/eventBus.js';
+import { Notification } from '@ui/Toaster.jsx';
+import { Quest } from '@components/quest/quest.js';
+
+const TABS = [
+    { type: 'daily',   label: 'Hàng ngày',  icon: 'fa-sun' },
+    { type: 'weekly',  label: 'Hàng tuần',  icon: 'fa-calendar-week' },
+    { type: 'monthly', label: 'Hàng tháng', icon: 'fa-calendar-alt' },
+    { type: 'special', label: 'Đặc biệt',   icon: 'fa-star' },
+];
+
+function formatCountdown(ms) {
+    if (!ms || ms <= 0) return '--:--:--';
+    const s = Math.floor(ms / 1000);
+    const h = String(Math.floor(s / 3600)).padStart(2, '0');
+    const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+    const sec = String(s % 60).padStart(2, '0');
+    return `${h}:${m}:${sec}`;
+}
+
+function getTimeUntilReset(type) {
+    if (Quest?.getNextReset) {
+        const nextReset = Quest.getNextReset(type);
+        if (nextReset) return Math.max(0, new Date(nextReset) - Date.now());
+    }
+    const now = new Date();
+    if (type === 'daily') {
+        const midnight = new Date(now); midnight.setHours(24, 0, 0, 0);
+        return midnight - now;
+    }
+    if (type === 'weekly') {
+        const next = new Date(now);
+        next.setDate(now.getDate() + (7 - now.getDay()));
+        next.setHours(0, 0, 0, 0);
+        return next - now;
+    }
+    if (type === 'monthly') {
+        const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return next - now;
+    }
+    return 0;
+}
+
+export default function QuestScreen({ active }) {
+    const { showScreen, syncFromState } = useGame();
+    const [activeTab, setActiveTab] = useState('daily');
+    const [quests, setQuests] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [timer, setTimer] = useState('--:--:--');
+    const [claimedCodes, setClaimedCodes] = useState(new Set());
+
+    const readFromQuestModule = useCallback((type) => {
+        const data = Quest?.getQuests?.(type);
+        if (data?.length > 0) { setQuests([...data]); return true; }
+        const gsQuests = window.GameState?.state?.quests?.[type];
+        if (gsQuests?.length > 0) { setQuests([...gsQuests]); return true; }
+        return false;
+    }, []);
+
+    const loadQuests = useCallback(async (type) => {
+        if (readFromQuestModule(type)) {
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        if (Quest?.loadType) {
+            try {
+                await Quest.loadType(type);
+                readFromQuestModule(type);
+                setLoading(false);
+                return;
+            } catch {}
+        }
+
+        const token = (() => { try { return JSON.parse(localStorage.getItem('authToken') || '{}').token; } catch { return null; } })();
+        const res = await fetch(`/api/quests?type=${type}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }).then(r => r.json()).catch(() => ({ success: false }));
+        setQuests(res.success ? (res.data?.quests || []) : []);
+        setLoading(false);
+    }, [readFromQuestModule]);
+
+    useEffect(() => {
+        if (active) loadQuests(activeTab);
+    }, [active, activeTab, loadQuests]);
+
+    useEffect(() => {
+        const unsub = EventBus.on(GameEvents.QUEST_UPDATED, ({ type }) => {
+            if (!type || type === activeTab) readFromQuestModule(activeTab);
+        });
+        return unsub;
+    }, [activeTab, readFromQuestModule]);
+
+    useEffect(() => {
+        if (!active) return;
+        const tick = () => setTimer(formatCountdown(getTimeUntilReset(activeTab)));
+        tick();
+        const id = setInterval(tick, 1000);
+        return () => clearInterval(id);
+    }, [active, activeTab]);
+
+    async function handleClaim(type, questCode) {
+        setClaimedCodes(prev => new Set([...prev, questCode]));
+
+        if (Quest?.claimReward) {
+            const rewards = await Quest.claimReward(type, questCode);
+            if (rewards !== null && rewards !== undefined) {
+                Notification.success('Nhận thưởng thành công!');
+                loadQuests(type);
+                syncFromState();
+                return;
+            }
+        }
+        const token = (() => { try { return JSON.parse(localStorage.getItem('authToken') || '{}').token; } catch { return null; } })();
+        const res = await fetch('/api/quests/claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            body: JSON.stringify({ type, code: questCode }),
+        }).then(r => r.json()).catch(() => ({ success: false }));
+        if (res.success) {
+            Notification.success('Nhận thưởng thành công!');
+            loadQuests(type);
+            syncFromState();
+        } else {
+            setClaimedCodes(prev => { const s = new Set(prev); s.delete(questCode); return s; });
+            Notification.error(res.message || 'Không thể nhận thưởng');
+        }
+    }
+
+    return (
+        <div id="quest-screen" className={`screen ${active ? 'active' : ''}`}>
+            <div className="screen-header">
+                <button className="back-btn-screen icon-btn" onClick={() => showScreen('home-screen')}>
+                    <i className="fas fa-arrow-left"></i>
+                </button>
+                <h2><i className="fas fa-tasks"></i> Nhiệm vụ</h2>
+            </div>
+            <div className="quest-screen-body">
+                <div className="quest-tabs">
+                    {TABS.map(tab => (
+                        <button
+                            key={tab.type}
+                            className={`quest-tab ${activeTab === tab.type ? 'active' : ''}`}
+                            data-quest-type={tab.type}
+                            onClick={() => { setActiveTab(tab.type); setClaimedCodes(new Set()); }}
+                        >
+                            <i className={`fas ${tab.icon}`}></i> {tab.label}
+                        </button>
+                    ))}
+                </div>
+                <div className="quest-reset-info">
+                    <span id="quest-screen-timer-label">Làm mới sau:</span>
+                    <span id="quest-screen-timer" className="quest-timer-value">{timer}</span>
+                </div>
+                <div id="quest-screen-list" className="quests-container">
+                    {loading ? (
+                        <div className="quest-loading"><i className="fas fa-spinner fa-spin"></i> Đang tải...</div>
+                    ) : quests.length === 0 ? (
+                        <div className="quest-empty">Không có nhiệm vụ nào</div>
+                    ) : quests.map((quest, i) => {
+                        const progress = quest.progress ?? quest.current ?? 0;
+                        const target = quest.target || 1;
+                        const pct = Math.min(100, Math.round((progress / target) * 100));
+                        const isClaimed = !!(quest.claimedAt || quest.claimed) || claimedCodes.has(quest.code || quest.id);
+                        const name = (quest.name || '').replace('{target}', target);
+                        return (
+                            <div key={quest.code || quest.id || i} className={`quest-card${quest.completed ? ' completed' : ''}${isClaimed ? ' claimed' : ''}`}>
+                                <div className="quest-header">
+                                    <div className="quest-title">
+                                        <div className="quest-icon">{quest.icon || '🎯'}</div>
+                                        <span>{name}</span>
+                                    </div>
+                                    <div className="quest-reward">
+                                        {quest.rewardCoins > 0 && <span><i className="fas fa-coins"></i> {quest.rewardCoins}</span>}
+                                        {quest.rewardXp > 0 && <span><i className="fas fa-star"></i> {quest.rewardXp} XP</span>}
+                                        {quest.rewardGems > 0 && <span><i className="fas fa-gem"></i> {quest.rewardGems}</span>}
+                                        {!quest.rewardCoins && quest.reward?.coins > 0 && <span><i className="fas fa-coins"></i> {quest.reward.coins}</span>}
+                                        {!quest.rewardXp && quest.reward?.xp > 0 && <span><i className="fas fa-star"></i> {quest.reward.xp} XP</span>}
+                                        {!quest.rewardGems && quest.reward?.gems > 0 && <span><i className="fas fa-gem"></i> {quest.reward.gems}</span>}
+                                    </div>
+                                </div>
+                                {quest.description && <div className="quest-description">{quest.description}</div>}
+                                <div className="quest-progress">
+                                    <div className="quest-progress-bar">
+                                        <div className="quest-progress-fill" style={{ width: `${pct}%` }}></div>
+                                    </div>
+                                    <div className="quest-progress-text">{progress} / {target}</div>
+                                </div>
+                                {quest.completed && (
+                                    isClaimed
+                                        ? <div className="quest-claimed-badge"><i className="fas fa-check-circle"></i> Đã nhận thưởng</div>
+                                        : <button className="quest-claim-btn btn btn-primary btn-sm" onClick={() => handleClaim(activeTab, quest.code || quest.id)}>Nhận thưởng</button>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+}

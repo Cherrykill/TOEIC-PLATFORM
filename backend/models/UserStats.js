@@ -1,0 +1,93 @@
+const mongoose = require('mongoose');
+
+const modeStatSchema = new mongoose.Schema(
+    {
+        played: { type: Number, default: 0 },
+        score: { type: Number, default: 0 },
+        correct: { type: Number, default: 0 },
+        total: { type: Number, default: 0 },
+    },
+    { _id: false }
+);
+
+const userStatsSchema = new mongoose.Schema(
+    {
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+            unique: true,
+        },
+
+        // XP & Level progression
+        xp: { type: Number, default: 0 },
+        totalXp: { type: Number, default: 0 },
+
+        // Resources
+        coins: { type: Number, default: 0 },
+        gems: { type: Number, default: 0 },
+        energy: { type: Number, default: 100 },
+        maxEnergy: { type: Number, default: 100 },
+        lastEnergyUpdate: { type: Date, default: Date.now },
+
+        // Inventory
+        hints: { type: Number, default: 0 },
+        shields: { type: Number, default: 0 },
+        timeFreezes: { type: Number, default: 0 },
+
+        // Streak
+        streakCurrent: { type: Number, default: 0 },
+        streakLongest: { type: Number, default: 0 },
+        streakLastPlayDate: { type: Date, default: null },
+        streakShieldsUsed: { type: Number, default: 0 },
+
+        // Aggregate progress
+        wordsLearned: { type: [String], default: [] },
+        wordsMastered: { type: [String], default: [] },
+        totalSessions: { type: Number, default: 0 },
+        totalGamesPlayed: { type: Number, default: 0 },
+        totalQuestionsAnswered: { type: Number, default: 0 },
+        totalCorrectAnswers: { type: Number, default: 0 },
+        totalWrongAnswers: { type: Number, default: 0 },
+        perfectRounds: { type: Number, default: 0 },
+        highestScore: { type: Number, default: 0 },
+        totalPlayTime: { type: Number, default: 0 },
+
+        // Per-mode breakdown
+        modeStats: {
+            type: Map,
+            of: modeStatSchema,
+            default: () => new Map(),
+        },
+
+        // Active boosts
+        xpBoostActive: { type: Boolean, default: false },
+        xpBoostMultiplier: { type: Number, default: 1 },
+        xpBoostExpiresAt: { type: Date, default: null },
+        coinsBoostActive: { type: Boolean, default: false },
+        coinsBoostMultiplier: { type: Number, default: 1 },
+        coinsBoostExpiresAt: { type: Date, default: null },
+
+        // Daily practice history (last 90 days)
+        practiceHistory: [{
+            date: { type: String, required: true },
+            sessionsCompleted: { type: Number, default: 0 },
+            questionsAnswered: { type: Number, default: 0 },
+            correctAnswers: { type: Number, default: 0 },
+            totalXpEarned: { type: Number, default: 0 },
+            totalCoinsEarned: { type: Number, default: 0 },
+            timeSpent: { type: Number, default: 0 },
+        }],
+    },
+    {
+        timestamps: true,
+        collection: 'user_stats',
+        versionKey: false,
+    }
+);
+
+userStatsSchema.index({ totalXp: -1 });
+userStatsSchema.index({ highestScore: -1 });
+userStatsSchema.index({ streakCurrent: -1 });
+
+module.exports = mongoose.model('UserStats', userStatsSchema);

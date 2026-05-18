@@ -1,0 +1,36 @@
+// "Practice" panel. Presentational — state/handlers passed from SettingsScreen.
+import Toggle from './Toggle.jsx';
+
+export default function PracticePanel({ s, handleQPS, updateSetting, handleDifficulty }) {
+    return (
+        <div className="settings-section">
+            <h3>Cài đặt luyện tập</h3>
+            <div className="setting-item">
+                <label>Số câu mỗi lượt</label>
+                <select value={s.questionsPerSession || 10} onChange={e => handleQPS(e.target.value)}>
+                    {[5, 10, 15, 20, 25, 30, 50, 100].map(n => <option key={n} value={n}>{n} câu</option>)}
+                    <option value="auto">Toàn bộ (auto)</option>
+                </select>
+            </div>
+            <div className="setting-item">
+                <div className="setting-info"><h4>Giới hạn thời gian</h4><p>Đếm ngược cho mỗi câu hỏi</p></div>
+                <Toggle checked={s.timeLimitEnabled !== false} onChange={v => updateSetting('timeLimitEnabled', v)} />
+            </div>
+            <div className="setting-item">
+                <label>Thời gian mỗi câu (giây)</label>
+                <select value={s.timePerQuestion || 30} onChange={e => updateSetting('timePerQuestion', parseInt(e.target.value))}>
+                    {[10, 15, 20, 30, 45, 60].map(n => <option key={n} value={n}>{n}s</option>)}
+                </select>
+            </div>
+            <div className="setting-item">
+                <label>Độ khó</label>
+                <select value={s.difficulty || 'adaptive'} onChange={e => handleDifficulty(e.target.value)}>
+                    <option value="easy">Dễ (A1-A2)</option>
+                    <option value="medium">Trung bình (B1-B2)</option>
+                    <option value="hard">Khó (C1-C2)</option>
+                    <option value="adaptive">Toàn bộ</option>
+                </select>
+            </div>
+        </div>
+    );
+}

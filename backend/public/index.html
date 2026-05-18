@@ -1,0 +1,2049 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https:"
+    />
+    <title>TOEIC Learning Platform - Nền tảng học tập trực tuyến</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/dark-mode.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+    <link rel="stylesheet" href="css/ai.css" />
+    <link rel="stylesheet" href="css/toeic.css" />
+    <link rel="stylesheet" href="css/new-modes.css" />
+    <link rel="stylesheet" href="css/topicSelector.css" />
+    <link rel="stylesheet" href="css/upload.css" />
+
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <p>Đang tải game...</p>
+      </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div id="game-container" class="game-container" style="display: none">
+      <!-- Top Navigation Bar -->
+      <nav class="top-nav">
+        <div class="nav-left">
+          <button id="menu-btn" class="icon-btn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <button id="home-btn" class="icon-btn nav-home-btn" title="Trang chủ">
+            <i class="fas fa-home"></i>
+          </button>
+          <div class="notif-wrapper">
+            <button id="notif-btn" class="icon-btn" title="Thông báo">
+              <i class="fas fa-bell"></i>
+              <span id="notif-badge" class="notif-badge" style="display:none">0</span>
+            </button>
+            <div id="notif-panel" class="notif-panel" style="display:none">
+              <div class="notif-panel-header">
+                <span>Thông báo</span>
+                <button id="notif-read-all" class="notif-read-all-btn">Đánh dấu đã đọc</button>
+              </div>
+              <div class="notif-tabs">
+                <button class="notif-tab active" data-tab="all">Tất cả<span id="ntab-badge-all" class="ntab-badge" style="display:none"></span></button>
+                <button class="notif-tab" data-tab="system">Hệ thống<span id="ntab-badge-system" class="ntab-badge" style="display:none"></span></button>
+                <button class="notif-tab" data-tab="account">Tài khoản<span id="ntab-badge-account" class="ntab-badge" style="display:none"></span></button>
+                <button class="notif-tab" data-tab="violation">Vi phạm<span id="ntab-badge-violation" class="ntab-badge ntab-badge-violation" style="display:none"></span></button>
+              </div>
+              <div id="notif-list" class="notif-list">
+                <div class="notif-empty">Không có thông báo nào</div>
+              </div>
+            </div>
+          </div>
+          <div class="user-info">
+            <div class="avatar-small" id="user-avatar"></div>
+            <div class="user-details">
+              <span id="username" class="username">Player</span>
+              <div class="level-badge">
+                <i class="fas fa-star"></i>
+                <span>Level </span><span id="user-level">1</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-center">
+          <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              id="search-input"
+              placeholder="Tìm từ vựng..."
+              autocomplete="on"
+            />
+            <button
+              id="clear-search-btn"
+              class="clear-search-btn"
+              style="display: none"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <button
+            id="nav-favorite-btn"
+            class="icon-btn"
+            title="Danh sách từ yêu thích"
+          >
+            <i class="fas fa-star"></i>
+          </button>
+          <button id="topic-selector-btn" class="icon-btn" title="Chọn đề">
+            <i class="fas fa-book"></i>
+          </button>
+          <button id="part-selector-btn" class="icon-btn" title="Chọn Part">
+            <i class="fas fa-layer-group"></i>
+          </button>
+          <button id="upload-btn" class="icon-btn" title="Tải lên từ vựng">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </button>
+          <button
+            id="theme-toggle-btn"
+            class="icon-btn"
+            title="Chuyển chế độ sáng/tối"
+          >
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+      </nav>
+
+      <!-- Status Bar (XP + Resources + Quick Settings) -->
+      <div class="status-bar" id="status-bar">
+        <div class="status-bar-left">
+          <!-- Part Badge -->
+          <div id="part-badge" class="part-badge" style="display: none">
+            <i class="fas fa-layer-group"></i>
+            <span id="part-badge-text">Part 1</span>
+            <button
+              class="part-badge-close"
+              id="clear-part-btn"
+              title="Xóa Part"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <!-- Session Info Badge -->
+          <div id="session-info-badge" class="session-info-badge">
+            <i class="fas fa-list-ol"></i>
+            <span id="session-info-text">20 câu • Ngẫu nhiên</span>
+          </div>
+          <div class="status-bar-divider"></div>
+          <div class="resource energy-display">
+            <i class="fas fa-bolt"></i>
+            <span id="energy-count">100</span>
+            <span class="resource-max">/100</span>
+          </div>
+          <div class="resource coins-display">
+            <i class="fas fa-coins"></i>
+            <span id="coins-count">0</span>
+          </div>
+          <div class="resource gems-display">
+            <i class="fas fa-gem"></i>
+            <span id="gems-count">0</span>
+          </div>
+        </div>
+
+        <div class="status-bar-center">
+          <div class="xp-bar-mini">
+            <div id="xp-progress" class="xp-progress" style="width: 0%"></div>
+          </div>
+          <span class="xp-text-mini">
+            <span id="current-xp">0</span>/<span id="needed-xp">100</span> XP
+          </span>
+        </div>
+
+        <div class="status-bar-right">
+          <!-- Quick Questions Per Session Selector -->
+          <div class="quick-difficulty-selector" title="Số câu hỏi mỗi lượt">
+            <select id="quick-questions-select">
+              <option value="5">5 câu</option>
+              <option value="10" selected>10 câu</option>
+              <option value="15">15 câu</option>
+              <option value="20">20 câu</option>
+              <option value="25">25 câu</option>
+              <option value="30">30 câu</option>
+              <option value="40">40 câu</option>
+              <option value="50">50 câu</option>
+              <option value="75">75 câu</option>
+              <option value="100">100 câu</option>
+              <option value="150">150 câu</option>
+              <option value="200">200 câu</option>
+              <option value="auto">Toàn bộ</option>
+            </select>
+          </div>
+          <!-- Quick Difficulty Selector -->
+          <div class="quick-difficulty-selector" title="Độ khó câu hỏi">
+            <select id="quick-difficulty-select">
+              <option value="easy">Dễ (A1-A2)</option>
+              <option value="medium">TB (B1-B2)</option>
+              <option value="hard">Khó (C1-C2)</option>
+              <option value="adaptive" selected>Toàn bộ</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <main id="main-content" class="main-content">
+        <!-- Home Screen -->
+        <div id="home-screen" class="screen active">
+          <!-- Daily Streak -->
+          <div class="streak-card">
+            <div class="streak-flame">
+              <div class="flame-anim">
+                <i class="fas fa-fire"></i>
+              </div>
+            </div>
+            <div class="streak-info">
+              <h3><span id="streak-count">0</span> ngày liên tục</h3>
+              <p>Học mỗi ngày để giữ streak!</p>
+            </div>
+          </div>
+
+          <!-- Daily Quests -->
+          <section class="quests-section">
+            <div class="section-header">
+              <h2><i class="fas fa-tasks"></i> Nhiệm vụ hàng ngày</h2>
+              <span id="quest-timer" class="timer">23:59:59</span>
+            </div>
+            <div id="daily-quests" class="quests-container">
+              <!-- Quests will be dynamically loaded -->
+            </div>
+          </section>
+
+          <!-- Game Modes -->
+          <section class="game-modes-section">
+            <h2><i class="fas fa-gamepad"></i> Chọn chế độ chơi</h2>
+            <div class="game-modes-grid">
+              <!-- ========== NHÓM 1: Học & Nhận diện từ ========== -->
+              <div class="mode-group-label">
+                <i class="fas fa-book-open"></i> Học & Nhận diện từ
+              </div>
+
+              <div class="game-mode-card" data-mode="flashcard">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #10b981, #059669)"
+                >
+                  <i class="fas fa-layer-group"></i>
+                </div>
+                <h3>Flashcard</h3>
+                <p>Học từ vựng theo thẻ ghi nhớ</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 8</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="multiple-choice">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #10b981, #059669)"
+                >
+                  <i class="fas fa-circle-check"></i>
+                </div>
+                <h3>Trắc nghiệm</h3>
+                <p>Chọn nghĩa đúng của từ</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 10</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="matching">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #10b981, #059669)"
+                >
+                  <i class="fas fa-link"></i>
+                </div>
+                <h3>Nối từ</h3>
+                <p>Nối từ với nghĩa tương ứng</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 10</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="word-type-check">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #10b981, #059669)"
+                >
+                  <i class="fas fa-tag"></i>
+                </div>
+                <h3>Từ loại</h3>
+                <p>Xác định từ loại của từ</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 10</div>
+              </div>
+
+              <!-- ========== NHÓM 2: Nghe & Phát âm ========== -->
+              <div class="mode-group-label">
+                <i class="fas fa-headphones"></i> Nghe & Phát âm
+              </div>
+
+              <div class="game-mode-card" data-mode="listening">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #3b82f6, #2563eb)"
+                >
+                  <i class="fas fa-headphones"></i>
+                </div>
+                <h3>Nghe và chọn</h3>
+                <p>Nghe từ, chọn từ đúng trong 4 lựa chọn</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 12</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="pronunciation">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #3b82f6, #2563eb)"
+                >
+                  <i class="fas fa-microphone"></i>
+                </div>
+                <h3>Phát âm</h3>
+                <p>Nói đúng từ tiếng Anh để ghi điểm</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 15</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="dictation">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #3b82f6, #2563eb)"
+                >
+                  <i class="fas fa-keyboard"></i>
+                </div>
+                <h3>Chép chính tả</h3>
+                <p>Nghe từ và gõ lại chính xác tiếng Anh</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 15</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="sentence-listening">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #3b82f6, #2563eb)"
+                >
+                  <i class="fas fa-ear-listen"></i>
+                </div>
+                <h3>Nghe chuỗi từ</h3>
+                <p>Nghe 3 từ đọc liên tiếp, chọn đúng trong lưới 8 từ</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 12</div>
+              </div>
+
+              <!-- ========== NHÓM 3: Đọc & Viết ========== -->
+              <div class="mode-group-label">
+                <i class="fas fa-pen-nib"></i> Đọc & Viết
+              </div>
+
+              <div class="game-mode-card" data-mode="fill-blank">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #f59e0b, #d97706)"
+                >
+                  <i class="fas fa-pen"></i>
+                </div>
+                <h3>Điền từ</h3>
+                <p>Điền từ tiếng Anh vào chỗ trống</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 15</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="example-fill-blank">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #f59e0b, #d97706)"
+                >
+                  <i class="fas fa-pen-to-square"></i>
+                </div>
+                <h3>Điền vào câu</h3>
+                <p>Điền từ đúng vào câu ví dụ</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 12</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="sentence-builder">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #f59e0b, #d97706)"
+                >
+                  <i class="fas fa-puzzle-piece"></i>
+                </div>
+                <h3>Xếp câu</h3>
+                <p>Sắp xếp cụm từ thành câu hoàn chỉnh</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 15</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="phonetic-quiz">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #f59e0b, #d97706)"
+                >
+                  <i class="fas fa-spell-check"></i>
+                </div>
+                <h3>Đọc phiên âm</h3>
+                <p>Nhìn ký hiệu IPA, tìm từ tiếng Anh tương ứng</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 12</div>
+              </div>
+
+              <!-- ========== NHÓM 4: Nâng cao & Thử thách ========== -->
+              <div class="mode-group-label">
+                <i class="fas fa-brain"></i> Nâng cao & Thử thách
+              </div>
+
+              <div class="game-mode-card" data-mode="context-learning">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #8b5cf6, #7c3aed)"
+                >
+                  <i class="fas fa-book-reader"></i>
+                </div>
+                <h3>Hiểu qua câu</h3>
+                <p>Đọc câu ví dụ, suy luận nghĩa tiếng Việt</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 10</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="synonym-check">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #8b5cf6, #7c3aed)"
+                >
+                  <i class="fas fa-equals"></i>
+                </div>
+                <h3>Từ đồng nghĩa</h3>
+                <p>Tìm từ đồng nghĩa với từ cho sẵn</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 10</div>
+              </div>
+
+              <div class="game-mode-card" data-mode="speed-quiz">
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #8b5cf6, #7c3aed)"
+                >
+                  <i class="fas fa-clock"></i>
+                </div>
+                <h3>Tốc độ</h3>
+                <p>Trả lời nhanh nhất trong giới hạn thời gian</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 20</div>
+              </div>
+
+              <div
+                class="game-mode-card"
+                data-mode="review-mistakes"
+                style="border: 2px solid #8b5cf6"
+              >
+                <div
+                  class="mode-icon"
+                  style="background: linear-gradient(135deg, #8b5cf6, #7c3aed)"
+                >
+                  <i class="fas fa-repeat"></i>
+                </div>
+                <h3>Ôn lại từ sai</h3>
+                <p>Luyện lại các từ đã làm sai</p>
+                <div class="mode-cost"><i class="fas fa-bolt"></i> 10</div>
+                <div
+                  class="wrong-words-count"
+                  id="wrong-words-count"
+                  style="
+                    margin-top: 8px;
+                    color: #a855f7;
+                    font-weight: bold;
+                    font-size: 0.9em;
+                  "
+                >
+                  <i class="fas fa-exclamation-circle"></i> <span>0</span> từ
+                  cần ôn
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Quick Stats -->
+          <section class="stats-section">
+            <h2><i class="fas fa-chart-line"></i> Thống kê của bạn</h2>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <i class="fas fa-book"></i>
+                <div class="stat-value" id="words-learned">0</div>
+                <div class="stat-label">Từ đã học</div>
+              </div>
+              <div class="stat-card">
+                <i class="fas fa-trophy"></i>
+                <div class="stat-value" id="total-score">0</div>
+                <div class="stat-label">Tổng XP</div>
+              </div>
+              <div class="stat-card">
+                <i class="fas fa-chart-line"></i>
+                <div class="stat-value" id="accuracy-rate">0%</div>
+                <div class="stat-label">Độ chính xác</div>
+              </div>
+              <div class="stat-card">
+                <i class="fas fa-crown"></i>
+                <div class="stat-value" id="rank-position">-</div>
+                <div class="stat-label">Xếp hạng</div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Practice Screen -->
+        <div id="practice-screen" class="screen">
+          <div class="practice-header">
+            <button id="back-btn" class="icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <div class="practice-info">
+              <h2 id="practice-mode-title">Chế độ luyện tập</h2>
+              <div class="practice-meta">
+                <span
+                  id="practice-difficulty-badge"
+                  class="difficulty-badge"
+                ></span>
+                <span class="practice-progress">
+                  <span id="question-number">1</span> /
+                  <span id="total-questions">10</span>
+                </span>
+              </div>
+            </div>
+            <div class="practice-timer">
+              <i class="fas fa-clock"></i>
+              <span id="practice-timer">00:00</span>
+            </div>
+          </div>
+
+          <div class="practice-score-bar">
+            <div class="score-item">
+              <i class="fas fa-star"></i>
+              <span id="practice-score">0</span>
+            </div>
+            <div class="score-item">
+              <i class="fas fa-check-circle"></i>
+              <span id="correct-count">0</span>
+            </div>
+            <div class="score-item">
+              <i class="fas fa-times-circle"></i>
+              <span id="wrong-count">0</span>
+            </div>
+          </div>
+
+          <!-- Practice Content will be loaded dynamically -->
+          <div id="practice-content" class="practice-content">
+            <!-- Dynamic content here -->
+          </div>
+
+          <div class="practice-actions">
+            <button id="hint-btn" class="action-btn hint-btn">
+              <i class="fas fa-lightbulb"></i>
+              <span>Gợi ý</span>
+              <span class="cost">50 <i class="fas fa-coins"></i></span>
+            </button>
+            <button id="freeze-btn" class="action-btn freeze-btn">
+              <i class="fas fa-pause"></i>
+              <span>Dừng thời gian</span>
+              <span class="freeze-count">0</span>
+            </button>
+            <button id="skip-btn" class="action-btn skip-btn">
+              <i class="fas fa-forward"></i>
+              <span>Bỏ qua</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Shop Screen -->
+        <div id="shop-screen" class="screen">
+          <div class="screen-header">
+            <button class="back-btn-screen icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-shopping-cart"></i> Cửa hàng</h2>
+          </div>
+          <div id="shop-content" class="shop-content">
+            <!-- Shop items will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Quest Screen -->
+        <div id="quest-screen" class="screen">
+          <div class="screen-header">
+            <button class="back-btn-screen icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-tasks"></i> Nhiệm vụ</h2>
+          </div>
+          <div class="quest-screen-body">
+            <!-- Tabs -->
+            <div class="quest-tabs">
+              <button class="quest-tab active" data-quest-type="daily">
+                <i class="fas fa-sun"></i> Hàng ngày
+              </button>
+              <button class="quest-tab" data-quest-type="weekly">
+                <i class="fas fa-calendar-week"></i> Hàng tuần
+              </button>
+              <button class="quest-tab" data-quest-type="monthly">
+                <i class="fas fa-calendar-alt"></i> Hàng tháng
+              </button>
+              <button class="quest-tab" data-quest-type="special">
+                <i class="fas fa-star"></i> Đặc biệt
+              </button>
+            </div>
+            <!-- Timer -->
+            <div class="quest-reset-info">
+              <span id="quest-screen-timer-label">Làm mới sau:</span>
+              <span id="quest-screen-timer" class="quest-timer-value"
+                >--:--:--</span
+              >
+            </div>
+            <!-- Quest list -->
+            <div id="quest-screen-list" class="quests-container">
+              <div class="quest-loading">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboard-screen" class="screen">
+          <div class="screen-header">
+            <button class="back-btn-screen icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-trophy"></i> Bảng xếp hạng</h2>
+            <button
+              id="refresh-leaderboard-btn"
+              class="icon-btn"
+              title="Làm mới"
+            >
+              <i class="fas fa-rotate-right"></i>
+            </button>
+            <button
+              id="share-leaderboard-btn"
+              class="icon-btn share-screen-btn"
+              title="Chia sẻ"
+            >
+              <i class="fas fa-share-alt"></i>
+            </button>
+          </div>
+          <div class="leaderboard-tabs">
+            <button class="tab-btn active" data-period="daily">Hôm nay</button>
+            <button class="tab-btn" data-period="weekly">Tuần này</button>
+            <button class="tab-btn" data-period="all-time">Mọi lúc</button>
+          </div>
+          <div class="leaderboard-search-bar">
+            <i class="fas fa-search"></i>
+            <input
+              type="text"
+              id="leaderboard-search-input"
+              placeholder="Tìm theo tên hoặc ID người chơi..."
+            />
+          </div>
+          <div id="leaderboard-content" class="leaderboard-content">
+            <!-- Leaderboard will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Profile Screen -->
+        <div id="profile-screen" class="screen">
+          <div class="screen-header">
+            <button class="back-btn-screen icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-user"></i> Hồ sơ</h2>
+          </div>
+          <div id="profile-content" class="profile-content">
+            <!-- Profile will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Achievements Screen -->
+        <div id="achievements-screen" class="screen">
+          <div class="screen-header">
+            <button class="back-btn-screen icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-medal"></i> Thành tích</h2>
+            <button
+              id="share-achievements-btn"
+              class="icon-btn share-screen-btn"
+              title="Chia sẻ"
+            >
+              <i class="fas fa-share-alt"></i>
+            </button>
+          </div>
+
+          <div class="achievements-content">
+            <!-- Achievement Progress -->
+            <div class="achievement-progress-card">
+              <h3>🏆 Tiến độ thành tích</h3>
+              <div class="progress-stats">
+                <div class="progress-item">
+                  <span class="progress-label">Đã mở khóa</span>
+                  <span class="progress-value" id="unlocked-achievements"
+                    >0/50</span
+                  >
+                </div>
+                <div class="progress-bar-container">
+                  <div
+                    class="progress-bar-fill"
+                    id="achievement-progress"
+                    style="width: 0%"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Achievement Categories -->
+            <div class="achievement-tabs">
+              <button class="achievement-tab active" data-category="all">
+                <i class="fas fa-star"></i> Tất cả
+              </button>
+              <button class="achievement-tab" data-category="learning">
+                <i class="fas fa-book"></i> Học tập
+              </button>
+              <button class="achievement-tab" data-category="practice">
+                <i class="fas fa-gamepad"></i> Luyện tập
+              </button>
+              <button class="achievement-tab" data-category="social">
+                <i class="fas fa-users"></i> Xã hội
+              </button>
+              <button class="achievement-tab" data-category="special">
+                <i class="fas fa-gem"></i> Đặc biệt
+              </button>
+            </div>
+
+            <!-- Achievements Grid -->
+            <div class="achievements-grid" id="achievements-grid">
+              <!-- Example Achievement Card (Locked) -->
+              <div class="achievement-card locked">
+                <div class="achievement-icon">
+                  <i class="fas fa-lock"></i>
+                </div>
+                <div class="achievement-info">
+                  <h4>Người mới bắt đầu</h4>
+                  <p>Hoàn thành 10 câu hỏi đầu tiên</p>
+                  <div class="achievement-progress-bar">
+                    <div class="progress-fill" style="width: 30%"></div>
+                  </div>
+                  <span class="achievement-progress-text">3/10</span>
+                </div>
+                <div class="achievement-reward">
+                  <i class="fas fa-coins"></i> 100
+                </div>
+              </div>
+
+              <!-- Example Achievement Card (Unlocked) -->
+              <div class="achievement-card unlocked">
+                <div class="achievement-icon gold">
+                  <i class="fas fa-trophy"></i>
+                </div>
+                <div class="achievement-info">
+                  <h4>Streaker</h4>
+                  <p>Học liên tục 7 ngày</p>
+                  <span class="unlocked-badge">✓ Đã mở khóa</span>
+                </div>
+                <div class="achievement-reward earned">
+                  <i class="fas fa-check-circle"></i> Đã nhận
+                </div>
+              </div>
+
+              <!-- More achievements will be loaded dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistics Screen -->
+        <div id="statistics-screen" class="screen">
+          <div class="screen-header">
+            <button class="back-btn-screen icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-chart-bar"></i> Thống kê chi tiết</h2>
+          </div>
+
+          <div class="statistics-content">
+            <!-- Time Range Selector (global filter, always visible) -->
+            <div class="time-range-selector">
+              <button class="time-range-btn active" data-range="week">
+                7 ngày
+              </button>
+              <button class="time-range-btn" data-range="month">30 ngày</button>
+              <button class="time-range-btn" data-range="all">Tất cả</button>
+            </div>
+
+            <!-- Stats Tab Nav -->
+            <div class="stats-tab-nav">
+              <button class="stats-tab-btn active" data-stats-tab="overview">
+                <i class="fas fa-chart-pie"></i> Tổng quan
+              </button>
+              <button class="stats-tab-btn" data-stats-tab="modes">
+                <i class="fas fa-bullseye"></i> Chế độ
+              </button>
+              <button class="stats-tab-btn" data-stats-tab="vocab">
+                <i class="fas fa-book-open"></i> Từ vựng
+              </button>
+            </div>
+
+            <!-- Tab: Tổng quan -->
+            <div class="stats-tab-panel active" id="stats-tab-overview">
+              <div class="stats-overview">
+                <div class="stat-box">
+                  <div class="stat-icon"><i class="fas fa-fire"></i></div>
+                  <div class="stat-details">
+                    <h4 id="total-practice-time">0h 0m</h4>
+                    <p>Thời gian học</p>
+                  </div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-icon"><i class="fas fa-book"></i></div>
+                  <div class="stat-details">
+                    <h4 id="total-words-studied">0</h4>
+                    <p>Từ đã học</p>
+                  </div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                  </div>
+                  <div class="stat-details">
+                    <h4 id="overall-accuracy">0%</h4>
+                    <p>Độ chính xác</p>
+                  </div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+                  <div class="stat-details">
+                    <h4 id="total-achievements">0</h4>
+                    <p>Thành tích</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="chart-card">
+                <h3><i class="fas fa-chart-line"></i> Lịch sử luyện tập</h3>
+                <div class="chart-placeholder" id="practice-chart">
+                  <canvas id="practiceCanvas" width="400" height="200"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: Chế độ -->
+            <div class="stats-tab-panel" id="stats-tab-modes">
+              <div class="chart-card">
+                <h3>
+                  <i class="fas fa-bullseye"></i> Độ chính xác theo chế độ
+                </h3>
+                <div class="mode-accuracy-list" id="mode-accuracy">
+                  <div class="mode-accuracy-item">
+                    <span class="mode-name">Trắc nghiệm</span>
+                    <div class="accuracy-bar-container">
+                      <div class="accuracy-bar" style="width: 85%"></div>
+                    </div>
+                    <span class="accuracy-value">85%</span>
+                  </div>
+                  <div class="mode-accuracy-item">
+                    <span class="mode-name">Điền từ</span>
+                    <div class="accuracy-bar-container">
+                      <div class="accuracy-bar" style="width: 72%"></div>
+                    </div>
+                    <span class="accuracy-value">72%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detailed-stats-card">
+                <h3><i class="fas fa-table"></i> Thống kê chi tiết</h3>
+                <table class="stats-table">
+                  <thead>
+                    <tr>
+                      <th>Chế độ</th>
+                      <th>Số lần chơi</th>
+                      <th>Đúng/Tổng</th>
+                      <th>Độ chính xác</th>
+                      <th>Điểm TB</th>
+                    </tr>
+                  </thead>
+                  <tbody id="detailed-stats-body">
+                    <tr>
+                      <td><i class="fas fa-list-check"></i> Trắc nghiệm</td>
+                      <td>15</td>
+                      <td>127/150</td>
+                      <td><span class="badge-success">84.7%</span></td>
+                      <td>850</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Tab: Từ vựng -->
+            <div class="stats-tab-panel" id="stats-tab-vocab">
+              <div class="chart-card">
+                <h3><i class="fas fa-book-open"></i> Tiến độ từ vựng</h3>
+                <div class="vocab-progress-grid">
+                  <div class="vocab-category">
+                    <h4>TOEIC Parts</h4>
+                    <div class="part-progress-list" id="part-progress">
+                      <div class="part-item">
+                        <span>Part 1</span>
+                        <span class="part-score">45/100</span>
+                      </div>
+                      <div class="part-item">
+                        <span>Part 2</span>
+                        <span class="part-score">23/100</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div id="settings-screen" class="screen">
+          <div class="screen-header">
+            <button class="back-btn-screen icon-btn">
+              <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2><i class="fas fa-cog"></i> Cài đặt</h2>
+          </div>
+
+          <div class="settings-layout">
+            <!-- ── Vertical Nav ── -->
+            <nav class="settings-nav">
+              <button class="settings-nav-item active" data-tab="general">
+                <i class="fas fa-sliders-h"></i><span>Chung</span>
+              </button>
+              <button class="settings-nav-item" data-tab="sound">
+                <i class="fas fa-volume-up"></i><span>Âm thanh</span>
+              </button>
+              <button class="settings-nav-item" data-tab="gameplay">
+                <i class="fas fa-gamepad"></i><span>Luyện tập</span>
+              </button>
+              <button class="settings-nav-item" data-tab="account">
+                <i class="fas fa-user-cog"></i><span>Tài khoản</span>
+              </button>
+              <button class="settings-nav-item" data-tab="about">
+                <i class="fas fa-info-circle"></i><span>Về ứng dụng</span>
+              </button>
+              <button class="settings-nav-item" data-tab="report">
+                <i class="fas fa-flag"></i><span>Báo cáo</span>
+              </button>
+            </nav>
+
+            <!-- ── Panels ── -->
+            <div class="settings-panels">
+              <!-- CHUNG -->
+              <div class="settings-panel active" id="settings-tab-general">
+                <div class="settings-section">
+                  <h3><i class="fas fa-sliders-h"></i> Cài đặt chung</h3>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Ngôn ngữ giao diện</h4>
+                      <p>Chọn ngôn ngữ hiển thị</p>
+                    </div>
+                    <select class="setting-select" id="language-select">
+                      <option value="vi" selected>Tiếng Việt</option>
+                      <option value="en">English</option>
+                      <option value="zh">中文</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Chủ đề</h4>
+                      <p>Chế độ sáng/tối</p>
+                    </div>
+                    <select class="setting-select" id="theme-select">
+                      <option value="light" selected>Sáng</option>
+                      <option value="dark">Tối</option>
+                      <option value="auto">Tự động</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-item setting-item-block">
+                    <div class="setting-info">
+                      <h4><i class="fas fa-palette"></i> Màu sắc chủ đề</h4>
+                      <p>Chọn preset hoặc tùy chỉnh màu theo ý muốn</p>
+                    </div>
+                  </div>
+                  <div class="color-theme-picker">
+                    <div class="color-presets" id="color-presets-grid"></div>
+                    <div class="color-custom-row">
+                      <label class="color-picker-label">
+                        <span>Màu chính</span>
+                        <input
+                          type="color"
+                          id="custom-primary-color"
+                          value="#E11D48"
+                        />
+                      </label>
+                      <label class="color-picker-label">
+                        <span>Màu phụ</span>
+                        <input
+                          type="color"
+                          id="custom-secondary-color"
+                          value="#F97316"
+                        />
+                      </label>
+                      <button
+                        class="btn btn-primary btn-sm"
+                        id="apply-custom-color-btn"
+                      >
+                        <i class="fas fa-check"></i> Áp dụng
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ÂM THANH -->
+              <div class="settings-panel" id="settings-tab-sound">
+                <div class="settings-section">
+                  <h3><i class="fas fa-volume-up"></i> Âm thanh</h3>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Âm thanh hiệu ứng</h4>
+                      <p>Âm thanh khi trả lời đúng/sai</p>
+                    </div>
+                    <label class="toggle-switch">
+                      <input
+                        type="checkbox"
+                        id="sound-effects-toggle"
+                        checked
+                      />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Âm lượng</h4>
+                      <p>Điều chỉnh âm lượng hiệu ứng</p>
+                    </div>
+                    <input
+                      type="range"
+                      class="volume-slider"
+                      id="volume-slider"
+                      min="0"
+                      max="100"
+                      value="70"
+                    />
+                    <span class="volume-value">70%</span>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Âm thanh trong luyện tập</h4>
+                      <p>Bật/tắt âm thanh nhạc nền khi luyện tập</p>
+                    </div>
+                    <label class="toggle-switch">
+                      <input
+                        type="checkbox"
+                        id="practice-sound-toggle"
+                        checked
+                      />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Phát âm tự động</h4>
+                      <p>Tự động phát âm từ mới</p>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="auto-pronunciation-toggle" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Giọng phát âm</h4>
+                      <p>Chọn giọng đọc tiếng Anh</p>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        min-width: 0;
+                      "
+                    >
+                      <select
+                        class="setting-select"
+                        id="voice-select"
+                        style="min-width: 0; flex: 1 1 0"
+                      >
+                        <option value="">Đang tải giọng...</option>
+                      </select>
+                      <button
+                        id="voice-test-btn"
+                        title="Nghe thử giọng đã chọn"
+                        style="
+                          white-space: nowrap;
+                          flex-shrink: 0;
+                          padding: 6px 12px;
+                          border-radius: 8px;
+                          border: none;
+                          background: var(--primary-color, #e11d48);
+                          color: #fff;
+                          cursor: pointer;
+                          font-size: 13px;
+                          display: flex;
+                          align-items: center;
+                          gap: 5px;
+                        "
+                      >
+                        <i class="fas fa-volume-up"></i> Thử
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Tốc độ phát âm</h4>
+                      <p>Nhanh hoặc chậm</p>
+                    </div>
+                    <input
+                      type="range"
+                      class="volume-slider"
+                      id="speech-rate-slider"
+                      min="50"
+                      max="150"
+                      value="80"
+                      step="10"
+                    />
+                    <span class="speech-rate-value">0.8x</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- LUYỆN TẬP -->
+              <div class="settings-panel" id="settings-tab-gameplay">
+                <div class="settings-section">
+                  <h3><i class="fas fa-gamepad"></i> Luyện tập</h3>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Đảo chiều EN ↔ VN</h4>
+                      <p>
+                        Hiện tiếng Việt → chọn/nhập tiếng Anh (áp dụng cho Trắc
+                        nghiệm, Nghe &amp; chọn, Điền từ)
+                      </p>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="reverse-mode-toggle" />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Số câu hỏi mỗi lượt</h4>
+                      <p>Số lượng câu hỏi trong mỗi session</p>
+                    </div>
+                    <select class="setting-select" id="questions-per-session">
+                      <option value="5">5 câu</option>
+                      <option value="10" selected>10 câu</option>
+                      <option value="15">15 câu</option>
+                      <option value="20">20 câu</option>
+                      <option value="25">25 câu</option>
+                      <option value="30">30 câu</option>
+                      <option value="40">40 câu</option>
+                      <option value="50">50 câu (💎 10 gems)</option>
+                      <option value="75">75 câu (💎 15 gems)</option>
+                      <option value="100">100 câu (💎 30 gems)</option>
+                      <option value="150">150 câu (💎 50 gems)</option>
+                      <option value="200">200 câu (💎 100 gems)</option>
+                      <option value="auto">Toàn bộ từ khả dụng</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Bật giới hạn thời gian</h4>
+                      <p>Thời gian tự động tính dựa trên số câu hỏi</p>
+                    </div>
+                    <label class="toggle-switch">
+                      <input
+                        type="checkbox"
+                        id="time-limit-enabled-toggle"
+                        checked
+                      />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Thời gian mỗi câu</h4>
+                      <p>Chỉ áp dụng khi bật giới hạn thời gian</p>
+                    </div>
+                    <select class="setting-select" id="time-per-question">
+                      <option value="15">15 giây/câu</option>
+                      <option value="20">20 giây/câu</option>
+                      <option value="30" selected>30 giây/câu</option>
+                      <option value="45">45 giây/câu</option>
+                      <option value="60">60 giây/câu</option>
+                    </select>
+                  </div>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Độ khó câu hỏi (theo CEFR Level)</h4>
+                      <p>Chọn độ khó của từ vựng dựa trên trình độ</p>
+                    </div>
+                    <select class="setting-select" id="difficulty-level">
+                      <option value="easy">Dễ (A1, A2)</option>
+                      <option value="medium">Trung bình (B1, B2)</option>
+                      <option value="hard">Khó (C1, C2)</option>
+                      <option value="adaptive" selected>Toàn bộ</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- TÀI KHOẢN -->
+              <div class="settings-panel" id="settings-tab-account">
+                <!-- Đổi mật khẩu (chỉ hiện khi đăng nhập) -->
+                <div
+                  class="settings-section"
+                  id="change-password-section"
+                  style="display: none"
+                >
+                  <h3><i class="fas fa-key"></i> Đổi mật khẩu</h3>
+                  <div class="form-group">
+                    <label>Mật khẩu hiện tại</label>
+                    <div class="input-password-wrap">
+                      <input
+                        type="password"
+                        id="cp-current"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        class="btn-toggle-password"
+                        data-target="cp-current"
+                        tabindex="-1"
+                      >
+                        <i class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Mật khẩu mới</label>
+                    <div class="input-password-wrap">
+                      <input
+                        type="password"
+                        id="cp-new"
+                        placeholder="••••••••"
+                        autocomplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        class="btn-toggle-password"
+                        data-target="cp-new"
+                        tabindex="-1"
+                      >
+                        <i class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Nhập lại mật khẩu mới</label>
+                    <div class="input-password-wrap">
+                      <input
+                        type="password"
+                        id="cp-confirm"
+                        placeholder="••••••••"
+                        autocomplete="new-password"
+                      />
+                      <button
+                        type="button"
+                        class="btn-toggle-password"
+                        data-target="cp-confirm"
+                        tabindex="-1"
+                      >
+                        <i class="fas fa-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <span class="field-error" id="cp-error"></span>
+                  <button
+                    class="btn btn-primary btn-block"
+                    id="save-change-password-btn"
+                    style="margin-top: 8px"
+                  >
+                    <i class="fas fa-save"></i> Lưu mật khẩu mới
+                  </button>
+                </div>
+
+                <div class="settings-section">
+                  <h3><i class="fas fa-user-cog"></i> Tài khoản</h3>
+
+                  <div class="setting-item">
+                    <div class="setting-info">
+                      <h4>Đồng bộ dữ liệu</h4>
+                      <p>Tự động đồng bộ với cloud</p>
+                    </div>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="auto-sync-toggle" checked />
+                      <span class="toggle-slider"></span>
+                    </label>
+                  </div>
+
+                  <button class="setting-action-btn" id="backup-data-btn">
+                    <i class="fas fa-download"></i> Sao lưu dữ liệu
+                  </button>
+                  <button class="setting-action-btn" id="restore-data-btn">
+                    <i class="fas fa-upload"></i> Khôi phục dữ liệu
+                  </button>
+                  <button
+                    class="setting-action-btn danger"
+                    id="reset-progress-btn"
+                  >
+                    <i class="fas fa-trash-restore"></i> Xóa toàn bộ tiến độ
+                  </button>
+                </div>
+              </div>
+
+              <!-- VỀ ỨNG DỤNG -->
+              <div class="settings-panel" id="settings-tab-about">
+                <div class="settings-section">
+                  <h3><i class="fas fa-info-circle"></i> Về ứng dụng</h3>
+                  <div class="about-info">
+                    <p><strong>TOEIC Learning Game</strong></p>
+                    <p>Phiên bản: 2.0.0</p>
+                    <p>© 2024 TOEIC Game Team</p>
+                    <div class="about-links">
+                      <a href="#" class="about-link"
+                        ><i class="fas fa-file-alt"></i> Điều khoản sử dụng</a
+                      >
+                      <a href="#" class="about-link"
+                        ><i class="fas fa-shield-alt"></i> Chính sách bảo mật</a
+                      >
+                      <a href="#" class="about-link"
+                        ><i class="fas fa-envelope"></i> Liên hệ hỗ trợ</a
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BÁO CÁO -->
+              <div class="settings-panel" id="settings-tab-report">
+                <div class="settings-section">
+                  <h3><i class="fas fa-flag"></i> Gửi báo cáo / Phản hồi</h3>
+                  <p
+                    style="
+                      color: var(--text-secondary, #666);
+                      font-size: 14px;
+                      margin-bottom: 16px;
+                    "
+                  >
+                    Bạn gặp lỗi, nội dung sai hoặc muốn góp ý? Gửi báo cáo để
+                    chúng tôi cải thiện ứng dụng.
+                  </p>
+
+                  <div class="form-group">
+                    <label
+                      style="
+                        display: block;
+                        font-weight: 600;
+                        margin-bottom: 6px;
+                        font-size: 13px;
+                      "
+                      >Nội dung <span style="color: #ef4444">*</span></label
+                    >
+                    <textarea
+                      id="report-content"
+                      placeholder="Mô tả vấn đề bạn gặp phải hoặc góp ý cho ứng dụng..."
+                      rows="5"
+                      style="
+                        width: 100%;
+                        padding: 10px 12px;
+                        border: 1.5px solid var(--border-color, #e5e7eb);
+                        border-radius: 10px;
+                        font-size: 14px;
+                        font-family: inherit;
+                        resize: vertical;
+                        background: var(--bg-primary, #fff);
+                        color: var(--text-primary, #1f2937);
+                        transition: border-color 0.15s;
+                      "
+                      maxlength="2000"
+                    ></textarea>
+                    <div
+                      style="
+                        text-align: right;
+                        font-size: 11px;
+                        color: var(--text-secondary, #999);
+                        margin-top: 3px;
+                      "
+                    >
+                      <span id="report-char-count">0</span>/2000
+                    </div>
+                  </div>
+
+                  <div class="form-group" style="margin-top: 12px">
+                    <label
+                      style="
+                        display: block;
+                        font-weight: 600;
+                        margin-bottom: 6px;
+                        font-size: 13px;
+                      "
+                      >Ảnh đính kèm
+                      <span
+                        style="
+                          font-weight: 400;
+                          color: var(--text-secondary, #999);
+                        "
+                        >(tuỳ chọn, tối đa 5MB)</span
+                      ></label
+                    >
+                    <label
+                      id="report-image-label"
+                      style="
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 12px 14px;
+                        border: 1.5px dashed var(--border-color, #e5e7eb);
+                        border-radius: 10px;
+                        cursor: pointer;
+                        transition: border-color 0.15s;
+                      "
+                    >
+                      <i
+                        class="fas fa-image"
+                        style="
+                          font-size: 20px;
+                          color: var(--primary-color, #e11d48);
+                          flex-shrink: 0;
+                        "
+                      ></i>
+                      <span
+                        id="report-image-name"
+                        style="
+                          font-size: 13px;
+                          color: var(--text-secondary, #666);
+                        "
+                        >Nhấn để chọn ảnh...</span
+                      >
+                      <input
+                        type="file"
+                        id="report-image-input"
+                        accept="image/*"
+                        style="display: none"
+                      />
+                    </label>
+                    <div
+                      id="report-image-preview"
+                      style="
+                        display: none;
+                        margin-top: 8px;
+                        position: relative;
+                        width: fit-content;
+                      "
+                    >
+                      <img
+                        id="report-preview-img"
+                        src="#"
+                        alt="preview"
+                        style="
+                          max-width: 200px;
+                          max-height: 150px;
+                          border-radius: 8px;
+                          border: 1.5px solid var(--border-color, #e5e7eb);
+                        "
+                      />
+                      <button
+                        type="button"
+                        id="report-remove-img"
+                        style="
+                          position: absolute;
+                          top: -6px;
+                          right: -6px;
+                          width: 20px;
+                          height: 20px;
+                          border-radius: 50%;
+                          background: #ef4444;
+                          color: #fff;
+                          border: none;
+                          cursor: pointer;
+                          font-size: 10px;
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                        "
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    id="btn-submit-report"
+                    class="btn btn-primary"
+                    style="margin-top: 16px; width: 100%"
+                  >
+                    <i class="fas fa-paper-plane"></i> Gửi báo cáo
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- /settings-panels -->
+          </div>
+          <!-- /settings-layout -->
+        </div>
+
+        <!-- TOEIC Screen -->
+        <div id="toeic-screen" class="screen">
+          <div class="screen-header">
+            <h2><i class="fas fa-graduation-cap"></i> Luyện tập TOEIC</h2>
+          </div>
+
+          <div class="screen-content">
+            <!-- TOEIC Test Selector -->
+            <div id="toeic-selector" class="toeic-container">
+              <div class="toeic-intro">
+                <h3>🎯 TOEIC 7-Part Test System</h3>
+                <p>
+                  Luyện thi TOEIC với hệ thống bài thi chuẩn quốc tế. Chọn bài
+                  thi phù hợp với trình độ của bạn!
+                </p>
+              </div>
+
+              <!-- Test Types Tabs -->
+              <div class="toeic-tabs">
+                <button class="toeic-tab active" data-tab="full-test">
+                  <i class="fas fa-clipboard-list"></i>
+                  Full Test (200 câu)
+                </button>
+                <button class="toeic-tab" data-tab="mini-test">
+                  <i class="fas fa-tasks"></i>
+                  Mini Test (theo Part)
+                </button>
+                <button class="toeic-tab" data-tab="fill-blank">
+                  <i class="fas fa-pen-square"></i>
+                  Đục lỗ
+                </button>
+                <button class="toeic-tab" data-tab="my-history">
+                  <i class="fas fa-history"></i>
+                  Lịch sử thi
+                </button>
+                <button class="toeic-tab" data-tab="analytics">
+                  <i class="fas fa-chart-line"></i>
+                  Phân tích
+                </button>
+              </div>
+
+              <!-- Tab Contents -->
+              <div id="toeic-tab-content">
+                <!-- Will be populated by JS -->
+              </div>
+            </div>
+
+            <!-- TOEIC Test Interface (Hidden by default) -->
+            <div
+              id="toeic-test-interface"
+              class="toeic-container"
+              style="display: none"
+            >
+              <!-- Will be populated when test starts -->
+            </div>
+
+            <!-- TOEIC Results Screen (Hidden by default) -->
+            <div
+              id="toeic-results"
+              class="toeic-container"
+              style="display: none"
+            >
+              <!-- Will be populated after test submission -->
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Side Menu -->
+      <aside id="side-menu" class="side-menu">
+        <div class="menu-header">
+          <h3>Menu</h3>
+          <button
+            id="reverse-mode-btn"
+            class="icon-btn icon-btn--labeled"
+            title="Đảo chiều EN ↔ VN"
+          >
+            <i class="fas fa-right-left"></i>
+            <span class="icon-btn-label" id="reverse-mode-label">EN→VN</span>
+          </button>
+          <button id="close-menu-btn" class="icon-btn">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <nav class="menu-nav">
+          <a href="#profile" class="menu-item" data-screen="profile-screen">
+            <i class="fas fa-user"></i>
+            <span>Hồ sơ</span>
+          </a>
+          <a href="#quests" class="menu-item" data-screen="quest-screen">
+            <i class="fas fa-tasks"></i>
+            <span>Nhiệm vụ</span>
+          </a>
+          <a href="#leaderboard" class="menu-item" data-screen="leaderboard-screen">
+            <i class="fas fa-trophy"></i>
+            <span>Bảng xếp hạng</span>
+          </a>
+          <a href="#achievements" class="menu-item" data-screen="achievements-screen">
+            <i class="fas fa-medal"></i>
+            <span>Thành tích</span>
+          </a>
+          <a href="#statistics" class="menu-item" data-screen="statistics-screen">
+            <i class="fas fa-chart-bar"></i>
+            <span>Thống kê</span>
+          </a>
+          <a id="shop-btn" class="menu-item">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Cửa hàng</span>
+          </a>
+          <a href="#toeic" class="menu-item" data-screen="toeic-screen">
+            <i class="fas fa-graduation-cap"></i>
+            <span>Luyện tập TOEIC</span>
+          </a>
+          <a href="#settings" class="menu-item" data-screen="settings-screen">
+            <i class="fas fa-cog"></i>
+            <span>Cài đặt</span>
+          </a>
+
+          <hr
+            style="
+              border: 1px solid var(--border-color);
+              margin: var(--spacing-md) 0;
+            "
+          />
+          <a href="#login" class="menu-item" id="login-menu-btn">
+            <i class="fas fa-sign-in-alt"></i>
+            <span>Đăng nhập</span>
+          </a>
+          <a href="#register" class="menu-item" id="register-menu-btn">
+            <i class="fas fa-user-plus"></i>
+            <span>Đăng ký</span>
+          </a>
+          <a
+            href="#logout"
+            class="menu-item"
+            id="logout-menu-btn"
+            style="display: none"
+          >
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Đăng xuất</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Menu Overlay -->
+      <div id="menu-overlay" class="overlay"></div>
+
+      <!-- Auth Modal -->
+      <div id="auth-modal" class="auth-modal">
+        <div class="auth-modal-content">
+          <button class="auth-close-btn" id="auth-close-btn">
+            <i class="fas fa-times"></i>
+          </button>
+
+          <!-- Login Form -->
+          <div id="login-form" class="auth-form">
+            <h2>🎮 Đăng nhập</h2>
+            <p class="auth-subtitle">Đăng nhập để đồng bộ tiến độ lên cloud</p>
+
+            <form id="login-form-element" novalidate>
+              <div class="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  id="login-email"
+                  placeholder="your@email.com"
+                  required
+                  autocomplete="username"
+                />
+                <span class="field-error" id="login-lock-error"></span>
+              </div>
+              <div class="form-group">
+                <label>Mật khẩu</label>
+                <div class="input-password-wrap">
+                  <input
+                    type="password"
+                    id="login-password"
+                    placeholder="••••••••"
+                    required
+                    autocomplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    class="btn-toggle-password"
+                    id="toggle-login-password"
+                    tabindex="-1"
+                    aria-label="Hiện/ẩn mật khẩu"
+                  >
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </div>
+                <span class="field-error" id="login-password-error"></span>
+              </div>
+              <div class="forgot-password-link">
+                <a href="#" id="show-forgot-password">Quên mật khẩu?</a>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-sign-in-alt"></i> Đăng nhập
+              </button>
+            </form>
+
+            <div class="auth-footer">
+              <p>
+                Chưa có tài khoản?
+                <a href="#" id="show-register">Đăng ký ngay</a>
+              </p>
+              <p class="auth-note">
+                💡 Có thể chơi offline không cần đăng nhập, tuy nhiên để có trải
+                nghiệm tốt nhất chúng tôi khuyến nghị bạn nên đăng nhập. Một vài
+                chức năng của chúng tôi yêu cầu sự đăng nhập, xin cảm ơn
+              </p>
+            </div>
+          </div>
+
+          <!-- Register Form -->
+          <div id="register-form" class="auth-form" style="display: none">
+            <h2>📝 Đăng ký</h2>
+            <p class="auth-subtitle">Tạo tài khoản để lưu tiến độ trên cloud</p>
+
+            <form id="register-form-element">
+              <div class="form-group">
+                <label>Username</label>
+                <input
+                  type="text"
+                  id="register-username"
+                  placeholder="Username"
+                  required
+                  minlength="3"
+                  autocomplete="username"
+                />
+              </div>
+              <div class="form-group">
+                <label>Email</label>
+                <input
+                  type="email"
+                  id="register-email"
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label>Mật khẩu</label>
+                <input
+                  type="password"
+                  id="register-password"
+                  placeholder="••••••••"
+                  required
+                  minlength="6"
+                  autocomplete="new-password"
+                />
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-paper-plane"></i> Gửi mã xác nhận
+              </button>
+            </form>
+
+            <div class="auth-footer">
+              <p>Đã có tài khoản? <a href="#" id="show-login">Đăng nhập</a></p>
+            </div>
+          </div>
+
+          <!-- Register OTP Verify Form -->
+          <div id="register-otp-form" class="auth-form" style="display: none">
+            <h2>📧 Xác nhận email</h2>
+            <p class="auth-subtitle">
+              Mã 6 chữ số đã được gửi đến<br /><strong
+                id="register-otp-email-display"
+              ></strong>
+            </p>
+            <div class="otp-input-group">
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+                autocomplete="one-time-code"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+            </div>
+            <div class="otp-countdown" id="register-otp-countdown">
+              <i class="fas fa-clock"></i> Mã hết hạn sau
+              <strong id="register-otp-timer">10:00</strong>
+            </div>
+            <button
+              class="btn btn-primary btn-block"
+              id="confirm-register-otp-btn"
+            >
+              <i class="fas fa-check-circle"></i> Xác nhận & Đăng ký
+            </button>
+            <div class="auth-footer">
+              <p>
+                <a href="#" id="resend-register-otp">Gửi lại mã</a> ·
+                <a href="#" id="back-to-register">← Sửa thông tin</a>
+              </p>
+            </div>
+          </div>
+
+          <!-- Forgot Password Form -->
+          <div
+            id="forgot-password-form"
+            class="auth-form"
+            style="display: none"
+          >
+            <h2>🔑 Quên mật khẩu</h2>
+            <p class="auth-subtitle">Nhập email để nhận mã đặt lại mật khẩu</p>
+            <div class="form-group">
+              <label>Email</label>
+              <input
+                type="email"
+                id="forgot-email"
+                placeholder="your@email.com"
+                required
+                autocomplete="email"
+              />
+            </div>
+            <button class="btn btn-primary btn-block" id="send-reset-otp-btn">
+              <i class="fas fa-paper-plane"></i> Gửi mã
+            </button>
+            <div class="auth-footer">
+              <p>
+                <a href="#" id="back-to-login-from-forgot"
+                  >← Quay lại đăng nhập</a
+                >
+              </p>
+            </div>
+          </div>
+
+          <!-- Reset Password Form (OTP + new password) -->
+          <div id="reset-password-form" class="auth-form" style="display: none">
+            <h2>🔐 Đặt lại mật khẩu</h2>
+            <p class="auth-subtitle">
+              Nhập mã đã gửi đến<br /><strong
+                id="reset-otp-email-display"
+              ></strong>
+            </p>
+            <div class="otp-input-group">
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+                autocomplete="one-time-code"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+              <input
+                class="otp-digit"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                pattern="[0-9]"
+              />
+            </div>
+            <div class="form-group" style="margin-top: 16px">
+              <label>Mật khẩu mới</label>
+              <input
+                type="password"
+                id="new-password-reset"
+                placeholder="••••••••"
+                minlength="6"
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="form-group">
+              <label>Nhập lại mật khẩu</label>
+              <input
+                type="password"
+                id="confirm-password-reset"
+                placeholder="••••••••"
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="otp-countdown" id="reset-otp-countdown">
+              <i class="fas fa-clock"></i> Mã hết hạn sau
+              <strong id="reset-otp-timer">10:00</strong>
+            </div>
+            <button class="btn btn-primary btn-block" id="confirm-reset-btn">
+              <i class="fas fa-lock"></i> Xác nhận đặt lại
+            </button>
+            <div class="auth-footer">
+              <p>
+                <a href="#" id="resend-reset-otp">Gửi lại mã</a> ·
+                <a href="#" id="back-to-login-from-reset">← Đăng nhập</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-container"></div>
+
+    <!-- Notifications -->
+    <div id="notification-container" class="notification-container"></div>
+
+    <!-- Search Results Dropdown -->
+    <div id="search-results" class="search-results"></div>
+
+    <!-- Chart.js for practice history visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Core Scripts -->
+    <script src="js/core/utils.js"></script>
+    <script src="js/core/config.js"></script>
+    <script src="js/core/storage.js"></script>
+    <script src="js/core/eventBus.js"></script>
+    <script src="js/core/http.js"></script>
+    <!-- leaderboardAPI.js depends on HTTP, so it must be loaded after http.js -->
+    <script src="js/core/leaderboardAPI.js"></script>
+    <script src="js/core/vocabularyAPI.js"></script>
+    <script src="js/core/aiAPI.js"></script>
+
+    <!-- Engine Scripts -->
+    <script src="js/engine/logic.js"></script>
+    <script src="js/engine/gameLoop.js"></script>
+
+    <!-- Module Scripts -->
+    <script src="js/modules/user/auth.js"></script>
+    <script src="js/modules/search/search.js"></script>
+    <script src="js/modules/topic/topicSelector.js"></script>
+    <script src="js/modules/upload/uploadUI.js"></script>
+    <script src="js/modules/part/partSelector.js"></script>
+    <script src="js/modules/share/shareCard.js"></script>
+    <script src="js/modules/achievements/achievementsUI.js"></script>
+    <script src="js/modules/statistics/statisticsUI.js"></script>
+    <script src="js/modules/settings/settingsUI.js"></script>
+    <script src="js/modules/energy/energy.js"></script>
+    <script src="js/modules/energy/energyUI.js"></script>
+    <script src="js/modules/shop/shop.js"></script>
+    <script src="js/modules/shop/shopUI.js"></script>
+    <script src="js/modules/quest/quest.js"></script>
+    <script src="js/modules/quest/questUI.js"></script>
+    <script src="js/modules/leaderboard/leaderboard.js"></script>
+    <script src="js/modules/leaderboard/leaderboardUI.js"></script>
+    <script src="js/modules/user/profileUI.js"></script>
+    <script src="js/modules/practice/sessionService.js"></script>
+    <script src="js/modules/practice/practiceManager.js"></script>
+    <script src="js/modules/practice/modes/multipleChoice.js"></script>
+    <script src="js/modules/practice/modes/fillBlank.js"></script>
+    <script src="js/modules/practice/modes/listening.js"></script>
+    <script src="js/modules/practice/modes/matching.js"></script>
+    <script src="js/modules/practice/modes/speedQuiz.js"></script>
+    <script src="js/modules/practice/modes/flashcard.js"></script>
+    <script src="js/modules/practice/modes/synonymCheck.js"></script>
+    <script src="js/modules/practice/modes/wordTypeCheck.js"></script>
+    <script src="js/modules/practice/modes/exampleFillBlank.js"></script>
+    <script src="js/modules/practice/modes/reviewMistakes.js"></script>
+    <script src="js/modules/practice/modes/sentenceBuilder.js"></script>
+    <script src="js/modules/practice/modes/pronunciationMode.js"></script>
+    <script src="js/modules/practice/modes/contextLearning.js"></script>
+    <script src="js/modules/practice/modes/dictation.js"></script>
+    <script src="js/modules/practice/modes/sentenceListening.js"></script>
+    <script src="js/modules/practice/modes/phoneticQuiz.js"></script>
+    <script src="js/modules/wrongWords/wrongWordsManager.js"></script>
+    <script src="js/core/serverStorage.js"></script>
+    <script src="js/core/state.js"></script>
+
+    <!-- AI Module -->
+    <script src="js/modules/ai/aiHelper.js"></script>
+    <script src="js/modules/ai/aiUI.js"></script>
+
+    <!-- Favorites Module -->
+    <script src="js/modules/favorites/favoritesUI.js"></script>
+
+    <!-- TOEIC Module -->
+    <script src="js/modules/toeic/toeicAPI.js"></script>
+    <script src="js/modules/toeic/toeicUI.js"></script>
+
+    <script src="js/modules/notification/notificationCenter.js"></script>
+    <!-- Main Entry Point -->
+    <script src="js/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,697 @@
+═══════════════════════════════════════════════════════════════════════════════
+    🎯 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG HỌC TỪ VỰNG ĐẠT 850+ TOEIC
+═══════════════════════════════════════════════════════════════════════════════
+
+                        📚 LỘ TRÌNH 6 TUẦN CHINH PHỤC 850 ĐIỂM
+
+═══════════════════════════════════════════════════════════════════════════════
+📋 PHẦN 1: THIẾT LẬP BAN ĐẦU (5 PHÚT)
+═══════════════════════════════════════════════════════════════════════════════
+
+BƯỚC 1: CÀI ĐẶT ĐỘ KHÓ
+─────────────────────────
+✅ Vào Settings → Độ khó câu hỏi
+✅ Chọn: "KHÓ" (B2-C1) cho mục tiêu 850+
+
+📌 Giải thích:
+   - Dễ (A1-A2): TOEIC 300-500
+   - Trung bình (B1-B2): TOEIC 500-750
+   - Khó (B2-C1): TOEIC 750-900+
+   - Tự động tùy chỉnh: Tất cả các cấp độ
+
+BƯỚC 2: BẬT CHỂ ĐỘ NGẪU NHIÊN
+────────────────────────────────
+✅ Settings → "Câu hỏi ngẫu nhiên" → BẬT
+
+📌 Lý do: Tránh học thuộc lòng thứ tự, ghi nhớ lâu hơn
+
+BƯỚC 3: TÙY CHỌN NĂNG LƯỢNG (Optional)
+───────────────────────────────────────
+⚡ Nếu muốn luyện không giới hạn:
+   Settings → Energy System → TẮT
+
+⚡ Nếu muốn quản lý thời gian học:
+   Settings → Energy System → BẬT
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📚 PHẦN 2: CHIẾN LƯỢC HỌC THEO PART
+═══════════════════════════════════════════════════════════════════════════════
+
+🎯 NGUYÊN TẮC VÀNG: HỌC TUẦN TỰ TỪNG PART
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 1-2: Part 1 & Part 2 (Foundation - Nền tảng)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. Click Part 1 trên thanh Navigation (góc trên)                           │
+│ 2. Hệ thống sẽ tự động lấy TẤT CẢ từ vựng trong Part 1                     │
+│ 3. Luyện hết 12 chế độ với Part 1                                          │
+│ 4. Đạt ≥80% độ chính xác → Chuyển sang Part 2                              │
+│ 5. Lặp lại quy trình với Part 2                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 3-4: Part 3 & Part 4 (Intermediate - Trung cấp)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. Chọn Part 3 trên Navigation                                             │
+│ 2. Luyện 12 chế độ                                                          │
+│ 3. Đạt ≥82% độ chính xác                                                    │
+│ 4. Chuyển Part 4, đạt ≥84% độ chính xác                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 5-6: Part 5, 6, 7 (Advanced - Nâng cao) + TỔNG ÔN                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ 1. Part 5, 6, 7: Phần KHÓ NHẤT (dành nhiều thời gian)                      │
+│ 2. Đạt ≥87% độ chính xác                                                    │
+│ 3. Tuần 6: Ôn tất cả các Part, đạt ≥90% độ chính xác                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+📌 TẠI SAO HỌC THEO PART?
+   ✓ Từ vựng được nhóm theo chủ đề TOEIC thực tế
+   ✓ Dễ ghi nhớ theo ngữ cảnh
+   ✓ Tracking tiến độ rõ ràng
+   ✓ Tự động lấy TẤT CẢ từ trong Part (không bị giới hạn số lượng)
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🎮 PHẦN 3: 12 CHỂ ĐỘ LUYỆN TẬP - CÁCH SỬ DỤNG CHI TIẾT
+═══════════════════════════════════════════════════════════════════════════════
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ GIAI ĐOẠN 1: GHI NHỚ (Học từ mới - 3 chế độ cơ bản)                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+① FLASHCARD (Thẻ ghi nhớ) ⭐⭐⭐⭐⭐
+───────────────────────────────────
+📝 Mô tả: Xem từ → Lật thẻ → Xem nghĩa + phát âm
+
+🎯 Cách dùng:
+   • Dùng ĐẦU TIÊN khi học Part mới
+   • Nhấn Space/Enter để lật thẻ nhanh
+   • Click 🔊 để nghe phát âm (QUAN TRỌNG!)
+   • Xem ví dụ câu để hiểu ngữ cảnh
+
+✅ Đánh dấu:
+   • "Đã biết" ✓ : Từ đã thuộc
+   • "Chưa biết" ✗ : Từ khó (sẽ ôn lại sau)
+
+💡 Mẹo: Đọc to theo giọng người bản xứ → Ghi nhớ tốt hơn 300%
+
+⏱️ Thời gian: 10-15 phút/session
+
+
+② MULTIPLE CHOICE (Trắc nghiệm) ⭐⭐⭐⭐
+───────────────────────────────────────
+📝 Mô tả: Chọn nghĩa đúng trong 4 đáp án
+
+🎯 Cách dùng:
+   • Dùng SAU Flashcard để kiểm tra
+   • Đọc kỹ từ trước khi chọn
+   • Nếu sai → Đọc giải thích
+
+📊 Mục tiêu: ≥80% đúng mới sang chế độ khác
+
+💡 Mẹo: Giống format TOEIC Part 5-6 → Quen dần với đề thi thật
+
+⏱️ Thời gian: 5-10 phút/session
+
+
+③ LISTENING (Nghe viết) ⭐⭐⭐⭐⭐ [QUAN TRỌNG NHẤT!]
+─────────────────────────────────────────────────────
+📝 Mô tả: Nghe từ → Viết đúng chính tả
+
+🎯 Cách dùng:
+   • Nghe 1-2 lần đầu: Hiểu phát âm
+   • Lần thứ 3: Viết từ
+   • Nếu khó: Bấm "Hint" để xem gợi ý
+
+📊 Mục tiêu: ≥75% đúng
+
+💡 Mẹo:
+   ✓ Đây là chế độ QUAN TRỌNG NHẤT cho TOEIC Listening (Part 1-4)
+   ✓ Luyện mỗi ngày 15 phút → Listening tăng 50-100 điểm
+   ✓ Viết tay (giấy) song song với typing → Nhớ spelling tốt hơn
+
+⏱️ Thời gian: 15-20 phút/session
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ GIAI ĐOẠN 2: CỦNG CỐ (Hiểu sâu - 4 chế độ nâng cao)                       ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+④ FILL IN THE BLANK (Điền từ vào chỗ trống) ⭐⭐⭐⭐
+──────────────────────────────────────────────────
+📝 Mô tả: Đọc câu thiếu từ → Điền từ phù hợp
+
+🎯 Cách dùng:
+   • Đọc cả câu trước khi điền
+   • Chú ý ngữ cảnh (thì, chủ ngữ, tân ngữ)
+   • Kiểm tra ngữ pháp sau khi điền
+
+💡 Mẹo: Giống TOEIC Part 5 → Luyện khả năng làm bài nhanh
+
+⏱️ Thời gian: 10-15 phút/session
+
+
+⑤ EXAMPLE FILL BLANK (Điền từ ví dụ) ⭐⭐⭐⭐
+────────────────────────────────────────────
+📝 Mô tả: Điền từ vào câu ví dụ thực tế
+
+🎯 Cách dùng:
+   • Khó hơn Fill in the Blank
+   • Yêu cầu hiểu sâu về nghĩa từ
+   • Luyện khả năng suy luận ngữ nghĩa
+
+💡 Mẹo: Đọc kỹ cả câu → Tìm manh mối từ ngữ cảnh
+
+⏱️ Thời gian: 10-15 phút/session
+
+
+⑥ WORD TYPE CHECK (Kiểm tra loại từ) ⭐⭐⭐⭐⭐ [CỰC QUAN TRỌNG!]
+────────────────────────────────────────────────────────────────
+📝 Mô tả: Xác định từ là Noun/Verb/Adjective/Adverb
+
+🎯 Cách dùng:
+   • Xem từ + ngữ cảnh
+   • Chọn loại từ đúng
+   • Nếu sai → Xem giải thích ngữ pháp
+
+📊 Mục tiêu: ≥85% đúng
+
+💡 Mẹo:
+   ✓ CỰC KỲ QUAN TRỌNG cho TOEIC Part 5
+   ✓ Nhiều câu hỏi Part 5 chỉ test loại từ
+   ✓ Thuộc đuôi từ: -tion/-ness (Noun), -ly (Adverb), -ful/-less (Adjective)
+
+⏱️ Thời gian: 10 phút/session
+
+
+⑦ SYNONYM CHECK (Kiểm tra từ đồng nghĩa) ⭐⭐⭐⭐
+───────────────────────────────────────────────────
+📝 Mô tả: Tìm từ đồng nghĩa hoặc trái nghĩa
+
+🎯 Cách dùng:
+   • Đọc từ gốc
+   • Chọn từ có nghĩa giống/trái
+   • Học thêm từ vựng mở rộng
+
+💡 Mẹo: Giúp tránh nhầm lẫn từ gần nghĩa trong TOEIC Reading
+
+⏱️ Thời gian: 10 phút/session
+
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ GIAI ĐOẠN 3: THÀNH THẠO (Thử thách - 5 chế độ cao cấp)                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+
+⑧ SPEED QUIZ (Tốc độ) ⚡⭐⭐⭐⭐⭐
+──────────────────────────────────
+📝 Mô tả: Trả lời nhanh trong 30 giây/câu
+
+🎯 Cách dùng:
+   • MÔ PHỎNG ÁP LỰC THI THẬT
+   • Luyện phản xạ nhanh
+   • Không suy nghĩ lâu → Chọn ngay
+
+📊 Mục tiêu 850+: ≥90% đúng
+
+💡 Mẹo:
+   ✓ Dùng khi đã thuộc từ vựng
+   ✓ Luyện trước khi thi 1 tuần → Tăng tốc độ làm bài 40%
+   ✓ Nếu < 80% đúng → Ôn lại Flashcard
+
+⏱️ Thời gian: 10-15 phút/session
+
+
+⑨ MATCHING (Ghép cặp) ⭐⭐⭐⭐
+───────────────────────────────
+📝 Mô tả: Ghép từ với nghĩa tương ứng (6-8 cặp cùng lúc)
+
+🎯 Cách dùng:
+   • Luyện ghi nhớ nhiều từ cùng lúc
+   • Tăng tốc độ xử lý thông tin
+   • Tìm nhanh → Ghép nhanh
+
+💡 Mẹo: Ghép những cặp chắc chắn trước, còn lại suy luận sau
+
+⏱️ Thời gian: 10 phút/session
+
+
+⑩ CHAIN MASTER (Chuỗi từ) ⭐⭐⭐⭐⭐ [THỬ THÁCH!]
+─────────────────────────────────────────────────
+📝 Mô tả: Trả lời đúng liên tục, SAI 1 CÂU = KẾT THÚC
+
+🎯 Cách dùng:
+   • Trả lời từng câu cẩn thận
+   • Không được sai lần nào
+   • Test độ thuộc của bạn
+
+📊 Mục tiêu: Chuỗi ≥20 câu đúng liên tục
+
+💡 Mẹo:
+   ✓ THỬ THÁCH CAO NHẤT!
+   ✓ Dùng để ôn tập trước khi thi
+   ✓ Nếu chuỗi < 10 → Ôn lại từ đầu
+
+⏱️ Thời gian: 15-20 phút/session
+
+
+⑪ TIMED CHALLENGE (Thách thức thời gian) ⏱️⭐⭐⭐⭐
+──────────────────────────────────────────────────
+📝 Mô tả: Làm nhiều câu nhất trong thời gian giới hạn (5 phút)
+
+🎯 Cách dùng:
+   • Đồng hồ đếm ngược
+   • Trả lời nhanh nhưng chính xác
+   • Cạnh tranh với bản thân
+
+💡 Mẹo: Luyện dưới áp lực → Quen với stress khi thi thật
+
+⏱️ Thời gian: 5-10 phút/session
+
+
+⑫ EXTREME MODE (Siêu khó) 🔥⭐⭐⭐⭐⭐
+────────────────────────────────────────
+📝 Mô tả: Kết hợp TẤT CẢ yếu tố khó (thời gian + chuỗi + áp lực)
+
+🎯 Cách dùng:
+   • Chỉ dành cho người muốn 900+
+   • Yêu cầu độ chính xác CỰC CAO
+   • Test giới hạn của bản thân
+
+📊 Mục tiêu 850+: ≥85% đúng
+
+💡 Mẹo: Chỉ dùng khi đã thuộc ≥90% từ vựng Part
+
+⏱️ Thời gian: 10-15 phút/session
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📅 PHẦN 4: LỘ TRÌNH HỌC MỖI NGÀY (90 PHÚT/NGÀY)
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🌅 BUỔI SÁNG (30 phút - 6:00-6:30 hoặc 7:00-7:30)                          │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ① Flashcard (10 phút)          → Học từ mới                                │
+│ ② Listening (15 phút)           → Luyện nghe + spelling                    │
+│ ③ Multiple Choice (5 phút)     → Kiểm tra nhanh                            │
+│                                                                             │
+│ 🎯 Mục đích: Não bộ tiếp thu tốt nhất vào buổi sáng                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ☀️ BUỔI TRƯA (15 phút - Giờ nghỉ 12:00-12:15)                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ① Speed Quiz (10 phút)         → Giữ trí nhớ, phản xạ nhanh               │
+│ ② Word Type Check (5 phút)     → Ôn ngữ pháp                               │
+│                                                                             │
+│ 🎯 Mục đích: Ôn lại buổi sáng, tránh quên                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🌙 BUỔI TỐI (45 phút - 20:00-20:45 hoặc 21:00-21:45)                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ① Fill in the Blank (15 phút)  → Luyện ngữ cảnh                           │
+│ ② Example Fill Blank (15 phút) → Hiểu sâu nghĩa từ                        │
+│ ③ Matching (10 phút)            → Ghi nhớ nhiều từ cùng lúc               │
+│ ④ Chain Master (5 phút)         → Test cuối ngày                          │
+│                                                                             │
+│ 🎯 Mục đích: Củng cố kiến thức, test độ thuộc                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ 🎉 CUỐI TUẦN (60 phút - Review & Challenge)                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ① Timed Challenge (20 phút)    → Test tiến độ trong tuần                  │
+│ ② Extreme Mode (15 phút)        → Thử thách bản thân                       │
+│ ③ Ôn lại từ "Chưa biết" (20 phút) → Flashcard các từ khó                  │
+│ ④ Synonym Check (5 phút)        → Mở rộng vốn từ                           │
+│                                                                             │
+│ 🎯 Mục đích: Đánh giá tuần, chuẩn bị tuần sau                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 PHẦN 5: THEO DÕI TIẾN ĐỘ & CÁC CHỨC NĂNG HỖ TRỢ
+═══════════════════════════════════════════════════════════════════════════════
+
+① HUY HIỆU PART (Part Badge)
+────────────────────────────
+📍 Vị trí: Góc trên navigation bar
+✅ Hiển thị Part đang học (VD: "E2E9-P1")
+✅ Click để đổi Part khác
+✅ Click "X" để xóa Part (quay về chế độ ngẫu nhiên)
+
+💡 Mẹo: Luôn kiểm tra đúng Part trước khi bắt đầu luyện!
+
+
+② THANH KINH NGHIỆM (XP Bar)
+─────────────────────────────
+📍 Vị trí: Góc trên bên phải
+✅ Mỗi câu đúng = +10-50 XP (tùy độ khó)
+✅ Level up → Động lực học tập
+✅ Xem level hiện tại
+
+📊 Mục tiêu hàng ngày:
+   • +500 XP/ngày → Đủ để đạt 850 trong 6 tuần
+   • +1000 XP/ngày → Tốc độ nhanh (4 tuần)
+
+
+③ STATISTICS (Thống kê)
+────────────────────────
+📍 Vị trí: Settings → Statistics
+✅ Tỷ lệ đúng/sai tổng thể
+✅ Số câu đã làm
+✅ Thời gian học
+✅ Từ vựng đã thuộc
+
+📊 Chỉ số cần theo dõi:
+   • Accuracy (Độ chính xác): ≥85% là tốt
+   • Words Mastered: Mục tiêu 1000+ từ
+   • Study Time: Mục tiêu 60-90 phút/ngày
+
+
+④ ENERGY SYSTEM (Hệ thống năng lượng)
+──────────────────────────────────────
+📍 Vị trí: Góc trên bên phải (hình tia sét)
+✅ Nếu BẬT: 100 năng lượng/ngày
+✅ Mỗi câu hỏi = -1 năng lượng
+✅ Hết năng lượng → Nghỉ hoặc mua thêm
+
+💡 Khuyến nghị:
+   • Người bận: BẬT (giúp quản lý thời gian)
+   • Người có nhiều thời gian: TẮT (luyện không giới hạn)
+
+
+⑤ NOTIFICATION (Thông báo)
+──────────────────────────
+📍 Tự động hiện khi có sự kiện
+✅ Hoàn thành bài tập
+✅ Level up
+✅ Chọn Part thành công
+✅ Cảnh báo hết năng lượng
+
+💡 Chú ý thông báo "X từ vựng sẵn sàng" → Biết số lượng từ đang luyện
+
+
+═══════════════════════════════════════════════════════════════════════════════
+💡 PHẦN 6: MẸO VIP ĐẠT 850+ TOEIC
+═══════════════════════════════════════════════════════════════════════════════
+
+🔑 QUY TẮC 7 LẦN GẶP
+─────────────────────
+📚 Nghiên cứu chứng minh: Mỗi từ cần gặp 7 lần trong ngữ cảnh khác nhau
+   mới nhớ lâu dài (Long-term memory)
+
+✅ Cách áp dụng:
+   1. Flashcard (lần 1)
+   2. Listening (lần 2)
+   3. Multiple Choice (lần 3)
+   4. Fill in the Blank (lần 4)
+   5. Word Type Check (lần 5)
+   6. Speed Quiz (lần 6)
+   7. Chain Master (lần 7)
+
+→ Sau 7 lần gặp = GHI NHỚ VĨNH VIỄN! 🧠
+
+
+🔑 HỌC THEO CỤM TỪ (Collocations)
+──────────────────────────────────
+⚠️ TOEIC không chỉ test từ đơn mà test CỤM TỪ!
+
+✅ Cách học:
+   • Flashcard có "Example" → Học cả câu ví dụ
+   • Chú ý từ đi với từ nào (VD: "make a decision", không phải "do a decision")
+   • Fill in the Blank → Luyện cụm từ tự nhiên
+
+📌 VD: Từ "decision"
+   ✓ make a decision (đúng)
+   ✗ do a decision (sai)
+   ✓ reach a decision (đúng)
+
+
+🔑 PHÁT ÂM CHUẨN = GHI NHỚ LÂU
+───────────────────────────────
+👂 Luôn bấm nút 🔊 trong Flashcard và Listening
+
+✅ Lý do khoa học:
+   • Nghe đúng → Não bộ tạo liên kết âm thanh + nghĩa
+   • Ghi nhớ tốt hơn 300% so với chỉ đọc
+   • TOEIC Listening Part 1-4 = 495 điểm (50% tổng điểm!)
+
+💡 Mẹo: Đọc to theo giọng người bản xứ → Phát âm chuẩn + Nhớ lâu
+
+
+🔑 ĐÁNH DẤU TỪ KHÓ
+───────────────────
+✅ Trong Flashcard: Bấm "Chưa biết" ✗ cho từ khó
+✅ Cuối tuần: Ôn lại các từ "Chưa biết"
+✅ Lặp lại đến khi chuyển sang "Đã biết" ✓
+
+📊 Mục tiêu: 90% từ chuyển sang "Đã biết" sau 2 tuần
+
+
+🔑 KẾT HỢP PART + ĐỘ KHÓ
+─────────────────────────
+⚙️ Chiến lược linh hoạt:
+
+┌────────────────┬──────────────────┬──────────────────────────┐
+│ Part           │ Độ khó nên chọn  │ Lý do                    │
+├────────────────┼──────────────────┼──────────────────────────┤
+│ Part 1-2       │ Trung bình (B1-B2)│ Nền tảng, không quá khó  │
+│ Part 3-4       │ Khó (B2-C1)      │ Tăng dần độ khó          │
+│ Part 5-7       │ Khó (B2-C1)      │ BẮT BUỘC cho 850+        │
+└────────────────┴──────────────────┴──────────────────────────┘
+
+💡 Cách đổi: Settings → Độ khó câu hỏi → Chọn mức phù hợp
+
+
+🔑 LUYỆN LISTENING MỖI NGÀY
+───────────────────────────
+⚠️ QUAN TRỌNG: Listening là phần DỄ GHI ĐIỂM NHẤT trong TOEIC!
+
+✅ Lộ trình Listening:
+   • Ngày 1-7: Nghe 1 lần → Viết
+   • Ngày 8-14: Nghe không giới hạn → Viết
+   • Ngày 15+: Nghe 1 lần → Viết đúng ≥80%
+
+📊 Kết quả: Listening tăng 50-150 điểm trong 1 tháng
+
+
+🔑 ÔN TẬP THEO CHU KỲ
+──────────────────────
+🔄 Spaced Repetition (Ôn tập ngắt quãng):
+
+✅ Ngày học: Học Part 1
+✅ Ngày 2: Ôn Part 1 (5 phút) + Học Part 2
+✅ Ngày 7: Ôn Part 1 (5 phút) + Học Part 3
+✅ Ngày 14: Ôn Part 1 (5 phút) + Part 2 (5 phút)
+
+→ Não bộ ghi nhớ lâu dài nhất theo cách này! 🧠
+
+
+═══════════════════════════════════════════════════════════════════════════════
+⚠️ PHẦN 7: LƯU Ý QUAN TRỌNG - TRÁNH SAI LẦM
+═══════════════════════════════════════════════════════════════════════════════
+
+❌ KHÔNG NÊN:
+─────────────
+✗ Học quá nhiều Part cùng lúc (3+ Parts)
+  → Não bộ quá tải, dễ quên
+
+✗ Bỏ qua Listening mode
+  → Listening TOEIC sẽ yếu (mất 100-200 điểm)
+
+✗ Chỉ làm Multiple Choice
+  → Thiếu kỹ năng nghe, viết, tốc độ
+
+✗ Học không đều (hôm 2h, hôm 0 phút)
+  → Não bộ quên nhanh, mất công ôn lại
+
+✗ Không ôn lại Part cũ
+  → Quên từ đã học (waste time!)
+
+✗ Học thuộc lòng thứ tự
+  → Thi thật sẽ không nhớ
+
+
+✅ NÊN:
+───────
+✓ Học 1 Part đến khi đạt ≥85% đúng mới chuyển Part khác
+
+✓ Luyện cả 12 chế độ cho mỗi Part (áp dụng quy tắc 7 lần gặp)
+
+✓ Ôn lại Part cũ mỗi tuần (5-10 phút/Part)
+
+✓ Tracking tiến độ hàng ngày (XP, Statistics)
+
+✓ Bật chế độ ngẫu nhiên → Tránh học thuộc thứ tự
+
+✓ Luyện Listening ≥15 phút/ngày → Đảm bảo Listening cao điểm
+
+✓ Nghỉ 1 ngày/tuần → Não bộ cần thời gian consolidate
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📈 PHẦN 8: KẾ HOẠCH CHI TIẾT 6 TUẦN ĐẠT 850
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 1: Part 1 (Foundation)                                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Thứ 2-6:                                                                    │
+│  • Sáng: Flashcard (10') + Listening (15') + Multiple Choice (5')          │
+│  • Trưa: Speed Quiz (10') + Word Type (5')                                 │
+│  • Tối: Fill Blank (15') + Example Fill (15') + Matching (10')            │
+│                                                                             │
+│ Thứ 7:                                                                      │
+│  • Timed Challenge (20')                                                    │
+│  • Ôn từ "Chưa biết" (20')                                                  │
+│                                                                             │
+│ 🎯 Mục tiêu: 80% accuracy, level up 2-3 level                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 2: Part 2 + Ôn Part 1                                                 │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Thứ 2-6:                                                                    │
+│  • Sáng: Part 2 (30') - Giống tuần 1                                       │
+│  • Trưa: Part 2 (15')                                                       │
+│  • Tối: Part 2 (40') + Ôn Part 1 (5')                                      │
+│                                                                             │
+│ Thứ 7:                                                                      │
+│  • Test Part 2: Timed Challenge (20')                                       │
+│  • Ôn Part 1: Speed Quiz (10')                                             │
+│  • Ôn từ khó (20')                                                          │
+│                                                                             │
+│ 🎯 Mục tiêu: 82% accuracy, thuộc Part 1 + Part 2                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 3: Part 3 + Ôn Part 1-2                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Thứ 2-6:                                                                    │
+│  • Sáng: Part 3 (30')                                                       │
+│  • Trưa: Part 3 (15')                                                       │
+│  • Tối: Part 3 (35') + Ôn Part 1 (5') + Ôn Part 2 (5')                    │
+│                                                                             │
+│ Thứ 7:                                                                      │
+│  • Test Part 3: Chain Master (15')                                          │
+│  • Ôn Part 1-2: Speed Quiz (20')                                           │
+│  • Extreme Mode (15')                                                       │
+│                                                                             │
+│ 🎯 Mục tiêu: 84% accuracy                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 4: Part 4 + Ôn Part 1-3                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Thứ 2-6:                                                                    │
+│  • Sáng: Part 4 (30')                                                       │
+│  • Trưa: Part 4 (15')                                                       │
+│  • Tối: Part 4 (30') + Ôn Part 1-3 (15')                                   │
+│                                                                             │
+│ Thứ 7:                                                                      │
+│  • Test Part 4: Extreme Mode (20')                                          │
+│  • Review toàn bộ Part 1-4 (30')                                            │
+│                                                                             │
+│ 🎯 Mục tiêu: 85% accuracy, thuộc Part 1-4                                  │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 5: Part 5, 6, 7 (QUAN TRỌNG NHẤT!)                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Thứ 2-3: Part 5                                                             │
+│  • Dành nhiều thời gian cho Word Type Check (loại từ)                      │
+│  • Fill in the Blank (ngữ cảnh câu)                                        │
+│                                                                             │
+│ Thứ 4-5: Part 6                                                             │
+│  • Tập trung Example Fill Blank                                             │
+│  • Synonym Check (từ đồng nghĩa)                                            │
+│                                                                             │
+│ Thứ 6: Part 7                                                               │
+│  • Tất cả 12 chế độ                                                         │
+│                                                                             │
+│ Thứ 7:                                                                      │
+│  • Test Part 5-7: Extreme Mode (30')                                        │
+│  • Ôn Part 1-4: Speed Quiz (20')                                           │
+│                                                                             │
+│ 🎯 Mục tiêu: 87% accuracy, Part 5-7 LÀ KHÓ NHẤT!                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ TUẦN 6: TỔNG ÔN + CHINH PHỤC 850                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ Thứ 2-6:                                                                    │
+│  • Sáng: Listening tất cả Parts (30')                                       │
+│  • Trưa: Speed Quiz ngẫu nhiên (15')                                        │
+│  • Tối: Chain Master + Extreme Mode (45')                                   │
+│                                                                             │
+│ Thứ 7:                                                                      │
+│  • TEST TỔNG KẾT:                                                           │
+│    - Timed Challenge: Part 1 → Part 7 (60')                                │
+│    - Extreme Mode: All Parts (30')                                          │
+│  • Xem Statistics → Đánh giá kết quả                                        │
+│                                                                             │
+│ 🎯 Mục tiêu: 90% accuracy → SẴN SÀNG THI 850+ TOEIC! 🎉                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+🎯 PHẦN 9: HÀNH ĐỘNG ĐẦU TIÊN (5 PHÚT)
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ BƯỚC 1: MỞ ỨNG DỤNG
+✅ BƯỚC 2: Settings → Độ khó: "KHÓ" (B2-C1)
+✅ BƯỚC 3: Settings → "Câu hỏi ngẫu nhiên": BẬT
+✅ BƯỚC 4: Click Part 1 trên navigation bar
+✅ BƯỚC 5: Chọn "Flashcard" → BẮT ĐẦU!
+✅ BƯỚC 6: Học 10 từ đầu tiên
+
+→ CHÚC MỪNG! BẠN ĐÃ BẮT ĐẦU HÀNH TRÌNH CHINH PHỤC 850 TOEIC! 🚀
+
+
+═══════════════════════════════════════════════════════════════════════════════
+📊 PHẦN 10: BẢNG THEO DÕI TIẾN ĐỘ (Tự ghi chép)
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────┬────────┬──────────────┬──────────────┬─────────────┐
+│Tuần │ Part   │ Accuracy (%) │ Words Learned│ Level       │
+├─────┼────────┼──────────────┼──────────────┼─────────────┤
+│ 1   │ Part 1 │   80%        │     120      │   Level 3   │
+├─────┼────────┼──────────────┼──────────────┼─────────────┤
+│ 2   │ Part 2 │   82%        │     240      │   Level 5   │
+├─────┼────────┼──────────────┼──────────────┼─────────────┤
+│ 3   │ Part 3 │   84%        │     380      │   Level 8   │
+├─────┼────────┼──────────────┼──────────────┼─────────────┤
+│ 4   │ Part 4 │   85%        │     520      │   Level 11  │
+├─────┼────────┼──────────────┼──────────────┼─────────────┤
+│ 5   │ Part567│   87%        │     750      │   Level 15  │
+├─────┼────────┼──────────────┼──────────────┼─────────────┤
+│ 6   │ Review │   90%        │    1000+     │   Level 20+ │
+└─────┴────────┴──────────────┴──────────────┴─────────────┘
+
+
+═══════════════════════════════════════════════════════════════════════════════
+💪 KẾT LUẬN: CAM KẾT VỚI BẢN THÂN
+═══════════════════════════════════════════════════════════════════════════════
+
+📌 Tôi cam kết:
+   ✅ Học 90 phút/ngày trong 6 tuần
+   ✅ Hoàn thành tất cả 7 Parts theo lộ trình
+   ✅ Luyện cả 12 chế độ cho mỗi Part
+   ✅ Đạt ≥90% accuracy trước khi thi
+   ✅ Ôn tập đều đặn, không bỏ bài
+
+🎯 Mục tiêu: ĐẠT 850+ TOEIC SAU 6 TUẦN!
+
+🚀 Let's go! Hành động ngay từ hôm nay!
+
+═══════════════════════════════════════════════════════════════════════════════
+                              HẾT HƯỚNG DẪN
+═══════════════════════════════════════════════════════════════════════════════
+
+📧 Hỗ trợ: Nếu có thắc mắc, vào Settings → Help
+🎉 Good luck on your journey to 850+ TOEIC!

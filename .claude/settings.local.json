@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(taskkill //F //PID 14400)",
+      "PowerShell(netstat -ano)"
+    ]
+  }
+}

@@ -1,0 +1,295 @@
+{
+  "part1": [
+    {
+      "part": 1,
+      "questionNumber": 1,
+      "questionType": "photo-description",
+      "difficulty": "easy",
+      "imageUrl": "/images/toeic/part1/photo1.jpg",
+      "audioText": "A. A woman is reading a book. B. A woman is writing on paper. C. A woman is talking on the phone. D. A woman is drinking coffee.",
+      "audioScript": "Look at the picture marked number 1 in your test book. (A) A woman is reading a book. (B) A woman is writing on paper. (C) A woman is talking on the phone. (D) A woman is drinking coffee.",
+      "options": [
+        { "label": "A", "text": "A woman is reading a book.", "isCorrect": false },
+        { "label": "B", "text": "A woman is writing on paper.", "isCorrect": true },
+        { "label": "C", "text": "A woman is talking on the phone.", "isCorrect": false },
+        { "label": "D", "text": "A woman is drinking coffee.", "isCorrect": false }
+      ],
+      "correctAnswer": "B",
+      "explanation": "The photo shows a woman writing on paper at a desk.",
+      "explanationVN": "Hình ảnh cho thấy một người phụ nữ đang viết trên giấy tại bàn làm việc.",
+      "translation": "Nhìn vào hình ảnh số 1. (A) Một người phụ nữ đang đọc sách. (B) Một người phụ nữ đang viết trên giấy. (C) Một người phụ nữ đang nói chuyện điện thoại. (D) Một người phụ nữ đang uống cà phê.",
+      "topic": "office",
+      "skillsTested": ["detail", "vocabulary"],
+      "speakers": 1
+    },
+    {
+      "part": 1,
+      "questionNumber": 2,
+      "questionType": "photo-description",
+      "difficulty": "medium",
+      "imageUrl": "/images/toeic/part1/photo2.jpg",
+      "audioText": "A. They're entering the building. B. They're leaving the office. C. They're sitting in a meeting. D. They're walking down the street.",
+      "audioScript": "Look at the picture marked number 2 in your test book. (A) They're entering the building. (B) They're leaving the office. (C) They're sitting in a meeting. (D) They're walking down the street.",
+      "options": [
+        { "label": "A", "text": "They're entering the building.", "isCorrect": true },
+        { "label": "B", "text": "They're leaving the office.", "isCorrect": false },
+        { "label": "C", "text": "They're sitting in a meeting.", "isCorrect": false },
+        { "label": "D", "text": "They're walking down the street.", "isCorrect": false }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The photo shows people entering through the main entrance of a building.",
+      "explanationVN": "Hình ảnh cho thấy mọi người đang đi vào qua cổng chính của tòa nhà.",
+      "topic": "office",
+      "skillsTested": ["detail", "inference"],
+      "speakers": 1
+    }
+  ],
+  "part2": [
+    {
+      "part": 2,
+      "questionNumber": 3,
+      "questionType": "question-response",
+      "difficulty": "easy",
+      "audioText": "Question: When does the meeting start? A. At three o'clock. B. In the conference room. C. Yes, it starts soon.",
+      "audioScript": "When does the meeting start? (A) At three o'clock. (B) In the conference room. (C) Yes, it starts soon.",
+      "questionText": "When does the meeting start?",
+      "options": [
+        { "label": "A", "text": "At three o'clock.", "isCorrect": true },
+        { "label": "B", "text": "In the conference room.", "isCorrect": false },
+        { "label": "C", "text": "Yes, it starts soon.", "isCorrect": false }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The question asks about time (when), so the correct answer should indicate a time.",
+      "explanationVN": "Câu hỏi hỏi về thời gian (when - khi nào), nên câu trả lời đúng phải chỉ ra thời gian.",
+      "translation": "Câu hỏi: Cuộc họp bắt đầu khi nào? A. Lúc ba giờ. B. Trong phòng hội nghị. C. Vâng, nó sẽ sớm bắt đầu.",
+      "topic": "business",
+      "skillsTested": ["grammar", "inference"],
+      "speakers": 2
+    },
+    {
+      "part": 2,
+      "questionNumber": 4,
+      "questionType": "question-response",
+      "difficulty": "medium",
+      "audioText": "Question: Who's responsible for the project? A. Mr. Kim is handling it. B. It's due next week. C. The project report.",
+      "audioScript": "Who's responsible for the project? (A) Mr. Kim is handling it. (B) It's due next week. (C) The project report.",
+      "questionText": "Who's responsible for the project?",
+      "options": [
+        { "label": "A", "text": "Mr. Kim is handling it.", "isCorrect": true },
+        { "label": "B", "text": "It's due next week.", "isCorrect": false },
+        { "label": "C", "text": "The project report.", "isCorrect": false }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The question asks about a person (who), so the answer should name a person.",
+      "explanationVN": "Câu hỏi hỏi về người (who - ai), nên câu trả lời phải nói tên người.",
+      "topic": "business",
+      "skillsTested": ["grammar", "vocabulary"],
+      "speakers": 2
+    }
+  ],
+  "part3": [
+    {
+      "part": 3,
+      "questionNumber": 5,
+      "questionType": "conversation",
+      "difficulty": "medium",
+      "audioText": "M: Hi Sarah, did you finish the sales report? W: Not yet, I'm still working on the charts. M: When do you think you'll have it ready? W: Probably by tomorrow afternoon.",
+      "audioScript": "Questions 5 refer to the following conversation. Man: Hi Sarah, did you finish the sales report? Woman: Not yet, I'm still working on the charts. Man: When do you think you'll have it ready? Woman: Probably by tomorrow afternoon.",
+      "questionText": "What is the woman working on?",
+      "options": [
+        { "label": "A", "text": "A sales report", "isCorrect": true },
+        { "label": "B", "text": "A presentation", "isCorrect": false },
+        { "label": "C", "text": "A meeting agenda", "isCorrect": false },
+        { "label": "D", "text": "A customer list", "isCorrect": false }
+      ],
+      "correctAnswer": "A",
+      "explanation": "The woman says she is working on the sales report, specifically on the charts.",
+      "explanationVN": "Người phụ nữ nói rằng cô ấy đang làm báo cáo bán hàng, cụ thể là phần biểu đồ.",
+      "translation": "Nam: Chào Sarah, bạn hoàn thành báo cáo bán hàng chưa? Nữ: Chưa, tôi vẫn đang làm các biểu đồ. Nam: Khi nào bạn nghĩ sẽ xong? Nữ: Có lẽ là chiều mai.",
+      "topic": "office",
+      "skillsTested": ["detail", "main-idea"],
+      "speakers": 2
+    },
+    {
+      "part": 3,
+      "questionNumber": 6,
+      "questionType": "conversation",
+      "difficulty": "medium",
+      "audioText": "M: Hi Sarah, did you finish the sales report? W: Not yet, I'm still working on the charts. M: When do you think you'll have it ready? W: Probably by tomorrow afternoon.",
+      "audioScript": "Questions 6 refer to the following conversation. Man: Hi Sarah, did you finish the sales report? Woman: Not yet, I'm still working on the charts. Man: When do you think you'll have it ready? Woman: Probably by tomorrow afternoon.",
+      "questionText": "When will the report be ready?",
+      "options": [
+        { "label": "A", "text": "This morning", "isCorrect": false },
+        { "label": "B", "text": "This afternoon", "isCorrect": false },
+        { "label": "C", "text": "Tomorrow morning", "isCorrect": false },
+        { "label": "D", "text": "Tomorrow afternoon", "isCorrect": true }
+      ],
+      "correctAnswer": "D",
+      "explanation": "The woman says the report will probably be ready by tomorrow afternoon.",
+      "explanationVN": "Người phụ nữ nói rằng báo cáo có lẽ sẽ sẵn sàng vào chiều mai.",
+      "topic": "office",
+      "skillsTested": ["detail"],
+      "speakers": 2
+    }
+  ],
+  "part4": [
+    {
+      "part": 4,
+      "questionNumber": 7,
+      "questionType": "talk",
+      "difficulty": "medium",
+      "audioText": "Good morning, everyone. Thank you for joining today's training session on customer service. We'll be covering three main topics: handling complaints, processing returns, and building customer loyalty. Please take notes, as there will be a short quiz at the end.",
+      "audioScript": "Questions 7 refer to the following announcement. Good morning, everyone. Thank you for joining today's training session on customer service. We'll be covering three main topics: handling complaints, processing returns, and building customer loyalty. Please take notes, as there will be a short quiz at the end.",
+      "questionText": "What is the purpose of this talk?",
+      "options": [
+        { "label": "A", "text": "To introduce a new product", "isCorrect": false },
+        { "label": "B", "text": "To provide training", "isCorrect": true },
+        { "label": "C", "text": "To announce a policy change", "isCorrect": false },
+        { "label": "D", "text": "To review sales figures", "isCorrect": false }
+      ],
+      "correctAnswer": "B",
+      "explanation": "The speaker mentions this is a training session on customer service.",
+      "explanationVN": "Người nói đề cập đây là buổi đào tạo về dịch vụ khách hàng.",
+      "translation": "Chào buổi sáng mọi người. Cảm ơn các bạn đã tham gia buổi đào tạo hôm nay về dịch vụ khách hàng. Chúng ta sẽ đề cập đến ba chủ đề chính: xử lý khiếu nại, xử lý hàng trả lại, và xây dựng lòng trung thành của khách hàng. Vui lòng ghi chú, vì sẽ có một bài kiểm tra ngắn ở cuối.",
+      "topic": "business",
+      "skillsTested": ["purpose", "main-idea"],
+      "speakers": 1
+    }
+  ],
+  "part5": [
+    {
+      "part": 5,
+      "questionNumber": 8,
+      "questionType": "incomplete-sentence",
+      "difficulty": "easy",
+      "questionText": "The conference will be held _____ the Grand Hotel.",
+      "options": [
+        { "label": "A", "text": "at", "isCorrect": true },
+        { "label": "B", "text": "in", "isCorrect": false },
+        { "label": "C", "text": "on", "isCorrect": false },
+        { "label": "D", "text": "by", "isCorrect": false }
+      ],
+      "correctAnswer": "A",
+      "explanation": "We use 'at' with specific locations like hotels, restaurants, and buildings.",
+      "explanationVN": "Chúng ta dùng 'at' với các địa điểm cụ thể như khách sạn, nhà hàng và tòa nhà.",
+      "translation": "Hội nghị sẽ được tổ chức tại khách sạn Grand.",
+      "grammarPoint": "Prepositions of place",
+      "vocabularyFocus": ["preposition", "conference", "hotel"],
+      "topic": "business",
+      "skillsTested": ["grammar"]
+    },
+    {
+      "part": 5,
+      "questionNumber": 9,
+      "questionType": "incomplete-sentence",
+      "difficulty": "medium",
+      "questionText": "Ms. Chen is _____ responsible for the project than Mr. Park.",
+      "options": [
+        { "label": "A", "text": "more", "isCorrect": true },
+        { "label": "B", "text": "most", "isCorrect": false },
+        { "label": "C", "text": "much", "isCorrect": false },
+        { "label": "D", "text": "many", "isCorrect": false }
+      ],
+      "correctAnswer": "A",
+      "explanation": "We use 'more' before adjectives to form the comparative degree when comparing two things.",
+      "explanationVN": "Chúng ta dùng 'more' trước tính từ để tạo cấp so sánh hơn khi so sánh hai thứ.",
+      "translation": "Cô Chen chịu trách nhiệm cho dự án nhiều hơn ông Park.",
+      "grammarPoint": "Comparatives",
+      "vocabularyFocus": ["comparative", "responsible"],
+      "topic": "business",
+      "skillsTested": ["grammar"]
+    },
+    {
+      "part": 5,
+      "questionNumber": 10,
+      "questionType": "incomplete-sentence",
+      "difficulty": "hard",
+      "questionText": "The new policy will be _____ effective next month.",
+      "options": [
+        { "label": "A", "text": "become", "isCorrect": false },
+        { "label": "B", "text": "becoming", "isCorrect": false },
+        { "label": "C", "text": "became", "isCorrect": false },
+        { "label": "D", "text": "No word needed", "isCorrect": true }
+      ],
+      "correctAnswer": "D",
+      "explanation": "'Effective' is an adjective here, and we don't need an extra verb. 'Will be effective' is correct.",
+      "explanationVN": "'Effective' là tính từ ở đây, và chúng ta không cần thêm động từ. 'Will be effective' là đúng.",
+      "translation": "Chính sách mới sẽ có hiệu lực vào tháng sau.",
+      "grammarPoint": "Verb forms and adjectives",
+      "vocabularyFocus": ["effective", "policy"],
+      "topic": "business",
+      "skillsTested": ["grammar", "vocabulary"]
+    }
+  ],
+  "part6": [
+    {
+      "part": 6,
+      "questionNumber": 11,
+      "questionType": "text-completion",
+      "difficulty": "medium",
+      "passage": "Dear Valued Customer,\n\nThank you for your recent purchase. We are writing to inform you that your order has been processed and will be shipped within 2-3 business days. _____ (11) you have any questions about your order, please contact our customer service team.",
+      "passageTitle": "Customer Service Email",
+      "passageType": "email",
+      "questionText": "Choose the best option for blank (11).",
+      "options": [
+        { "label": "A", "text": "If", "isCorrect": true },
+        { "label": "B", "text": "Because", "isCorrect": false },
+        { "label": "C", "text": "Although", "isCorrect": false },
+        { "label": "D", "text": "When", "isCorrect": false }
+      ],
+      "correctAnswer": "A",
+      "explanation": "'If' is used for conditional sentences, which fits the context of having questions.",
+      "explanationVN": "'If' được dùng cho câu điều kiện, phù hợp với ngữ cảnh có câu hỏi.",
+      "translation": "Kính gửi Quý khách,\n\nCảm ơn quý khách đã mua hàng gần đây. Chúng tôi viết thư để thông báo rằng đơn hàng của bạn đã được xử lý và sẽ được gửi trong vòng 2-3 ngày làm việc. Nếu bạn có bất kỳ câu hỏi nào về đơn hàng, vui lòng liên hệ với đội ngũ chăm sóc khách hàng.",
+      "grammarPoint": "Conditional conjunctions",
+      "vocabularyFocus": ["conditional", "customer service"],
+      "topic": "business",
+      "skillsTested": ["grammar", "vocabulary"]
+    }
+  ],
+  "part7": [
+    {
+      "part": 7,
+      "questionNumber": 12,
+      "questionType": "single-passage",
+      "difficulty": "medium",
+      "passage": "OFFICE CLOSURE NOTICE\n\nDue to scheduled maintenance, our main office will be closed on Saturday, March 15th. All appointments scheduled for that day have been rescheduled to the following week. If you have any urgent matters, please contact our customer service hotline at 555-0123. We apologize for any inconvenience and appreciate your understanding.\n\nBest regards,\nManagement Team",
+      "passageTitle": "Office Closure Notice",
+      "passageType": "notice",
+      "questionText": "Why will the office be closed?",
+      "options": [
+        { "label": "A", "text": "For a holiday", "isCorrect": false },
+        { "label": "B", "text": "For maintenance", "isCorrect": true },
+        { "label": "C", "text": "For a company event", "isCorrect": false },
+        { "label": "D", "text": "For renovation", "isCorrect": false }
+      ],
+      "correctAnswer": "B",
+      "explanation": "The notice states the office will be closed 'due to scheduled maintenance.'",
+      "explanationVN": "Thông báo nói rằng văn phòng sẽ đóng cửa 'do bảo trì theo lịch trình.'",
+      "translation": "THÔNG BÁO ĐÓNG CỬA VĂN PHÒNG\n\nDo bảo trì theo lịch trình, văn phòng chính của chúng tôi sẽ đóng cửa vào thứ Bảy, ngày 15 tháng 3. Tất cả các cuộc hẹn đã được lên lịch cho ngày đó đã được dời sang tuần sau. Nếu bạn có vấn đề gấp, vui lòng liên hệ đường dây nóng chăm sóc khách hàng tại 555-0123. Chúng tôi xin lỗi vì sự bất tiện và cảm ơn sự thông cảm của bạn.",
+      "topic": "office",
+      "skillsTested": ["detail", "main-idea"]
+    },
+    {
+      "part": 7,
+      "questionNumber": 13,
+      "questionType": "single-passage",
+      "difficulty": "medium",
+      "passage": "OFFICE CLOSURE NOTICE\n\nDue to scheduled maintenance, our main office will be closed on Saturday, March 15th. All appointments scheduled for that day have been rescheduled to the following week. If you have any urgent matters, please contact our customer service hotline at 555-0123. We apologize for any inconvenience and appreciate your understanding.\n\nBest regards,\nManagement Team",
+      "passageTitle": "Office Closure Notice",
+      "passageType": "notice",
+      "questionText": "What should customers do if they have urgent matters?",
+      "options": [
+        { "label": "A", "text": "Visit the office", "isCorrect": false },
+        { "label": "B", "text": "Send an email", "isCorrect": false },
+        { "label": "C", "text": "Call the hotline", "isCorrect": true },
+        { "label": "D", "text": "Wait until next week", "isCorrect": false }
+      ],
+      "correctAnswer": "C",
+      "explanation": "The notice instructs customers to 'contact our customer service hotline' for urgent matters.",
+      "explanationVN": "Thông báo hướng dẫn khách hàng 'liên hệ đường dây nóng chăm sóc khách hàng' cho các vấn đề khẩn cấp.",
+      "topic": "office",
+      "skillsTested": ["detail"]
+    }
+  ]
+}

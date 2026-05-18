@@ -1,0 +1,802 @@
+// modules/vocab.js — Vocabulary management functions
+
+// ===================================
+// 4. VOCABULARY MANAGEMENT FUNCTIONS (UPDATED)
+// ===================================
+
+/**
+ * [PHẦN LỌC DỮ LIỆU]
+ * Tải danh sách từ vựng từ API, có hỗ trợ phân trang và lọc Part.
+ */
+async function loadVocabulary(page = vocabCurrentPage, part = vocabCurrentPart, source = vocabCurrentSource) {
+    const tbody = document.querySelector("#vocabulary-table tbody");
+    const paginationControls = document.getElementById('vocabulary-pagination-controls');
+
+    vocabCurrentPage = page;
+    vocabCurrentPart = part;
+    vocabCurrentSource = source;
+
+    tbody.innerHTML = `<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải từ vựng...</td></tr>`;
+    if (paginationControls) paginationControls.innerHTML = '';
+
+    try {
+        const url = `${API_URL}/vocabulary?limit=${vocabCurrentLimit}&page=${page}&part=${part || ''}&source=${source || ''}&search=${encodeURIComponent(vocabSearchTerm)}`;
+        const res = await fetch(url); // <-- API call to filter
+        const data = await res.json();
+
+        if (data.success) {
+            window._lastVocabData = data.data;
+            displayVocabulary(data.data);
+            updateLocalPartFilter(data.data);
+            if (paginationControls) {
+                renderVocabularyPagination(data.page, data.limit, data.total, data.count);
+            }
+        } else {
+            const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
+            tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color: ${dangerColor}">Lỗi tải dữ liệu: ${data.message}</td></tr>`;
+        }
+    } catch (err) {
+        console.error("Lỗi tải từ vựng:", err);
+        const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
+        tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color: ${dangerColor}">Không thể kết nối đến API từ vựng.</td></tr>`;
+    }
+}
+
+/**
+ * Hiển thị danh sách từ vựng lên bảng
+ */
+function displayVocabulary(words) {
+    const tbody = document.querySelector("#vocabulary-table tbody");
+    tbody.innerHTML = '';
+
+    if (words.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #999; padding: 40px;">Không có từ vựng nào được tìm thấy.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = words
+        .map((word) => {
+            const sources = Array.isArray(word.sources) && word.sources.length
+                ? word.sources.map(s => `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:10px;">${s}</span>`).join(' ')
+                : (word.source ? `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:10px;">${word.source}</span>` : '<span style="color:#666;font-size:11px;">—</span>');
+            return `
+        <tr>
+            <td><strong>${word.en}</strong> <span style="color:#888;font-size:12px;">${word.phonetic || ''}</span></td>
+            <td>${word.vn}</td>
+            <td><span class="badge info">${word.type}</span></td>
+            <td><span class="badge warning">${word.part}</span></td>
+            <td style="white-space:nowrap;">${sources}</td>
+            <td>
+                <button class="btn btn-primary btn-sm btn-edit-word"
+                    data-word='${JSON.stringify(word).replace(/'/g, "&apos;")}'>
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm btn-delete-word"
+                    data-word-en="${word.en}">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+        })
+        .join("");
+
+    attachEditWordListeners();
+    attachDeleteWordListeners();
+}
+
+/**
+ * Khởi tạo dropdown lọc Part bằng danh sách Part đã quét (fetch) được.
+ */
+async function initializeVocabFilters() {
+    const filterSelect = document.getElementById('vocab-part-filter');
+
+    if (!filterSelect) return;
+
+    // 1. Fetch parts dynamically (Quét Part)
+    const uniqueParts = await fetchUniqueVocabParts();
+
+    // 2. Clear and set default option
+    filterSelect.innerHTML = '<option value="">-- Tất cả Part --</option>';
+
+    // 3. Populate Options
+    if (uniqueParts.length > 0) {
+        uniqueParts.forEach(part => {
+            const option = document.createElement('option');
+            option.value = part;
+            option.textContent = part; // Giá trị hiển thị là tên Part (vd: E2XA-P1)
+            filterSelect.appendChild(option);
+        });
+    }
+
+    // Giữ nguyên giá trị đang được chọn sau khi tải lại Options
+    filterSelect.value = vocabCurrentPart;
+
+    // 4. Re-attach Event Listener
+    filterSelect.removeEventListener('change', handleVocabFilterChange);
+    filterSelect.addEventListener('change', handleVocabFilterChange);
+}
+
+
+/**
+ * Render thông tin số lượng từ vựng (giống TOEIC Questions tab)
+ */
+function renderVocabularyPagination(_currentPage, _limit, total, filteredCount) {
+    const container = document.getElementById('vocabulary-pagination-controls');
+    const clearBtn = document.getElementById('clear-vocab-filters');
+    if (!container) return;
+
+    const displayCount = filteredCount !== undefined ? filteredCount : total;
+    const totalPages = Math.ceil(total / vocabCurrentLimit);
+    const hasFilter = vocabCurrentPart || vocabSearchTerm || vocabCurrentSource;
+
+    if (total === 0) {
+        container.innerHTML = `<span style="color:#999;">Không có từ vựng nào.</span>`;
+        if (clearBtn) clearBtn.style.display = hasFilter ? 'inline-block' : 'none';
+        return;
+    }
+
+    if (clearBtn) clearBtn.style.display = hasFilter ? 'inline-block' : 'none';
+
+    const from = (_currentPage - 1) * vocabCurrentLimit + 1;
+    const to = Math.min(_currentPage * vocabCurrentLimit, total);
+
+    if (totalPages <= 1) {
+        container.innerHTML = `<span style="color:#94a3b8;font-size:13px;">${from}–${to} / <strong style="color:#e2e8f0;">${total}</strong> từ</span>`;
+        return;
+    }
+
+    const maxBtns = 5;
+    let startPage = Math.max(1, _currentPage - Math.floor(maxBtns / 2));
+    let endPage = Math.min(totalPages, startPage + maxBtns - 1);
+    if (endPage - startPage < maxBtns - 1) startPage = Math.max(1, endPage - maxBtns + 1);
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:4px;flex-wrap:wrap;';
+
+    const info = document.createElement('span');
+    info.style.cssText = 'color:#94a3b8;font-size:13px;margin-right:6px;';
+    info.innerHTML = `${from}–${to} / <strong style="color:#e2e8f0;">${total}</strong> từ`;
+    wrap.appendChild(info);
+
+    function makeBtn(label, page, disabled, active) {
+        const btn = document.createElement('button');
+        btn.innerHTML = label;
+        btn.style.cssText = `padding:4px ${active ? '10' : '8'}px;border-radius:6px;border:1px solid ${active ? '#3b82f6' : '#334155'};background:${active ? '#3b82f6' : '#1e293b'};color:${active ? '#fff' : '#94a3b8'};cursor:pointer;font-size:12px;font-weight:${active ? '600' : '400'};${disabled ? 'opacity:.4;pointer-events:none;' : ''}`;
+        if (!disabled) btn.addEventListener('click', () => loadVocabulary(page, vocabCurrentPart, vocabCurrentSource));
+        return btn;
+    }
+
+    wrap.appendChild(makeBtn('&laquo;', _currentPage - 1, _currentPage <= 1, false));
+    for (let p = startPage; p <= endPage; p++) {
+        wrap.appendChild(makeBtn(p, p, false, p === _currentPage));
+    }
+    wrap.appendChild(makeBtn('&raquo;', _currentPage + 1, _currentPage >= totalPages, false));
+
+    container.innerHTML = '';
+    container.appendChild(wrap);
+}
+
+/**
+ * Xóa tất cả bộ lọc từ vựng
+ */
+function clearVocabFilters() {
+    vocabCurrentPart = '';
+    vocabCurrentSource = '';
+    vocabSearchTerm = '';
+
+    const partFilter = document.getElementById('vocab-part-filter');
+    const searchInput = document.getElementById('vocab-search');
+    const pickerLabel = document.getElementById('vocab-file-picker-label');
+
+    if (partFilter) partFilter.value = '';
+    if (searchInput) searchInput.value = '';
+    if (pickerLabel) pickerLabel.textContent = 'Tất cả';
+
+    // Reset active card
+    document.querySelectorAll('.vocab-picker-card').forEach(c => c.classList.remove('active'));
+    const allCard = document.querySelector('.vocab-picker-card[data-source=""]');
+    if (allCard) allCard.classList.add('active');
+
+    loadVocabulary(1, '', '');
+}
+// Expose to window for HTML onclick
+window.clearVocabFilters = clearVocabFilters;
+
+
+/* =========================================================
+    OLD WORD EDIT LOGIC
+========================================================= */
+
+function attachEditWordListeners() {
+    document.querySelectorAll(".btn-edit-word").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+            const wordData = JSON.parse(e.target.closest("button").dataset.word.replace(/&apos;/g, "'"));
+            openEditWordModal(wordData);
+        });
+    });
+}
+
+function attachDeleteWordListeners() {
+    document.querySelectorAll(".btn-delete-word").forEach((btn) => {
+        btn.addEventListener("click", async (e) => {
+            const button = e.target.closest("button");
+            const wordEn = button.dataset.wordEn;
+            const row = button.closest("tr"); // Lấy dòng chứa nút xóa
+
+            if (!confirm(`Bạn có chắc chắn muốn XÓA từ vựng "${wordEn}"?`)) return;
+
+            try {
+                const res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`, {
+                    method: "DELETE",
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    // ✅ Xóa dòng khỏi DOM thay vì reload toàn bộ bảng
+                    if (row) {
+                        row.style.transition = 'opacity 0.3s, transform 0.3s';
+                        row.style.opacity = '0';
+                        row.style.transform = 'translateX(-20px)';
+
+                        setTimeout(() => {
+                            row.remove();
+
+                            // Cập nhật số lượng hiển thị
+                            updateVocabCountAfterDelete();
+                        }, 300);
+                    }
+
+                    // Reload stats và activities ở background (không ảnh hưởng scroll)
+                    loadVocabularyStats();
+                    loadRecentActivities();
+
+                    // Thông báo nhẹ nhàng hơn (không dùng alert)
+                    showToast(`✅ Đã xóa "${wordEn}"`, 'success');
+                } else {
+                    alert("❌ Lỗi: " + (data.message || "Không thể xóa từ vựng."));
+                }
+            } catch (error) {
+                console.error("Error deleting word:", error);
+                alert("❌ Lỗi kết nối: Không thể xóa từ vựng.");
+            }
+        });
+    });
+}
+
+/**
+ * Cập nhật số lượng từ vựng sau khi xóa (không reload)
+ */
+function updateVocabCountAfterDelete() {
+    const container = document.getElementById('vocabulary-pagination-controls');
+    if (!container) return;
+
+    // Đếm số dòng còn lại trong bảng
+    const tbody = document.querySelector("#vocabulary-table tbody");
+    const rowCount = tbody ? tbody.querySelectorAll('tr').length : 0;
+
+    // Cập nhật hiển thị
+    const hasFilter = vocabCurrentPart || vocabSearchTerm;
+    if (hasFilter) {
+        container.innerHTML = `<i class="fas fa-info-circle"></i> Hiển thị <strong>${rowCount}</strong> từ vựng`;
+    } else {
+        container.innerHTML = `<i class="fas fa-list"></i> Tổng cộng: <strong>${rowCount}</strong> từ vựng`;
+    }
+}
+
+/**
+ * Xóa từ vựng theo từ tiếng Anh
+ */
+async function deleteWord(wordEn) {
+    try {
+        const res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`, {
+            method: "DELETE",
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            // Xóa khỏi local data
+            localVocabularyData = localVocabularyData.filter(w => w.en !== wordEn);
+
+            // Refresh display
+            displayLocalVocabulary();
+
+            showToast(`✅ Đã xóa "${wordEn}"`, 'success');
+        } else {
+            alert("❌ Lỗi: " + (data.message || "Không thể xóa từ vựng."));
+        }
+    } catch (error) {
+        console.error("Error deleting word:", error);
+        alert("❌ Lỗi kết nối: Không thể xóa từ vựng.");
+    }
+}
+
+// ===================================
+// DUPLICATE VOCABULARY MANAGEMENT
+// ===================================
+
+/**
+ * Tìm các từ vựng trùng lặp (cùng en + vn + part)
+ */
+function findDuplicateVocabulary() {
+    if (!localVocabularyData || localVocabularyData.length === 0) {
+        alert('⚠️ Chưa có dữ liệu từ vựng. Vui lòng chọn file JSON trước.');
+        return [];
+    }
+
+    const seen = new Map();
+    const duplicates = [];
+
+    localVocabularyData.forEach((word, index) => {
+        // Tạo key từ en + vn + part
+        const key = `${(word.en || '').toLowerCase().trim()}|${(word.vn || '').toLowerCase().trim()}|${(word.part || '').toLowerCase().trim()}`;
+
+        if (seen.has(key)) {
+            // Đã thấy từ này trước đó -> trùng lặp
+            const original = seen.get(key);
+            duplicates.push({
+                key,
+                original: original,
+                duplicate: { ...word, _index: index }
+            });
+        } else {
+            seen.set(key, { ...word, _index: index });
+        }
+    });
+
+    console.log(`🔍 Found ${duplicates.length} duplicate entries`);
+    return duplicates;
+}
+
+/**
+ * Quét từ vựng trùng lặp TRÊN DATABASE.
+ * Tiêu chí trùng = key (source + part + en), không phải dữ liệu local.
+ * Tôn trọng bộ lọc source/part đang chọn.
+ */
+async function scanDuplicates() {
+    const btn = document.getElementById('btn-scan-duplicates');
+    const original = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang quét...';
+    }
+    try {
+        const params = new URLSearchParams();
+        if (vocabCurrentSource) params.set('source', vocabCurrentSource);
+        if (vocabCurrentPart) params.set('part', vocabCurrentPart);
+
+        const res = await fetch(`${API_URL}/vocabulary/duplicates?${params.toString()}`);
+        const data = await res.json();
+
+        if (!data.success) {
+            alert(`❌ Lỗi quét trùng: ${data.message || 'không xác định'}`);
+            return;
+        }
+
+        const groups = data.data || [];
+        if (groups.length === 0) {
+            const scope = vocabCurrentSource || vocabCurrentPart
+                ? `(lọc: ${[vocabCurrentSource, vocabCurrentPart].filter(Boolean).join(' / ')})`
+                : '(toàn bộ database)';
+            alert(`✅ Không tìm thấy từ trùng lặp ${scope} theo key source + part + en!`);
+            return;
+        }
+
+        showDbDuplicateModal(groups, data);
+    } catch (error) {
+        console.error('Error scanning duplicates:', error);
+        alert(`❌ Lỗi kết nối server khi quét trùng: ${error.message}`);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    }
+}
+
+/**
+ * Modal hiển thị các nhóm trùng lặp lấy từ database.
+ * @param {Array} groups - [{ en, part, source, count, docs:[{_id,en,vn,part,source}] }]
+ * @param {object} summary - { duplicateGroups, totalDuplicates }
+ */
+function showDbDuplicateModal(groups, summary) {
+    const existingModal = document.getElementById('duplicate-modal');
+    if (existingModal) existingModal.remove();
+
+    const scopeLabel = vocabCurrentSource || vocabCurrentPart
+        ? [vocabCurrentSource, vocabCurrentPart].filter(Boolean).join(' / ')
+        : 'Toàn bộ database';
+    const removeScope = vocabCurrentSource || 'all';
+
+    const rows = groups.map((g, i) => `
+        <tr style="border-bottom: 1px solid #333;">
+            <td style="padding: 10px; color: #888;">${i + 1}</td>
+            <td style="padding: 10px; color: #fff;"><strong>${g.en || '-'}</strong></td>
+            <td style="padding: 10px; color: #ccc;">${(g.docs[0] && g.docs[0].vn) || '-'}</td>
+            <td style="padding: 10px;"><span style="background: #f39c12; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${g.part || '-'}</span></td>
+            <td style="padding: 10px;"><span style="background: #1e3a5f; color: #60a5fa; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${g.source || '-'}</span></td>
+            <td style="padding: 10px; color: #e74c3c; font-weight: bold;">${g.count} bản (thừa ${g.count - 1})</td>
+        </tr>
+    `).join('');
+
+    const modal = document.createElement('div');
+    modal.id = 'duplicate-modal';
+    modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: #1e1e2e; border-radius: 12px; max-width: 950px; width: 95%; max-height: 80vh; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <div style="padding: 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #fff;">
+                        <i class="fas fa-copy"></i> Trùng lặp trên DB — ${scopeLabel}
+                        <span style="display:block;font-size:12px;color:#888;font-weight:normal;margin-top:4px;">Key: source + part + en</span>
+                    </h3>
+                    <span style="background: #e74c3c; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold;">
+                        ${summary.duplicateGroups} nhóm · ${summary.totalDuplicates} bản thừa
+                    </span>
+                </div>
+
+                <div style="max-height: 50vh; overflow-y: auto; padding: 15px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #2d2d3d; color: #aaa;">
+                                <th style="padding: 10px; text-align: left;">#</th>
+                                <th style="padding: 10px; text-align: left;">English</th>
+                                <th style="padding: 10px; text-align: left;">Vietnamese</th>
+                                <th style="padding: 10px; text-align: left;">Part</th>
+                                <th style="padding: 10px; text-align: left;">Source</th>
+                                <th style="padding: 10px; text-align: left;">Số bản</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+
+                <div style="padding: 20px; border-top: 1px solid #333; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+                    <button id="btn-close-duplicate-modal" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-times"></i> Đóng
+                    </button>
+                    <button id="btn-delete-duplicates-db" style="padding: 10px 20px; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        <i class="fas fa-trash"></i> Xóa ${summary.totalDuplicates} bản thừa (giữ 1/nhóm)
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    document.getElementById('btn-close-duplicate-modal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal.firstElementChild) modal.remove();
+    });
+
+    document.getElementById('btn-delete-duplicates-db').addEventListener('click', async () => {
+        if (!confirm(`Xóa ${summary.totalDuplicates} bản trùng thừa (mỗi nhóm giữ lại 1)?\n\nPhạm vi: ${scopeLabel}\n⚠️ Thao tác này XÓA VĨNH VIỄN trong database!`)) {
+            return;
+        }
+        const delBtn = document.getElementById('btn-delete-duplicates-db');
+        delBtn.disabled = true;
+        delBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
+        try {
+            const response = await fetch(`/api/vocabulary/remove-duplicates/${encodeURIComponent(removeScope)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const result = await response.json();
+            if (result.success) {
+                showToast(`✅ Đã xóa ${result.removed} bản trùng (${result.duplicateGroups} nhóm)!`, 'success');
+                modal.remove();
+                await loadVocabulary();
+            } else {
+                showToast(`❌ Lỗi: ${result.message}`, 'error');
+                delBtn.disabled = false;
+                delBtn.innerHTML = `<i class="fas fa-trash"></i> Xóa ${summary.totalDuplicates} bản thừa (giữ 1/nhóm)`;
+            }
+        } catch (error) {
+            console.error('Error removing duplicates:', error);
+            showToast(`❌ Lỗi kết nối server: ${error.message}`, 'error');
+            delBtn.disabled = false;
+            delBtn.innerHTML = `<i class="fas fa-trash"></i> Xóa ${summary.totalDuplicates} bản thừa (giữ 1/nhóm)`;
+        }
+    });
+}
+
+/**
+ * Hiển thị modal danh sách từ trùng lặp
+ */
+function showDuplicateModal(duplicates) {
+    // Xóa modal cũ nếu có
+    const existingModal = document.getElementById('duplicate-modal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'duplicate-modal';
+    modal.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center;">
+            <div style="background: #1e1e2e; border-radius: 12px; max-width: 900px; width: 95%; max-height: 80vh; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <div style="padding: 20px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center;">
+                    <h3 style="margin: 0; color: #fff;">
+                        <i class="fas fa-copy"></i> Từ vựng trùng lặp trong ${currentLocalFile}
+                    </h3>
+                    <span style="background: #e74c3c; color: white; padding: 5px 15px; border-radius: 20px; font-weight: bold;">
+                        ${duplicates.length} từ trùng
+                    </span>
+                </div>
+
+                <div style="max-height: 50vh; overflow-y: auto; padding: 15px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                        <thead>
+                            <tr style="background: #2d2d3d; color: #aaa;">
+                                <th style="padding: 10px; text-align: left;">#</th>
+                                <th style="padding: 10px; text-align: left;">English</th>
+                                <th style="padding: 10px; text-align: left;">Vietnamese</th>
+                                <th style="padding: 10px; text-align: left;">Part</th>
+                                <th style="padding: 10px; text-align: left;">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${duplicates.map((dup, i) => `
+                                <tr style="border-bottom: 1px solid #333;">
+                                    <td style="padding: 10px; color: #888;">${i + 1}</td>
+                                    <td style="padding: 10px; color: #fff;"><strong>${dup.original.en || '-'}</strong></td>
+                                    <td style="padding: 10px; color: #ccc;">${dup.original.vn || '-'}</td>
+                                    <td style="padding: 10px;"><span style="background: #f39c12; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 12px;">${dup.original.part || '-'}</span></td>
+                                    <td style="padding: 10px; color: #e74c3c;"><i class="fas fa-exclamation-triangle"></i> Trùng lặp</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="padding: 20px; border-top: 1px solid #333; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
+                    <button id="btn-close-duplicate-modal" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        <i class="fas fa-times"></i> Đóng
+                    </button>
+                    <button id="btn-delete-duplicates-local" style="padding: 10px 20px; background: linear-gradient(135deg, #e74c3c, #c0392b); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        <i class="fas fa-trash"></i> Xóa vĩnh viễn ${duplicates.length} từ trùng
+                    </button>
+                    <button id="btn-export-clean-json" style="padding: 10px 20px; background: linear-gradient(135deg, #27ae60, #2ecc71); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+                        <i class="fas fa-download"></i> Xuất file đã làm sạch
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Event handlers
+    document.getElementById('btn-close-duplicate-modal').addEventListener('click', () => modal.remove());
+
+    // Xóa trùng lặp và lưu vào file JSON thực sự
+    document.getElementById('btn-delete-duplicates-local').addEventListener('click', async () => {
+        if (confirm(`Bạn có chắc muốn xóa ${duplicates.length} từ vựng trùng lặp?\n\n⚠️ Thao tác này sẽ XÓA VĨNH VIỄN các từ trùng lặp trong file "${currentLocalFile}"!`)) {
+            try {
+                // Gọi API để xóa duplicates trong file JSON thực sự
+                const response = await fetch(`/api/vocabulary/remove-duplicates/${encodeURIComponent(currentLocalFile)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reload dữ liệu từ file đã được làm sạch
+                    await loadLocalVocabulary(currentLocalFile);
+                    modal.remove();
+                    showToast(`✅ ${result.message}`, 'success');
+                } else {
+                    showToast(`❌ Lỗi: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error removing duplicates:', error);
+                showToast(`❌ Lỗi kết nối server: ${error.message}`, 'error');
+            }
+        }
+    });
+
+    // Xuất file JSON đã làm sạch
+    document.getElementById('btn-export-clean-json').addEventListener('click', () => {
+        // Tạo bản sao và xóa trùng
+        const cleanData = removeDuplicatesFromArray([...localVocabularyData]);
+
+        // Xuất file
+        const blob = new Blob([JSON.stringify(cleanData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${currentLocalFile.replace('.json', '')}-clean-${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showToast(`✅ Đã xuất file! Từ ${localVocabularyData.length} → ${cleanData.length} từ (xóa ${duplicates.length} trùng)`, 'success');
+    });
+
+    // Click outside to close
+    modal.querySelector('div').addEventListener('click', (e) => {
+        if (e.target === modal.querySelector('div')) modal.remove();
+    });
+}
+
+/**
+ * Xóa trùng lặp từ một mảng (trả về mảng mới)
+ */
+function removeDuplicatesFromArray(arr) {
+    const seen = new Map();
+    const result = [];
+
+    arr.forEach(word => {
+        const key = `${(word.en || '').toLowerCase().trim()}|${(word.vn || '').toLowerCase().trim()}|${(word.part || '').toLowerCase().trim()}`;
+        if (!seen.has(key)) {
+            seen.set(key, true);
+            result.push(word);
+        }
+    });
+
+    return result;
+}
+
+/**
+ * Xóa các từ vựng trùng lặp (giữ lại bản gốc)
+ */
+async function removeDuplicates(duplicates) {
+    if (!duplicates || duplicates.length === 0) {
+        alert('Không có từ trùng lặp để xóa.');
+        return;
+    }
+
+    let deletedCount = 0;
+    let errorCount = 0;
+
+    // Tạo progress indicator
+    const progressDiv = document.createElement('div');
+    progressDiv.id = 'delete-progress';
+    progressDiv.innerHTML = `
+        <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10001; display: flex; align-items: center; justify-content: center;">
+            <div style="background: #1e1e2e; padding: 30px; border-radius: 12px; text-align: center; min-width: 300px;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 40px; color: #667eea; margin-bottom: 15px;"></i>
+                <h3 style="color: #fff; margin: 0 0 10px 0;">Đang xóa từ trùng lặp...</h3>
+                <p id="delete-progress-text" style="color: #aaa; margin: 0;">0 / ${duplicates.length}</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(progressDiv);
+
+    // Xóa từng từ trùng
+    for (let i = 0; i < duplicates.length; i++) {
+        const dup = duplicates[i];
+        document.getElementById('delete-progress-text').textContent = `${i + 1} / ${duplicates.length}`;
+
+        try {
+            const res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(dup.duplicate.en)}`, {
+                method: 'DELETE'
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                deletedCount++;
+                // Xóa khỏi local data
+                localVocabularyData = localVocabularyData.filter((_w, idx) => idx !== dup.duplicate._index);
+            } else {
+                errorCount++;
+            }
+        } catch (error) {
+            console.error('Error deleting duplicate:', error);
+            errorCount++;
+        }
+
+        // Delay nhỏ để tránh quá tải server
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Xóa progress
+    progressDiv.remove();
+
+    // Reload local data và hiển thị
+    await loadLocalVocabulary(currentLocalFile);
+    displayLocalVocabulary();
+
+    // Thông báo kết quả
+    if (errorCount === 0) {
+        showToast(`✅ Đã xóa ${deletedCount} từ trùng lặp thành công!`, 'success');
+    } else {
+        alert(`⚠️ Đã xóa ${deletedCount} từ.\n❌ Lỗi: ${errorCount} từ không xóa được (có thể do API offline).`);
+    }
+}
+
+/**
+ * Xóa trùng lặp trực tiếp trong local data (không cần API)
+ */
+function removeDuplicatesLocal() {
+    const duplicates = findDuplicateVocabulary();
+
+    if (duplicates.length === 0) {
+        alert(`✅ Không tìm thấy từ vựng trùng lặp trong file ${currentLocalFile}!`);
+        return;
+    }
+
+    if (!confirm(`Tìm thấy ${duplicates.length} từ trùng lặp.\n\nBạn có muốn xóa chúng khỏi danh sách hiển thị?\n\n(Lưu ý: Chỉ xóa trong bộ nhớ, không ảnh hưởng file gốc)`)) {
+        return;
+    }
+
+    // Lấy danh sách index cần xóa (từ cao xuống thấp để không ảnh hưởng index)
+    const indexesToRemove = duplicates.map(d => d.duplicate._index).sort((a, b) => b - a);
+
+    // Xóa từ local data
+    indexesToRemove.forEach(idx => {
+        localVocabularyData.splice(idx, 1);
+    });
+
+    // Refresh display
+    displayLocalVocabulary();
+
+    showToast(`✅ Đã xóa ${duplicates.length} từ trùng lặp khỏi danh sách!`, 'success');
+}
+
+/**
+ * Hiển thị toast notification nhẹ
+ */
+function showToast(message, type = 'info') {
+    // Tạo toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.innerHTML = message;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        z-index: 10000;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideIn 0.3s ease;
+    `;
+
+    document.body.appendChild(toast);
+
+    // Tự động xóa sau 3 giây
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+function openEditWordModal(wordData) {
+    const modal = document.getElementById("add-word-modal");
+    const modalTitle = modal.querySelector("h3");
+    const submitBtn = modal.querySelector('button[type="submit"]');
+
+    // Thay đổi tiêu đề modal
+    modalTitle.innerHTML = '✏️ Edit Word';
+    submitBtn.textContent = 'Update Word';
+
+    // Điền dữ liệu vào form
+    document.getElementById("word-en").value = wordData.en || '';
+    document.getElementById("word-vn").value = wordData.vn || '';
+    document.getElementById("word-phonetic").value = wordData.phonetic || '';
+    document.getElementById("word-part").value = wordData.part || '';
+    document.getElementById("word-type").value = wordData.type || '';
+    document.getElementById("word-synonyms").value = wordData.synonyms || '';
+    // Fix đường dẫn ảnh cũ sang format mới
+    const rawImage = wordData.image || '';
+    const fixedImage = rawImage.replace(/^assets\/images\/pages\//, 'images/pages/');
+    document.getElementById("word-image").value = fixedImage;
+    document.getElementById("word-example").value = wordData.example || '';
+    const sourcesField = document.getElementById("word-sources");
+    if (sourcesField) sourcesField.value = wordData.source || '';
+
+    // Lưu trạng thái edit mode
+    modal.dataset.editMode = 'true';
+    modal.dataset.originalEn = wordData.en;
+
+    // Hiển thị modal
+    modal.style.display = "flex";
+}
