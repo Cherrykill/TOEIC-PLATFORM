@@ -1,9 +1,10 @@
 import { Storage } from '@lib/storage.js';
-import { ServerStorage } from '@lib/serverStorage.js';
 import { EventBus } from '@game/eventBus.js';
 import { GameLogic } from '@game/gameLogic.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { Notification } from '@ui/Toaster.jsx';
+import { TopicsAPI } from '@api/topics.js';
+import { UploadVocabAPI } from '@api/uploadVocab.js';
 
 export const TopicSelector = {
     availableTopics: [],
@@ -18,7 +19,7 @@ export const TopicSelector = {
 
     async loadAvailableTopics() {
         try {
-            const res = await fetch('/api/topics');
+            const res = await TopicsAPI.listRaw();
             const data = await res.json();
             if (!data.success) throw new Error(data.message);
             this.availableTopics = data.data.map(t => ({
@@ -62,10 +63,7 @@ export const TopicSelector = {
     },
 
     async selectPersonalTopic(source) {
-        const res = await fetch(`/api/upload/my-vocabulary/${encodeURIComponent(source)}`, {
-            headers: { Authorization: `Bearer ${ServerStorage.getToken()}` },
-        });
-        const data = await res.json();
+        const data = await UploadVocabAPI.myVocabulary(source);
         if (!data.success) throw new Error(data.message);
         const words = data.data || [];
         if (words.length === 0) throw new Error('Source trống, không có từ nào');

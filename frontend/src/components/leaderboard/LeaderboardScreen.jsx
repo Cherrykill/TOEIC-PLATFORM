@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
+import { RankingsAPI } from '@api/rankings.js';
 
 export default function LeaderboardScreen({ active }) {
     const { showScreen } = useGame();
@@ -17,12 +18,12 @@ export default function LeaderboardScreen({ active }) {
     async function loadLeaderboard(p) {
         setLoading(true);
         setFallbackNotice('');
-        const res = await fetch(`/api/leaderboard/${p}`).then(r => r.json()).catch(() => ({ success: false }));
+        const res = await RankingsAPI.byPeriod(p);
         const data = res.success ? (res.data || []) : [];
 
         // If daily/weekly returns empty, auto-fallback to all-time
         if (data.length === 0 && p !== 'all-time') {
-            const fallback = await fetch('/api/leaderboard/all-time').then(r => r.json()).catch(() => ({ success: false }));
+            const fallback = await RankingsAPI.byPeriod('all-time');
             const fallbackData = fallback.success ? (fallback.data || []) : [];
             setEntries(fallbackData);
             if (fallbackData.length > 0) {

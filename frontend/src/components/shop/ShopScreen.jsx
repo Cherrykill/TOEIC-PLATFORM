@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { API } from '@api/http.js';
+import { ShopCatalogAPI } from '@api/shopCatalog.js';
 import { Config } from '@game/config.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
@@ -17,7 +18,7 @@ export default function ShopScreen({ active }) {
 
     async function loadItems() {
         setLoading(true);
-        const res = await fetch('/api/shop/items').then(r => r.json()).catch(() => ({ success: false }));
+        const res = await ShopCatalogAPI.items();
         const raw = res.success ? (res.items || res.data || []) : [];
         const normalized = raw.map(it => {
             const id = it.id || it.itemId || it._id;

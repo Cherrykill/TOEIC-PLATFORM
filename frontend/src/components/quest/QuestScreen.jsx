@@ -3,6 +3,7 @@ import { useGame } from '@game/GameContext.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Quest } from '@components/quest/quest.js';
+import { QuestsAPI } from '@api/quests.js';
 
 const TABS = [
     { type: 'daily',   label: 'Hàng ngày',  icon: 'fa-sun' },
@@ -75,10 +76,7 @@ export default function QuestScreen({ active }) {
             } catch {}
         }
 
-        const token = (() => { try { return JSON.parse(localStorage.getItem('authToken') || '{}').token; } catch { return null; } })();
-        const res = await fetch(`/api/quests?type=${type}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }).then(r => r.json()).catch(() => ({ success: false }));
+        const res = await QuestsAPI.list(type);
         setQuests(res.success ? (res.data?.quests || []) : []);
         setLoading(false);
     }, [readFromQuestModule]);
@@ -114,12 +112,7 @@ export default function QuestScreen({ active }) {
                 return;
             }
         }
-        const token = (() => { try { return JSON.parse(localStorage.getItem('authToken') || '{}').token; } catch { return null; } })();
-        const res = await fetch('/api/quests/claim', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ type, code: questCode }),
-        }).then(r => r.json()).catch(() => ({ success: false }));
+        const res = await QuestsAPI.claim({ type, code: questCode });
         if (res.success) {
             Notification.success('Nhận thưởng thành công!');
             loadQuests(type);

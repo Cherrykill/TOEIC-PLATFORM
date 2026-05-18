@@ -3,6 +3,7 @@ import { useAuth } from "@components/auth/AuthContext.jsx";
 import { useGame } from "@game/GameContext.jsx";
 import { API } from "@api/http.js";
 import { Notification } from "@ui/Toaster.jsx";
+import { AuthAPI } from "@api/auth.js";
 import LoginForm from "./forms/LoginForm.jsx";
 import RegisterForm from "./forms/RegisterForm.jsx";
 import RegisterOtpForm from "./forms/RegisterOtpForm.jsx";
@@ -40,13 +41,7 @@ export default function AuthModal() {
     e.preventDefault();
     setLoading(true);
     setLoginError("");
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(loginForm),
-    })
-      .then((r) => r.json())
-      .catch(() => ({ success: false, message: "Lỗi kết nối" }));
+    const res = await AuthAPI.login(loginForm);
     setLoading(false);
     if (res.success && res.token) {
       setUser(res.user, res.token);
@@ -78,13 +73,7 @@ export default function AuthModal() {
       return;
     }
     setLoading(true);
-    const res = await fetch("/api/auth/verify-register-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: registerForm.email, otp }),
-    })
-      .then((r) => r.json())
-      .catch(() => ({ success: false }));
+    const res = await AuthAPI.verifyRegisterOtp({ email: registerForm.email, otp });
     setLoading(false);
     if (res.success && res.token) {
       setUser(res.user, res.token);
@@ -99,13 +88,7 @@ export default function AuthModal() {
   const handleSendResetOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: forgotEmail }),
-    })
-      .then((r) => r.json())
-      .catch(() => ({ success: false }));
+    const res = await AuthAPI.forgotPassword({ email: forgotEmail });
     setLoading(false);
     if (res.success) {
       setOtpSent(true);
@@ -122,13 +105,7 @@ export default function AuthModal() {
     }
     const otp = otpDigits.join("");
     setLoading(true);
-    const res = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: forgotEmail, otp, newPassword: newPwd }),
-    })
-      .then((r) => r.json())
-      .catch(() => ({ success: false }));
+    const res = await AuthAPI.resetPassword({ email: forgotEmail, otp, newPassword: newPwd });
     setLoading(false);
     if (res.success) {
       Notification.success("Đặt lại mật khẩu thành công!");

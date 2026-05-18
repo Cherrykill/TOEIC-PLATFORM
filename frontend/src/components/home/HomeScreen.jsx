@@ -4,6 +4,7 @@ import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PracticeManager } from '@components/practice/practiceManager.js';
 import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
+import { QuestsAPI } from '@api/quests.js';
 
 const gameModes = [
     { group: 'Học & Nhận diện từ', icon: 'fa-book-open', modes: [
@@ -85,12 +86,7 @@ export default function HomeScreen({ active }) {
 
     const handleClaimQuest = async (quest) => {
         if (!quest.completed || quest.claimed) return;
-        const token = (() => { try { return JSON.parse(localStorage.getItem('authToken') || '{}').token; } catch { return null; } })();
-        const res = await fetch('/api/quests/claim', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ questId: quest.id }),
-        }).then(r => r.json()).catch(() => ({ success: false }));
+        const res = await QuestsAPI.claim({ questId: quest.id });
         if (res.success) {
             loadLocalData();
             syncFromState();

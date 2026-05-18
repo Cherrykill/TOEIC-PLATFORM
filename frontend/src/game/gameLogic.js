@@ -1,5 +1,6 @@
 import { Http } from '@api/http.js';
 import { VocabularyAPI } from '@api/vocabulary.js';
+import { TtsAPI } from '@api/tts.js';
 import { GameState } from './state.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
@@ -363,8 +364,7 @@ export const GameLogic = {
         const rate = savedRate ? parseInt(savedRate) / 100 : 0.8;
 
         try {
-            const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}&lang=${lang}&rate=${rate}`);
-            const data = await res.json();
+            const data = await TtsAPI.synthesize(text, lang, rate);
 
             if (data.url) {
                 const audio = new Audio(data.url);

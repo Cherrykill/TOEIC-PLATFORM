@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { Notification } from '@ui/Toaster.jsx';
+import { getToken } from '@/auth/token.js';
+import { AuthAPI } from '@api/auth.js';
+import { AchievementsAPI } from '@api/achievements.js';
 
 const CATEGORIES = [
     { key: 'all',      label: 'Tất cả',    icon: 'fa-star' },
@@ -46,12 +49,9 @@ export default function AchievementsScreen({ active }) {
             return;
         }
 
-        const token = (() => { try { return JSON.parse(localStorage.getItem('authToken') || '{}').token; } catch { return null; } })();
-        if (!token) { setLoading(false); return; }
+        if (!getToken()) { setLoading(false); return; }
 
-        const res = await fetch('/api/auth/me', {
-            headers: { Authorization: `Bearer ${token}` },
-        }).then(r => r.json()).catch(() => ({ success: false }));
+        const res = await AuthAPI.me();
 
         if (res.success) {
             const achs = res.data?.achievements
@@ -68,12 +68,7 @@ export default function AchievementsScreen({ active }) {
     }, [active, loadAchievements]);
 
     async function handleClaim(achievementId) {
-        const token = (() => { try { return JSON.parse(localStorage.getItem('authToken') || '{}').token; } catch { return null; } })();
-        const res = await fetch('/api/user/achievement', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-            body: JSON.stringify({ achievementId }),
-        }).then(r => r.json()).catch(() => ({ success: false }));
+        const res = await AchievementsAPI.claim(achievementId);
         if (res.success) {
             Notification.success('Nhận thưởng thành công!');
             syncFromState();

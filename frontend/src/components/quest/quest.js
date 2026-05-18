@@ -1,6 +1,7 @@
 import { GameState } from '@game/state.js';
 import { Config } from '@game/config.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { QuestsAPI } from '@api/quests.js';
 
 export const Quest = {
     _cache: {},
@@ -34,9 +35,7 @@ export const Quest = {
         if (!token) return this._loadGuest(type);
 
         try {
-            const res = await fetch(`/api/quests?type=${type}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await QuestsAPI.listRaw(type);
             const data = await res.json();
             if (!data.success) throw new Error(data.message);
             this._cache[type] = data.data;
@@ -81,11 +80,7 @@ export const Quest = {
         const token = this._getToken();
         if (!token || !updates?.length) return;
         try {
-            const res = await fetch('/api/quests/sync', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ type, updates }),
-            });
+            const res = await QuestsAPI.syncRaw({ type, updates });
             const data = await res.json();
             if (data.success && this._cache[type]) {
                 this._cache[type].quests = data.data.quests;
@@ -144,11 +139,7 @@ export const Quest = {
         const token = this._getToken();
         if (!token) return null;
         try {
-            const res = await fetch('/api/quests/claim', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ type, code }),
-            });
+            const res = await QuestsAPI.claimRaw({ type, code });
             const data = await res.json();
             if (!data.success) throw new Error(data.message);
 
