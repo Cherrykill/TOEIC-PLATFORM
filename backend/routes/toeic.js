@@ -42,13 +42,16 @@ const {
     uploadPart1Image,
     uploadAudio,
 
-    // Admin Analytics
+} = require('../controllers/toeicController');
+
+// Admin practice-history / users-list (split out of toeicController, P4)
+const {
     getAllPracticeHistory,
     getUsersList,
     deletePracticeHistory,
     deleteAllUserHistory,
     deleteAllHistory,
-} = require('../controllers/toeicController');
+} = require('../controllers/toeicHistoryController');
 
 const { protect, authorize } = require('../middleware/auth');
 const { uploadImage, uploadAudio: uploadAudioMiddleware } = require('../middleware/upload');
