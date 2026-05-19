@@ -5,6 +5,7 @@ import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { TopicsAPI } from '@api/topics.js';
 import { UploadVocabAPI } from '@api/uploadVocab.js';
+import { WrongWordsAPI } from '@api/wrongWords.js';
 
 export const TopicSelector = {
     availableTopics: [],
@@ -79,6 +80,50 @@ export const TopicSelector = {
         await Storage.set('selectedTopic', topic.id);
         EventBus.emit('topic:changed', { topic });
         Notification.success(`${source} — ${words.length} từ`);
+        return topic;
+    },
+
+    // "Từ vựng sai" — nạp các từ active trong user_wrongwords thuộc một
+    // source làm pool luyện tập, giống selectPersonalTopic.
+    async selectWrongWordsTopic(source = '') {
+        const data = await WrongWordsAPI.list();
+        if (!data.success) throw new Error(data.message || 'Không tải được từ sai');
+        const all = data.data || [];
+        const raw = all.filter(w => (w.source || '') === source);
+        if (raw.length === 0) throw new Error('Nhóm từ sai này trống');
+
+        const words = raw.map(w => ({
+            id: w.wordId || w._id,
+            en: w.en,
+            vn: w.vn,
+            phonetic: w.phonetic || '',
+            type: w.type || '',
+            level: w.level || '',
+            part: w.part || '',
+            example: w.example || '',
+            image: w.image || '',
+            synonyms: w.synonyms || '',
+        }));
+
+        const label = source || 'Chưa rõ nguồn';
+        GameLogic.vocabularyData = words;
+        GameLogic.currentSource = source;
+        const topic = {
+            id: `wrong:${source}`,
+            name: `Từ sai · ${label}`,
+            source,
+            wordCount: words.length,
+            icon: '❌',
+            isWrong: true,
+        };
+        this.currentTopic = topic;
+
+        PartSelector.clearSelection();
+        await PartSelector.reloadParts();
+
+        await Storage.set('selectedTopic', topic.id);
+        EventBus.emit('topic:changed', { topic });
+        Notification.success(`Từ sai · ${label} — ${words.length} từ`);
         return topic;
     },
 

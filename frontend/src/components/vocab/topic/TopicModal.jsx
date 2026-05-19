@@ -6,13 +6,17 @@ export default function TopicModal({ open, onClose, onSelected }) {
   const {
     shared,
     personal,
+    wrong,
     current,
     loadingShared,
     loadingPersonal,
+    loadingWrong,
     loadShared,
     loadPersonal,
+    loadWrong,
     selectShared,
     selectPersonal,
+    selectWrong,
   } = useTopics({ enabled: open });
   const [tab, setTab] = useState("shared");
   const [query, setQuery] = useState("");
@@ -31,7 +35,8 @@ export default function TopicModal({ open, onClose, onSelected }) {
 
   useEffect(() => {
     if (open && tab === "personal") loadPersonal();
-  }, [open, tab, loadPersonal]);
+    if (open && tab === "wrong") loadWrong();
+  }, [open, tab, loadPersonal, loadWrong]);
 
   const filteredShared = useMemo(() => {
     const kw = query.trim().toLowerCase();
@@ -73,6 +78,20 @@ export default function TopicModal({ open, onClose, onSelected }) {
       onClose();
     } catch (err) {
       Notification.error(err.message || "Không thể tải từ vựng này");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleSelectWrong(source) {
+    if (busyId) return;
+    setBusyId(`wrong:${source}`);
+    try {
+      await selectWrong(source);
+      onSelected?.();
+      onClose();
+    } catch (err) {
+      Notification.error(err.message || "Không thể tải từ sai");
     } finally {
       setBusyId(null);
     }
@@ -129,6 +148,12 @@ export default function TopicModal({ open, onClose, onSelected }) {
                 onClick={() => setTab("personal")}
               >
                 <i className="fas fa-user"></i> Từ vựng riêng
+              </button>
+              <button
+                className={`tab-btn ${tab === "wrong" ? "active" : ""}`}
+                onClick={() => setTab("wrong")}
+              >
+                <i className="fas fa-times-circle"></i> Từ vựng sai
               </button>
             </div>
 
@@ -194,7 +219,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                   )}
                 </div>
               </div>
-            ) : (
+            ) : tab === "personal" ? (
               <div className="tab-content active">
                 <p className="topic-hint">Từ vựng bạn đã tải lên:</p>
                 <div className="topics-list">
@@ -256,6 +281,86 @@ export default function TopicModal({ open, onClose, onSelected }) {
                             <div className="topic-meta">
                               <span className="word-count">
                                 <i className="fas fa-book"></i> {t.wordCount} từ
+                              </span>
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <div className="current-badge">
+                              <i className="fas fa-check-circle"></i> Đang chọn
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="tab-content active">
+                <p className="topic-hint">
+                  Luyện lại những từ bạn đã làm sai:
+                </p>
+                <div className="topics-list">
+                  {loadingWrong ? (
+                    <p
+                      style={{
+                        textAlign: "center",
+                        padding: 20,
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      <i className="fas fa-spinner fa-spin"></i> Đang tải...
+                    </p>
+                  ) : wrong.length === 0 ? (
+                    <div
+                      style={{
+                        textAlign: "center",
+                        padding: "30px 20px",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      <i
+                        className="fas fa-check-circle"
+                        style={{
+                          fontSize: 40,
+                          opacity: 0.4,
+                          display: "block",
+                          width: "fit-content",
+                          margin: "0 auto 12px",
+                        }}
+                      ></i>
+                      <p
+                        style={{
+                          margin: "0 0 8px",
+                          fontWeight: 600,
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        Chưa có từ sai
+                      </p>
+                      <p style={{ margin: 0, fontSize: 13 }}>
+                        Làm sai từ nào trong lúc luyện tập, từ đó sẽ xuất hiện
+                        ở đây để ôn lại.
+                      </p>
+                    </div>
+                  ) : (
+                    wrong.map((g) => {
+                      const label = g.source || "Chưa rõ nguồn";
+                      const id = `wrong:${g.source}`;
+                      const isSelected = current?.id === id;
+                      const isBusy = busyId === id;
+                      return (
+                        <div
+                          key={id}
+                          className={`topic-card ${isSelected ? "selected" : ""} ${isBusy ? "loading" : ""}`}
+                          onClick={() => handleSelectWrong(g.source)}
+                        >
+                          <div className="topic-icon">❌</div>
+                          <div className="topic-details">
+                            <h4>{label}</h4>
+                            <div className="topic-meta">
+                              <span className="word-count">
+                                <i className="fas fa-book"></i> {g.wordCount} từ
                               </span>
                             </div>
                           </div>

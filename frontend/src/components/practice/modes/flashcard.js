@@ -14,9 +14,36 @@ export const Flashcard = {
     isFlipped: false,
     knownWords: [],
     unknownWords: [],
+    batchOffset: 0,   // sequential cursor — advanced by "Học tiếp"
 
     async start(config) {
         this.config = config;
+        this.currentIndex = 0;
+        this.isFlipped = false;
+        this.knownWords = [];
+        this.unknownWords = [];
+        this.batchOffset = 0;   // fresh entry → first batch
+
+        await this.loadWords();
+
+        if (this.words.length === 0) {
+            Notification.show({
+                type: 'warning',
+                message: 'Không tìm thấy từ vựng phù hợp cho phần luyện tập này.'
+            });
+            PracticeManager.complete();
+            return;
+        }
+
+        this.showCard();
+    },
+
+    // "Học tiếp": move the cursor forward by one batch and load the NEXT
+    // set (sequential) instead of repeating. Keeps config + batchOffset.
+    async continueNextBatch() {
+        // Advance by however many cards this batch actually had (respects
+        // the "số câu" setting / 'auto'); fall back to 20 if empty.
+        this.batchOffset += (this.words.length || 20);
         this.currentIndex = 0;
         this.isFlipped = false;
         this.knownWords = [];
@@ -39,19 +66,12 @@ export const Flashcard = {
     async loadWords() {
         const selectedPart = GameState.state?.settings?.selectedPart || null;
         const requestCount = selectedPart ? 9999 : (this.config.questionsPerRound || 20);
-        const words = await PartSelector.getWordsForPractice(requestCount);
+        const words = await PartSelector.getWordsForPractice(requestCount, this.batchOffset);
 
-        if (!Array.isArray(words)) {
-            this.words = [];
-            return;
-        }
-
-        if (selectedPart) {
-            this.words = words;
-        } else {
-            const limit = this.config.questionsPerRound || 20;
-            this.words = words.slice(0, limit);
-        }
+        // getWordsForPractice already applies the "số câu" setting
+        // (questionsPerSession: a number, or 'auto' = whole pool) and the
+        // sequential offset — don't re-cap here (that forced 20).
+        this.words = Array.isArray(words) ? words : [];
     },
 
     showCard() {
@@ -383,7 +403,7 @@ export const Flashcard = {
                     className: 'btn-primary',
                     onClick: () => {
                         Modal.close();
-                        this.start(this.config);
+                        this.continueNextBatch();
                     }
                 },
                 {

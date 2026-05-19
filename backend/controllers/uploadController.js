@@ -1,4 +1,4 @@
-const Vocabulary = require('../models/Vocabulary');
+const UserUpload = require('../models/UserUpload');
 const User = require('../models/User');
 
 // Private uploads: user picks retention at upload time.
@@ -55,7 +55,7 @@ exports.uploadVocabulary = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Source is required' });
     }
 
-    const doc = await Vocabulary.create({
+    const doc = await UserUpload.create({
       en: lower(en),
       vn: lower(vn),
       phonetic: lower(phonetic),
@@ -66,7 +66,6 @@ exports.uploadVocabulary = async (req, res, next) => {
       example: capFirst(example),
       level: upper(level),
       source: lower(source),
-      scope: 'private',
       ownerId: userId,
       ownerEmail: email,
       expiresAt: new Date(Date.now() + resolveRetentionDays(retentionDays) * DAY_MS),
@@ -88,8 +87,8 @@ exports.getMyTopics = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
-    const topics = await Vocabulary.aggregate([
-      { $match: { scope: 'private', ownerEmail: email } },
+    const topics = await UserUpload.aggregate([
+      { $match: { ownerEmail: email } },
       {
         $group: {
           _id: '$source',
@@ -122,10 +121,9 @@ exports.getExpiringTopics = async (req, res, next) => {
     const email = userDoc?.email;
     const threshold = new Date(Date.now() + EXPIRY_WARN_DAYS * DAY_MS);
 
-    const topics = await Vocabulary.aggregate([
+    const topics = await UserUpload.aggregate([
       {
         $match: {
-          scope: 'private',
           ownerEmail: email,
           expiresAt: { $ne: null, $lte: threshold },
         },
@@ -156,8 +154,7 @@ exports.getMyVocabulary = async (req, res, next) => {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
     const { source } = req.params;
-    const words = await Vocabulary.find({
-      scope: 'private',
+    const words = await UserUpload.find({
       ownerEmail: email,
       source,
     }).sort({ createdAt: -1 });
@@ -175,7 +172,7 @@ exports.deleteMyWord = async (req, res, next) => {
     const email = userDoc?.email;
     const { wordId } = req.params;
 
-    const word = await Vocabulary.findOne({ _id: wordId, scope: 'private', ownerEmail: email });
+    const word = await UserUpload.findOne({ _id: wordId, ownerEmail: email });
     if (!word) return res.status(404).json({ success: false, message: 'Không tìm thấy từ hoặc bạn không có quyền xóa' });
 
     await word.deleteOne();
@@ -195,8 +192,8 @@ exports.extendMySource = async (req, res, next) => {
     const { source } = req.params;
 
     const newExpiresAt = new Date(Date.now() + DEFAULT_RETENTION_DAYS * DAY_MS);
-    const result = await Vocabulary.updateMany(
-      { scope: 'private', ownerEmail: email, source },
+    const result = await UserUpload.updateMany(
+      { ownerEmail: email, source },
       { $set: { expiresAt: newExpiresAt } }
     );
 
@@ -224,7 +221,7 @@ exports.deleteMySource = async (req, res, next) => {
     const email = userDoc?.email;
     const { source } = req.params;
 
-    const result = await Vocabulary.deleteMany({ scope: 'private', ownerEmail: email, source });
+    const result = await UserUpload.deleteMany({ ownerEmail: email, source });
     res.json({ success: true, message: `Đã xóa ${result.deletedCount} từ trong "${source}"`, deletedCount: result.deletedCount });
   } catch (err) {
     console.error('deleteMySource error:', err);
@@ -235,8 +232,7 @@ exports.deleteMySource = async (req, res, next) => {
 // GET /api/admin/upload/monitoring
 exports.getMonitoring = async (req, res, next) => {
   try {
-    const uploads = await Vocabulary.aggregate([
-      { $match: { scope: 'private' } },
+    const uploads = await UserUpload.aggregate([
       { $sort: { createdAt: -1 } },
       {
         $group: {
@@ -269,9 +265,9 @@ exports.getMonitoring = async (req, res, next) => {
 // GET /api/admin/upload/stats
 exports.getStats = async (req, res, next) => {
   try {
-    const totalWords = await Vocabulary.countDocuments({ scope: 'private' });
-    const totalUsers = await Vocabulary.distinct('ownerEmail', { scope: 'private' }).then(a => a.filter(Boolean).length);
-    const totalSources = await Vocabulary.distinct('source', { scope: 'private' }).then(a => a.length);
+    const totalWords = await UserUpload.countDocuments({});
+    const totalUsers = await UserUpload.distinct('ownerEmail').then(a => a.filter(Boolean).length);
+    const totalSources = await UserUpload.distinct('source').then(a => a.length);
     res.json({
       success: true,
       data: { totalWords, totalUsers, totalSources },

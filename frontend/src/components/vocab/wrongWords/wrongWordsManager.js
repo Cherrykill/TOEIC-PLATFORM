@@ -86,6 +86,7 @@ export const WrongWordsManager = {
             type: word.type,
             level: word.level,
             part: word.part,
+            source: word.source || word.topic || '',
             example: word.example,
             image: word.image
         };

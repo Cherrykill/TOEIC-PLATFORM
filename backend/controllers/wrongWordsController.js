@@ -1,5 +1,16 @@
 const WrongWord = require('../models/WrongWord');
+const User = require('../models/User');
 const logger = require('../utils/logger');
+
+/** Lấy email của user hiện tại (khoá phân biệt người dùng cho từ sai). */
+async function resolveUserEmail(userId) {
+    try {
+        const u = await User.findById(userId).select('email').lean();
+        return u?.email || null;
+    } catch {
+        return null;
+    }
+}
 
 /**
  * @desc    Thêm từ sai mới hoặc cập nhật nếu đã tồn tại
@@ -8,7 +19,7 @@ const logger = require('../utils/logger');
  */
 exports.addWrongWord = async (req, res) => {
     try {
-        const { wordId, en, vn, phonetic, type, level, part, example, image } = req.body;
+        const { wordId, en, vn, phonetic, type, level, part, example, image, source } = req.body;
         const userId = req.user.id || req.user._id;
 
         // ✅ Debug logging
@@ -46,6 +57,12 @@ exports.addWrongWord = async (req, res) => {
 
         if (wrongWord) {
             // Nếu đã tồn tại, gọi recordWrong để cập nhật
+            if (!wrongWord.userEmail) {
+                wrongWord.userEmail = await resolveUserEmail(userId);
+            }
+            if (!wrongWord.source && source) {
+                wrongWord.source = source;
+            }
             wrongWord.recordWrong();
             await wrongWord.save();
 
@@ -59,6 +76,7 @@ exports.addWrongWord = async (req, res) => {
         // Tạo mới
         wrongWord = await WrongWord.create({
             userId,
+            userEmail: await resolveUserEmail(userId),
             wordId,
             en,
             vn,
@@ -66,6 +84,7 @@ exports.addWrongWord = async (req, res) => {
             type,
             level,
             part,
+            source,
             example,
             image
         });
@@ -279,6 +298,7 @@ exports.bulkUpdate = async (req, res) => {
             });
         }
 
+        const userEmail = await resolveUserEmail(userId);
         const results = [];
 
         for (const wordData of words) {
@@ -299,6 +319,7 @@ exports.bulkUpdate = async (req, res) => {
                     // Tạo mới
                     wrongWord = await WrongWord.create({
                         userId,
+                        userEmail,
                         wordId: wordData.id || wordData.wordId,
                         en: wordData.en || wordData.word,
                         vn: wordData.vn || wordData.vi || wordData.meaning,
@@ -306,6 +327,7 @@ exports.bulkUpdate = async (req, res) => {
                         type: wordData.type,
                         level: wordData.level,
                         part: wordData.part,
+                        source: wordData.source,
                         example: wordData.example,
                         image: wordData.image,
                         wrongCount: wordData.wrongCount || 1,

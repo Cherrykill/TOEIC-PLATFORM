@@ -4,10 +4,13 @@ const router = express.Router();
 const {
     getAllVocabulary, getVocabularyById, getRandomVocabulary, getVocabularyByPart,
     searchVocabulary, createVocabulary, updateVocabulary, deleteVocabulary,
-    getVocabularyStats, getVocabularyParts, getVocabularySources, bulkImportVocabulary,
-    replaceVocabulary, getAvailableFiles, switchVocabularyFile, removeDuplicates,
-    scanDuplicates, upsertVocabulary,
+    getVocabularyStats, getVocabularyParts, bulkImportVocabulary,
+    replaceVocabulary, upsertVocabulary,
 } = require('../controllers/vocabularyController');
+const {
+    getAvailableFiles, switchVocabularyFile, getVocabularySources,
+} = require('../controllers/vocabularyDatasetsController');
+const { scanDuplicates, removeDuplicates } = require('../controllers/vocabularyDedupController');
 const { getFavorites, addFavorite, removeFavorite } = require('../controllers/favoritesController');
 const { protect } = require('../middleware/auth');
 

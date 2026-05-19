@@ -274,7 +274,7 @@ export const PartSelector = {
         await this.loadParts();
     },
 
-    async getWordsForPractice(requestedCount) {
+    async getWordsForPractice(requestedCount, offset = 0) {
         if (this.retryWords?.length > 0) {
             const words = [...this.retryWords];
             this.retryWords = null;
@@ -302,10 +302,16 @@ export const PartSelector = {
         const count = Math.min(limit, pool.length);
 
         if (isRandom) {
+            // Random already varies each session — offset is irrelevant.
             return Utils.randomSample(pool, count);
-        } else {
-            return pool.slice(0, count);
         }
+        // Sequential: serve the next `count` from `offset` so "Học tiếp"
+        // advances to the next batch instead of repeating. Wrap to the
+        // start once the dataset is exhausted.
+        if (pool.length === 0) return [];
+        const start = offset % pool.length;
+        const slice = pool.slice(start, start + count);
+        return slice.length > 0 ? slice : pool.slice(0, count);
     },
 
     reset() { this.clearPart(); },

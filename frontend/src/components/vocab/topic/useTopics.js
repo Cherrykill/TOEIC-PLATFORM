@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { getToken } from '@/auth/token.js';
 import { UploadVocabAPI } from '@api/uploadVocab.js';
+import { WrongWordsAPI } from '@api/wrongWords.js';
 
 export function useTopics({ enabled = true } = {}) {
     const [shared, setShared] = useState(() => TopicSelector.getAvailableTopics() || []);
     const [personal, setPersonal] = useState([]);
+    const [wrong, setWrong] = useState([]);
     const [loadingShared, setLoadingShared] = useState(false);
     const [loadingPersonal, setLoadingPersonal] = useState(false);
+    const [loadingWrong, setLoadingWrong] = useState(false);
     const [current, setCurrent] = useState(() => TopicSelector.getCurrentTopic());
 
     const loadShared = useCallback(async () => {
@@ -33,6 +36,34 @@ export function useTopics({ enabled = true } = {}) {
         setLoadingPersonal(false);
     }, []);
 
+    const loadWrong = useCallback(async () => {
+        if (!getToken()) { setWrong([]); return; }
+        setLoadingWrong(true);
+        try {
+            const res = await WrongWordsAPI.list();
+            const list = res.success ? (res.data || []) : [];
+            // Gom theo source — mỗi source là một thẻ riêng.
+            const bySource = new Map();
+            for (const w of list) {
+                const key = w.source || '';
+                bySource.set(key, (bySource.get(key) || 0) + 1);
+            }
+            const groups = [...bySource.entries()]
+                .map(([source, wordCount]) => ({ source, wordCount }))
+                .sort((a, b) => b.wordCount - a.wordCount);
+            setWrong(groups);
+        } catch {
+            setWrong([]);
+        }
+        setLoadingWrong(false);
+    }, []);
+
+    const selectWrong = useCallback(async (source) => {
+        const topic = await TopicSelector.selectWrongWordsTopic(source);
+        setCurrent(topic);
+        return topic;
+    }, []);
+
     const selectShared = useCallback(async (topicId) => {
         const topic = await TopicSelector.selectTopic(topicId);
         setCurrent(topic);
@@ -50,9 +81,9 @@ export function useTopics({ enabled = true } = {}) {
     }, [enabled, loadShared]);
 
     return {
-        shared, personal, current,
-        loadingShared, loadingPersonal,
-        loadShared, loadPersonal,
-        selectShared, selectPersonal,
+        shared, personal, wrong, current,
+        loadingShared, loadingPersonal, loadingWrong,
+        loadShared, loadPersonal, loadWrong,
+        selectShared, selectPersonal, selectWrong,
     };
 }

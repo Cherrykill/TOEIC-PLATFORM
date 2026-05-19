@@ -13,6 +13,15 @@ const WrongWordSchema = new mongoose.Schema({
         index: true
     },
 
+    // Email người dùng — khoá phân biệt giữa các user (đồng bộ với
+    // UserUpload.ownerEmail). userId vẫn giữ cho unique index cũ.
+    userEmail: {
+        type: String,
+        lowercase: true,
+        default: null,
+        index: true
+    },
+
     // Thông tin từ vựng
     wordId: {
         type: String,
@@ -30,6 +39,13 @@ const WrongWordSchema = new mongoose.Schema({
     type: String,
     level: String,
     part: String,
+    // Nguồn từ vựng (đề/bộ từ) — dùng để phân biệt các nhóm từ sai
+    // trong tab "Từ vựng sai". Doc cũ chưa có sẽ gom vào nhóm "khác".
+    source: {
+        type: String,
+        default: '',
+        index: true
+    },
     example: String,
     image: String,
 

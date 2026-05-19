@@ -425,6 +425,10 @@ export const PracticeManager = {
 
         this.currentSession.finalScore = scoreData.totalScore;
 
+        // Side-effects are best-effort: a failure in stats/quests/leaderboard
+        // must NOT prevent the result popup from showing (that was why every
+        // non-flashcard mode appeared "tịt"). Each block guards itself.
+        try {
         SessionService.applyResultsToState(this.currentSession, results);
 
         SessionService.recordHistory(this.currentSession, xpReward, coinsReward, duration);
@@ -476,13 +480,16 @@ export const PracticeManager = {
         Leaderboard.submitScore(scoreData.totalScore);
 
         GameState.checkAchievements();
+        } catch (err) {
+            console.warn('[PracticeManager] post-complete side-effect failed (popup still shown):', err);
+        }
 
         this.showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus, totalQuestions);
 
         EventBus.emit(GameEvents.PRACTICE_COMPLETED, this.currentSession);
     },
 
-    showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus = 0, totalQuestions = 0) {
+    showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus = 0) {
         const wrongWordsInSession = this.currentSession?.wrongWordsInSession || [];
         const performance = GameLogic.getPerformanceRating(
             this.currentSession.correctAnswers,
@@ -498,29 +505,11 @@ export const PracticeManager = {
         const ss = String(durationSec % 60).padStart(2, '0');
         const durationStr = `${mm}:${ss}`;
 
-        const resultIllustration = {
-            3: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" style="width:110px;height:90px">
-                  <circle cx="60" cy="45" r="38" fill="#fef08a" opacity=".25"/>
-                  <text x="60" y="62" text-anchor="middle" font-size="52">🏆</text>
-                  <text x="18" y="30" font-size="22">✨</text>
-                  <text x="88" y="28" font-size="18">✨</text>
-                  <text x="50" y="18" font-size="16">🎊</text>
-                </svg>`,
-            2: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" style="width:110px;height:90px">
-                  <circle cx="60" cy="45" r="38" fill="#bfdbfe" opacity=".2"/>
-                  <text x="60" y="62" text-anchor="middle" font-size="52">🎉</text>
-                  <text x="20" y="32" font-size="18">⭐</text>
-                  <text x="85" y="30" font-size="16">⭐</text>
-                </svg>`,
-            1: `<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg" style="width:110px;height:90px">
-                  <circle cx="60" cy="45" r="38" fill="#fca5a5" opacity=".18"/>
-                  <text x="60" y="62" text-anchor="middle" font-size="52">💪</text>
-                  <text x="22" y="30" font-size="16">📚</text>
-                  <text x="84" y="30" font-size="16">📖</text>
-                </svg>`,
-        }[performance.stars] || '';
-
-        const safeScore = isNaN(scoreData.totalScore) ? 0 : scoreData.totalScore;
+        const correct = this.currentSession.correctAnswers || 0;
+        const wrong = this.currentSession.wrongAnswers || 0;
+        const accuracy = (correct + wrong) > 0
+            ? Math.round((correct / (correct + wrong)) * 100)
+            : 0;
 
         Utils.playSound('assets/sounds/complete.mp3', 1.0);
 
@@ -528,58 +517,45 @@ export const PracticeManager = {
             title: '🎉 Hoàn thành!',
             closeOnBackdrop: false,
             content: `
-                <div class="practice-results">
-                    <div class="result-illustration">${resultIllustration}</div>
-
-                    <div class="performance-rating">
-                        <div class="stars">${stars}</div>
-                        <h3>${performance.message}</h3>
-                    </div>
-
-                    <div class="score-display">
-                        <div class="score-label">Điểm số</div>
-                        <div class="score-value">${Utils.formatNumber(safeScore)}</div>
-                    </div>
-
-                    <div class="results-stats">
-                        <div class="stat">
+                <div class="flashcard-summary">
+                    <div class="summary-stats">
+                        <div class="summary-stat known">
                             <i class="fas fa-check-circle"></i>
-                            <span>Đúng: ${this.currentSession.correctAnswers}</span>
+                            <h3>${correct}</h3>
+                            <p>Đúng</p>
                         </div>
-                        <div class="stat">
+                        <div class="summary-stat unknown">
                             <i class="fas fa-times-circle"></i>
-                            <span>Sai: ${this.currentSession.wrongAnswers}</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-clock"></i>
-                            <span>Thời gian: ${durationStr}</span>
+                            <h3>${wrong}</h3>
+                            <p>Sai</p>
                         </div>
                     </div>
 
-                    <div class="rewards">
-                        <h4>Phần thưởng:</h4>
-                        <div class="reward-item">
-                            <i class="fas fa-star"></i> +${xpReward} XP
+                    <div class="summary-accuracy">
+                        <div class="accuracy-circle">
+                            <span class="accuracy-value">${accuracy}%</span>
+                            <span class="accuracy-label">Chính xác</span>
                         </div>
-                        <div class="reward-item">
-                            <i class="fas fa-coins"></i> +${coinsReward} Coins
-                        </div>
-                        ${gemsBonus > 0 ? `
-                            <div class="reward-item gems-bonus">
-                                <i class="fas fa-gem"></i> +${gemsBonus} Gems
-                                <small style="display: block; color: #ffd700; margin-top: 4px;">
-                                    🎉 Thưởng hoàn thành ${totalQuestions} câu ngẫu nhiên!
-                                </small>
-                            </div>
-                        ` : ''}
+                    </div>
+
+                    <div class="summary-rewards" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:4px 0 2px">
+                        <span class="reward-item"><i class="fas fa-star"></i> +${xpReward} XP</span>
+                        <span class="reward-item"><i class="fas fa-coins"></i> +${coinsReward}</span>
+                        ${gemsBonus > 0 ? `<span class="reward-item"><i class="fas fa-gem"></i> +${gemsBonus}</span>` : ''}
+                        <span class="reward-item"><i class="fas fa-clock"></i> ${durationStr}</span>
                     </div>
 
                     ${isPerfect ? `
-                        <div class="perfect-bonus">
+                        <div class="perfect-message">
                             <i class="fas fa-trophy"></i>
-                            Hoàn hảo! Tất cả câu trả lời đều đúng!
+                            <p>${stars} Hoàn hảo! Tất cả câu trả lời đều đúng!</p>
                         </div>
-                    ` : ''}
+                    ` : `
+                        <div class="review-suggestion">
+                            <i class="fas fa-info-circle"></i>
+                            <p>${stars} ${performance.message}</p>
+                        </div>
+                    `}
                 </div>
             `,
             buttons: [

@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const cacheMiddleware = require('../middleware/cache');
 
+// Question bank CRUD + AI gen (split out of toeicController, P4)
 const {
-    // Questions
     getQuestions,
     getQuestion,
     createQuestion,
@@ -12,8 +12,10 @@ const {
     deleteAllQuestions,
     getQuestionsStatistics,
     generateQuestionsWithAI,
+} = require('../controllers/toeicQuestionsController');
 
-    // Tests
+// Test (exam paper) CRUD (split out of toeicController, P4)
+const {
     getTests,
     getTest,
     createTest,
@@ -22,6 +24,9 @@ const {
     generateFullTest,
     deleteTest,
     deleteAllTests,
+} = require('../controllers/toeicTestsController');
+
+const {
 
     // Attempts
     startAttempt,
@@ -34,15 +39,19 @@ const {
     // Analytics
     getInProgressAttempt,
     getMyAttempts,
-    getAnalyticsOverview,
-    getScoreProgress,
-    getPartAnalysis,
 
     // Upload
     uploadPart1Image,
     uploadAudio,
 
 } = require('../controllers/toeicController');
+
+// Analytics (split out of toeicController, P4)
+const {
+    getAnalyticsOverview,
+    getScoreProgress,
+    getPartAnalysis,
+} = require('../controllers/toeicAnalyticsController');
 
 // Admin practice-history / users-list (split out of toeicController, P4)
 const {
