@@ -6,8 +6,9 @@ const {
     searchVocabulary, createVocabulary, updateVocabulary, deleteVocabulary,
     getVocabularyStats, getVocabularyParts, getVocabularySources, bulkImportVocabulary,
     replaceVocabulary, getAvailableFiles, switchVocabularyFile, removeDuplicates,
-    scanDuplicates, upsertVocabulary, getFavorites, addFavorite, removeFavorite,
+    scanDuplicates, upsertVocabulary,
 } = require('../controllers/vocabularyController');
+const { getFavorites, addFavorite, removeFavorite } = require('../controllers/favoritesController');
 const { protect } = require('../middleware/auth');
 
 /**

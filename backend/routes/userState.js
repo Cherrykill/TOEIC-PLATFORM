@@ -11,7 +11,6 @@ const {
     addXp,
     unlockAchievement,
     updateQuests,
-    purchaseItem,
 } = require('../controllers/userStateController');
 
 router.use(protect); // ← áp dụng cho tất cả route bên dưới

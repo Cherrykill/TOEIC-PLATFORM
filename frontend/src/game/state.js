@@ -13,7 +13,7 @@ export const DEFAULT_SETTINGS = {
     randomQuestions: false,
     soundEnabled: true,
     soundEffects: true,
-    autoPronunciation: false,
+    autoPronunciation: true,
     practiceSoundEnabled: true,
     notificationsEnabled: true,
     volume: 70,

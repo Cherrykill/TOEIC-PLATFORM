@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getShopItems, purchaseItem } = require('../controllers/userStateController'); // getShopItems cần được tạo
+const { getShopItems, purchaseItem } = require('../controllers/shopController');
 const { protect } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const { shopPurchase } = require('../validators/schemas');
