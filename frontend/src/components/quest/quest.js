@@ -55,6 +55,7 @@ export const Quest = {
             description: t.description || '',
             icon:        t.icon || '🎯',
             mode:        t.mode || 'any',
+            metric:      t.type || '',
             target:      t.target,
             rewardCoins: t.reward?.coins || 0,
             rewardXp:    t.reward?.xp    || 0,
@@ -97,9 +98,13 @@ export const Quest = {
 
         for (const q of quests) {
             if (q.completed) continue;
+            // Ưu tiên `metric` (chuẩn hoá mới); nếu trống thì suy theo
+            // tiền tố `code` cũ để không vỡ quest đã seed/đang chạy.
+            const metricMatch = q.metric
+                ? q.metric === progressType
+                : this._matchesType(q.code, progressType);
             const matches =
-                (q.mode === 'any' || q.mode === mode) &&
-                this._matchesType(q.code, progressType);
+                (q.mode === 'any' || q.mode === mode) && metricMatch;
             if (!matches) continue;
 
             q.progress = Math.min(q.target, q.progress + amount);

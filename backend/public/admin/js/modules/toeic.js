@@ -738,11 +738,173 @@ function openQuestionModal(questionId = null) {
         }
     }
 
+    // Reset về tab "Nhập tay" mỗi lần mở; xoá JSON cũ
+    const qJsonInput = document.getElementById('question-json-input');
+    const qJsonResult = document.getElementById('question-json-result');
+    if (qJsonInput) qJsonInput.value = '';
+    if (qJsonResult) qJsonResult.style.display = 'none';
+    switchQuestionModalTab('manual');
+
     modal.style.display = 'flex';
 }
 
 function closeQuestionModal() {
     document.getElementById('question-modal').style.display = 'none';
+}
+
+// ===================================
+// QUESTION MODAL — JSON IMPORT + COPY PROMPT
+// ===================================
+
+function switchQuestionModalTab(tab) {
+    const manualForm = document.getElementById('question-form');
+    const jsonPanel  = document.getElementById('question-json-panel');
+    const tabManual  = document.getElementById('q-tab-manual');
+    const tabJson    = document.getElementById('q-tab-json');
+    if (!manualForm || !jsonPanel || !tabManual || !tabJson) return;
+
+    const activeStyle   = { background: 'var(--primary)', color: '#fff' };
+    const inactiveStyle = { background: '#f5f5f5', color: '#666' };
+
+    if (tab === 'json') {
+        manualForm.style.display = 'none';
+        jsonPanel.style.display  = 'block';
+        Object.assign(tabJson.style,   activeStyle);
+        Object.assign(tabManual.style, inactiveStyle);
+    } else {
+        manualForm.style.display = 'block';
+        jsonPanel.style.display  = 'none';
+        Object.assign(tabManual.style, activeStyle);
+        Object.assign(tabJson.style,   inactiveStyle);
+    }
+}
+
+function copyQuestionPrompt() {
+    const prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Hãy chuyển nội dung câu hỏi tôi cung cấp thành MẢNG JSON đúng schema dưới đây để tôi import vào hệ thống.
+
+Mỗi câu hỏi là 1 object:
+{
+  "part": <số 1-7, bắt buộc>,
+  "questionText": "<nội dung câu hỏi> — bắt buộc với Part 2-7",
+  "options": [
+    { "label": "A", "text": "<đáp án A>" },
+    { "label": "B", "text": "<đáp án B>" },
+    { "label": "C", "text": "<đáp án C>" },
+    { "label": "D", "text": "<đáp án D — tùy chọn>" }
+  ],
+  "correctAnswer": "A | B | C | D",
+  "explanation": "<giải thích vì sao đúng — tùy chọn>",
+  "passage": "<đoạn văn — chỉ Part 6,7>",
+  "audioText": "<lời thoại — chỉ Part 2,3,4, tùy chọn>"
+}
+
+QUY TẮC:
+- Trả về DUY NHẤT một mảng JSON hợp lệ (bắt đầu bằng [ và kết thúc bằng ]), KHÔNG kèm giải thích, KHÔNG markdown, KHÔNG \`\`\`.
+- "part" là số, không phải chuỗi.
+- Tối thiểu 3 đáp án (A, B, C); D có thể bỏ.
+- "correctAnswer" phải khớp đúng 1 label trong "options".
+- Part 1 thường chỉ có ảnh: bỏ "questionText", để imageUrl trống (tôi sẽ tự upload ảnh sau).
+- Giữ nguyên ngôn ngữ gốc của câu hỏi tiếng Anh; "explanation" viết tiếng Việt.
+
+Nội dung câu hỏi của tôi:
+<<< DÁN NỘI DUNG CÂU HỎI CỦA BẠN VÀO ĐÂY >>>`;
+
+    const done = () => showToast('Đã copy prompt — dán vào ChatGPT/AI rồi lấy JSON về', 'success');
+    const fail = () => showToast('Không copy được, hãy chọn và copy thủ công', 'error');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(prompt).then(done).catch(fail);
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = prompt;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { fail(); }
+        document.body.removeChild(ta);
+    }
+}
+
+async function submitQuestionJsonImport() {
+    const raw = document.getElementById('question-json-input').value.trim();
+    const resultDiv = document.getElementById('question-json-result');
+    if (!raw) { showToast('Vui lòng nhập JSON', 'error'); return; }
+
+    let questions;
+    try {
+        const parsed = JSON.parse(raw);
+        questions = Array.isArray(parsed) ? parsed : [parsed];
+    } catch (e) {
+        showToast('JSON không hợp lệ: ' + e.message, 'error');
+        return;
+    }
+    if (questions.length === 0) { showToast('Không có câu hỏi nào trong JSON', 'error'); return; }
+
+    const btn = document.getElementById('btn-submit-q-json');
+    btn.disabled = true;
+    btn.textContent = 'Đang import...';
+    resultDiv.style.display = 'none';
+
+    let ok = 0;
+    const errors = [];
+
+    for (let i = 0; i < questions.length; i++) {
+        const q = questions[i] || {};
+        try {
+            const part = parseInt(q.part);
+            if (!part || part < 1 || part > 7) throw new Error('part phải là số 1-7');
+            const options = Array.isArray(q.options) ? q.options
+                .map((o, idx) => ({
+                    label: o.label || String.fromCharCode(65 + idx),
+                    text: (o.text != null ? String(o.text) : '').trim(),
+                }))
+                .filter(o => o.text) : [];
+            if (options.length < 3) throw new Error('cần tối thiểu 3 đáp án');
+            if (!q.correctAnswer || !options.some(o => o.label === q.correctAnswer)) {
+                throw new Error('correctAnswer không khớp đáp án nào');
+            }
+
+            const payload = { part, correctAnswer: q.correctAnswer, options };
+            if (q.questionText && part >= 2) payload.questionText = String(q.questionText).trim();
+            if (q.audioText) payload.audioText = String(q.audioText).trim();
+            if (q.passage) payload.passage = String(q.passage).trim();
+            if (q.imageUrl) payload.imageUrl = String(q.imageUrl).trim();
+            if (q.audioUrl) payload.audioUrl = String(q.audioUrl).trim();
+            if (q.explanation) payload.explanation = String(q.explanation).trim();
+            if (q.questionKeyword) payload.questionKeyword = String(q.questionKeyword).trim();
+            if (q.answerKeyword) payload.answerKeyword = String(q.answerKeyword).trim();
+            if (q.audioKeyword) payload.audioKeyword = String(q.audioKeyword).trim();
+
+            const res = await fetch(`${TOEIC_API_BASE}/questions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}`,
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
+            ok++;
+        } catch (e) {
+            errors.push(`Câu #${i + 1}: ${e.message}`);
+        }
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Import JSON';
+
+    const total = questions.length;
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = errors.length === total ? '#fef2f2' : errors.length === 0 ? '#f0fdf4' : '#fffbeb';
+    resultDiv.style.border = `1px solid ${errors.length === total ? '#fca5a5' : errors.length === 0 ? '#86efac' : '#fcd34d'}`;
+    resultDiv.innerHTML = `
+        <b>${total} câu</b> — ✅ ${ok} thêm mới · ❌ ${errors.length} lỗi
+        ${errors.length ? '<ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>' : ''}
+    `;
+
+    if (ok > 0 && typeof loadQuestions === 'function') loadQuestions();
 }
 
 function previewQuestion(questionId) {

@@ -8,6 +8,7 @@ import { Energy } from '@game/energy.js';
 import { Quest } from '@components/quest/quest.js';
 import { WrongWordsManager } from '@components/vocab/wrongWords/wrongWordsManager.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { SessionService } from './sessionService.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
@@ -354,7 +355,10 @@ export const PracticeManager = {
 
             this.checkMilestone();
 
-            if (this.currentSession.mode === 'review-mistakes' && word) {
+            // Luyện trên pool "Từ vựng sai" (mọi chế độ) cũng tính tiến độ
+            // ôn như chế độ review-mistakes → trả lời đúng đủ thì từ bị xoá.
+            const isWrongPool = TopicSelector.getCurrentTopic?.()?.isWrong === true;
+            if ((this.currentSession.mode === 'review-mistakes' || isWrongPool) && word) {
                 WrongWordsManager.recordCorrect(word.id).catch(err => {
                     console.error('Failed to record correct:', err);
                 });

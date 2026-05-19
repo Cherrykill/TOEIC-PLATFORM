@@ -23,6 +23,7 @@ async function generateQuests(userId, type, periodKey) {
         description: d.description || '',
         icon:        d.icon || '',
         mode:        d.mode || 'any',
+        metric:      d.metric || '',
         target:      d.target,
         rewardCoins: d.rewardCoins || 0,
         rewardXp:    d.rewardXp || 0,
@@ -173,22 +174,22 @@ const seedDefaults = async (req, res, next) => {
     try {
         const defaults = [
             // Daily
-            { code: 'daily_complete_games',  name: 'Hoàn thành {target} lượt chơi', description: 'Chơi bất kỳ chế độ nào',             icon: '🎮', type: 'daily',   mode: 'any',        target: 5,   rewardCoins: 50,  rewardXp: 25,  weight: 3 },
-            { code: 'daily_correct_answers', name: 'Trả lời đúng {target} câu',     description: 'Trả lời đúng trong bất kỳ chế độ',  icon: '✅', type: 'daily',   mode: 'any',        target: 20,  rewardCoins: 75,  rewardXp: 40,  weight: 3 },
-            { code: 'daily_learn_words',     name: 'Học {target} từ mới',           description: 'Làm quen với từ vựng mới',           icon: '📚', type: 'daily',   mode: 'any',        target: 15,  rewardCoins: 90,  rewardXp: 45,  weight: 3 },
-            { code: 'daily_streak',          name: 'Duy trì streak hôm nay',        description: 'Chơi ít nhất 1 game hôm nay',        icon: '🔥', type: 'daily',   mode: 'any',        target: 1,   rewardCoins: 100, rewardXp: 50,  weight: 2 },
-            { code: 'daily_earn_xp',         name: 'Kiếm {target} XP',             description: 'Tích lũy kinh nghiệm',              icon: '📈', type: 'daily',   mode: 'any',        target: 200, rewardCoins: 80,  rewardXp: 30,  weight: 2 },
-            { code: 'daily_speed_quiz',      name: 'Chơi {target} lượt Speed Quiz', description: 'Hoàn thành chế độ tốc độ',          icon: '⚡', type: 'daily',   mode: 'speed-quiz', target: 3,   rewardCoins: 60,  rewardXp: 35,  weight: 1 },
-            { code: 'daily_perfect_rounds',  name: 'Đạt {target} vòng hoàn hảo',   description: 'Trả lời đúng toàn bộ trong 1 vòng', icon: '⭐', type: 'daily',   mode: 'any',        target: 2,   rewardCoins: 100, rewardXp: 50,  weight: 1 },
+            { code: 'daily_complete_games',  name: 'Hoàn thành {target} lượt chơi', description: 'Chơi bất kỳ chế độ nào',             icon: '🎮', type: 'daily',   mode: 'any',        metric: 'complete-games',  target: 5,   rewardCoins: 50,  rewardXp: 25,  weight: 3 },
+            { code: 'daily_correct_answers', name: 'Trả lời đúng {target} câu',     description: 'Trả lời đúng trong bất kỳ chế độ',  icon: '✅', type: 'daily',   mode: 'any',        metric: 'correct-answers', target: 20,  rewardCoins: 75,  rewardXp: 40,  weight: 3 },
+            { code: 'daily_learn_words',     name: 'Học {target} từ mới',           description: 'Làm quen với từ vựng mới',           icon: '📚', type: 'daily',   mode: 'any',        metric: 'learn-words',     target: 15,  rewardCoins: 90,  rewardXp: 45,  weight: 3 },
+            { code: 'daily_streak',          name: 'Duy trì streak hôm nay',        description: 'Chơi ít nhất 1 game hôm nay',        icon: '🔥', type: 'daily',   mode: 'any',        metric: 'daily-streak',    target: 1,   rewardCoins: 100, rewardXp: 50,  weight: 2 },
+            { code: 'daily_earn_xp',         name: 'Kiếm {target} XP',             description: 'Tích lũy kinh nghiệm',              icon: '📈', type: 'daily',   mode: 'any',        metric: 'earn-xp',         target: 200, rewardCoins: 80,  rewardXp: 30,  weight: 2 },
+            { code: 'daily_speed_quiz',      name: 'Chơi {target} lượt Speed Quiz', description: 'Hoàn thành chế độ tốc độ',          icon: '⚡', type: 'daily',   mode: 'speed-quiz', metric: 'play-mode',       target: 3,   rewardCoins: 60,  rewardXp: 35,  weight: 1 },
+            { code: 'daily_perfect_rounds',  name: 'Đạt {target} vòng hoàn hảo',   description: 'Trả lời đúng toàn bộ trong 1 vòng', icon: '⭐', type: 'daily',   mode: 'any',        metric: 'perfect-rounds',  target: 2,   rewardCoins: 100, rewardXp: 50,  weight: 1 },
             // Weekly
-            { code: 'weekly_learn_words',    name: 'Học {target} từ trong tuần',    description: 'Mục tiêu từ vựng cả tuần',          icon: '📖', type: 'weekly',  mode: 'any',        target: 100, rewardCoins: 300, rewardXp: 150, rewardGems: 5,  weight: 3 },
-            { code: 'weekly_play_sessions',  name: 'Hoàn thành {target} lượt chơi', description: 'Chơi đều đặn mỗi ngày trong tuần',  icon: '🎯', type: 'weekly',  mode: 'any',        target: 30,  rewardCoins: 250, rewardXp: 120, rewardGems: 3,  weight: 3 },
-            { code: 'weekly_streak',         name: 'Duy trì streak {target} ngày',  description: 'Không bỏ ngày nào trong tuần',      icon: '🔥', type: 'weekly',  mode: 'any',        target: 7,   rewardCoins: 500, rewardXp: 200, rewardGems: 10, weight: 2 },
+            { code: 'weekly_learn_words',    name: 'Học {target} từ trong tuần',    description: 'Mục tiêu từ vựng cả tuần',          icon: '📖', type: 'weekly',  mode: 'any',        metric: 'learn-words',     target: 100, rewardCoins: 300, rewardXp: 150, rewardGems: 5,  weight: 3 },
+            { code: 'weekly_play_sessions',  name: 'Hoàn thành {target} lượt chơi', description: 'Chơi đều đặn mỗi ngày trong tuần',  icon: '🎯', type: 'weekly',  mode: 'any',        metric: 'complete-games',  target: 30,  rewardCoins: 250, rewardXp: 120, rewardGems: 3,  weight: 3 },
+            { code: 'weekly_streak',         name: 'Duy trì streak {target} ngày',  description: 'Không bỏ ngày nào trong tuần',      icon: '🔥', type: 'weekly',  mode: 'any',        metric: 'daily-streak',    target: 7,   rewardCoins: 500, rewardXp: 200, rewardGems: 10, weight: 2 },
             // Monthly
-            { code: 'monthly_learn_words',   name: 'Học {target} từ trong tháng',   description: 'Chinh phục từ vựng cả tháng',       icon: '🏆', type: 'monthly', mode: 'any',        target: 500, rewardCoins: 1000, rewardXp: 500, rewardGems: 20, weight: 2 },
-            { code: 'monthly_perfect_games', name: 'Đạt {target} vòng hoàn hảo',   description: 'Thể hiện kỹ năng xuất sắc',         icon: '💎', type: 'monthly', mode: 'any',        target: 20,  rewardCoins: 800, rewardXp: 400, rewardGems: 15, weight: 2 },
+            { code: 'monthly_learn_words',   name: 'Học {target} từ trong tháng',   description: 'Chinh phục từ vựng cả tháng',       icon: '🏆', type: 'monthly', mode: 'any',        metric: 'learn-words',     target: 500, rewardCoins: 1000, rewardXp: 500, rewardGems: 20, weight: 2 },
+            { code: 'monthly_perfect_games', name: 'Đạt {target} vòng hoàn hảo',   description: 'Thể hiện kỹ năng xuất sắc',         icon: '💎', type: 'monthly', mode: 'any',        metric: 'perfect-rounds',  target: 20,  rewardCoins: 800, rewardXp: 400, rewardGems: 15, weight: 2 },
             // Special
-            { code: 'special_first_toeic',   name: 'Làm bài TOEIC đầu tiên',       description: 'Hoàn thành 1 bài thi TOEIC',        icon: '🎓', type: 'special', mode: 'toeic',      target: 1,   rewardCoins: 500, rewardXp: 300, rewardGems: 10, weight: 1 },
+            { code: 'special_first_toeic',   name: 'Làm bài TOEIC đầu tiên',       description: 'Hoàn thành 1 bài thi TOEIC',        icon: '🎓', type: 'special', mode: 'toeic',      metric: '',                target: 1,   rewardCoins: 500, rewardXp: 300, rewardGems: 10, weight: 1 },
         ];
 
         let created = 0, skipped = 0;

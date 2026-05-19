@@ -20,6 +20,12 @@ const questDefinitionSchema = new mongoose.Schema(
         // Target game mode, or 'any' for cross-mode quests
         mode: { type: String, default: 'any' },
 
+        // Chỉ số tiến độ (progressType) nhiệm vụ này theo dõi. Khớp với
+        // Quest.updateProgress ở frontend: complete-games | correct-answers
+        // | learn-words | earn-xp | daily-streak | perfect-rounds | play-mode
+        // Để trống '' = suy theo tiền tố `code` cũ (tương thích ngược).
+        metric: { type: String, default: '' },
+
         target: { type: Number, required: true, min: 1 },
 
         rewardCoins: { type: Number, default: 0 },

@@ -154,6 +154,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('question-form')?.addEventListener('submit', handleQuestionSubmit);
     document.getElementById('question-part')?.addEventListener('change', updatePartVisibility);
 
+    // Question modal: Nhập tay / Nhập JSON + Copy prompt
+    document.getElementById('q-tab-manual')?.addEventListener('click', () => switchQuestionModalTab('manual'));
+    document.getElementById('q-tab-json')?.addEventListener('click', () => switchQuestionModalTab('json'));
+    document.getElementById('btn-copy-q-prompt')?.addEventListener('click', copyQuestionPrompt);
+    document.getElementById('btn-submit-q-json')?.addEventListener('click', submitQuestionJsonImport);
+    document.getElementById('btn-close-q-json')?.addEventListener('click', closeQuestionModal);
+
     document.getElementById('question-image-file')?.addEventListener('change', (e) => {
         const file = e.target.files?.[0];
         if (file) handleImageUpload(file);

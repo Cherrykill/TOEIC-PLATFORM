@@ -8,6 +8,7 @@ const questEntrySchema = new mongoose.Schema(
         description: { type: String, default: '' },
         icon:        { type: String, default: '' },
         mode:        { type: String, default: 'any' },
+        metric:      { type: String, default: '' },
         target:      { type: Number, required: true },
         rewardCoins: { type: Number, default: 0 },
         rewardXp:    { type: Number, default: 0 },

@@ -1827,3 +1827,80 @@ table tbody tr:hover td { background: var(--hover-bg); }
 }
 .part-pill:hover { background: #1e293b; color: #e2e8f0; border-color: #475569; }
 .part-pill--active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ===================================================================
+   DARK MODE — FORM & MODAL FIXES
+   Nhiều modal (Add Word/Question/Test, Thành tích, Nhiệm vụ, Cửa hàng,
+   Gửi thông báo) dùng inline style hardcode nền trắng / không set
+   màu, hoặc dùng var(--bg-card) vốn CHƯA được định nghĩa → ở chế độ
+   tối input bị trắng, chữ/label bị đen trên nền tối. Sửa tập trung
+   tại đây bằng biến + override !important (để thắng inline style).
+   =================================================================== */
+
+/* Biến nền "card/input" — trước đây bị thiếu nên var(--bg-card) vô hiệu */
+:root { --bg-card: #ffffff; }
+[data-theme="dark"] { --bg-card: #111827; }
+
+/* Panel trong của các modal hardcode background:white */
+[data-theme="dark"] #add-word-modal > div,
+[data-theme="dark"] #question-modal > div,
+[data-theme="dark"] #test-modal > div {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Chữ & label bên trong mọi modal admin (label thường không set màu) */
+[data-theme="dark"] #add-word-modal,
+[data-theme="dark"] #question-modal,
+[data-theme="dark"] #test-modal,
+[data-theme="dark"] #achievement-modal,
+[data-theme="dark"] #quest-modal,
+[data-theme="dark"] #shop-modal,
+[data-theme="dark"] #add-word-modal label,
+[data-theme="dark"] #question-modal label,
+[data-theme="dark"] #test-modal label,
+[data-theme="dark"] #achievement-modal label,
+[data-theme="dark"] #quest-modal label,
+[data-theme="dark"] #shop-modal label {
+  color: var(--text-primary);
+}
+
+/* Mọi input/select/textarea ở dark mode → dùng màu theme.
+   !important để thắng inline border:#e0e0e0 / nền trắng mặc định.
+   Loại trừ radio/checkbox/range/file để không vỡ control gốc. */
+[data-theme="dark"] input:not([type="radio"]):not([type="checkbox"]):not([type="range"]):not([type="file"]):not([type="color"]),
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.7;
+}
+
+/* Option trong dropdown (tránh trắng-trên-trắng ở 1 số trình duyệt) */
+[data-theme="dark"] select option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ===================================================================
+   POPUP RỘNG & CAO HƠN — các modal đang giới hạn max-width 540-800px
+   và max-height:90vh inline. Nới rộng + cao để bớt cuộn / chật chội
+   (!important để thắng inline style; min(...,94vw) để không tràn ở
+   màn nhỏ).
+   =================================================================== */
+#add-word-modal > div,
+#question-modal > div,
+#test-modal > div,
+#achievement-modal > div,
+#quest-modal > div,
+#shop-modal > div {
+  max-width: min(1200px, 96vw) !important;
+  width: 96% !important;
+  max-height: 98vh !important;
+}

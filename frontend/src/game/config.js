@@ -471,10 +471,11 @@ export const Config = {
         correct: 'assets/sounds/correct.mp3',
         wrong: 'assets/sounds/wrong.mp3',
         levelUp: 'assets/sounds/level-up.mp3',
-        achievement: 'assets/sounds/achievement.mp3',
+        achievement: 'assets/sounds/achieve.mp3',
+        reward: 'assets/sounds/achieve.mp3',
         click: 'assets/sounds/click.mp3',
         coin: 'assets/sounds/coin.mp3',
-        quest: 'assets/sounds/quest.mp3'
+        quest: 'assets/sounds/achieve.mp3'
     },
 
     // UI Settings

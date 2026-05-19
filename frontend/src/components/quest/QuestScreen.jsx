@@ -4,6 +4,8 @@ import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Quest } from '@components/quest/quest.js';
 import { QuestsAPI } from '@api/quests.js';
+import { Utils } from '@lib/utils.js';
+import { Config } from '@game/config.js';
 
 const TABS = [
     { type: 'daily',   label: 'Hàng ngày',  icon: 'fa-sun' },
@@ -106,6 +108,7 @@ export default function QuestScreen({ active }) {
         if (Quest?.claimReward) {
             const rewards = await Quest.claimReward(type, questCode);
             if (rewards !== null && rewards !== undefined) {
+                Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
                 Notification.success('Nhận thưởng thành công!');
                 loadQuests(type);
                 syncFromState();
@@ -114,6 +117,7 @@ export default function QuestScreen({ active }) {
         }
         const res = await QuestsAPI.claim({ type, code: questCode });
         if (res.success) {
+            Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
             Notification.success('Nhận thưởng thành công!');
             loadQuests(type);
             syncFromState();

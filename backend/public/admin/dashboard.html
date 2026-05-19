@@ -646,37 +646,8 @@
                       id="vocab-part-filter"
                       style="display: none"
                     ></select>
-                    <!-- File picker button (replaces <select>) -->
-                    <div style="position: relative">
-                      <button
-                        class="btn btn-ghost btn-sm vocab-file-picker-btn"
-                        id="vocab-file-picker-btn"
-                        title="Chọn bộ từ vựng"
-                      >
-                        <i class="fas fa-folder-open"></i>
-                        <span id="vocab-file-picker-label">Đang tải...</span>
-                        <i
-                          class="fas fa-chevron-down"
-                          style="font-size: 9px; opacity: 0.6; margin-left: 2px"
-                        ></i>
-                      </button>
-                      <!-- Picker dropdown -->
-                      <div
-                        id="vocab-file-picker-dropdown"
-                        class="vocab-file-picker-dropdown"
-                        style="display: none"
-                      >
-                        <div class="vocab-picker-header">
-                          <i class="fas fa-database"></i> Chọn bộ từ vựng
-                        </div>
-                        <div id="vocab-picker-cards" class="vocab-picker-cards">
-                          <div class="vocab-picker-loading">
-                            <i class="fas fa-spinner fa-spin"></i> Đang quét thư
-                            mục...
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <!-- Bộ chọn "Chọn bộ từ vựng" (nút đỏ Tất cả) đã gỡ theo
+                         yêu cầu. Giữ hidden select bên dưới cho JS cũ. -->
                     <!-- Hidden select kept for backward-compat (not shown) -->
                     <select
                       id="vocab-file-selector"
@@ -2861,6 +2832,164 @@
           <i class="fas fa-question-circle"></i>
           <span id="question-modal-title">Add Question</span>
         </h3>
+
+        <!-- Tab toggle: Nhập tay / Nhập JSON -->
+        <div
+          id="question-modal-tabs"
+          style="
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+          "
+        >
+          <button
+            type="button"
+            id="q-tab-manual"
+            style="
+              flex: 1;
+              padding: 9px;
+              border: none;
+              background: var(--primary);
+              color: #fff;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            ✏️ Nhập tay
+          </button>
+          <button
+            type="button"
+            id="q-tab-json"
+            style="
+              flex: 1;
+              padding: 9px;
+              border: none;
+              background: #f5f5f5;
+              color: #666;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            { } Nhập JSON
+          </button>
+        </div>
+
+        <!-- JSON input panel -->
+        <div id="question-json-panel" style="display: none">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              margin-bottom: 8px;
+              flex-wrap: wrap;
+            "
+          >
+            <p style="font-size: 12px; color: #888; margin: 0">
+              Dán 1 object hoặc array câu hỏi. Bí thì bấm
+              <b>Copy prompt</b> rồi đưa cho AI (ChatGPT…) để nó chuyển hộ.
+            </p>
+            <button
+              type="button"
+              id="btn-copy-q-prompt"
+              style="
+                padding: 7px 14px;
+                border: 1.5px solid var(--primary);
+                background: transparent;
+                color: var(--primary);
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 12px;
+                white-space: nowrap;
+              "
+            >
+              📋 Copy prompt cho AI
+            </button>
+          </div>
+          <textarea
+            id="question-json-input"
+            rows="14"
+            placeholder='[
+  {
+    "part": 5,
+    "questionText": "The new policy will _____ next month.",
+    "options": [
+      { "label": "A", "text": "take effect" },
+      { "label": "B", "text": "took effect" },
+      { "label": "C", "text": "taking effect" },
+      { "label": "D", "text": "effected" }
+    ],
+    "correctAnswer": "A",
+    "explanation": "Tương lai đơn: will + V nguyên thể."
+  }
+]'
+            style="
+              width: 100%;
+              padding: 12px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-family: monospace;
+              font-size: 13px;
+              resize: vertical;
+              box-sizing: border-box;
+            "
+          ></textarea>
+          <div
+            id="question-json-result"
+            style="
+              display: none;
+              margin-top: 12px;
+              padding: 12px;
+              border-radius: 8px;
+              font-size: 13px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              justify-content: flex-end;
+              margin-top: 16px;
+            "
+          >
+            <button
+              type="button"
+              id="btn-close-q-json"
+              style="
+                padding: 10px 20px;
+                border: 2px solid #ccc;
+                background: white;
+                border-radius: 8px;
+                cursor: pointer;
+              "
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              id="btn-submit-q-json"
+              style="
+                padding: 10px 24px;
+                border: none;
+                background: var(--primary);
+                color: white;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              Import JSON
+            </button>
+          </div>
+        </div>
+
         <form id="question-form">
           <input type="hidden" id="question-id" />
 
@@ -3827,9 +3956,58 @@
                 <option value="streak">streak</option><option value="skill">skill</option><option value="speed">speed</option>
               </select>
             </div>
-            <div><label>conditionType</label><input type="text" id="ach-cond-type" placeholder="vd: wordsLearned" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
+            <div><label>conditionType (chỉ số)</label>
+              <select id="ach-cond-type" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="words-learned">Số từ đã học</option>
+                <option value="words-mastered">Số từ đã thuộc</option>
+                <option value="sessions">Số lượt luyện tập (session)</option>
+                <option value="games-played">Số lượt chơi (game)</option>
+                <option value="perfect-rounds">Số vòng hoàn hảo</option>
+                <option value="correct-answers">Tổng câu trả lời đúng</option>
+                <option value="wrong-answers">Tổng câu trả lời sai</option>
+                <option value="questions-answered">Tổng câu đã trả lời</option>
+                <option value="streak">Streak hiện tại (ngày)</option>
+                <option value="streak-longest">Streak dài nhất (ngày)</option>
+                <option value="level">Cấp độ (level)</option>
+                <option value="total-xp">Tổng XP tích luỹ</option>
+                <option value="coins">Số coins đang có</option>
+                <option value="gems">Số gems đang có</option>
+                <option value="highest-score">Điểm cao nhất</option>
+                <option value="play-time">Tổng thời gian luyện (giây)</option>
+                <option value="accuracy">Độ chính xác (%)</option>
+                <option value="mode-plays">Số lượt chơi 1 chế độ (cần conditionMode)</option>
+              </select>
+            </div>
             <div><label>conditionValue</label><input type="number" id="ach-cond-value" placeholder="100" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
-            <div><label>conditionMode</label><input type="text" id="ach-cond-mode" placeholder="any (bỏ trống nếu không cần)" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
+            <div><label>conditionMode (chỉ dùng cho "Số lượt chơi 1 chế độ")</label>
+              <select id="ach-cond-mode" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="">— không dùng —</option>
+                <optgroup label="Học &amp; Nhận diện từ">
+                  <option value="flashcard">Flashcard</option>
+                  <option value="multiple-choice">Trắc nghiệm</option>
+                  <option value="matching">Nối từ</option>
+                  <option value="word-type-check">Từ loại</option>
+                </optgroup>
+                <optgroup label="Nghe &amp; Phát âm">
+                  <option value="listening">Nghe và chọn</option>
+                  <option value="pronunciation">Phát âm</option>
+                  <option value="dictation">Chép chính tả</option>
+                  <option value="sentence-listening">Nghe chuỗi từ</option>
+                </optgroup>
+                <optgroup label="Đọc &amp; Viết">
+                  <option value="fill-blank">Điền từ</option>
+                  <option value="example-fill-blank">Điền vào câu</option>
+                  <option value="sentence-builder">Xếp câu</option>
+                  <option value="phonetic-quiz">Đọc phiên âm</option>
+                </optgroup>
+                <optgroup label="Nâng cao &amp; Thử thách">
+                  <option value="context-learning">Hiểu qua câu</option>
+                  <option value="synonym-check">Từ đồng nghĩa</option>
+                  <option value="speed-quiz">Tốc độ</option>
+                  <option value="review-mistakes">Ôn lại từ sai</option>
+                </optgroup>
+              </select>
+            </div>
             <div><label>Thưởng XP</label><input type="number" id="ach-xp" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Thưởng Coins</label><input type="number" id="ach-coins" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Thưởng Gems</label><input type="number" id="ach-gems" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
@@ -3860,10 +4038,54 @@
             <div style="grid-column:1/-1"><label>Mô tả</label><input type="text" id="quest-desc" placeholder="Mô tả nhiệm vụ..." style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Loại</label>
               <select id="quest-type" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
-                <option value="daily">daily</option><option value="weekly">weekly</option>
+                <option value="daily">Hàng ngày (daily)</option>
+                <option value="weekly">Hàng tuần (weekly)</option>
+                <option value="monthly">Hàng tháng (monthly)</option>
+                <option value="special">Đặc biệt (special)</option>
               </select>
             </div>
-            <div><label>Chế độ game</label><input type="text" id="quest-mode" placeholder="any / flashcard / quiz / ..." style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
+            <div><label>Chế độ game</label>
+              <select id="quest-mode" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="any">Bất kỳ chế độ</option>
+                <optgroup label="Học &amp; Nhận diện từ">
+                  <option value="flashcard">Flashcard</option>
+                  <option value="multiple-choice">Trắc nghiệm</option>
+                  <option value="matching">Nối từ</option>
+                  <option value="word-type-check">Từ loại</option>
+                </optgroup>
+                <optgroup label="Nghe &amp; Phát âm">
+                  <option value="listening">Nghe và chọn</option>
+                  <option value="pronunciation">Phát âm</option>
+                  <option value="dictation">Chép chính tả</option>
+                  <option value="sentence-listening">Nghe chuỗi từ</option>
+                </optgroup>
+                <optgroup label="Đọc &amp; Viết">
+                  <option value="fill-blank">Điền từ</option>
+                  <option value="example-fill-blank">Điền vào câu</option>
+                  <option value="sentence-builder">Xếp câu</option>
+                  <option value="phonetic-quiz">Đọc phiên âm</option>
+                </optgroup>
+                <optgroup label="Nâng cao &amp; Thử thách">
+                  <option value="context-learning">Hiểu qua câu</option>
+                  <option value="synonym-check">Từ đồng nghĩa</option>
+                  <option value="speed-quiz">Tốc độ</option>
+                  <option value="review-mistakes">Ôn lại từ sai</option>
+                </optgroup>
+              </select>
+            </div>
+            <div style="grid-column:1/-1"><label>Chỉ số tiến độ (metric)</label>
+              <select id="quest-metric" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="">— tự suy theo code (cũ) —</option>
+                <option value="complete-games">Hoàn thành lượt chơi (bất kỳ chế độ)</option>
+                <option value="correct-answers">Trả lời đúng (số câu)</option>
+                <option value="learn-words">Học từ mới</option>
+                <option value="earn-xp">Kiếm XP</option>
+                <option value="daily-streak">Duy trì streak (ngày)</option>
+                <option value="perfect-rounds">Vòng hoàn hảo</option>
+                <option value="play-mode">Chơi 1 chế độ cụ thể (đặt "Chế độ game" ≠ Bất kỳ)</option>
+              </select>
+              <small style="color:var(--text-secondary);font-size:11px">Để trống = dùng quy tắc cũ theo tiền tố code. Chọn rõ để nhiệm vụ mới chạy đúng.</small>
+            </div>
             <div><label>Mục tiêu (target)</label><input type="number" id="quest-target" value="3" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Weight (xác suất)</label><input type="number" id="quest-weight" value="1" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Thưởng XP</label><input type="number" id="quest-xp" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>

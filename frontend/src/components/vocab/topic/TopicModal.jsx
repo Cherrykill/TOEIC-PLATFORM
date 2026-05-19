@@ -239,6 +239,11 @@ export default function TopicModal({ open, onClose, onSelected }) {
                         textAlign: "center",
                         padding: "30px 20px",
                         color: "var(--text-secondary)",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 260,
                       }}
                     >
                       <i
@@ -317,6 +322,11 @@ export default function TopicModal({ open, onClose, onSelected }) {
                         textAlign: "center",
                         padding: "30px 20px",
                         color: "var(--text-secondary)",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        minHeight: 260,
                       }}
                     >
                       <i

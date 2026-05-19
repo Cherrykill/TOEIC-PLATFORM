@@ -66,7 +66,18 @@ function openAchievementModal(data) {
     document.getElementById('ach-icon').value = data.icon || '';
     document.getElementById('ach-desc').value = data.description || '';
     document.getElementById('ach-category').value = data.category || 'learning';
-    document.getElementById('ach-cond-type').value = data.conditionType || '';
+    // Chuẩn hoá conditionType cũ (underscore / alias) sang khoá kebab
+    // để select chọn đúng option. Xem ACHIEVEMENT_METRICS ở frontend.
+    (function () {
+        var raw = (data.conditionType || '').toLowerCase().replace(/_/g, '-');
+        var alias = {
+            'total-sessions': 'sessions', 'total-answers': 'correct-answers',
+            'total-questions': 'questions-answered', 'longest-streak': 'streak-longest',
+            'xp': 'total-xp', 'xp-total': 'total-xp', 'score': 'highest-score',
+            'playtime': 'play-time', 'time': 'play-time'
+        };
+        document.getElementById('ach-cond-type').value = alias[raw] || raw;
+    })();
     document.getElementById('ach-cond-value').value = data.conditionValue || 0;
     document.getElementById('ach-cond-mode').value = data.conditionMode || '';
     document.getElementById('ach-xp').value = data.rewardXp || 0;
@@ -175,6 +186,7 @@ function openQuestModal(data) {
     document.getElementById('quest-desc').value = data.description || '';
     document.getElementById('quest-type').value = data.type || 'daily';
     document.getElementById('quest-mode').value = data.mode || 'any';
+    document.getElementById('quest-metric').value = data.metric || '';
     document.getElementById('quest-target').value = data.target || 3;
     document.getElementById('quest-weight').value = data.weight || 1;
     document.getElementById('quest-xp').value = data.rewardXp || 0;
@@ -220,6 +232,7 @@ function initQuestModal() {
             description: document.getElementById('quest-desc').value,
             type: document.getElementById('quest-type').value,
             mode: document.getElementById('quest-mode').value,
+            metric: document.getElementById('quest-metric').value,
             target: Number(document.getElementById('quest-target').value),
             weight: Number(document.getElementById('quest-weight').value),
             rewardXp: Number(document.getElementById('quest-xp').value),

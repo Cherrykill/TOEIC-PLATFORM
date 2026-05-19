@@ -4,6 +4,8 @@ import { Notification } from '@ui/Toaster.jsx';
 import { getToken } from '@/auth/token.js';
 import { AuthAPI } from '@api/auth.js';
 import { AchievementsAPI } from '@api/achievements.js';
+import { Utils } from '@lib/utils.js';
+import { Config } from '@game/config.js';
 
 const CATEGORIES = [
     { key: 'all',      label: 'Tất cả',    icon: 'fa-star' },
@@ -13,21 +15,85 @@ const CATEGORIES = [
     { key: 'special',  label: 'Đặc biệt',  icon: 'fa-gem' },
 ];
 
+// ===================================================================
+// CATALOG METRIC THÀNH TÍCH — NGUỒN SỰ THẬT DUY NHẤT
+// Admin (backend/public/admin) phải dùng ĐÚNG các `key` này cho
+// conditionType. Khoá chuẩn là kebab-case; chấp nhận cả underscore
+// và vài alias cũ (normalize bên dưới) để không vỡ data đã seed.
+// `needsMode: true` → cần chọn thêm conditionMode (chế độ game).
+// ===================================================================
+export const ACHIEVEMENT_METRICS = [
+    { key: 'words-learned',     label: 'Số từ đã học' },
+    { key: 'words-mastered',    label: 'Số từ đã thuộc' },
+    { key: 'sessions',          label: 'Số lượt luyện tập (session)' },
+    { key: 'games-played',      label: 'Số lượt chơi (game)' },
+    { key: 'perfect-rounds',    label: 'Số vòng hoàn hảo' },
+    { key: 'correct-answers',   label: 'Tổng số câu trả lời đúng' },
+    { key: 'wrong-answers',     label: 'Tổng số câu trả lời sai' },
+    { key: 'questions-answered', label: 'Tổng số câu đã trả lời' },
+    { key: 'streak',            label: 'Streak hiện tại (ngày)' },
+    { key: 'streak-longest',    label: 'Streak dài nhất (ngày)' },
+    { key: 'level',             label: 'Cấp độ (level)' },
+    { key: 'total-xp',          label: 'Tổng XP tích luỹ' },
+    { key: 'coins',             label: 'Số coins đang có' },
+    { key: 'gems',              label: 'Số gems đang có' },
+    { key: 'highest-score',     label: 'Điểm cao nhất' },
+    { key: 'play-time',         label: 'Tổng thời gian luyện (giây)' },
+    { key: 'accuracy',          label: 'Độ chính xác (%)' },
+    { key: 'mode-plays',        label: 'Số lượt chơi 1 chế độ', needsMode: true },
+];
+
+// Alias cũ → khoá chuẩn (sau khi đã thay _ thành -)
+const METRIC_ALIASES = {
+    'total-sessions': 'sessions',
+    'total-answers': 'correct-answers',
+    'total-questions': 'questions-answered',
+    'words-mastered': 'words-mastered',
+    'longest-streak': 'streak-longest',
+    'xp': 'total-xp',
+    'xp-total': 'total-xp',
+    'score': 'highest-score',
+    'playtime': 'play-time',
+    'time': 'play-time',
+};
+
 function calculateProgress(ach) {
     const state = window.GameState?.state || {};
-    const type = (ach.conditionType || '').toLowerCase().replace(/_/g, '-');
+    const p = state.progress || {};
+    const raw = (ach.conditionType || '').toLowerCase().replace(/_/g, '-');
+    const type = METRIC_ALIASES[raw] || raw;
     const target = ach.conditionValue || 1;
+
+    const correct = p.totalCorrectAnswers || 0;
+    const wrong = p.totalWrongAnswers || 0;
+
     let current = 0;
     switch (type) {
-        case 'words-learned':   current = (state.progress?.wordsLearned || []).length; break;
-        case 'sessions':
-        case 'total-sessions':  current = state.progress?.totalSessions || state.progress?.totalGamesPlayed || 0; break;
-        case 'perfect-rounds':  current = state.progress?.perfectRounds || 0; break;
-        case 'correct-answers':
-        case 'total-answers':   current = state.progress?.totalCorrectAnswers || 0; break;
-        case 'streak':          current = state.streak?.current || 0; break;
-        case 'level':           current = state.user?.level || 1; break;
-        default:                current = 0;
+        case 'words-learned':    current = (p.wordsLearned || []).length; break;
+        case 'words-mastered':   current = (p.wordsMastered || []).length; break;
+        case 'sessions':         current = p.totalSessions || p.totalGamesPlayed || 0; break;
+        case 'games-played':     current = p.totalGamesPlayed || 0; break;
+        case 'perfect-rounds':   current = p.perfectRounds || 0; break;
+        case 'correct-answers':  current = correct; break;
+        case 'wrong-answers':    current = wrong; break;
+        case 'questions-answered': current = p.totalQuestionsAnswered || (correct + wrong); break;
+        case 'streak':           current = state.streak?.current || 0; break;
+        case 'streak-longest':   current = state.streak?.longest || 0; break;
+        case 'level':            current = state.user?.level || 1; break;
+        case 'total-xp':         current = state.user?.totalXp || 0; break;
+        case 'coins':            current = state.resources?.coins || 0; break;
+        case 'gems':             current = state.resources?.gems || 0; break;
+        case 'highest-score':    current = p.highestScore || 0; break;
+        case 'play-time':        current = p.totalPlayTime || 0; break;
+        case 'accuracy':
+            current = (correct + wrong) > 0 ? Math.round((correct / (correct + wrong)) * 100) : 0;
+            break;
+        case 'mode-plays': {
+            const mode = (ach.conditionMode || '').trim();
+            current = mode ? (p.modeStats?.[mode]?.played || 0) : 0;
+            break;
+        }
+        default:                 current = 0;
     }
     current = Math.min(current, target);
     return { current, pct: Math.round((current / target) * 100) };
@@ -70,6 +136,7 @@ export default function AchievementsScreen({ active }) {
     async function handleClaim(achievementId) {
         const res = await AchievementsAPI.claim(achievementId);
         if (res.success) {
+            Utils.playSound(Config.sounds.achievement, 0.6, { ignoreSettings: true });
             Notification.success('Nhận thưởng thành công!');
             syncFromState();
             loadAchievements();

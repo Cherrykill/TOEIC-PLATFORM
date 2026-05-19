@@ -352,6 +352,10 @@ export const Flashcard = {
         const accuracy = this.words.length > 0 ?
             Math.round((this.knownWords.length / this.words.length) * 100) : 0;
 
+        // Flashcard tự dựng popup (không qua PracticeManager.showResults)
+        // nên phải tự phát âm thanh hoàn thành ở đây.
+        Utils.playSound(Config.sounds.complete, 1.0);
+
         Modal.show({
             title: '🃏 Hoàn thành Flashcard!',
             content: `

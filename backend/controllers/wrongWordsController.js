@@ -2,6 +2,11 @@ const WrongWord = require('../models/WrongWord');
 const User = require('../models/User');
 const logger = require('../utils/logger');
 
+/** Hạn TTL cho một từ sai mới: now + WrongWord.TTL_DAYS ngày. */
+function ttlDate() {
+    return new Date(Date.now() + (WrongWord.TTL_DAYS || 30) * 24 * 60 * 60 * 1000);
+}
+
 /** Lấy email của user hiện tại (khoá phân biệt người dùng cho từ sai). */
 async function resolveUserEmail(userId) {
     try {
@@ -86,7 +91,8 @@ exports.addWrongWord = async (req, res) => {
             part,
             source,
             example,
-            image
+            image,
+            expiresAt: ttlDate()
         });
 
         // Tính priority ban đầu
@@ -129,11 +135,22 @@ exports.recordCorrect = async (req, res) => {
 
         // Gọi recordCorrect
         wrongWord.recordCorrect();
+
+        // Đã thuộc → xoá hẳn khỏi DB (không giữ lại doc 'mastered')
+        if (wrongWord.status === 'mastered') {
+            await wrongWord.deleteOne();
+            return res.status(200).json({
+                success: true,
+                message: 'Đã thuộc từ này!',
+                data: wrongWord, // vẫn còn giá trị in-memory để FE hiện toast
+            });
+        }
+
         await wrongWord.save();
 
         res.status(200).json({
             success: true,
-            message: wrongWord.status === 'mastered' ? 'Đã thuộc từ này!' : 'Đã cập nhật',
+            message: 'Đã cập nhật',
             data: wrongWord
         });
     } catch (error) {
@@ -328,6 +345,7 @@ exports.bulkUpdate = async (req, res) => {
                         level: wordData.level,
                         part: wordData.part,
                         source: wordData.source,
+                        expiresAt: ttlDate(),
                         example: wordData.example,
                         image: wordData.image,
                         wrongCount: wordData.wrongCount || 1,

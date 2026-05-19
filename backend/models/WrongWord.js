@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 
+// Tự xoá từ sai "để yên" quá lâu không tái phạm (đỡ phình DB).
+// recordWrong() đẩy expiresAt = now + ngần này ngày mỗi lần sai lại.
+const WRONGWORD_TTL_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
  * WrongWord Model - Quản lý từ vựng đã làm sai
  * Sử dụng thuật toán Spaced Repetition (SM-2) để tối ưu việc ôn tập
@@ -128,6 +133,12 @@ const WrongWordSchema = new mongoose.Schema({
         index: true
     },
 
+    // Tự xoá khi quá hạn (TTL). null = chưa đặt / không hết hạn.
+    expiresAt: {
+        type: Date,
+        default: null
+    },
+
     // Metadata
     createdAt: {
         type: Date,
@@ -146,6 +157,8 @@ const WrongWordSchema = new mongoose.Schema({
 WrongWordSchema.index({ userId: 1, status: 1, nextReviewDate: 1 });
 WrongWordSchema.index({ userId: 1, priorityScore: -1 });
 WrongWordSchema.index({ userId: 1, wordId: 1 }, { unique: true });
+// TTL: doc tự xoá khi now > expiresAt. expiresAt=null không bị xoá.
+WrongWordSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 /**
  * Cập nhật khi trả lời SAI
@@ -175,6 +188,10 @@ WrongWordSchema.methods.recordWrong = function() {
     this.calculatePriority();
 
     this.status = 'active';
+
+    // Gia hạn "vòng đời" mỗi lần tái phạm
+    this.expiresAt = new Date(Date.now() + WRONGWORD_TTL_DAYS * DAY_MS);
+
     this.updatedAt = new Date();
 };
 
@@ -297,4 +314,6 @@ WrongWordSchema.statics.getStats = async function(userId) {
     return stats;
 };
 
-module.exports = mongoose.model('WrongWord', WrongWordSchema);
+const WrongWord = mongoose.model('WrongWord', WrongWordSchema);
+WrongWord.TTL_DAYS = WRONGWORD_TTL_DAYS;
+module.exports = WrongWord;
