@@ -3,14 +3,16 @@
 // Topics, Upload, Token, User Stats, Achievements, Broadcast, Practice 12 Modes, Seeds
 // ===================================
 
+// Dùng rgba alpha 0.15 cho bg để badge đọc tốt trên cả nền sáng và tối
+// (light/dark mode) — tránh tình trạng badge trắng tinh trên nền tối.
 const NOTIF_TYPE_META = {
-    system:      { label: 'Hệ thống',   color: '#3b82f6', bg: '#eff6ff' },
-    reminder:    { label: 'Nhắc nhở',   color: '#f59e0b', bg: '#fffbeb' },
-    achievement: { label: 'Thành tích', color: '#8b5cf6', bg: '#f5f3ff' },
-    quest:       { label: 'Nhiệm vụ',   color: '#10b981', bg: '#ecfdf5' },
-    level_up:    { label: 'Lên cấp',    color: '#06b6d4', bg: '#ecfeff' },
-    test_result: { label: 'Kết quả thi',color: '#6366f1', bg: '#eef2ff' },
-    violation:   { label: 'Vi phạm',    color: '#ef4444', bg: '#fef2f2' },
+    system:      { label: 'Hệ thống',   color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
+    reminder:    { label: 'Nhắc nhở',   color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
+    achievement: { label: 'Thành tích', color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)' },
+    quest:       { label: 'Nhiệm vụ',   color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)' },
+    level_up:    { label: 'Lên cấp',    color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.15)' },
+    test_result: { label: 'Kết quả thi',color: '#6366f1', bg: 'rgba(99, 102, 241, 0.15)' },
+    violation:   { label: 'Vi phạm',    color: '#ef4444', bg: 'rgba(239, 68, 68, 0.15)' },
 };
 
 const MODE_LABELS = {
@@ -733,7 +735,7 @@ async function loadNotifHistory() {
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${meta.bg};color:${meta.color};border:1px solid ${meta.color}33">${meta.label}</span>
                     <span style="color:var(--text-secondary);font-size:12px">${new Date(n.createdAt).toLocaleString('vi-VN')}</span>
-                    <button class="btn btn-sm nhi-del-btn" data-id="${n._id}" style="margin-left:auto;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;padding:2px 8px;font-size:11px;border-radius:6px">
+                    <button class="btn btn-sm nhi-del-btn" data-id="${n._id}" style="margin-left:auto;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);padding:2px 8px;font-size:11px;border-radius:6px">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>

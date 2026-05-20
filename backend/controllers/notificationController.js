@@ -6,23 +6,31 @@ const TAB_TYPES = {
     violation: ['violation'],
 };
 
-// GET /api/notifications?tab=system|account|violation — 30 thông báo mới nhất
+// GET /api/notifications?tab=system|account|violation — 30 thông báo mới nhất.
+// Trả CẢ thông báo cá nhân (userId=user) LẪN broadcast global (userId=null).
+// Broadcast được gắn isGlobal=true để frontend biết xoá là localStorage-hide
+// (không hard-delete server, vì user khác cũng đang dùng doc đó).
 exports.list = async (req, res, next) => {
     try {
         const userId = req.user.id;
         const tab    = req.query.tab;
-        const filter = { userId };
+        const filter = {
+            $or: [{ userId }, { userId: null }],
+        };
         if (tab && TAB_TYPES[tab]) filter.type = { $in: TAB_TYPES[tab] };
 
-        const [notifications, tabCounts] = await Promise.all([
-            Notification.find(filter).sort({ createdAt: -1 }).limit(30).lean(),
+        const [raw, tabCounts] = await Promise.all([
+            Notification.find(filter).sort({ createdAt: -1 }).limit(60).lean(),
             Notification.aggregate([
                 { $match: { userId: require('mongoose').Types.ObjectId.createFromHexString(String(userId)), read: false } },
                 { $group: { _id: '$type', count: { $sum: 1 } } },
             ]),
         ]);
 
-        // Map counts per tab
+        const notifications = raw.map(n => ({ ...n, isGlobal: n.userId == null }));
+
+        // Map counts per tab (chỉ đếm notif cá nhân — broadcast không tính
+        // vào unread badge để khỏi kẹt số "1" mãi cho mọi user).
         const countMap = {};
         tabCounts.forEach(({ _id, count }) => { countMap[_id] = count; });
         const counts = {
@@ -38,7 +46,7 @@ exports.list = async (req, res, next) => {
     }
 };
 
-// GET /api/notifications/unread-count
+// GET /api/notifications/unread-count — CHỈ đếm notif cá nhân
 exports.unreadCount = async (req, res, next) => {
     try {
         const count = await Notification.countDocuments({ userId: req.user.id, read: false });
@@ -66,6 +74,22 @@ exports.deleteAll = async (req, res, next) => {
     try {
         const result = await Notification.deleteMany({ userId: req.user.id });
         res.json({ success: true, deletedCount: result.deletedCount || 0 });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// DELETE /api/notifications/:id — xoá 1 notif CÁ NHÂN.
+// LƯU Ý: không xoá broadcast (userId=null) qua endpoint này — broadcast
+// dùng chung cho mọi user, frontend tự ẩn qua localStorage thay vì DB.
+exports.deleteOne = async (req, res, next) => {
+    try {
+        const result = await Notification.findOneAndDelete({
+            _id: req.params.id,
+            userId: req.user.id, // chỉ match notif cá nhân
+        });
+        if (!result) return res.status(404).json({ success: false, message: 'Notification not found or is a global broadcast' });
+        res.json({ success: true });
     } catch (err) {
         next(err);
     }

@@ -19,7 +19,7 @@ function fmtTime(ts) {
 }
 
 export default function NotificationPanel({ isLoggedIn }) {
-    const { badge, items, tab, loading, fetchItems, changeTab, markAllRead, deleteAll, setBadge } = useNotifications(isLoggedIn);
+    const { badge, items, tab, loading, unreadByTab, seenIds, fetchItems, changeTab, markAllRead, deleteAll, deleteOne, markRead, setBadge } = useNotifications(isLoggedIn);
     const [open, setOpen] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
 
@@ -40,8 +40,10 @@ export default function NotificationPanel({ isLoggedIn }) {
 
     async function handleBellClick() {
         if (!open) {
+            // Mở panel → refresh list nhưng KHÔNG xoá badge ngay — badge giờ
+            // bám unreadByTab.all, chỉ giảm khi user thực sự click vào card
+            // (markRead) hoặc bấm "đánh dấu đã đọc tất cả".
             await fetchItems(tab);
-            setBadge(0);
         }
         setOpen(o => !o);
     }
@@ -88,6 +90,18 @@ export default function NotificationPanel({ isLoggedIn }) {
                                         <div className="notif-detail-body">
                                             {selected.message || selected.body || '(Không có nội dung)'}
                                         </div>
+                                        <div className="notif-detail-actions">
+                                            <button
+                                                className="btn btn-danger btn-sm"
+                                                onClick={async () => {
+                                                    if (!window.confirm('Xoá thông báo này?')) return;
+                                                    await deleteOne(selected._id || selected.id);
+                                                    setSelectedId(null);
+                                                }}
+                                            >
+                                                <i className="fas fa-trash"></i> Xoá
+                                            </button>
+                                        </div>
                                     </>
                                 ) : (
                                     <div className="notif-empty-detail">
@@ -108,16 +122,21 @@ export default function NotificationPanel({ isLoggedIn }) {
                                 ) : (
                                     items.map((n, i) => {
                                         const id = n._id || n.id || i;
+                                        const sid = String(id);
                                         const isSel = id === selectedId;
+                                        // Broadcast (isGlobal) đọc track qua localStorage seenIds;
+                                        // personal đọc theo n.read trên server.
+                                        const isUnread = n.isGlobal ? !seenIds.has(sid) : !n.read;
                                         return (
                                             <div
                                                 key={id}
-                                                className={`notif-card ${n.read ? 'read' : 'unread'} ${isSel ? 'selected' : ''}`}
-                                                onClick={() => setSelectedId(id)}
+                                                className={`notif-card ${isUnread ? 'unread' : 'read'} ${isSel ? 'selected' : ''}`}
+                                                onClick={() => { setSelectedId(id); if (isUnread) markRead(id); }}
                                             >
+                                                {/* Chấm đỏ ở GÓC TRÊN PHẢI báo chưa đọc — kiểu game */}
+                                                {isUnread && <span className="notif-card-unread-pip" />}
                                                 <div className="notif-card-row">
                                                     <span className="notif-card-title">{n.title}</span>
-                                                    {!n.read && <span className="notif-card-dot" />}
                                                 </div>
                                                 <div className="notif-card-time">{fmtTime(n.createdAt)}</div>
                                             </div>
@@ -128,23 +147,24 @@ export default function NotificationPanel({ isLoggedIn }) {
 
                             {/* RIGHT — Sidebar categories */}
                             <div className="notif-sidebar">
-                                {TABS.map(t => (
-                                    <button
-                                        key={t.key}
-                                        className={`notif-side-tab ${tab === t.key ? 'active' : ''}`}
-                                        onClick={() => changeTab(t.key)}
-                                    >
-                                        <i className={`fas ${t.icon}`}></i>
-                                        <span>{t.label}</span>
-                                    </button>
-                                ))}
+                                {TABS.map(t => {
+                                    const n = unreadByTab?.[t.key] || 0;
+                                    return (
+                                        <button
+                                            key={t.key}
+                                            className={`notif-side-tab ${tab === t.key ? 'active' : ''}`}
+                                            onClick={() => changeTab(t.key)}
+                                        >
+                                            <i className={`fas ${t.icon}`}></i>
+                                            <span>{t.label}</span>
+                                            {n > 0 && <span className="notif-side-pip" />}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
                         <div className="notif-modal-footer">
-                            <button className="btn btn-secondary" onClick={() => setOpen(false)}>
-                                Đóng
-                            </button>
                             <button
                                 className="btn btn-danger"
                                 onClick={async () => {

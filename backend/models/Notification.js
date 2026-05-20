@@ -2,10 +2,14 @@ const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema(
     {
+        // userId === null nghĩa là thông báo BROADCAST cho mọi user (system).
+        // Trước đây admin gửi "tất cả" tạo N copy (1/user) — phình DB. Giờ
+        // chỉ tạo 1 doc, frontend phát hiện userId rỗng → hiện cho mọi tài
+        // khoản. Khi user xoá → lưu id vào localStorage để ẩn lần sau.
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
-            required: true,
+            default: null,
         },
         type: {
             type: String,

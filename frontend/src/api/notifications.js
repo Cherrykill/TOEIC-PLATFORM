@@ -42,4 +42,12 @@ export const NotificationsAPI = {
             headers: authHeaders(),
         }).then(r => r.json()).catch(() => ({ success: false }));
     },
+
+    /** Xoá 1 notif CÁ NHÂN. Không gọi cho broadcast (server từ chối). */
+    async deleteOne(id) {
+        return fetch('/api/notifications/' + encodeURIComponent(id), {
+            method: 'DELETE',
+            headers: authHeaders(),
+        }).then(r => r.json()).catch(() => ({ success: false }));
+    },
 };

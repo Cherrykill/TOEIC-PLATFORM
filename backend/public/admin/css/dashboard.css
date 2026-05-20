@@ -66,8 +66,12 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
   background: var(--bg-secondary);
+  /* Phải set color cho body để h1/h2/h3/p không set color riêng thừa hưởng
+     đúng — trước đây thiếu, dark mode hiện chữ đen mặc định của trình duyệt
+     trên nền tối, không đọc được. */
+  color: var(--text-primary);
   min-height: 100vh;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease;
   overflow: hidden;
 }
 
@@ -1886,6 +1890,44 @@ table tbody tr:hover td { background: var(--hover-bg); }
 [data-theme="dark"] select option {
   background: var(--bg-primary);
   color: var(--text-primary);
+}
+
+/* ===================================================================
+   Tab "Gửi thông báo" — override mạnh để form input/textarea/select
+   chắc chắn ăn theme tối. Selector có #main-tab-broadcast nên thắng
+   mọi rule chung; tăng độ tin cậy khi inline style hoặc autofill hỗn loạn.
+   =================================================================== */
+[data-theme="dark"] #main-tab-broadcast input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="dark"] #main-tab-broadcast textarea,
+[data-theme="dark"] #main-tab-broadcast select {
+  background-color: var(--bg-card) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+[data-theme="dark"] #main-tab-broadcast input::placeholder,
+[data-theme="dark"] #main-tab-broadcast textarea::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.55;
+}
+[data-theme="dark"] #main-tab-broadcast label {
+  color: var(--text-primary);
+}
+
+/* ===================================================================
+   Chrome/Edge autofill paint input nền trắng-vàng ngay cả khi đã set
+   background. Phải hack qua box-shadow inset 1000px vì autofill bg
+   không override trực tiếp được. Transition 5000s để khỏi nhấp nháy.
+   =================================================================== */
+[data-theme="dark"] input:-webkit-autofill,
+[data-theme="dark"] input:-webkit-autofill:hover,
+[data-theme="dark"] input:-webkit-autofill:focus,
+[data-theme="dark"] input:-webkit-autofill:active,
+[data-theme="dark"] textarea:-webkit-autofill,
+[data-theme="dark"] select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-card) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
 }
 
 /* ===================================================================

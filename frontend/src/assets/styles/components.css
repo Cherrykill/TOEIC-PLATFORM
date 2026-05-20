@@ -5431,7 +5431,9 @@ mark {
     border-radius: 14px;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
     width: min(1100px, 96vw);
-    max-height: 88vh;
+    /* Chiều cao CỐ ĐỊNH để popup không co dãn theo số lượng notif —
+       luôn cao 80vh dù có 1 item hay 100 item (list cuộn nội bộ). */
+    height: 80vh;
     display: flex; flex-direction: column;
     overflow: hidden;
 }
@@ -5465,6 +5467,8 @@ mark {
     padding: 20px 22px;
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 .notif-detail-header {
     display: flex; align-items: baseline; justify-content: space-between;
@@ -5481,6 +5485,14 @@ mark {
     font-size: 14px; line-height: 1.6;
     color: var(--text-primary);
     white-space: pre-wrap;
+}
+.notif-detail-actions {
+    /* margin-top:auto đẩy xuống đáy pane (do .notif-detail là flex-col).
+       Dấu kẻ ngang dashed ngăn cách rõ với body phía trên. */
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px dashed var(--border-color);
+    display: flex; justify-content: flex-end;
 }
 .notif-type-badge {
     display: inline-block; margin-top: 4px;
@@ -5520,6 +5532,17 @@ mark {
     padding: 10px 12px;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
+    position: relative;
+}
+/* Chấm đỏ chưa-đọc — góc trên-phải card, kiểu game */
+.notif-card-unread-pip {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 0 2px var(--bg-primary);
+    pointer-events: none;
 }
 .notif-card:hover { border-color: var(--primary-color); }
 .notif-card.selected {
@@ -5556,6 +5579,16 @@ mark {
     display: flex; align-items: center; gap: 10px;
     text-align: left;
     transition: background 0.15s, color 0.15s;
+    position: relative;
+}
+/* Chấm đỏ trên tab khi tab đó có notif chưa đọc */
+.notif-side-pip {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 0 2px var(--bg-secondary);
 }
 .notif-side-tab:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 .notif-side-tab.active {

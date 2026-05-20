@@ -133,32 +133,24 @@ exports.broadcastNotification = async (req, res, next) => {
         const { title, body, type = 'system', userId, userEmail } = req.body;
         if (!title) return res.status(400).json({ success: false, message: 'title required' });
 
-        let userIds;
-        if (userId) {
-            userIds = [userId];
-        } else if (userEmail) {
-            const user = await User.findOne({ email: userEmail.toLowerCase().trim() }).select('_id').lean();
-            if (!user) return res.status(404).json({ success: false, message: `Không tìm thấy user: ${userEmail}` });
-            userIds = [user._id];
-        } else {
-            const users = await User.find({ isActive: { $ne: false } }).select('_id').lean();
-            userIds = users.map(u => u._id);
+        // Gửi 1 user cụ thể → tạo 1 doc gắn userId.
+        if (userId || userEmail) {
+            let targetId = userId;
+            if (!targetId) {
+                const user = await User.findOne({ email: userEmail.toLowerCase().trim() }).select('_id').lean();
+                if (!user) return res.status(404).json({ success: false, message: `Không tìm thấy user: ${userEmail}` });
+                targetId = user._id;
+            }
+            await Notification.create({ userId: targetId, type, title, body: body || '', read: false });
+            return res.json({ success: true, sent: 1, broadcast: false });
         }
 
-        if (!userIds.length) return res.json({ success: true, sent: 0 });
-
-        // Tạo notification docs (insertMany cho hiệu quả)
-        const docs = userIds.map(uid => ({
-            userId: uid,
-            type,
-            title,
-            body: body || '',
-            read: false,
-        }));
-
-        await Notification.insertMany(docs, { ordered: false });
-
-        res.json({ success: true, sent: docs.length });
+        // Gửi TẤT CẢ → chỉ tạo DUY NHẤT 1 doc với userId=null (broadcast).
+        // Frontend khi list sẽ nối thêm các doc userId=null cho mọi user;
+        // khi user xoá broadcast thì frontend ghi id đó vào localStorage
+        // để ẩn lần sau (KHÔNG xoá doc server, vì user khác còn dùng).
+        await Notification.create({ userId: null, type, title, body: body || '', read: false });
+        res.json({ success: true, sent: 1, broadcast: true });
     } catch (err) {
         next(err);
     }
