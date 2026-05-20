@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { ToeicAPI } from '@api/toeic.js';
 import { Http } from '@api/http.js';
 import { Notification } from '@ui/Toaster.jsx';
+import { Quest } from '@components/quest/quest.js';
 
 const initialState = {
     attemptId: null,
@@ -179,6 +180,9 @@ export function useToeicAttempt() {
         if (!apiData?.success) {
             throw new Error(apiData?.message || 'Lỗi nộp bài thi');
         }
+        // Tick quest TOEIC (vd special_first_toeic) — không có flow nào khác
+        // phát sự kiện này nên trước đây quest TOEIC luôn đứng yên.
+        try { Quest.updateProgress('complete-toeic', 1); } catch (_) {}
         return apiData.data;
     }, [state.attemptId]);
 

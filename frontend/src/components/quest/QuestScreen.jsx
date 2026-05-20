@@ -6,6 +6,7 @@ import { Quest } from '@components/quest/quest.js';
 import { QuestsAPI } from '@api/quests.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
+import { GameState } from '@game/state.js';
 
 const TABS = [
     { type: 'daily',   label: 'Hàng ngày',  icon: 'fa-sun' },
@@ -108,6 +109,9 @@ export default function QuestScreen({ active }) {
         if (Quest?.claimReward) {
             const rewards = await Quest.claimReward(type, questCode);
             if (rewards !== null && rewards !== undefined) {
+                // Cộng thưởng cục bộ để header coins/xp/gems đổi ngay,
+                // khỏi phải F5 mới thấy số mới.
+                GameState.creditServerRewards(rewards);
                 Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
                 Notification.success('Nhận thưởng thành công!');
                 loadQuests(type);
@@ -117,6 +121,7 @@ export default function QuestScreen({ active }) {
         }
         const res = await QuestsAPI.claim({ type, code: questCode });
         if (res.success) {
+            GameState.creditServerRewards(res.rewards || {});
             Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
             Notification.success('Nhận thưởng thành công!');
             loadQuests(type);
@@ -186,11 +191,12 @@ export default function QuestScreen({ active }) {
                                     </div>
                                     <div className="quest-progress-text">{progress} / {target}</div>
                                 </div>
-                                {quest.completed && (
-                                    isClaimed
+                                {quest.completed
+                                    ? (isClaimed
                                         ? <div className="quest-claimed-badge"><i className="fas fa-check-circle"></i> Đã nhận thưởng</div>
-                                        : <button className="quest-claim-btn btn btn-primary btn-sm" onClick={() => handleClaim(activeTab, quest.code || quest.id)}>Nhận thưởng</button>
-                                )}
+                                        : <button className="quest-claim-btn btn btn-primary btn-sm" onClick={() => handleClaim(activeTab, quest.code || quest.id)}>Nhận thưởng</button>)
+                                    : <div className="quest-pending-badge"><i className="fas fa-hourglass-half"></i> Chưa đạt</div>
+                                }
                             </div>
                         );
                     })}

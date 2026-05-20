@@ -177,7 +177,9 @@ export const GameState = {
         const oldEnergy = this.state.resources.energy;
         const oldStreak = this.state.streak.current;
 
-        this.updateStreak();
+        // Streak chỉ được tick khi user thực sự hoàn thành 1 chế độ
+        // (backend /practice/submit lo việc cộng streak). KHÔNG tick chỉ
+        // do mở app, kẻo user vào web rồi out cũng tăng — sai semantics.
         this.regenerateEnergy();
         this.updateBoosts();
         this.checkDailyQuestsReset();
@@ -479,6 +481,32 @@ export const GameState = {
         }
     },
 
+    /**
+     * Cộng thẳng phần thưởng đã do BACKEND tính (claim quest/achievement…).
+     * Không áp boost / VIP multiplier (server đã quyết net amount), không
+     * gọi save (server đã ghi DB). Chỉ cập nhật state cục bộ + phát event
+     * để React (header coins/gems/XP) reflect ngay, khỏi phải F5.
+     */
+    creditServerRewards({ coins = 0, xp = 0, gems = 0 } = {}) {
+        if (coins) {
+            this.state.resources.coins += coins;
+            EventBus.emit(GameEvents.COINS_CHANGED, {
+                amount: this.state.resources.coins, added: coins,
+            });
+        }
+        if (gems) {
+            this.state.resources.gems += gems;
+            EventBus.emit(GameEvents.GEMS_CHANGED, {
+                amount: this.state.resources.gems, added: gems,
+            });
+        }
+        if (xp) {
+            this.state.user.xp += xp;
+            this.state.user.totalXp = (this.state.user.totalXp || 0) + xp;
+            EventBus.emit(GameEvents.USER_XP_GAINED, { amount: xp, multiplier: 1 });
+        }
+    },
+
     async useGems(amount) {
         if (this.state.resources.gems < amount) return false;
 
@@ -502,7 +530,6 @@ export const GameState = {
             this.state.streak.current = 1;
             this.state.streak.lastPlayDate = today;
             EventBus.emit(GameEvents.STREAK_UPDATED, this.state.streak);
-            if (typeof Quest !== 'undefined') Quest.updateProgress('daily-streak', 1);
             return;
         }
 
@@ -520,7 +547,6 @@ export const GameState = {
             }
 
             EventBus.emit(GameEvents.STREAK_UPDATED, this.state.streak);
-            if (typeof Quest !== 'undefined') Quest.updateProgress('daily-streak', 1);
             this.checkAchievements();
         } else {
             if (this.state.resources.shields > 0) {
@@ -637,9 +663,6 @@ export const GameState = {
             this.state.progress.wordsLearned.push(wordId);
 
             EventBus.emit(GameEvents.WORD_LEARNED, { wordId });
-
-            if (typeof Quest !== 'undefined') Quest.updateProgress('learn-words', 1);
-
             this.checkAchievements();
         }
     },

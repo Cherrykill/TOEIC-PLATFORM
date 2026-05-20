@@ -6,6 +6,7 @@ import { AuthAPI } from '@api/auth.js';
 import { AchievementsAPI } from '@api/achievements.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
+import { GameState } from '@game/state.js';
 
 const CATEGORIES = [
     { key: 'all',      label: 'Tất cả',    icon: 'fa-star' },
@@ -57,7 +58,7 @@ const METRIC_ALIASES = {
     'time': 'play-time',
 };
 
-function calculateProgress(ach) {
+export function calculateProgress(ach) {
     const state = window.GameState?.state || {};
     const p = state.progress || {};
     const raw = (ach.conditionType || '').toLowerCase().replace(/_/g, '-');
@@ -136,16 +137,41 @@ export default function AchievementsScreen({ active }) {
     async function handleClaim(achievementId) {
         const res = await AchievementsAPI.claim(achievementId);
         if (res.success) {
+            // Cộng thưởng cục bộ + đánh dấu unlocked để UI đổi NGAY,
+            // không phải F5 mới thấy. Backend đã ghi DB rồi.
+            const rewards = res.data?.rewards || {};
+            GameState.creditServerRewards(rewards);
+            const now = new Date().toISOString();
+            setAchievements(prev => prev.map(a =>
+                (a.id || a._id) === achievementId
+                    ? { ...a, unlocked: true, unlockedAt: now }
+                    : a
+            ));
+            const gs = window.GameState?.state?.achievements;
+            if (Array.isArray(gs)) {
+                const i = gs.findIndex(a => (a.id || a._id) === achievementId);
+                if (i >= 0) gs[i] = { ...gs[i], unlocked: true, unlockedAt: now };
+            }
             Utils.playSound(Config.sounds.achievement, 0.6, { ignoreSettings: true });
             Notification.success('Nhận thưởng thành công!');
             syncFromState();
-            loadAchievements();
         } else {
             Notification.error(res.message || 'Không thể nhận thưởng');
         }
     }
 
-    const filtered = category === 'all' ? achievements : achievements.filter(a => a.category === category);
+    // Gom các category gốc (learning/practice/streak/skill/speed/social) về
+    // 4 tab hiển thị. Mọi category lạ rơi vào "Đặc biệt" để không "tịt".
+    const CATEGORY_BUCKETS = {
+        learning: 'learning',
+        practice: 'practice', speed: 'practice', skill: 'practice',
+        social: 'social',
+        streak: 'special', special: 'special',
+    };
+    const bucketOf = (cat) => CATEGORY_BUCKETS[String(cat || '').toLowerCase()] || 'special';
+    const filtered = category === 'all'
+        ? achievements
+        : achievements.filter(a => bucketOf(a.category) === category);
     const unlocked = achievements.filter(a => a.unlocked).length;
     const progressPct = achievements.length > 0 ? Math.round((unlocked / achievements.length) * 100) : 0;
 

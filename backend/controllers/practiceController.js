@@ -123,7 +123,24 @@ exports.submitSession = async (req, res, next) => {
                 stats.streakCurrent += 1;
                 if (stats.streakCurrent > stats.streakLongest) stats.streakLongest = stats.streakCurrent;
             } else if (daysDiff > 1) {
-                stats.streakCurrent = 1;
+                // Bỏ qua N ngày. Mỗi shield "đỡ" được 1 ngày — đốt tới khi
+                // đủ bù khoảng nghỉ hoặc hết shield. Nếu shield đủ → streak
+                // giữ nguyên. Thiếu → reset về 1.
+                const skipped = daysDiff - 1;
+                const shieldsAvail = stats.shields || 0;
+                if (shieldsAvail >= skipped) {
+                    stats.shields = shieldsAvail - skipped;
+                    stats.streakShieldsUsed = (stats.streakShieldsUsed || 0) + skipped;
+                    stats.streakCurrent += 1; // hôm nay vẫn là ngày tiếp theo của chuỗi
+                    if (stats.streakCurrent > stats.streakLongest) stats.streakLongest = stats.streakCurrent;
+                } else {
+                    // Không đủ shield → đốt sạch số có và reset
+                    if (shieldsAvail > 0) {
+                        stats.streakShieldsUsed = (stats.streakShieldsUsed || 0) + shieldsAvail;
+                        stats.shields = 0;
+                    }
+                    stats.streakCurrent = 1;
+                }
             }
             stats.streakLastPlayDate = new Date();
         }

@@ -340,10 +340,16 @@ export const Flashcard = {
         this.showCard();
     },
 
-    finish() {
+    async finish() {
         if (this.boundKeyboardHandler) {
             document.removeEventListener('keydown', this.boundKeyboardHandler);
         }
+
+        // Chạy side-effect cuối session (lịch sử, modeStats, quest, leaderboard,
+        // achievements) qua đường unified — trước đây Flashcard chỉ gọi
+        // showSummary() nên hoàn toàn bỏ qua → bài thống kê không thấy
+        // Flashcard, quest/achievement không tăng.
+        try { await PracticeManager.finalizeSession(); } catch (_) {}
 
         this.showSummary();
     },

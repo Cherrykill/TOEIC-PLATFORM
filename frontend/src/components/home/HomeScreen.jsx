@@ -5,6 +5,7 @@ import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PracticeManager } from '@components/practice/practiceManager.js';
 import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { QuestsAPI } from '@api/quests.js';
+import { Quest } from '@components/quest/quest.js';
 
 const gameModes = [
     { group: 'Học & Nhận diện từ', icon: 'fa-book-open', modes: [
@@ -53,7 +54,10 @@ export default function HomeScreen({ active }) {
 
     const loadLocalData = useCallback(() => {
         const s = GameState.state;
-        setQuests(s.quests?.daily || []);
+        // Quest.init đã nạp 4 loại vào _cache; lấy thẳng từ đó (đầy đủ 5
+        // daily quest sau Phase A). Fallback GameState legacy nếu rỗng.
+        const cached = Quest.getQuests?.('daily') || [];
+        setQuests(cached.length ? cached : (s.quests?.daily || []));
         setWrongWordsCount(s.progress?.wrongWords?.length || 0);
         setStats(GameState.getStatistics?.() || {});
     }, []);
@@ -85,9 +89,25 @@ export default function HomeScreen({ active }) {
     };
 
     const handleClaimQuest = async (quest) => {
-        if (!quest.completed || quest.claimed) return;
-        const res = await QuestsAPI.claim({ questId: quest.id });
+        const code = quest.code || quest.id;
+        if (!code || !quest.completed || quest.claimedAt || quest.claimed) return;
+
+        // Backend expect { type, code } — bug cũ gửi { questId } → 400.
+        // Đi qua Quest.claimReward để có optimistic claimedAt + flush sync
+        // (khớp với QuestScreen).
+        let rewards = null;
+        if (Quest?.claimReward) {
+            rewards = await Quest.claimReward('daily', code);
+            if (rewards != null) {
+                GameState.creditServerRewards(rewards);
+                loadLocalData();
+                syncFromState();
+                return;
+            }
+        }
+        const res = await QuestsAPI.claim({ type: 'daily', code });
         if (res.success) {
+            GameState.creditServerRewards(res.rewards || {});
             loadLocalData();
             syncFromState();
         }
@@ -148,6 +168,9 @@ export default function HomeScreen({ active }) {
                                 )}
                                 {isClaimed && (
                                     <div className="quest-claimed-badge"><i className="fas fa-check-circle"></i> Đã nhận</div>
+                                )}
+                                {!isCompleted && (
+                                    <div className="quest-pending-badge"><i className="fas fa-hourglass-half"></i> Chưa đạt</div>
                                 )}
                             </div>
                         );

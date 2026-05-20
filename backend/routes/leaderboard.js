@@ -21,6 +21,23 @@ function getPeriodQuery(period) {
     return {};
 }
 
+// Số user "online" — lastLoginAt trong vòng ONLINE_THRESHOLD_MS gần nhất.
+// Đặt TRƯỚC route ':period?' không sẽ bị nuốt thành period='online-count'.
+router.get('/online-count', async (req, res) => {
+    try {
+        const onlineThreshold = new Date(Date.now() - ONLINE_THRESHOLD_MS);
+        const count = await User.countDocuments({
+            isActive: true,
+            role: { $ne: 'admin' },
+            lastLoginAt: { $gte: onlineThreshold },
+        });
+        res.json({ success: true, count });
+    } catch (error) {
+        logger.error('Online count error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch online count' });
+    }
+});
+
 router.get('/:period?', async (req, res) => {
     try {
         const { period = 'all-time' } = req.params;

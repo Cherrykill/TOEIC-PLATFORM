@@ -31,7 +31,16 @@ export function useNotifications(isLoggedIn) {
         setItems(prev => prev.map(n => ({ ...n, read: true })));
     }, []);
 
+    const deleteAll = useCallback(async () => {
+        const res = await NotificationsAPI.deleteAll();
+        if (res.success) {
+            setItems([]);
+            setBadge(0);
+        }
+        return res;
+    }, []);
+
     useEffect(() => { loadBadge(); }, [loadBadge]);
 
-    return { badge, items, tab, loading, loadBadge, fetchItems, changeTab, markAllRead, setBadge };
+    return { badge, items, tab, loading, loadBadge, fetchItems, changeTab, markAllRead, deleteAll, setBadge };
 }

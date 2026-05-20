@@ -10,6 +10,25 @@ export default function LeaderboardScreen({ active }) {
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [fallbackNotice, setFallbackNotice] = useState('');
+    const [selected, setSelected] = useState(null);  // entry để hiện popup chi tiết
+
+    // ESC để đóng popup
+    useEffect(() => {
+        if (!selected) return;
+        const onKey = (e) => { if (e.key === 'Escape') setSelected(null); };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [selected]);
+
+    async function copyId(id) {
+        if (!id) return;
+        try {
+            await navigator.clipboard.writeText(String(id));
+            window._reactNotification?.success?.('Đã sao chép ID');
+        } catch {
+            window._reactNotification?.error?.('Không sao chép được');
+        }
+    }
 
     useEffect(() => {
         if (active) loadLeaderboard(period);
@@ -35,9 +54,16 @@ export default function LeaderboardScreen({ active }) {
         setLoading(false);
     }
 
-    const filtered = entries.filter(e =>
-        !search || e.username?.toLowerCase().includes(search.toLowerCase()) || e.userId?.includes(search)
-    );
+    const filtered = entries.filter(e => {
+        if (!search) return true;
+        const kw = search.trim().toLowerCase();
+        if (!kw) return true;
+        // Backend trả về field `id` (= userId), không có `userId`. Trước
+        // đây chỉ check `e.userId` nên copy ID từ popup vào ô tìm là tịt.
+        const id = String(e.id || e.userId || '').toLowerCase();
+        const name = String(e.username || '').toLowerCase();
+        return name.includes(kw) || id.includes(kw);
+    });
     const onlineCount = entries.filter(e => e.isOnline).length;
     const totalCount = entries.length;
 
@@ -91,11 +117,16 @@ export default function LeaderboardScreen({ active }) {
                     const myName = GameState.state.user?.username;
                     const isMe = (myId && entry.userId === myId) || (myName && entry.username === myName);
                     return (
-                        <div key={i} className={`leaderboard-item${isMe ? ' leaderboard-item--me' : ''}`}>
+                        <div
+                            key={i}
+                            className={`leaderboard-item${isMe ? ' leaderboard-item--me' : ''}`}
+                            onClick={() => setSelected(entry)}
+                            style={{ cursor: 'pointer' }}
+                        >
                             <div className="leaderboard-rank">{rank}</div>
                             <div className="leaderboard-avatar-wrap">
                                 <div className="leaderboard-avatar">{entry.avatar || entry.username?.charAt(0)?.toUpperCase() || 'P'}</div>
-                                {isMe && <span className="online-dot online-dot--on" />}
+                                {entry.isOnline && <span className="online-dot online-dot--on" />}
                             </div>
                             <div className="leaderboard-info">
                                 <div className="leaderboard-name">
@@ -109,6 +140,42 @@ export default function LeaderboardScreen({ active }) {
                     );
                 })}
             </div>
+
+            {selected && (
+                <div className="player-popup-overlay" onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>
+                    <div className="player-popup">
+                        <button className="player-popup-close" onClick={() => setSelected(null)} title="Đóng (Esc)">
+                            <i className="fas fa-times"></i>
+                        </button>
+                        <div className="player-popup-avatar">
+                            {selected.avatar || selected.username?.[0]?.toUpperCase() || '?'}
+                        </div>
+                        <h3 className="player-popup-name">{selected.username || 'Ẩn danh'}</h3>
+                        <div className="player-popup-id">
+                            <span>ID: {String(selected.id || selected.userId || '—').slice(0, 24)}</span>
+                            <button className="player-popup-copy" onClick={() => copyId(selected.id || selected.userId)} title="Sao chép ID">
+                                <i className="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <div className="player-popup-stats">
+                            <div className="player-stat">
+                                <div className="player-stat-value">Level {selected.level || 1}</div>
+                                <div className="player-stat-label">Cấp độ</div>
+                            </div>
+                            <div className="player-stat">
+                                <div className="player-stat-value">{(selected.totalXp || selected.xp || selected.score || 0).toLocaleString()}</div>
+                                <div className="player-stat-label">Điểm số</div>
+                            </div>
+                            {selected.streak != null && (
+                                <div className="player-stat">
+                                    <div className="player-stat-value">🔥 {selected.streak}</div>
+                                    <div className="player-stat-label">Chuỗi ngày</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

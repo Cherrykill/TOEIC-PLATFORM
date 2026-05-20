@@ -35,10 +35,19 @@ export default function ShopScreen({ active }) {
         setLoading(false);
     }
 
+    function effectivePrice(item) {
+        if (item.discountPercent > 0) {
+            return Math.floor(item.price * (1 - item.discountPercent / 100));
+        }
+        // Legacy: Config.shopItems có thể đặt originalPrice + price (price = sale).
+        return item.price;
+    }
+
     async function handleBuy(item) {
+        const finalPrice = effectivePrice(item);
         Modal.show({
             title: 'Xác nhận mua',
-            content: `<p>Mua <strong>${item.name}</strong> với giá <strong>${item.price} ${item.currency === 'gems' ? '💎 Gems' : '🪙 Coins'}</strong>?</p>`,
+            content: `<p>Mua <strong>${item.name}</strong> với giá <strong>${finalPrice} ${item.currency === 'gems' ? '💎 Gems' : '🪙 Coins'}</strong>?</p>`,
             buttons: [
                 {
                     text: 'Hủy',
@@ -73,8 +82,9 @@ export default function ShopScreen({ active }) {
     }
 
     const canAfford = (item) => {
-        if (item.currency === 'gems') return resources.gems >= item.price;
-        return resources.coins >= item.price;
+        const p = effectivePrice(item);
+        if (item.currency === 'gems') return resources.gems >= p;
+        return resources.coins >= p;
     };
 
     return (
@@ -89,8 +99,20 @@ export default function ShopScreen({ active }) {
                 {loading ? (
                     <div className="loading-state"><i className="fas fa-spinner fa-spin"></i> Đang tải...</div>
                 ) : items.map(item => {
-                    const onSale = item.originalPrice && item.originalPrice > item.price;
-                    const discountPct = onSale ? Math.round((1 - item.price / item.originalPrice) * 100) : 0;
+                    // 2 nguồn discount: (1) admin set discountPercent trong DB
+                    // → giá hiển thị bị gạch = item.price; giá sale = price*(1-%).
+                    // (2) Legacy Config.shopItems set originalPrice + price
+                    // (price là giá sale rồi). Ưu tiên (1) — khớp backend.
+                    const adminDiscount = item.discountPercent > 0;
+                    const legacyOriginal = item.originalPrice && item.originalPrice > item.price;
+                    const onSale = adminDiscount || legacyOriginal;
+                    const originalPriceDisplay = adminDiscount ? item.price : item.originalPrice;
+                    const salePriceDisplay = adminDiscount
+                        ? Math.floor(item.price * (1 - item.discountPercent / 100))
+                        : item.price;
+                    const discountPct = adminDiscount
+                        ? item.discountPercent
+                        : (legacyOriginal ? Math.round((1 - item.price / item.originalPrice) * 100) : 0);
                     const currIcon = item.currency === 'gems' ? '💎' : '🪙';
                     return (
                         <div key={item.id} className={`shop-item${onSale ? ' on-sale' : ''}`}>
@@ -101,8 +123,8 @@ export default function ShopScreen({ active }) {
                             <div className="shop-item-price">
                                 {onSale ? (
                                     <>
-                                        <span className="price-original">{currIcon}{item.originalPrice}</span>
-                                        <span className="price-sale">{currIcon}{item.price}</span>
+                                        <span className="price-original">{currIcon}{originalPriceDisplay}</span>
+                                        <span className="price-sale">{currIcon}{salePriceDisplay}</span>
                                         <span className="discount-badge">-{discountPct}%</span>
                                     </>
                                 ) : (

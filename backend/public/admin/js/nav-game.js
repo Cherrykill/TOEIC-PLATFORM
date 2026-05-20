@@ -187,6 +187,12 @@ function openQuestModal(data) {
     document.getElementById('quest-type').value = data.type || 'daily';
     document.getElementById('quest-mode').value = data.mode || 'any';
     document.getElementById('quest-metric').value = data.metric || '';
+    document.getElementById('quest-source').value = data.source || 'computed';
+    var paramsEl = document.getElementById('quest-params');
+    if (paramsEl) {
+        var p = data.params;
+        paramsEl.value = (p && Object.keys(p).length) ? JSON.stringify(p) : '';
+    }
     document.getElementById('quest-target').value = data.target || 3;
     document.getElementById('quest-weight').value = data.weight || 1;
     document.getElementById('quest-xp').value = data.rewardXp || 0;
@@ -233,6 +239,13 @@ function initQuestModal() {
             type: document.getElementById('quest-type').value,
             mode: document.getElementById('quest-mode').value,
             metric: document.getElementById('quest-metric').value,
+            source: document.getElementById('quest-source').value,
+            params: (function () {
+                var raw = (document.getElementById('quest-params').value || '').trim();
+                if (!raw) return {};
+                try { return JSON.parse(raw); }
+                catch (_) { showToast('Params không phải JSON hợp lệ — bỏ qua', 'error'); return {}; }
+            })(),
             target: Number(document.getElementById('quest-target').value),
             weight: Number(document.getElementById('quest-weight').value),
             rewardXp: Number(document.getElementById('quest-xp').value),
@@ -630,8 +643,271 @@ document.addEventListener('DOMContentLoaded', function() {
     initAchievementModal();
     initQuestModal();
     initShopModal();
+    initAiGenModal();
 
     // Auto-open group for current active tab
     var activeLink = document.querySelector('.sidebar-link.active[data-main-tab]');
     if (activeLink) openGroupForTab(activeLink.dataset.mainTab);
 });
+
+// ============================================================
+// AI GENERATE — chung cho Thành tích + Nhiệm vụ
+// User copy prompt → đưa vào ChatGPT/Claude → dán JSON về → import
+// hàng loạt qua /admin/{achievements|quests} (mỗi entry 1 POST).
+// ============================================================
+var AI_GEN_MODE = 'achievement';
+
+// 16 chế độ luyện tập của hệ thống — dùng cho cả achievement (conditionMode
+// khi conditionType='mode-plays') và quest (params.mode khi metric='play-mode',
+// hoặc field mode top-level cho lọc).
+var GAME_MODES_LIST = [
+    'flashcard          — học từ bằng thẻ ghi nhớ',
+    'multiple-choice    — chọn nghĩa đúng (trắc nghiệm)',
+    'matching           — nối từ với nghĩa',
+    'word-type-check    — xác định từ loại (noun/verb/...)',
+    'listening          — nghe và chọn',
+    'pronunciation      — luyện phát âm (mic)',
+    'dictation          — chép chính tả',
+    'sentence-listening — nghe chuỗi từ',
+    'fill-blank         — điền từ vào chỗ trống',
+    'example-fill-blank — điền vào câu ví dụ',
+    'sentence-builder   — xếp câu',
+    'phonetic-quiz      — đọc phiên âm IPA',
+    'context-learning   — hiểu qua câu',
+    'synonym-check      — chọn từ đồng nghĩa',
+    'speed-quiz         — trả lời tốc độ',
+    'review-mistakes    — ôn lại từ sai',
+];
+
+function aiGenPrompt(mode, count) {
+    var n = count || 10;
+    if (mode === 'achievement') {
+        return [
+            'Bạn là designer hệ thống game-hoá cho một app học tiếng Anh TOEIC.',
+            'Hệ thống đã có: 16 chế độ luyện tập, theo dõi từ đã học / từ đã thuộc / streak ngày / level / XP / coins / gems / điểm số / thời gian chơi / độ chính xác / lượt chơi từng chế độ. Mỗi thành tích có 1 điều kiện duy nhất; khi user đạt thì nhận thưởng (coins/xp/gems).',
+            '',
+            'Hãy sinh ' + n + ' THÀNH TÍCH dưới dạng MẢNG JSON theo schema BẮT BUỘC:',
+            '',
+            '[',
+            '  {',
+            '    "code":           "snake_case_unique",   // string unique, không dấu, ASCII',
+            '    "name":           "Tên hiển thị (tiếng Việt, ngắn gọn)",',
+            '    "description":    "Mô tả ngắn 1 dòng",',
+            '    "icon":           "🏆",                  // CHÍNH XÁC 1 emoji',
+            '    "category":       "learning",           // PHẢI là 1 trong 5:',
+            '         // learning  — học từ vựng (words-learned, words-mastered…)',
+            '         // practice  — luyện tập tổng (sessions, games-played, correct-answers…)',
+            '         // streak    — chuyên về chuỗi ngày (streak, streak-longest)',
+            '         // skill     — kỹ năng (accuracy, perfect-rounds, level, total-xp)',
+            '         // speed     — tốc độ (mode-plays trên speed-quiz, highest-score)',
+            '    "conditionType":  "words-learned",      // PHẢI là 1 trong 18 metric (xem bảng dưới)',
+            '    "conditionValue": 10,                    // ngưỡng số — đối chiếu metric',
+            '    "conditionMode":  "",                    // BẮT BUỘC "" với mọi metric TRỪ "mode-plays"',
+            '                                              // với "mode-plays" phải là 1 trong 16 mode (xem bảng dưới)',
+            '    "rewardCoins":    100,                   // ≥ 0',
+            '    "rewardXp":       50,                    // ≥ 0',
+            '    "rewardGems":     0,                     // ≥ 0',
+            '    "isActive":       true,',
+            '    "order":          1                      // số thứ tự hiển thị',
+            '  }',
+            ']',
+            '',
+            '═══ DANH MỤC METRIC (conditionType) ═══',
+            '┌────────────────────┬─────────────────────────────────────────────┬───────────────┐',
+            '│ key                │ ý nghĩa                                     │ ngưỡng gợi ý  │',
+            '├────────────────────┼─────────────────────────────────────────────┼───────────────┤',
+            '│ words-learned      │ Tổng số từ đã học (đã trả lời đúng ≥1 lần)  │ 10/50/200/500 │',
+            '│ words-mastered     │ Tổng số từ đã thuộc (qua nhiều lần)         │ 20/100/500    │',
+            '│ sessions           │ Tổng số session đã hoàn thành               │ 5/50/200      │',
+            '│ games-played       │ Tổng số lượt chơi (gồm cả không xong)       │ 10/100/500    │',
+            '│ perfect-rounds     │ Số vòng đúng 100%                           │ 1/10/50/100   │',
+            '│ correct-answers    │ Tổng câu trả lời đúng                       │ 50/500/5000   │',
+            '│ wrong-answers      │ Tổng câu trả lời sai (cho thành tích kiểu  │ 50/500        │',
+            '│                    │   "kiên trì" — sai nhiều mà vẫn cày)        │               │',
+            '│ questions-answered │ Tổng câu đã trả lời (đúng + sai)            │ 100/1000      │',
+            '│ streak             │ Streak HIỆN TẠI (ngày liên tiếp)            │ 3/7/30/100    │',
+            '│ streak-longest     │ Streak DÀI NHẤT từng đạt                    │ 7/30/100      │',
+            '│ level              │ Cấp độ user                                 │ 5/10/30/50    │',
+            '│ total-xp           │ Tổng XP cộng dồn từ trước đến nay           │ 1000/10000    │',
+            '│ coins              │ Số coins đang sở hữu (snapshot hiện tại)    │ 1000/10000    │',
+            '│ gems               │ Số gems đang sở hữu                         │ 50/200/500    │',
+            '│ highest-score      │ Điểm cao nhất 1 session                     │ 500/2000      │',
+            '│ play-time          │ Tổng thời gian chơi (GIÂY)                  │ 3600/36000    │',
+            '│ accuracy           │ Độ chính xác tổng thể (%)                   │ 70/85/95      │',
+            '│ mode-plays         │ Số lượt chơi 1 chế độ CỤ THỂ                │ 10/50/200     │',
+            '│                    │   → CẦN set conditionMode = mode key        │               │',
+            '└────────────────────┴─────────────────────────────────────────────┴───────────────┘',
+            '',
+            '═══ 16 CHẾ ĐỘ GAME (conditionMode khi metric="mode-plays") ═══',
+            GAME_MODES_LIST.map(function (m) { return '  • ' + m; }).join('\n'),
+            '',
+            '═══ MỨC THƯỞNG GỢI Ý ═══',
+            '  Dễ  (ngưỡng nhỏ):  coins  50-150,  xp  25-75,   gems  0',
+            '  Vừa (ngưỡng vừa):  coins 200-500,  xp 100-250,  gems  5-10',
+            '  Khó (ngưỡng cao):  coins 700-1500, xp 350-750,  gems 15-30',
+            '  Cực khó (top):     coins 2000+,    xp 1000+,    gems 50+',
+            '',
+            '═══ QUY TẮC ═══',
+            '1. Trả về DUY NHẤT mảng JSON hợp lệ (bắt đầu [, kết thúc ]). KHÔNG markdown, KHÔNG ```.',
+            '2. "code" duy nhất, snake_case, không dấu, dùng prefix mô tả category (vd "learn_100_words", "speed_demon_30", "perfect_streak_7").',
+            '3. "conditionType" PHẢI nằm trong 18 metric ở bảng. Sai = backend reject.',
+            '4. "category" PHẢI là 1 trong 5: learning, practice, streak, skill, speed. KHÔNG được đặt giá trị khác.',
+            '5. Mức ngưỡng + reward đa dạng: có dễ, vừa, khó, cực khó (xem gợi ý). Trộn category để không trùng thể loại.',
+            '6. Nếu chọn metric "mode-plays" → BẮT BUỘC conditionMode = key của 1 trong 16 chế độ. Các metric khác conditionMode = "".',
+            '7. "icon" = 1 emoji liên quan ngữ nghĩa (📚 cho từ vựng, 🔥 cho streak, ⚡ cho tốc độ, 🎯 cho chính xác, 👑/🏆 cho top tier…).',
+            '8. "order" tăng dần theo độ khó trong cùng category để UI sort đẹp.',
+        ].join('\n');
+    }
+    // quest
+    return [
+        'Bạn là designer hệ thống game-hoá cho một app học tiếng Anh TOEIC.',
+        'Quest = nhiệm vụ theo PERIOD (daily/weekly/monthly/special). Mỗi user mỗi period được bốc thăm theo weight từ pool; làm đạt target → claim nhận coins/xp/gems. Tiến độ tính SERVER-SIDE từ UserStats với metric chuẩn.',
+        '',
+        'Hãy sinh ' + n + ' NHIỆM VỤ dưới dạng MẢNG JSON theo schema BẮT BUỘC:',
+        '',
+        '[',
+        '  {',
+        '    "code":        "snake_case_unique",      // unique, không dấu',
+        '    "name":        "Tên (có thể chứa {target} — sẽ được thay khi hiển thị)",',
+        '    "description": "Mô tả ngắn 1 dòng",',
+        '    "icon":        "🎮",                     // 1 emoji',
+        '    "type":        "daily",                  // PHẢI là 1 trong:',
+        '                                              //   daily   — reset 00:00 mỗi ngày',
+        '                                              //   weekly  — reset thứ 2 mỗi tuần',
+        '                                              //   monthly — reset ngày 1 mỗi tháng',
+        '                                              //   special — không reset, mục tiêu lớn',
+        '    "mode":        "any",                    // "any" cho mọi chế độ; hoặc 1 key trong 16 mode',
+        '    "metric":      "complete-games",         // PHẢI là 1 trong 9 metric (xem bảng dưới)',
+        '    "source":      "computed",               // LUÔN để "computed" (server tự tính từ UserStats)',
+        '    "params":      {},                       // {"mode":"speed-quiz"} CHỈ khi metric="play-mode"',
+        '    "target":      5,                        // ngưỡng đạt',
+        '    "rewardCoins": 50,                       // ≥ 0',
+        '    "rewardXp":    25,                       // ≥ 0',
+        '    "rewardGems":  0,                        // ≥ 0; daily ít, monthly/special nhiều',
+        '    "weight":      3,                        // 1-5, càng cao càng dễ trúng khi bốc daily',
+        '    "isActive":    true',
+        '  }',
+        ']',
+        '',
+        '═══ DANH MỤC METRIC (chỉ 9 cái này hợp lệ) ═══',
+        '┌──────────────────┬───────────────────────────────────────────────┬────────────────┐',
+        '│ key              │ tăng khi nào (server tự đo, không client emit)│ target gợi ý   │',
+        '├──────────────────┼───────────────────────────────────────────────┼────────────────┤',
+        '│ complete-games   │ Mỗi lần hoàn thành 1 session bất kỳ           │ daily 3-10     │',
+        '│ correct-answers  │ Mỗi câu trả lời đúng                          │ daily 10-40    │',
+        '│ learn-words      │ Mỗi từ MỚI được học (chưa có trong list)      │ daily 5-30     │',
+        '│ earn-xp          │ Tổng XP kiếm được trong period                │ daily 100-500  │',
+        '│ daily-streak     │ Streak hiện tại (giá trị tuyệt đối)           │ 1/7/14/30      │',
+        '│ perfect-rounds   │ Vòng đúng 100%                                │ daily 1-5      │',
+        '│ play-mode        │ Lượt chơi 1 CHẾ ĐỘ cụ thể (cần params.mode)   │ daily 2-5      │',
+        '│ complete-toeic   │ Hoàn thành bài thi TOEIC (full hoặc mini)     │ 1-3            │',
+        '│ login-today      │ Đăng nhập app hôm nay (tự tick khi mở)        │ 1 (target=1)   │',
+        '└──────────────────┴───────────────────────────────────────────────┴────────────────┘',
+        '',
+        '═══ 16 CHẾ ĐỘ GAME (mode + params.mode khi cần) ═══',
+        GAME_MODES_LIST.map(function (m) { return '  • ' + m; }).join('\n'),
+        '',
+        '═══ MỨC THƯỞNG THEO TYPE ═══',
+        '  daily   : coins  30-200,  xp  15-120,  gems  0',
+        '  weekly  : coins 250-500,  xp 100-200,  gems  3-10',
+        '  monthly : coins 800-1500, xp 400-800,  gems 12-30',
+        '  special : coins 500-2000, xp 300-1000, gems 10-50',
+        '',
+        '═══ QUY TẮC ═══',
+        '1. Trả về DUY NHẤT mảng JSON hợp lệ (bắt đầu [, kết thúc ]). KHÔNG markdown, KHÔNG ```.',
+        '2. "code" duy nhất, snake_case, prefix theo type (vd "daily_correct_30", "weekly_streak_7", "monthly_perfect_20", "special_first_toeic").',
+        '3. "metric" PHẢI nằm trong 9 metric ở bảng. Sai = quest không bao giờ tick.',
+        '4. "source" LUÔN là "computed" (đừng để "event" cho quest mới).',
+        '5. Nếu metric = "play-mode" → BẮT BUỘC params = {"mode":"<key chế độ>"} và đặt mode top-level cùng giá trị; KHÔNG để "any".',
+        '6. target phải hợp lý theo type: daily nhỏ, weekly trung bình (×5-7), monthly to (×20-30), special là cột mốc lớn.',
+        '7. weight 1-5: quest "phổ thông" weight 3-5, quest "đặc thù/khó" weight 1-2. Tổng pool nên có cả dễ và khó.',
+        '8. "icon" emoji liên quan: 🎮 game, ✅ đúng, 📚 từ vựng, 🔥 streak, ⚡ tốc độ, ⭐ hoàn hảo, 🎯 mục tiêu, 🎓 TOEIC, 👋 login.',
+    ].join('\n');
+}
+
+function openAiGenModal(mode) {
+    AI_GEN_MODE = mode;
+    var title = document.getElementById('ai-gen-title');
+    if (title) title.textContent = mode === 'quest' ? 'Tạo Nhiệm vụ bằng AI' : 'Tạo Thành tích bằng AI';
+    var ta = document.getElementById('ai-gen-json'); if (ta) ta.value = '';
+    var rs = document.getElementById('ai-gen-result'); if (rs) rs.style.display = 'none';
+    document.getElementById('ai-gen-modal').style.display = 'flex';
+}
+
+function copyAiGenPrompt() {
+    var count = parseInt(document.getElementById('ai-gen-count')?.value || '10', 10) || 10;
+    var prompt = aiGenPrompt(AI_GEN_MODE, count);
+    var done = function () { showToast('Đã copy prompt — dán vào ChatGPT/Claude rồi lấy JSON về', 'success'); };
+    var fail = function () { showToast('Không copy được, hãy chọn và copy thủ công', 'error'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(prompt).then(done).catch(fail);
+    } else {
+        var t = document.createElement('textarea');
+        t.value = prompt; t.style.position = 'fixed'; t.style.opacity = '0';
+        document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); done(); } catch (_) { fail(); }
+        document.body.removeChild(t);
+    }
+}
+
+async function importAiGenJson() {
+    var raw = (document.getElementById('ai-gen-json').value || '').trim();
+    var resultDiv = document.getElementById('ai-gen-result');
+    if (!raw) { showToast('Vui lòng dán JSON', 'error'); return; }
+
+    var arr;
+    try {
+        var parsed = JSON.parse(raw);
+        arr = Array.isArray(parsed) ? parsed : [parsed];
+    } catch (e) { showToast('JSON không hợp lệ: ' + e.message, 'error'); return; }
+    if (arr.length === 0) { showToast('Mảng JSON trống', 'error'); return; }
+
+    var endpoint = AI_GEN_MODE === 'quest' ? '/admin/quests' : '/admin/achievements';
+    var btn = document.getElementById('btn-ai-gen-import');
+    btn.disabled = true;
+    var origLabel = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang import...';
+    resultDiv.style.display = 'none';
+
+    var ok = 0, errors = [];
+    for (var i = 0; i < arr.length; i++) {
+        try {
+            var res = await fetch(API_URL + endpoint, {
+                method: 'POST',
+                headers: { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+                body: JSON.stringify(arr[i]),
+            });
+            var data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
+            ok++;
+        } catch (e) {
+            errors.push('#' + (i + 1) + ' ' + (arr[i]?.code || arr[i]?.name || '') + ': ' + e.message);
+        }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = origLabel;
+
+    resultDiv.style.display = 'block';
+    resultDiv.style.background = errors.length === arr.length ? '#fef2f2' : errors.length === 0 ? '#f0fdf4' : '#fffbeb';
+    resultDiv.style.border = '1px solid ' + (errors.length === arr.length ? '#fca5a5' : errors.length === 0 ? '#86efac' : '#fcd34d');
+    resultDiv.style.color = '#111';
+    resultDiv.innerHTML = '<b>' + arr.length + '</b> bản ghi — ✅ ' + ok + ' tạo mới · ❌ ' + errors.length + ' lỗi'
+        + (errors.length ? '<ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">' + errors.map(function (e) { return '<li>' + e + '</li>'; }).join('') + '</ul>' : '');
+
+    // Reload bảng tương ứng
+    if (ok > 0) {
+        if (AI_GEN_MODE === 'quest' && typeof loadQuests === 'function') loadQuests();
+        else if (typeof loadAchievements === 'function') loadAchievements();
+    }
+}
+
+function initAiGenModal() {
+    document.getElementById('btn-ai-gen-achievement')?.addEventListener('click', function () { openAiGenModal('achievement'); });
+    document.getElementById('btn-ai-gen-quest')?.addEventListener('click', function () { openAiGenModal('quest'); });
+    document.getElementById('btn-ai-gen-copy')?.addEventListener('click', copyAiGenPrompt);
+    document.getElementById('btn-ai-gen-import')?.addEventListener('click', importAiGenJson);
+    document.getElementById('btn-ai-gen-close')?.addEventListener('click', function () {
+        document.getElementById('ai-gen-modal').style.display = 'none';
+    });
+}

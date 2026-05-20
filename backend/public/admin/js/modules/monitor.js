@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-refresh-metrics')?.addEventListener('click', loadSystemMetrics);
     document.getElementById('btn-seed-achievements')?.addEventListener('click', seedAchievements);
     document.getElementById('btn-seed-quests')?.addEventListener('click', seedQuests);
+    document.getElementById('btn-reset-user-quests')?.addEventListener('click', resetUserQuests);
 
     // Broadcast tab
     document.getElementById('bc-send-btn')?.addEventListener('click', sendBroadcast);

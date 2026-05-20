@@ -9,6 +9,9 @@ const questEntrySchema = new mongoose.Schema(
         icon:        { type: String, default: '' },
         mode:        { type: String, default: 'any' },
         metric:      { type: String, default: '' },
+        // Cache source/params từ def để evaluator không phải lookup mỗi lần.
+        source:      { type: String, default: 'event' },
+        params:      { type: mongoose.Schema.Types.Mixed, default: {} },
         target:      { type: Number, required: true },
         rewardCoins: { type: Number, default: 0 },
         rewardXp:    { type: Number, default: 0 },
@@ -32,6 +35,13 @@ const userQuestSchema = new mongoose.Schema(
         questType: { type: String, required: true },
         // 'YYYY-MM-DD' | 'YYYY-WNN' | 'YYYY-MM' | definition code
         periodKey:  { type: String, required: true },
+
+        // Baseline UserStats lúc tạo period — evaluator dùng để tính delta
+        // ('correct-answers' = stats.totalCorrectAnswers - snapshot.totalCorrectAnswers).
+        startSnapshot:  { type: mongoose.Schema.Types.Mixed, default: {} },
+        // Mốc thời gian bắt đầu period — dùng cho evaluator filter theo ngày
+        // (vd count ToeicAttempt từ periodStart trở đi).
+        periodStart:    { type: Date, default: null },
 
         quests:         { type: [questEntrySchema], default: [] },
         totalCompleted: { type: Number, default: 0 },

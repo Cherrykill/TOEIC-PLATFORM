@@ -375,6 +375,24 @@
     text-align: left;
 }
 
+/* Badge nhỏ ở cuối menu item (nhiệm vụ chưa nhận / thành tích claimable /
+   user online / shop giảm giá). 3 style: reward (đỏ urgent), info (xanh),
+   sale (cam). */
+.menu-item-badge {
+    margin-left: auto;
+    min-width: 22px; height: 20px;
+    padding: 0 7px;
+    border-radius: 10px;
+    font-size: 11px; font-weight: 700;
+    line-height: 20px; text-align: center;
+    color: #fff;
+    background: var(--error-color, #ef4444);
+    flex-shrink: 0;
+}
+.menu-item-badge.info { background: #3b82f6; }
+.menu-item-badge.sale { background: #f59e0b; }
+.menu-item.active .menu-item-badge { box-shadow: 0 0 0 2px rgba(255,255,255,0.25); }
+
 .menu-item:hover {
     background-color: var(--bg-secondary);
 }

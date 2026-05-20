@@ -908,6 +908,23 @@ async function seedQuests() {
     }
 }
 
+// Phase B: xoá toàn bộ user_quests để sang period kế tiếp sinh lại với
+// startSnapshot mới. Dùng 1 lần sau khi đổi sang source='computed'.
+async function resetUserQuests() {
+    if (!confirm('XOÁ TOÀN BỘ user_quests của MỌI user?\nMất tiến độ period hiện tại nhưng quest sẽ tự sinh lại sạch (kèm snapshot baseline) ở period kế tiếp.')) return;
+    try {
+        const res = await fetch('/api/quests/reset-user-quests', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${authToken}` }
+        });
+        const result = await res.json();
+        if (!result.success) throw new Error(result.message);
+        showToast(result.message, 'success');
+    } catch (err) {
+        showToast(`Lỗi: ${err.message}`, 'error');
+    }
+}
+
 // ---- STUBS for tabs not yet implemented ----
 
 function loadAchievements() { console.warn('loadAchievements: not implemented'); }

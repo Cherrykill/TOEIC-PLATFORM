@@ -1,22 +1,83 @@
 import { useState, useEffect } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
+import { Quest } from '@components/quest/quest.js';
+import { calculateProgress } from '@components/achievements/AchievementsScreen.jsx';
+import { authHeaders } from '@/auth/token.js';
 
 const menuItems = [
-    { label: 'Hồ sơ', icon: 'fa-user', screen: 'profile-screen' },
-    { label: 'Nhiệm vụ', icon: 'fa-tasks', screen: 'quest-screen' },
-    { label: 'Bảng xếp hạng', icon: 'fa-trophy', screen: 'leaderboard-screen' },
-    { label: 'Thành tích', icon: 'fa-medal', screen: 'achievements-screen' },
-    { label: 'Thống kê', icon: 'fa-chart-bar', screen: 'statistics-screen' },
-    { label: 'Cửa hàng', icon: 'fa-shopping-cart', screen: 'shop-screen' },
-    { label: 'Luyện tập TOEIC', icon: 'fa-graduation-cap', screen: 'toeic-screen' },
-    { label: 'Cài đặt', icon: 'fa-cog', screen: 'settings-screen' },
+    { label: 'Hồ sơ',          icon: 'fa-user',             screen: 'profile-screen' },
+    { label: 'Nhiệm vụ',       icon: 'fa-tasks',            screen: 'quest-screen',        badgeKey: 'quest' },
+    { label: 'Bảng xếp hạng',  icon: 'fa-trophy',           screen: 'leaderboard-screen',  badgeKey: 'online',       badgeStyle: 'info' },
+    { label: 'Thành tích',     icon: 'fa-medal',            screen: 'achievements-screen', badgeKey: 'achievement' },
+    { label: 'Thống kê',       icon: 'fa-chart-bar',        screen: 'statistics-screen' },
+    { label: 'Cửa hàng',       icon: 'fa-shopping-cart',    screen: 'shop-screen',         badgeKey: 'shopDiscount', badgeStyle: 'sale' },
+    { label: 'Luyện tập TOEIC',icon: 'fa-graduation-cap',   screen: 'toeic-screen' },
+    { label: 'Cài đặt',        icon: 'fa-cog',              screen: 'settings-screen' },
 ];
+
+// Đếm quest đã hoàn thành nhưng chưa claim trên tất cả 4 loại quest hiện cache.
+function countUnclaimedQuests() {
+    let n = 0;
+    for (const type of ['daily', 'weekly', 'monthly', 'special']) {
+        const list = Quest.getQuests?.(type) || [];
+        for (const q of list) if (q.completed && !q.claimedAt && !q.claimed) n++;
+    }
+    return n;
+}
+
+// Đếm thành tích claimable: chưa unlock + đã đạt target (theo evaluator FE).
+function countClaimableAchievements() {
+    const all = window.GameState?.state?.achievements || [];
+    let n = 0;
+    for (const ach of all) {
+        if (ach.unlocked) continue;
+        const { current } = calculateProgress(ach);
+        if (current >= (ach.conditionValue || 1)) n++;
+    }
+    return n;
+}
 
 export default function SideMenu() {
     const { menuOpen, setMenuOpen, showScreen, currentScreen } = useGame();
     const { isLoggedIn, setAuthModal, logout } = useAuth();
     const [reverseMode, setReverseMode] = useState(false);
+    const [badges, setBadges] = useState({ quest: 0, achievement: 0, online: 0, shopDiscount: 0 });
+
+    // Mỗi lần mở menu (hoặc login state đổi): tính lại badge. Local data
+    // (quest/achievement) lấy ngay từ cache; số online + shop discount gọi
+    // API nhẹ. Đóng menu thì không fetch.
+    useEffect(() => {
+        if (!menuOpen) return;
+        let cancelled = false;
+
+        setBadges(b => ({
+            ...b,
+            quest: countUnclaimedQuests(),
+            achievement: countClaimableAchievements(),
+        }));
+
+        if (!isLoggedIn) return;
+
+        // Online users
+        fetch('/api/leaderboard/online-count', { headers: authHeaders() })
+            .then(r => r.json())
+            .then(res => { if (!cancelled && res?.success) setBadges(b => ({ ...b, online: res.count || 0 })); })
+            .catch(() => {});
+
+        // Shop discounted item count
+        fetch('/api/shop/items', { headers: authHeaders() })
+            .then(r => r.json())
+            .then(res => {
+                if (cancelled) return;
+                const items = res?.items || res?.data || [];
+                const n = items.filter(it => (it.discountPercent || 0) > 0).length;
+                setBadges(b => ({ ...b, shopDiscount: n }));
+            })
+            .catch(() => {});
+
+        return () => { cancelled = true; };
+    }, [menuOpen, isLoggedIn]);
 
     useEffect(() => {
         const saved = window.GameState?.state?.settings?.reverseMode || false;
@@ -65,17 +126,25 @@ export default function SideMenu() {
 
                 {/* Nav — matches .menu-nav in CSS */}
                 <nav className="menu-nav">
-                    {menuItems.map(item => (
-                        <button
-                            key={item.screen}
-                            className={`menu-item${currentScreen === item.screen ? ' active' : ''}`}
-                            data-screen={item.screen}
-                            onClick={() => handleNav(item.screen)}
-                        >
-                            <i className={`fas ${item.icon}`}></i>
-                            <span>{item.label}</span>
-                        </button>
-                    ))}
+                    {menuItems.map(item => {
+                        const n = item.badgeKey ? badges[item.badgeKey] : 0;
+                        return (
+                            <button
+                                key={item.screen}
+                                className={`menu-item${currentScreen === item.screen ? ' active' : ''}`}
+                                data-screen={item.screen}
+                                onClick={() => handleNav(item.screen)}
+                            >
+                                <i className={`fas ${item.icon}`}></i>
+                                <span>{item.label}</span>
+                                {n > 0 && (
+                                    <span className={`menu-item-badge ${item.badgeStyle || 'reward'}`}>
+                                        {n > 99 ? '99+' : n}
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
 
                     <hr style={{ border: '1px solid var(--border-color)', margin: 'var(--spacing-md) 0' }} />
 

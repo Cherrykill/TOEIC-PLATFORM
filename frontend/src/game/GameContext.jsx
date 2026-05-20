@@ -51,6 +51,14 @@ export function GameProvider({ children }) {
         };
 
         GameState.init().then(() => {
+            // ⚠️ Quest.init() bị lạc trong lúc migrate sang React. Hệ quả:
+            // - EventBus subscriptions cho WORD_LEARNED / STREAK_* không gắn
+            //   → quest 'learn-words' / 'daily-streak' không tick.
+            // - Quest._cache không được nạp trước → khi user hoàn thành session
+            //   mà chưa từng mở tab Nhiệm vụ → updateProgress lặp cache rỗng,
+            //   không có quest nào tăng → server vẫn 0 → "đã làm xong nhưng
+            //   tiến trình không cập nhật" (đúng triệu chứng).
+            Quest.init();
             syncFromState();
             setInitialized(true);
         });

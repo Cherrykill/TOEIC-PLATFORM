@@ -34,4 +34,12 @@ export const NotificationsAPI = {
             headers: authHeaders(),
         }).catch(() => {});
     },
+
+    /** Xoá TẤT CẢ thông báo của user hiện tại. @returns parsed JSON. */
+    async deleteAll() {
+        return fetch('/api/notifications', {
+            method: 'DELETE',
+            headers: authHeaders(),
+        }).then(r => r.json()).catch(() => ({ success: false }));
+    },
 };

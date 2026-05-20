@@ -73,6 +73,7 @@ async function buildFullState(userId) {
         name: def.name,
         description: def.description,
         icon: def.icon,
+        category: def.category,
         conditionType: def.conditionType,
         conditionValue: def.conditionValue,
         conditionMode: def.conditionMode,

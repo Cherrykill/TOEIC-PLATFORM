@@ -414,8 +414,13 @@ export const PracticeManager = {
         }
     },
 
-    async complete() {
-        if (!this.currentSession) return;
+    // Chạy mọi side-effect cuối session (stats, history, quest, leaderboard,
+    // achievements, sound complete qua showResults sau đó). KHÔNG hiện popup
+    // — caller tự quyết hiện popup unified (showResults) hay popup riêng
+    // (vd Flashcard có Học tiếp / xem từ chưa thuộc). Trả về results hoặc
+    // null nếu không có session.
+    async finalizeSession() {
+        if (!this.currentSession) return null;
 
         this.stopTimer();
 
@@ -475,6 +480,22 @@ export const PracticeManager = {
             xpEarned: xpReward,
             coinsEarned: coinsReward,
             skipStats: true,
+        }).then(res => {
+            // Server vừa chốt streak (có shield mới được áp dụng). Đồng bộ
+            // số streak + shields về state cục bộ để header cập nhật ngay,
+            // khỏi phải F5. Http wrap body dưới res.data.
+            const u = res?.data?.user || res?.user;
+            if (!u) return;
+            if (u.streak) {
+                GameState.state.streak.current = u.streak.current;
+                GameState.state.streak.longest = u.streak.longest;
+                GameState.state.streak.lastPlayDate = u.streak.lastPlayDate;
+                GameState.state.streak.shieldsUsed = u.streak.shieldsUsed;
+                EventBus.emit(GameEvents.STREAK_UPDATED, GameState.state.streak);
+            }
+            if (u.resources && typeof u.resources.shields === 'number') {
+                GameState.state.resources.shields = u.resources.shields;
+            }
         }).catch(() => {});
 
         Quest.updateProgress('complete-games', 1);
@@ -487,6 +508,14 @@ export const PracticeManager = {
         } catch (err) {
             console.warn('[PracticeManager] post-complete side-effect failed (popup still shown):', err);
         }
+
+        return results;
+    },
+
+    async complete() {
+        const results = await this.finalizeSession();
+        if (!results) return;
+        const { scoreData, xpReward, coinsReward, gemsBonus, isPerfect, totalQuestions } = results;
 
         this.showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus, totalQuestions);
 

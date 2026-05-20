@@ -6,10 +6,23 @@ import { QuestsAPI } from '@api/quests.js';
 export const Quest = {
     _cache: {},
     _timerId: null,
+    // Các loại đã đổi progress nhưng chưa sync lên server (debounce 3s).
+    // Khi claim phải flush trước, kẻo backend vẫn thấy progress cũ → 400.
+    _pendingTypes: new Set(),
 
     init() {
         EventBus.on(GameEvents.QUEST_PROGRESS, () => EventBus.emit(GameEvents.QUEST_UPDATED, { type: 'daily' }));
         EventBus.on(GameEvents.QUESTS_RESET,   () => { this._cache = {}; this.loadType('daily'); });
+
+        // State.js không import được Quest (vòng tròn) nên trước đây dùng
+        // `if (typeof Quest !== 'undefined')` — luôn false trong ES module
+        // scope → 'learn-words' và 'daily-streak' không bao giờ tick.
+        // Sửa: lắng nghe EventBus tại đây.
+        EventBus.on(GameEvents.WORD_LEARNED,    () => this.updateProgress('learn-words', 1));
+        EventBus.on(GameEvents.STREAK_UPDATED,  () => this.updateProgress('daily-streak', 1));
+        EventBus.on(GameEvents.STREAK_PROTECTED, () => this.updateProgress('daily-streak', 1));
+        EventBus.on(GameEvents.STREAK_BROKEN,   () => this.updateProgress('daily-streak', 1));
+
         EventBus.on(GameEvents.SCREEN_CHANGED, ({ screen }) => {
             if (screen === 'quest-screen') {
                 const active = 'daily';
@@ -17,7 +30,14 @@ export const Quest = {
                 else EventBus.emit(GameEvents.QUEST_UPDATED, { type: active });
             }
         });
-        this.loadType('daily');
+        // Nạp đủ 4 loại quest ngay từ đầu để updateProgress có thể tăng
+        // tiến độ cho cả weekly/monthly/special, không phải đợi user mở tab.
+        Promise.all([
+            this.loadType('daily'),
+            this.loadType('weekly'),
+            this.loadType('monthly'),
+            this.loadType('special'),
+        ]).catch(() => {});
         this.startTimer();
     },
 
@@ -93,37 +113,61 @@ export const Quest = {
     },
 
     updateProgress(progressType, amount = 1, mode = null) {
-        const quests = this.getQuests('daily');
-        let changed = false;
+        const changedTypes = new Set();
+        let anyCompleted = false;
 
-        for (const q of quests) {
-            if (q.completed) continue;
-            // Ưu tiên `metric` (chuẩn hoá mới); nếu trống thì suy theo
-            // tiền tố `code` cũ để không vỡ quest đã seed/đang chạy.
-            const metricMatch = q.metric
-                ? q.metric === progressType
-                : this._matchesType(q.code, progressType);
-            const matches =
-                (q.mode === 'any' || q.mode === mode) && metricMatch;
-            if (!matches) continue;
+        // Quét cache TẤT CẢ loại quest (daily/weekly/monthly/special) —
+        // trước đây chỉ daily nên weekly/monthly/special không bao giờ tăng.
+        for (const [type, cached] of Object.entries(this._cache || {})) {
+            const quests = cached?.quests || [];
+            for (const q of quests) {
+                if (q.completed) continue;
+                // Ưu tiên `metric` (chuẩn hoá mới); nếu trống thì suy theo
+                // tiền tố `code` cũ để không vỡ quest đã seed/đang chạy.
+                const metricMatch = q.metric
+                    ? q.metric === progressType
+                    : this._matchesType(q.code, progressType);
+                const matches =
+                    (q.mode === 'any' || q.mode === mode) && metricMatch;
+                if (!matches) continue;
 
-            q.progress = Math.min(q.target, q.progress + amount);
-            changed = true;
+                q.progress = Math.min(q.target, q.progress + amount);
+                changedTypes.add(type);
 
-            if (q.progress >= q.target && !q.completed) {
-                q.completed = true;
-                q.completedAt = new Date().toISOString();
-                EventBus.emit(GameEvents.QUEST_COMPLETED, q);
+                if (q.progress >= q.target && !q.completed) {
+                    q.completed = true;
+                    q.completedAt = new Date().toISOString();
+                    anyCompleted = true;
+                    EventBus.emit(GameEvents.QUEST_COMPLETED, q);
+                }
             }
         }
 
-        if (changed) {
-            EventBus.emit(GameEvents.QUEST_UPDATED, { type: 'daily' });
-            clearTimeout(this._syncTimeout);
-            this._syncTimeout = setTimeout(() => {
-                const updates = quests.map(q => ({ code: q.code, value: q.progress }));
-                this.syncProgress('daily', updates);
-            }, 3000);
+        if (changedTypes.size === 0) return;
+
+        for (const type of changedTypes) {
+            this._pendingTypes.add(type);
+            EventBus.emit(GameEvents.QUEST_UPDATED, { type });
+        }
+        clearTimeout(this._syncTimeout);
+
+        if (anyCompleted) {
+            // Có quest VỪA hoàn thành → flush ngay, đừng đợi 3s, kẻo user
+            // bấm "Nhận thưởng" trước khi backend kịp biết → 400.
+            this._flushSync();
+        } else {
+            this._syncTimeout = setTimeout(() => this._flushSync(), 3000);
+        }
+    },
+
+    async _flushSync() {
+        if (this._pendingTypes.size === 0) return;
+        const types = [...this._pendingTypes];
+        this._pendingTypes.clear();
+        for (const t of types) {
+            const updates = (this._cache[t]?.quests || [])
+                .map(q => ({ code: q.code, value: q.progress }));
+            if (updates.length) await this.syncProgress(t, updates);
         }
     },
 
@@ -143,6 +187,13 @@ export const Quest = {
     async claimReward(type, code) {
         const token = this._getToken();
         if (!token) return null;
+
+        // Bảo đảm backend đã có progress mới nhất trước khi claim —
+        // tránh case progress local đã đạt target nhưng debounce 3s chưa
+        // sync xong → backend vẫn thấy progress cũ → trả 400.
+        clearTimeout(this._syncTimeout);
+        await this._flushSync();
+
         try {
             const res = await QuestsAPI.claimRaw({ type, code });
             const data = await res.json();

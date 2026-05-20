@@ -26,6 +26,19 @@ const questDefinitionSchema = new mongoose.Schema(
         // Để trống '' = suy theo tiền tố `code` cũ (tương thích ngược).
         metric: { type: String, default: '' },
 
+        // Cách tính tiến độ:
+        //  - 'event'    : tăng dần qua Quest.updateProgress() từ client (legacy)
+        //  - 'computed' : server đọc thẳng UserStats / DB tại getQuests/claim
+        //    và so với startSnapshot. Robust hơn — không phụ thuộc client emit.
+        source: {
+            type: String,
+            enum: ['event', 'computed'],
+            default: 'computed',
+        },
+
+        // Tham số phụ cho evaluator (vd { mode: 'speed-quiz' } cho play-mode).
+        params: { type: mongoose.Schema.Types.Mixed, default: {} },
+
         target: { type: Number, required: true, min: 1 },
 
         rewardCoins: { type: Number, default: 0 },

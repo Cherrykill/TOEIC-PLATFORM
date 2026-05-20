@@ -61,6 +61,16 @@ exports.readAll = async (req, res, next) => {
     }
 };
 
+// DELETE /api/notifications — xoá TẤT CẢ thông báo của user hiện tại
+exports.deleteAll = async (req, res, next) => {
+    try {
+        const result = await Notification.deleteMany({ userId: req.user.id });
+        res.json({ success: true, deletedCount: result.deletedCount || 0 });
+    } catch (err) {
+        next(err);
+    }
+};
+
 // PUT /api/notifications/:id/read
 exports.readOne = async (req, res, next) => {
     try {
