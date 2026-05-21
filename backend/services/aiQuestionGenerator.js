@@ -1,4 +1,5 @@
 const OpenAI = require('openai');
+const { logUsage } = require('./aiUsageLogger');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -143,6 +144,7 @@ Generate realistic TOEIC questions following official test format.`;
                 max_tokens: 4000,
                 response_format: { type: "json_object" }
             });
+            logUsage({ feature: 'toeic-question-generate', model: completion.model, usage: completion.usage });
 
             const content = completion.choices[0].message.content.trim();
 
@@ -240,6 +242,7 @@ Generate realistic TOEIC grammar questions.`;
                 max_tokens: 4000,
                 response_format: { type: "json_object" }
             });
+            logUsage({ feature: 'toeic-question-generate', model: completion.model, usage: completion.usage });
 
             const content = completion.choices[0].message.content.trim();
 
@@ -342,6 +345,7 @@ Generate realistic TOEIC reading passages.`;
                 max_tokens: 6000,
                 response_format: { type: "json_object" }
             });
+            logUsage({ feature: 'toeic-reading-generate', model: completion.model, usage: completion.usage });
 
             const content = completion.choices[0].message.content.trim();
 

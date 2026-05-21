@@ -307,38 +307,100 @@ async function loadUploadMonitoring() {
 
 // ---- TOKEN MANAGEMENT TAB ----
 
+// Map nhãn feature → tên hiển thị tiếng Việt. Feature lạ giữ nguyên key.
+const AI_FEATURE_LABELS = {
+    'vocab-ai-fill':           '✍️ AI Fill từ vựng',
+    'explain-word':            '📖 Giải thích từ',
+    'word-questions-generate': '❓ Sinh câu hỏi từ vựng',
+    'toeic-question-generate': '🎓 AI Generate câu hỏi TOEIC',
+    'toeic-reading-generate':  '📚 AI Generate đoạn đọc TOEIC',
+    'analyze-mistakes':        '🔍 Phân tích lỗi',
+    'study-plan':              '📅 Kế hoạch học',
+    'chat-tutor':              '💬 Chat tutor',
+    'generate-examples':       '✏️ Sinh câu ví dụ',
+    'check-grammar':           '✓ Kiểm tra ngữ pháp',
+    'related-words':           '🔗 Từ liên quan',
+    'generate-flashcards':     '🎴 Sinh flashcard',
+    'translate-sentence':      '🌐 Dịch câu',
+    'unknown':                 '❔ Khác / chưa gắn nhãn',
+};
+
 async function loadTokenStats() {
     try {
-        const response = await fetch('/api/upload/admin/stats', {
+        const days = parseInt(document.getElementById('ai-usage-days')?.value || '7', 10) || 7;
+        const response = await fetch('/api/admin/ai-usage?days=' + days, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-
         const result = await response.json();
         if (!result.success) throw new Error(result.message);
+        const d = result.data;
 
-        const stats = result.data;
-        const totalEl = document.getElementById('token-total');
-        const monthEl = document.getElementById('token-month');
-        const uploadsEl = document.getElementById('token-uploads');
-        if (totalEl) totalEl.textContent = (stats.totalWords || 0).toLocaleString();
-        if (monthEl) monthEl.textContent = (stats.totalUsers || 0).toLocaleString();
-        if (uploadsEl) uploadsEl.textContent = (stats.totalSources || 0).toLocaleString();
+        // 4 cards
+        const fmt = n => Number(n || 0).toLocaleString('vi-VN');
+        const usd = n => '$' + (Number(n || 0)).toFixed(4);
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        set('ai-total-tokens',  fmt(d.totalTokens));
+        set('ai-token-split',   `prompt ${fmt(d.promptTokens)} · completion ${fmt(d.completionTokens)}`);
+        set('ai-total-cost',    usd(d.totalCost));
+        set('ai-cost-all',      'All-time: ' + usd(d.allTime?.totalCost));
+        set('ai-total-calls',   fmt(d.calls));
+        set('ai-calls-all',     'All-time: ' + fmt(d.allTime?.calls));
+        set('ai-total-users',   fmt(d.users));
 
-        const tbody = document.getElementById('token-history-tbody');
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-secondary);">
-                        Xem chi tiết ở tab Upload Management
-                    </td>
-                </tr>
-            `;
+        // Bảng phân bổ theo feature
+        const fTb = document.getElementById('ai-feature-tbody');
+        if (fTb) {
+            if (!d.byFeature?.length) {
+                fTb.innerHTML = '<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--text-secondary)">Chưa có lượt gọi AI nào trong khoảng này.</td></tr>';
+            } else {
+                const maxTokens = Math.max(...d.byFeature.map(f => f.tokens || 0), 1);
+                fTb.innerHTML = d.byFeature.map(f => {
+                    const label = AI_FEATURE_LABELS[f._id] || f._id;
+                    const pct = Math.round((f.tokens / maxTokens) * 100);
+                    return `
+                        <tr style="border-bottom:1px solid var(--border-color)">
+                            <td style="padding:10px"><b>${label}</b></td>
+                            <td style="padding:10px;text-align:right">${fmt(f.calls)}</td>
+                            <td style="padding:10px;text-align:right;font-family:monospace">${fmt(f.tokens)}</td>
+                            <td style="padding:10px;text-align:right;font-family:monospace">${usd(f.cost)}</td>
+                            <td style="padding:10px">
+                                <div style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden">
+                                    <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#667eea,#764ba2)"></div>
+                                </div>
+                            </td>
+                        </tr>`;
+                }).join('');
+            }
+        }
+
+        // Bảng recent calls
+        const rTb = document.getElementById('ai-recent-tbody');
+        if (rTb) {
+            if (!d.recent?.length) {
+                rTb.innerHTML = '<tr><td colspan="6" style="padding:18px;text-align:center;color:var(--text-secondary)">Chưa có lịch sử.</td></tr>';
+            } else {
+                rTb.innerHTML = d.recent.map(r => `
+                    <tr style="border-bottom:1px solid var(--border-color)">
+                        <td style="padding:8px 10px;font-size:12px;color:var(--text-secondary);white-space:nowrap">${new Date(r.createdAt).toLocaleString('vi-VN')}</td>
+                        <td style="padding:8px 10px;font-size:13px">${AI_FEATURE_LABELS[r.feature] || r.feature}</td>
+                        <td style="padding:8px 10px;font-family:monospace;font-size:12px;color:var(--text-secondary)">${r.model || '—'}</td>
+                        <td style="padding:8px 10px;font-size:12px">${r.email || '—'}</td>
+                        <td style="padding:8px 10px;text-align:right;font-family:monospace">${fmt(r.totalTokens)}</td>
+                        <td style="padding:8px 10px;text-align:right;font-family:monospace">${usd(r.costUsd)}</td>
+                    </tr>
+                `).join('');
+            }
         }
     } catch (err) {
-        console.error('Error loading stats:', err);
-        showToast(`Lỗi tải stats: ${err.message}`, 'error');
+        console.error('Error loading AI usage:', err);
+        showToast(`Lỗi tải AI usage: ${err.message}`, 'error');
     }
 }
+
+// Reload khi đổi khoảng ngày
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('ai-usage-days')?.addEventListener('change', loadTokenStats);
+});
 
 // ---- USER STATS TAB ----
 

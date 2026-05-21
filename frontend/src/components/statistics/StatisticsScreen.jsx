@@ -68,6 +68,59 @@ export default function StatisticsScreen({ active }) {
         drawChart();
     }, [active, activeTab, timeRange]);
 
+    function exportReport() {
+        const labelMap = { '1': 'hom-nay', '7': '7-ngay', '30': '30-ngay' };
+        const periodLabel = labelMap[timeRange] || timeRange;
+        const now = new Date();
+        const stamp = now.toISOString().slice(0, 19).replace(/[:T]/g, '-');
+
+        // BOM cho Excel mở UTF-8 đúng tiếng Việt.
+        const lines = ['﻿'];
+        const push = (...cols) => lines.push(cols.map(c => {
+            const s = c == null ? '' : String(c);
+            return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        }).join(','));
+
+        push('Báo cáo thống kê — ' + periodLabel);
+        push('Xuất lúc', now.toLocaleString('vi-VN'));
+        push('');
+
+        push('TỔNG QUAN');
+        push('Thời gian luyện tập (giây)', totalTime);
+        push('Từ đã học (tổng)',           totalWords);
+        push('Độ chính xác tổng thể (%)',  accuracy);
+        push('Số thành tích đã mở',        achievementCount);
+        push('');
+
+        push('LỊCH SỬ THEO NGÀY');
+        push('Ngày', 'Phiên', 'Câu đúng', 'Tổng câu', 'Chính xác (%)', 'Thời gian (giây)');
+        const daysCount = timeRange === 'all' ? 30 : Math.max(1, parseInt(timeRange));
+        for (let i = daysCount - 1; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            const e = practiceHistory.find(x => x.date === key || x.date?.startsWith(key)) || {};
+            const totalQ = (e.correctAnswers || 0) + (e.wrongAnswers || 0);
+            const acc = totalQ > 0 ? Math.round(((e.correctAnswers || 0) / totalQ) * 100) : 0;
+            push(key, e.sessionsCompleted || 0, e.correctAnswers || 0, totalQ, acc, e.timeSpent || 0);
+        }
+        push('');
+
+        push('THEO CHẾ ĐỘ');
+        push('Chế độ', 'Số lượt chơi', 'Độ chính xác (%)');
+        modeData.forEach(m => push(m.name, m.played, m.accuracy));
+
+        const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bao-cao-thong-ke-${periodLabel}-${stamp}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
     function drawChart() {
         const canvas = chartRef.current;
         if (!canvas || typeof window.Chart === 'undefined') return;
@@ -93,28 +146,36 @@ export default function StatisticsScreen({ active }) {
             });
         }
 
+        // Combo chart: BAR cho "Phiên luyện tập" (số đếm rời rạc) +
+        // LINE cho "Độ chính xác %" (continuous). Đúng semantic data type.
         chartInstance.current = new window.Chart(canvas.getContext('2d'), {
-            type: 'line',
+            type: 'bar', // baseline; dataset accuracy override sang line
             data: {
                 labels: filled.map(d => d.label),
                 datasets: [
                     {
+                        type: 'bar',
                         label: 'Phiên luyện tập',
                         data: filled.map(d => d.sessions),
+                        backgroundColor: 'rgba(75,192,192,0.55)',
                         borderColor: 'rgb(75,192,192)',
-                        backgroundColor: 'rgba(75,192,192,0.15)',
+                        borderWidth: 1,
+                        borderRadius: 4,
                         yAxisID: 'y',
-                        tension: 0.4,
-                        pointRadius: 3,
+                        order: 2,
                     },
                     {
+                        type: 'line',
                         label: 'Độ chính xác (%)',
                         data: filled.map(d => d.acc),
                         borderColor: 'rgb(54,162,235)',
                         backgroundColor: 'rgba(54,162,235,0.15)',
                         yAxisID: 'y2',
-                        tension: 0.4,
-                        pointRadius: 3,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointBackgroundColor: 'rgb(54,162,235)',
+                        borderWidth: 2,
+                        order: 1, // vẽ line đè lên bar
                     },
                 ],
             },
@@ -126,8 +187,19 @@ export default function StatisticsScreen({ active }) {
                 },
                 scales: {
                     x: { ticks: { color: textColor }, grid: { color: gridColor } },
-                    y: { type: 'linear', position: 'left', title: { display: true, text: 'Phiên', color: textColor }, ticks: { color: textColor }, grid: { color: gridColor } },
-                    y2: { type: 'linear', position: 'right', min: 0, max: 100, title: { display: true, text: '%', color: textColor }, ticks: { color: textColor }, grid: { display: false } },
+                    y: {
+                        type: 'linear', position: 'left',
+                        title: { display: true, text: 'Phiên', color: textColor },
+                        ticks: { color: textColor, precision: 0 }, // không hiện thập phân cho số đếm
+                        grid: { color: gridColor },
+                        beginAtZero: true,
+                    },
+                    y2: {
+                        type: 'linear', position: 'right', min: 0, max: 100,
+                        title: { display: true, text: '%', color: textColor },
+                        ticks: { color: textColor },
+                        grid: { display: false },
+                    },
                 },
             },
         });
@@ -144,6 +216,13 @@ export default function StatisticsScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-chart-line"></i> Thống kê</h2>
+                <button
+                    className="stats-export-btn"
+                    onClick={exportReport}
+                    title="Xuất báo cáo CSV (mở bằng Excel)"
+                >
+                    <i className="fas fa-file-export"></i> Xuất báo cáo
+                </button>
             </div>
 
             <div className="time-range-selector">
@@ -194,17 +273,28 @@ export default function StatisticsScreen({ active }) {
                     </div>
                 </div>
 
-                <div style={{ height: 380, marginTop: 16, position: 'relative' }}>
-                    {practiceHistory.length === 0 ? (
-                        <div className="empty-state" style={{ paddingTop: 40 }}>
-                            <i className="fas fa-chart-line" style={{ fontSize: 40, opacity: 0.3 }}></i>
-                            <p style={{ marginTop: 8 }}>Chưa có dữ liệu lịch sử luyện tập</p>
-                            <p style={{ fontSize: '0.85em', opacity: 0.6 }}>Hoàn thành bài luyện tập để xem biểu đồ</p>
-                        </div>
-                    ) : (
-                        <canvas ref={chartRef} style={{ width: '100%', height: '100%' }} />
-                    )}
-                </div>
+                {timeRange === '1' ? (
+                    // 1 ngày = 1 điểm dữ liệu → chart vô nghĩa, ẩn đi để khỏi
+                    // hiển thị "đường thẳng" rỗng tuếch. Số liệu nằm ở thẻ trên.
+                    <div className="empty-state" style={{ paddingTop: 24, marginTop: 16, opacity: 0.7 }}>
+                        <i className="fas fa-chart-column" style={{ fontSize: 32, opacity: 0.35 }}></i>
+                        <p style={{ marginTop: 8, fontSize: 13 }}>
+                            Biểu đồ theo ngày sẽ hiện ở tab <b>7 ngày</b> hoặc <b>30 ngày</b>.
+                        </p>
+                    </div>
+                ) : (
+                    <div style={{ height: 380, marginTop: 16, position: 'relative' }}>
+                        {practiceHistory.length === 0 ? (
+                            <div className="empty-state" style={{ paddingTop: 40 }}>
+                                <i className="fas fa-chart-line" style={{ fontSize: 40, opacity: 0.3 }}></i>
+                                <p style={{ marginTop: 8 }}>Chưa có dữ liệu lịch sử luyện tập</p>
+                                <p style={{ fontSize: '0.85em', opacity: 0.6 }}>Hoàn thành bài luyện tập để xem biểu đồ</p>
+                            </div>
+                        ) : (
+                            <canvas ref={chartRef} style={{ width: '100%', height: '100%' }} />
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className={`stats-tab-panel ${activeTab === 'modes' ? 'active' : ''}`}>

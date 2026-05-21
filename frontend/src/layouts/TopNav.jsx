@@ -9,7 +9,10 @@ import TopicModal from '@components/vocab/topic/TopicModal.jsx';
 import { openUploadModal } from '@components/vocab/upload/openUploadModal.js';
 
 export default function TopNav() {
-    const { user, setMenuOpen, showScreen, menuOpen } = useGame();
+    const { user, setMenuOpen, showScreen, menuOpen, currentScreen } = useGame();
+    // Đang luyện tập (vocab session hoặc đề TOEIC) → khoá thanh tìm kiếm
+    // để khỏi vô tình mở search rồi gián đoạn bài.
+    const isInPractice = currentScreen === 'practice-screen' || currentScreen === 'toeic-test-screen';
     const { isLoggedIn, setAuthModal } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFocused, setSearchFocused] = useState(false);
@@ -78,21 +81,22 @@ export default function TopNav() {
             </div>
 
             <div className="nav-center">
-                <div className="search-bar">
-                    <i className="fas fa-search"></i>
+                <div className={`search-bar ${isInPractice ? 'disabled' : ''}`}>
+                    <i className={`fas ${isInPractice ? 'fa-lock' : 'fa-search'}`}></i>
                     <input
                         type="text"
                         id="search-input"
-                        placeholder="Tìm từ vựng..."
+                        placeholder={isInPractice ? 'Đang luyện tập — tạm khoá tìm kiếm' : 'Tìm từ vựng...'}
                         autoComplete="off"
-                        readOnly={searchReadOnly}
+                        readOnly={searchReadOnly || isInPractice}
+                        disabled={isInPractice}
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         onFocus={() => { setSearchReadOnly(false); setSearchFocused(true); }}
                         onMouseDown={() => setSearchReadOnly(false)}
                         onBlur={() => setSearchFocused(false)}
                     />
-                    {searchQuery && (
+                    {searchQuery && !isInPractice && (
                         <button id="clear-search-btn" className="clear-search-btn" onClick={() => { setSearchQuery(''); window._reactClearSearch?.(); }}>
                             <i className="fas fa-times"></i>
                         </button>

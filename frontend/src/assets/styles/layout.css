@@ -1344,7 +1344,8 @@
     height: 0;
 }
 
-.search-bar > .fa-search {
+.search-bar > .fa-search,
+.search-bar > .fa-lock {
     position: absolute;
     left: 12px;
     top: 0;
@@ -1354,6 +1355,16 @@
     line-height: 1;
     color: var(--text-secondary);
     pointer-events: none;
+}
+
+/* Tạm khoá khi đang luyện tập — input mờ, không click được, icon ổ khoá. */
+.search-bar.disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+.search-bar.disabled input {
+    cursor: not-allowed;
+    background: var(--bg-tertiary, var(--bg-secondary));
 }
 
 .clear-search-btn {

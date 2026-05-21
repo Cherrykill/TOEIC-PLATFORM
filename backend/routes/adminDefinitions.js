@@ -168,4 +168,91 @@ router.post('/seed-quests', admin, async (req, res) => {
     return seedDefaults(req, res);
 });
 
+// ── AI Token Usage (admin) ────────────────────────────────────
+// Tổng hợp token đã dùng + cost USD theo từng feature, theo ngày,
+// theo user. Phục vụ tab "Token Management" trong admin dashboard.
+router.get('/ai-usage', admin, async (req, res) => {
+    const AiUsageLog = require('../models/AiUsageLog');
+    const User = require('../models/User');
+
+    try {
+        const days = Math.max(1, Math.min(parseInt(req.query.days) || 30, 90));
+        const since = new Date(Date.now() - days * 86400000);
+        const matchRecent = { createdAt: { $gte: since } };
+
+        const [overall, byFeature, byDay, recent, allTime] = await Promise.all([
+            // Tổng trong khoảng days
+            AiUsageLog.aggregate([
+                { $match: matchRecent },
+                { $group: {
+                    _id: null,
+                    totalTokens: { $sum: '$totalTokens' },
+                    promptTokens: { $sum: '$promptTokens' },
+                    completionTokens: { $sum: '$completionTokens' },
+                    totalCost: { $sum: '$costUsd' },
+                    calls: { $sum: 1 },
+                    users: { $addToSet: '$userId' },
+                }},
+            ]),
+            // Theo feature
+            AiUsageLog.aggregate([
+                { $match: matchRecent },
+                { $group: {
+                    _id: '$feature',
+                    tokens: { $sum: '$totalTokens' },
+                    cost: { $sum: '$costUsd' },
+                    calls: { $sum: 1 },
+                }},
+                { $sort: { tokens: -1 } },
+            ]),
+            // Theo ngày (chart)
+            AiUsageLog.aggregate([
+                { $match: matchRecent },
+                { $group: {
+                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                    tokens: { $sum: '$totalTokens' },
+                    cost: { $sum: '$costUsd' },
+                    calls: { $sum: 1 },
+                }},
+                { $sort: { _id: 1 } },
+            ]),
+            // 30 lần gọi gần nhất
+            AiUsageLog.find(matchRecent).sort({ createdAt: -1 }).limit(30).lean(),
+            // Tổng all-time
+            AiUsageLog.aggregate([
+                { $group: { _id: null, totalTokens: { $sum: '$totalTokens' }, totalCost: { $sum: '$costUsd' }, calls: { $sum: 1 } } },
+            ]),
+        ]);
+
+        // Đính email cho recent calls
+        const userIds = [...new Set(recent.map(r => String(r.userId)).filter(Boolean))];
+        const users = userIds.length ? await User.find({ _id: { $in: userIds } }).select('email').lean() : [];
+        const userMap = new Map(users.map(u => [String(u._id), u.email]));
+        const recentWithEmail = recent.map(r => ({
+            ...r,
+            email: r.userId ? (userMap.get(String(r.userId)) || '—') : '(system)',
+        }));
+
+        const o = overall[0] || {};
+        res.json({
+            success: true,
+            data: {
+                days,
+                totalTokens: o.totalTokens || 0,
+                promptTokens: o.promptTokens || 0,
+                completionTokens: o.completionTokens || 0,
+                totalCost: o.totalCost || 0,
+                calls: o.calls || 0,
+                users: (o.users || []).filter(Boolean).length,
+                byFeature,
+                byDay,
+                recent: recentWithEmail,
+                allTime: allTime[0] || { totalTokens: 0, totalCost: 0, calls: 0 },
+            },
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 module.exports = router;

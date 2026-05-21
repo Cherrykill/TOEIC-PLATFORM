@@ -25,6 +25,7 @@ Yêu cầu (ngắn gọn):
     const result = await chatCompletion(messages, {
         maxTokens: 600,
         temperature: 0.7,
+        feature: 'explain-word',
     });
 
     return result;
@@ -64,6 +65,7 @@ Return ONLY valid JSON array format:
     const result = await chatCompletion(messages, {
         maxTokens: 1500,
         temperature: 0.8,
+        feature: 'word-questions-generate',
     });
 
     if (!result.success) {
@@ -113,6 +115,7 @@ Respond in Vietnamese, be supportive and constructive.`;
     const result = await chatCompletion(messages, {
         maxTokens: 800,
         temperature: 0.7,
+        feature: 'analyze-mistakes',
     });
 
     return result;
@@ -149,6 +152,7 @@ Format in Vietnamese, be specific and actionable.`;
     const result = await chatCompletion(messages, {
         maxTokens: 1000,
         temperature: 0.7,
+        feature: 'study-plan',
     });
 
     return result;
@@ -176,6 +180,7 @@ Always respond in Vietnamese unless asked to use English. Be encouraging and pat
     const result = await chatCompletion(messages, {
         maxTokens: 500,
         temperature: 0.8,
+        feature: 'chat-tutor',
     });
 
     return result;
@@ -208,6 +213,7 @@ Return ONLY valid JSON array:
     const result = await chatCompletion(messages, {
         maxTokens: 800,
         temperature: 0.8,
+        feature: 'generate-examples',
     });
 
     if (!result.success) {
@@ -258,6 +264,7 @@ Return ONLY valid JSON:
     const result = await chatCompletion(messages, {
         maxTokens: 400,
         temperature: 0.3,
+        feature: 'check-grammar',
     });
 
     if (!result.success) {
@@ -309,6 +316,7 @@ Return ONLY valid JSON array:
     const result = await chatCompletion(messages, {
         maxTokens: 1000,
         temperature: 0.7,
+        feature: 'related-words',
     });
 
     if (!result.success) {
@@ -360,6 +368,7 @@ Return ONLY valid JSON array:
     const result = await chatCompletion(messages, {
         maxTokens: 800,
         temperature: 0.9,
+        feature: 'generate-flashcards',
     });
 
     if (!result.success) {
@@ -398,6 +407,7 @@ Return ONLY the Vietnamese translation, no extra text or explanation.`;
     const result = await chatCompletion(messages, {
         maxTokens: 200,
         temperature: 0.3,
+        feature: 'translate-sentence',
     });
 
     return result;
@@ -437,6 +447,7 @@ Rules:
     const result = await chatCompletion(messages, {
         maxTokens: 500,
         temperature: 0.3,
+        feature: 'vocab-ai-fill',
     });
 
     if (!result.success) {

@@ -1,5 +1,6 @@
 const { OpenAI } = require('openai');
 const logger = require('../utils/logger');
+const { logUsage } = require('../services/aiUsageLogger');
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -27,8 +28,10 @@ const testConnection = async () => {
  * Generate chat completion
  */
 const chatCompletion = async (messages, options = {}) => {
+    const model = options.model || process.env.OPENAI_MODEL || 'gpt-4';
+    const feature = options.feature || 'unknown';
+    const userId = options.userId || null;
     try {
-        const model = options.model || process.env.OPENAI_MODEL || 'gpt-4';
         const response = await openai.chat.completions.create({
             model,
             messages,
@@ -38,11 +41,13 @@ const chatCompletion = async (messages, options = {}) => {
 
         const usage = response.usage;
         logger.debug('OpenAI token usage', {
-            model,
+            model, feature,
             promptTokens: usage.prompt_tokens,
             completionTokens: usage.completion_tokens,
             totalTokens: usage.total_tokens,
         });
+        // Ghi log usage vào DB cho tab Token Management.
+        logUsage({ userId, feature, model, usage, success: true });
 
         return {
             success: true,
@@ -50,7 +55,8 @@ const chatCompletion = async (messages, options = {}) => {
             usage: response.usage,
         };
     } catch (error) {
-        logger.error('OpenAI API error', { error: error.message });
+        logger.error('OpenAI API error', { error: error.message, feature });
+        logUsage({ userId, feature, model, usage: {}, success: false });
         return {
             success: false,
             error: error.message,
