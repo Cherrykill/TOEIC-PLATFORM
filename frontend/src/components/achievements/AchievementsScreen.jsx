@@ -199,11 +199,27 @@ export default function AchievementsScreen({ active }) {
                 </div>
 
                 <div className="achievement-tabs">
-                    {CATEGORIES.map(cat => (
-                        <button key={cat.key} className={`achievement-tab ${category === cat.key ? 'active' : ''}`} data-category={cat.key} onClick={() => setCategory(cat.key)}>
-                            <i className={`fas ${cat.icon}`}></i> {cat.label}
-                        </button>
-                    ))}
+                    {(() => {
+                        // Đếm thành tích CLAIMABLE (chưa unlock + đã đạt target) theo bucket tab.
+                        const claimable = { all: 0, learning: 0, practice: 0, social: 0, special: 0 };
+                        for (const a of achievements) {
+                            if (a.unlocked) continue;
+                            const { current } = calculateProgress(a);
+                            if (current < (a.conditionValue || 1)) continue;
+                            claimable.all++;
+                            const b = bucketOf(a.category);
+                            if (claimable[b] !== undefined) claimable[b]++;
+                        }
+                        return CATEGORIES.map(cat => {
+                            const n = claimable[cat.key] || 0;
+                            return (
+                                <button key={cat.key} className={`achievement-tab ${category === cat.key ? 'active' : ''}`} data-category={cat.key} onClick={() => setCategory(cat.key)}>
+                                    <i className={`fas ${cat.icon}`}></i> {cat.label}
+                                    {n > 0 && <span className="tab-badge">{n > 99 ? '99+' : n}</span>}
+                                </button>
+                            );
+                        });
+                    })()}
                 </div>
 
                 <div className="achievements-grid" id="achievements-grid">
@@ -217,42 +233,51 @@ export default function AchievementsScreen({ active }) {
                     ) : filtered.map((ach, i) => {
                         const isUnlocked = !!ach.unlocked;
                         const prog = calculateProgress(ach);
-                        const isClaimable = !isUnlocked && prog.current >= (ach.conditionValue || 1);
+                        const target = ach.conditionValue || ach.target || 1;
+                        const isClaimable = !isUnlocked && prog.current >= target;
                         const iconIsEmoji = ach.icon && ach.icon.length <= 4;
+                        // Khi đã mở khoá → hiển thị progress 100% cho đẹp.
+                        const displayPct = isUnlocked ? 100 : prog.pct;
+                        const displayCur = isUnlocked ? target : prog.current;
 
                         return (
                             <div key={ach.id || ach._id || i} className={`achievement-card ${isUnlocked ? 'unlocked' : isClaimable ? 'claimable' : 'locked'}`}>
-                                <div className={`achievement-icon ${isUnlocked || isClaimable ? 'gold' : ''}`}>
-                                    {iconIsEmoji
-                                        ? <span style={{ fontSize: 28 }}>{ach.icon}</span>
-                                        : <i className={`fas ${ach.icon || (isUnlocked || isClaimable ? 'fa-trophy' : 'fa-lock')}`}></i>
-                                    }
+                                <div className="achievement-card-top">
+                                    <div className={`achievement-icon ${isUnlocked || isClaimable ? 'gold' : ''}`}>
+                                        {iconIsEmoji
+                                            ? <span style={{ fontSize: 28 }}>{ach.icon}</span>
+                                            : <i className={`fas ${ach.icon || (isUnlocked || isClaimable ? 'fa-trophy' : 'fa-lock')}`}></i>
+                                        }
+                                    </div>
+                                    <div className="achievement-info">
+                                        <h4>{ach.name}</h4>
+                                        <p>{ach.description}</p>
+                                    </div>
+                                    {(ach.rewardCoins || ach.rewardXp || ach.rewardGems || ach.reward) && (
+                                        <div className="achievement-reward">
+                                            {(ach.rewardCoins || ach.reward?.coins) > 0 && <span><i className="fas fa-coins"></i> {ach.rewardCoins || ach.reward?.coins}</span>}
+                                            {(ach.rewardXp || ach.reward?.xp) > 0 && <span><i className="fas fa-star"></i> {ach.rewardXp || ach.reward?.xp} XP</span>}
+                                            {(ach.rewardGems || ach.reward?.gems) > 0 && <span><i className="fas fa-gem"></i> {ach.rewardGems || ach.reward?.gems}</span>}
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="achievement-info">
-                                    <h4>{ach.name}</h4>
-                                    <p>{ach.description}</p>
+                                <div className="achievement-card-bottom">
+                                    <div className="achievement-progress">
+                                        <div className="achievement-progress-bar">
+                                            <div className="progress-fill" style={{ width: `${displayPct}%` }}></div>
+                                        </div>
+                                        <span className="achievement-progress-text">{displayCur}/{target}</span>
+                                    </div>
                                     {isUnlocked ? (
-                                        <span className="unlocked-badge">✓ Đã mở khóa</span>
+                                        <span className="achievement-status unlocked-badge"><i className="fas fa-check-circle"></i> Đã mở khoá</span>
                                     ) : isClaimable ? (
-                                        <button className="btn btn-primary btn-sm" onClick={() => handleClaim(ach.id || ach._id)}>
+                                        <button className="achievement-status btn btn-primary btn-sm" onClick={() => handleClaim(ach.id || ach._id)}>
                                             Nhận thưởng
                                         </button>
                                     ) : (
-                                        <>
-                                            <div className="achievement-progress-bar">
-                                                <div className="progress-fill" style={{ width: `${prog.pct}%`, height: '100%', background: 'var(--primary-color)', borderRadius: 6 }}></div>
-                                            </div>
-                                            <span className="achievement-progress-text">{prog.current}/{ach.conditionValue || ach.target || 1}</span>
-                                        </>
+                                        <span className="achievement-status locked-badge"><i className="fas fa-lock"></i> Chưa mở khoá</span>
                                     )}
                                 </div>
-                                {(ach.rewardCoins || ach.rewardXp || ach.rewardGems || ach.reward) && (
-                                    <div className="achievement-reward">
-                                        {(ach.rewardCoins || ach.reward?.coins) > 0 && <span><i className="fas fa-coins"></i> {ach.rewardCoins || ach.reward?.coins}</span>}
-                                        {(ach.rewardXp || ach.reward?.xp) > 0 && <span><i className="fas fa-star"></i> {ach.rewardXp || ach.reward?.xp} XP</span>}
-                                        {(ach.rewardGems || ach.reward?.gems) > 0 && <span><i className="fas fa-gem"></i> {ach.rewardGems || ach.reward?.gems}</span>}
-                                    </div>
-                                )}
                             </div>
                         );
                     })}

@@ -69,7 +69,15 @@ export function useFavorites(isLoggedIn) {
         else await add(word);
     }, [isFavorite, add, remove]);
 
+    const removeAll = useCallback(async () => {
+        setWords([]);
+        writeLocalFavorites([]);
+        if (isLoggedIn) {
+            await FavoritesAPI.removeAll();
+        }
+    }, [isLoggedIn]);
+
     useEffect(() => { reload(); }, [reload]);
 
-    return { words, loading, isFavorite, add, remove, toggle, reload };
+    return { words, loading, isFavorite, add, remove, removeAll, toggle, reload };
 }

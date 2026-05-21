@@ -149,7 +149,9 @@ exports.broadcastNotification = async (req, res, next) => {
         // Frontend khi list sẽ nối thêm các doc userId=null cho mọi user;
         // khi user xoá broadcast thì frontend ghi id đó vào localStorage
         // để ẩn lần sau (KHÔNG xoá doc server, vì user khác còn dùng).
-        await Notification.create({ userId: null, type, title, body: body || '', read: false });
+        // expiresAt = null → KHÔNG auto-xoá (broadcast giữ lâu, admin tự xoá
+        // khi cần). Notif cá nhân vẫn dùng default 30 ngày của schema.
+        await Notification.create({ userId: null, type, title, body: body || '', read: false, expiresAt: null });
         res.json({ success: true, sent: 1, broadcast: true });
     } catch (err) {
         next(err);

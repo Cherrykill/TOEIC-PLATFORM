@@ -1225,6 +1225,9 @@
               <div class="card-header">
                 <h2><i class="fas fa-trophy"></i> Quản lý Thành tích</h2>
                 <div style="display:flex;gap:8px">
+                  <button class="btn btn-ghost btn-sm" id="btn-copy-achievement-json" title="Copy toàn bộ thành tích hiện có dưới dạng JSON">
+                    <i class="fas fa-clipboard"></i> Copy JSON
+                  </button>
                   <button class="btn btn-ghost btn-sm" id="btn-ai-gen-achievement" title="Sinh thành tích bằng AI (copy prompt → dán vào ChatGPT/Claude → paste JSON về)">
                     <i class="fas fa-robot"></i> AI Generate
                   </button>
@@ -1254,6 +1257,9 @@
               <div class="card-header">
                 <h2><i class="fas fa-tasks"></i> Quản lý Nhiệm vụ hàng ngày</h2>
                 <div style="display:flex;gap:8px">
+                  <button class="btn btn-ghost btn-sm" id="btn-copy-quest-json" title="Copy toàn bộ nhiệm vụ hiện có dưới dạng JSON">
+                    <i class="fas fa-clipboard"></i> Copy JSON
+                  </button>
                   <button class="btn btn-ghost btn-sm" id="btn-ai-gen-quest" title="Sinh nhiệm vụ bằng AI (copy prompt → dán vào ChatGPT/Claude → paste JSON về)">
                     <i class="fas fa-robot"></i> AI Generate
                   </button>
@@ -3952,8 +3958,12 @@
             <div style="grid-column:1/-1"><label>Mô tả</label><input type="text" id="ach-desc" placeholder="Mô tả thành tích..." style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Danh mục</label>
               <select id="ach-category" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
-                <option value="learning">learning</option><option value="practice">practice</option>
-                <option value="streak">streak</option><option value="skill">skill</option><option value="speed">speed</option>
+                <option value="learning">learning — Học tập</option>
+                <option value="practice">practice — Luyện tập</option>
+                <option value="skill">skill — Luyện tập (kỹ năng)</option>
+                <option value="speed">speed — Luyện tập (tốc độ)</option>
+                <option value="social">social — Xã hội</option>
+                <option value="streak">streak — Đặc biệt</option>
               </select>
             </div>
             <div><label>conditionType (chỉ số)</label>

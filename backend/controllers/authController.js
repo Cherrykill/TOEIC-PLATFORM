@@ -132,10 +132,13 @@ const getMe = async (req, res, next) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        // Update lastLoginAt if it's a new day (so daily leaderboard reflects active users)
+        // Refresh lastLoginAt mỗi lần /auth/me — phục vụ 2 mục đích:
+        // 1) Daily leaderboard biết user có hoạt động hôm nay.
+        // 2) "Online indicator" (ngưỡng 15 phút) thấy user còn sống.
+        // Throttle 60s/lần để khỏi ghi DB mỗi request.
         const now = new Date();
-        const todayMidnight = new Date(now); todayMidnight.setHours(0, 0, 0, 0);
-        if (!user.lastLoginAt || new Date(user.lastLoginAt) < todayMidnight) {
+        const lastTs = user.lastLoginAt ? new Date(user.lastLoginAt).getTime() : 0;
+        if (now.getTime() - lastTs > 60 * 1000) {
             user.lastLoginAt = now;
             await user.save();
         }

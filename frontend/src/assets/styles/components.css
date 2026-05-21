@@ -2789,13 +2789,60 @@ mark {
 
 .achievement-card {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-md);
+  flex-direction: column;
+  gap: var(--spacing-sm);
   padding: var(--spacing-md);
   background: var(--bg-secondary);
   border-radius: var(--border-radius-lg);
   transition: all 0.3s ease;
   min-width: 0;
+}
+/* Hàng trên: icon | info | reward (giữ flex như cũ) */
+.achievement-card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+/* Hàng dưới: progress (1fr) | status (auto) — đồng layout với quest-card,
+   status ("Chưa mở khoá" / "Nhận thưởng" / "Đã mở khoá") nằm ngang cùng
+   hàng với thanh tiến trình. */
+.achievement-card-bottom {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  align-items: center;
+  column-gap: var(--spacing-md);
+}
+.achievement-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.achievement-progress-text {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.achievement-card .progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+.achievement-card.unlocked .progress-fill { background: var(--success-color, #10b981); }
+.achievement-status {
+  justify-self: end;
+  align-self: center;
+}
+.locked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-weight: 600;
+  opacity: 0.7;
 }
 
 .achievement-info {
@@ -2860,12 +2907,11 @@ mark {
 }
 
 .achievement-progress-bar {
-  width: 100%;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.1);
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 6px;
   overflow: hidden;
-  margin: var(--spacing-xs) 0;
 }
 
 .unlocked-badge {
@@ -5438,7 +5484,7 @@ mark {
     overflow: hidden;
 }
 .notif-modal-header {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; gap: 8px;
     padding: 14px 20px;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-secondary);
@@ -5447,6 +5493,16 @@ mark {
     margin: 0; font-size: 18px; font-weight: 700;
     display: flex; align-items: center; gap: 10px;
     color: var(--primary-color);
+}
+.notif-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    padding: 3px 10px;
+    border-radius: 999px;
+    /* Đẩy pill về bên phải, sát ngay trước nút X */
+    margin-left: auto;
 }
 .notif-modal-close {
     background: transparent; border: none; cursor: pointer;
@@ -5566,6 +5622,283 @@ mark {
 .notif-card-time {
     font-size: 11px; color: var(--text-secondary); margin-top: 4px;
 }
+.notif-card-ttl {
+    color: var(--text-secondary);
+    opacity: 0.8;
+    font-style: italic;
+}
+
+/* ===================================================================
+   Favorites modal — bảng từ yêu thích kèm phát âm + xoá từng từ + xoá tất cả.
+   =================================================================== */
+.favorites-modal {
+    max-width: 900px !important;
+    width: 92vw !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+}
+.favorites-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 22px;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff;
+}
+.favorites-header h3 {
+    margin: 0; font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; gap: 10px;
+}
+.favorites-close-btn {
+    background: rgba(0, 0, 0, 0.18);
+    color: #fff;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+}
+.favorites-close-btn:hover { background: rgba(0, 0, 0, 0.32); }
+
+.favorites-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 22px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+.favorites-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.favorites-clear-btn {
+    background: transparent;
+    color: #ef4444;
+    border: 1.5px solid #ef4444;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background 0.15s;
+}
+.favorites-clear-btn:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.1);
+}
+.favorites-clear-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.favorites-body {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+.favorites-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.favorites-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+.favorites-table thead th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky; top: 0; z-index: 1;
+}
+.favorites-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+.favorites-table tbody tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+.favorites-en { color: #ef4444; font-weight: 700; }
+.favorites-vn { color: var(--text-primary); }
+.favorites-syn { font-style: italic; color: var(--text-secondary); }
+.favorites-ph { color: #818cf8; font-family: monospace; font-size: 13px; }
+
+.favorites-actions-col { width: 100px; text-align: right; }
+.favorites-actions {
+    display: flex; gap: 6px; justify-content: flex-end;
+}
+.favorites-speak-btn, .favorites-del-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    transition: background 0.15s, transform 0.1s;
+}
+.favorites-speak-btn {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+.favorites-speak-btn:hover { background: rgba(59, 130, 246, 0.35); }
+.favorites-del-btn {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+.favorites-del-btn:hover { background: rgba(239, 68, 68, 0.35); }
+.favorites-speak-btn:active, .favorites-del-btn:active { transform: scale(0.92); }
+
+/* ===================================================================
+   Checkin modal — điểm danh hằng tuần (7 ô + nút nhận).
+   =================================================================== */
+.checkin-trigger-btn {
+    margin-left: auto;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+    transition: transform 0.1s, box-shadow 0.15s;
+}
+.checkin-trigger-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45); }
+.checkin-trigger-btn:active { transform: translateY(0); }
+
+.checkin-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 1100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+}
+.checkin-modal {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+    width: min(900px, 96vw);
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+}
+.checkin-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 22px;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff;
+}
+.checkin-header h3 {
+    margin: 0; font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; gap: 10px;
+}
+.checkin-close {
+    background: rgba(0,0,0,0.18);
+    color: #fff;
+    border: none; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+}
+.checkin-close:hover { background: rgba(0,0,0,0.32); }
+.checkin-sub {
+    padding: 12px 22px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    border-bottom: 1px solid var(--border-color);
+}
+.checkin-loading {
+    padding: 40px; text-align: center; color: var(--text-secondary);
+}
+.checkin-grid {
+    padding: 18px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    overflow-y: auto;
+}
+.checkin-card {
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 8px;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+    min-height: 130px;
+    display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+}
+.checkin-card.big {
+    grid-column: span 4;
+    background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(249,115,22,0.15));
+    border-color: rgba(245,158,11,0.4);
+}
+.checkin-card.today {
+    border-color: var(--primary-color);
+    background: rgba(59,130,246,0.1);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    animation: pulse-today 1.6s ease-in-out infinite;
+}
+@keyframes pulse-today {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+    50%      { box-shadow: 0 0 0 6px rgba(59,130,246,0.05); }
+}
+.checkin-card.claimed { opacity: 0.6; border-color: var(--success-color, #10b981); }
+.checkin-card.missed  { opacity: 0.5; }
+.checkin-day {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.checkin-icon { font-size: 32px; }
+.checkin-card.big .checkin-icon { font-size: 42px; }
+.checkin-label {
+    font-size: 12px; font-weight: 600;
+    color: var(--text-primary);
+}
+.checkin-status {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.checkin-status .missed-text { color: #ef4444; }
+.checkin-status .today-text  { color: var(--primary-color); font-weight: 700; }
+.checkin-status .future-text { color: var(--text-secondary); opacity: 0.7; }
+.checkin-card.claimed .checkin-status span {
+    color: var(--success-color, #10b981); font-weight: 600;
+}
+
+.checkin-footer {
+    padding: 16px 22px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+.checkin-claim-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    transition: transform 0.1s, box-shadow 0.15s;
+}
+.checkin-claim-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(245,158,11,0.4);
+}
+.checkin-claim-btn:disabled {
+    opacity: 0.5; cursor: not-allowed;
+    background: var(--bg-tertiary); color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+    .checkin-grid { grid-template-columns: repeat(2, 1fr); }
+    .checkin-card.big { grid-column: span 2; }
+}
 
 .notif-sidebar {
     background: var(--bg-secondary);
@@ -5589,6 +5922,28 @@ mark {
     border-radius: 50%;
     background: #ef4444;
     box-shadow: 0 0 0 2px var(--bg-secondary);
+}
+
+/* Badge số trên tab — dùng cho Quest tabs (Hàng ngày/tuần/tháng/đặc biệt)
+   và Achievement tabs (Học tập/Luyện tập/...). Pill nhỏ màu đỏ, đẩy ra
+   sau label, hiện số quest chưa nhận thưởng / số thành tích claimable. */
+.tab-badge {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    min-width: 18px; height: 18px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 11px; font-weight: 700;
+    line-height: 1;
+    margin-left: 6px;
+    flex-shrink: 0;
+}
+/* Tab active background mạnh → cần ring trắng cho badge nổi */
+.quest-tab.active .tab-badge,
+.achievement-tab.active .tab-badge {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4);
 }
 .notif-side-tab:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 .notif-side-tab.active {

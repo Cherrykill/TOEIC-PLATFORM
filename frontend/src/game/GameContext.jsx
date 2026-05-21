@@ -63,6 +63,24 @@ export function GameProvider({ children }) {
             setInitialized(true);
         });
 
+        // Heartbeat — ping server mỗi 5 phút khi đã đăng nhập để
+        // leaderboard biết user đang online (ngưỡng 15 phút). Trước đây
+        // lastLoginAt chỉ update khi sang ngày mới → chấm xanh tịt sau ~15p.
+        const heartbeat = () => {
+            try {
+                const raw = localStorage.getItem('authToken');
+                if (!raw) return;
+                const token = (() => { try { return JSON.parse(raw).token || raw; } catch { return raw; } })();
+                if (!token) return;
+                fetch('/api/user/heartbeat', {
+                    method: 'POST',
+                    headers: { Authorization: 'Bearer ' + token },
+                }).catch(() => {});
+            } catch (_) {}
+        };
+        heartbeat(); // tick ngay
+        const hbTimer = setInterval(heartbeat, 5 * 60 * 1000);
+
         const unsubs = [
             EventBus.on(GameEvents.USER_LEVEL_UP, syncFromState),
             EventBus.on(GameEvents.USER_XP_GAINED, syncFromState),
@@ -71,14 +89,17 @@ export function GameProvider({ children }) {
             EventBus.on(GameEvents.GEMS_CHANGED, syncFromState),
             EventBus.on(GameEvents.STREAK_UPDATED, syncFromState),
             EventBus.on(GameEvents.GAME_INITIALIZED, syncFromState),
-            EventBus.on(GameEvents.USER_LOGIN, syncFromState),
+            EventBus.on(GameEvents.USER_LOGIN, () => { syncFromState(); heartbeat(); }),
             EventBus.on(GameEvents.USER_LOGOUT, syncFromState),
             // Canonical signal — new code uses GameState.commit() instead of
             // calling syncFromState() by hand.
             EventBus.on(GameEvents.STATE_CHANGED, syncFromState),
         ];
 
-        return () => unsubs.forEach(fn => fn());
+        return () => {
+            unsubs.forEach(fn => fn());
+            clearInterval(hbTimer);
+        };
     }, [syncFromState]);
 
     const showScreen = useCallback((screenId) => {

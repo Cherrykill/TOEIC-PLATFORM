@@ -20,7 +20,8 @@ exports.list = async (req, res, next) => {
         if (tab && TAB_TYPES[tab]) filter.type = { $in: TAB_TYPES[tab] };
 
         const [raw, tabCounts] = await Promise.all([
-            Notification.find(filter).sort({ createdAt: -1 }).limit(60).lean(),
+            // Giới hạn 50 thông báo mới nhất hiển thị cho user.
+            Notification.find(filter).sort({ createdAt: -1 }).limit(50).lean(),
             Notification.aggregate([
                 { $match: { userId: require('mongoose').Types.ObjectId.createFromHexString(String(userId)), read: false } },
                 { $group: { _id: '$type', count: { $sum: 1 } } },

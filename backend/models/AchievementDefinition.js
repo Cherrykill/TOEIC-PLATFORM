@@ -13,7 +13,9 @@ const achievementDefinitionSchema = new mongoose.Schema(
         icon: { type: String, default: '' },
         category: {
             type: String,
-            enum: ['learning', 'practice', 'streak', 'skill', 'speed'],
+            // Khớp với 5 tab hiển thị frontend: learning→Học tập,
+            // practice/speed/skill→Luyện tập, social→Xã hội, streak→Đặc biệt.
+            enum: ['learning', 'practice', 'streak', 'skill', 'speed', 'social'],
             required: true,
         },
 

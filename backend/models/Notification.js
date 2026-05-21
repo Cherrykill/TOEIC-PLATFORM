@@ -24,10 +24,12 @@ const notificationSchema = new mongoose.Schema(
         read: { type: Boolean, default: false },
         readAt: { type: Date, default: null },
 
-        // Auto-delete after this date (TTL)
+        // Auto-delete after this date (TTL). Notif CÁ NHÂN mặc định 30 ngày.
+        // Broadcast (userId=null) khi tạo phải override expiresAt=null để
+        // không bị tự xoá — xem adminController.broadcastNotification.
         expiresAt: {
             type: Date,
-            default: () => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
+            default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         },
     },
     {

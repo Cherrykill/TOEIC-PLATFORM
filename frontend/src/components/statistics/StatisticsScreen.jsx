@@ -17,14 +17,18 @@ const MODE_NAMES = {
 
 function filterHistory(history, days) {
     if (days === 'all') return history;
+    const n = parseInt(days);
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - parseInt(days));
+    // "1 ngày" = lấy từ đầu hôm nay (00:00) thay vì 24h cuộn — đúng với
+    // ý "thống kê hôm nay" của user.
+    if (n === 1) cutoff.setHours(0, 0, 0, 0);
+    else cutoff.setDate(cutoff.getDate() - n);
     return history.filter(e => new Date(e.date) >= cutoff);
 }
 
 export default function StatisticsScreen({ active }) {
     const { showScreen } = useGame();
-    const [timeRange, setTimeRange] = useState('7');
+    const [timeRange, setTimeRange] = useState('1');
     const [activeTab, setActiveTab] = useState('overview');
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
@@ -74,7 +78,7 @@ export default function StatisticsScreen({ active }) {
         const textColor = isDark ? '#cbd5e1' : '#555';
         const gridColor = isDark ? 'rgba(71,85,105,0.3)' : 'rgba(0,0,0,0.1)';
 
-        const days = timeRange === 'all' ? 30 : parseInt(timeRange);
+        const days = timeRange === 'all' ? 30 : Math.max(1, parseInt(timeRange));
         const filled = [];
         for (let i = days - 1; i >= 0; i--) {
             const d = new Date();
@@ -143,7 +147,7 @@ export default function StatisticsScreen({ active }) {
             </div>
 
             <div className="time-range-selector">
-                {[['7', '7 ngày'], ['30', '30 ngày'], ['all', 'Tất cả']].map(([val, label]) => (
+                {[['1', '1 ngày'], ['7', '7 ngày'], ['30', '30 ngày']].map(([val, label]) => (
                     <button key={val} className={`time-range-btn ${timeRange === val ? 'active' : ''}`}
                         onClick={() => setTimeRange(val)}>{label}</button>
                 ))}

@@ -7,6 +7,7 @@ import { QuestsAPI } from '@api/quests.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { GameState } from '@game/state.js';
+import CheckinModal from '@components/checkin/CheckinModal.jsx';
 
 const TABS = [
     { type: 'daily',   label: 'Hàng ngày',  icon: 'fa-sun' },
@@ -54,6 +55,7 @@ export default function QuestScreen({ active }) {
     const [loading, setLoading] = useState(false);
     const [timer, setTimer] = useState('--:--:--');
     const [claimedCodes, setClaimedCodes] = useState(new Set());
+    const [checkinOpen, setCheckinOpen] = useState(false);
 
     const readFromQuestModule = useCallback((type) => {
         const data = Quest?.getQuests?.(type);
@@ -139,19 +141,33 @@ export default function QuestScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-tasks"></i> Nhiệm vụ</h2>
+                <button
+                    className="checkin-trigger-btn"
+                    onClick={() => setCheckinOpen(true)}
+                    title="Điểm danh hằng tuần"
+                >
+                    <i className="fas fa-calendar-check"></i> Điểm danh
+                </button>
             </div>
             <div className="quest-screen-body">
                 <div className="quest-tabs">
-                    {TABS.map(tab => (
-                        <button
-                            key={tab.type}
-                            className={`quest-tab ${activeTab === tab.type ? 'active' : ''}`}
-                            data-quest-type={tab.type}
-                            onClick={() => { setActiveTab(tab.type); setClaimedCodes(new Set()); }}
-                        >
-                            <i className={`fas ${tab.icon}`}></i> {tab.label}
-                        </button>
-                    ))}
+                    {TABS.map(tab => {
+                        // Đếm quest đã hoàn thành nhưng chưa claim cho từng loại
+                        // (Quest.init đã nạp cả 4 type vào cache nên đọc nhanh).
+                        const list = Quest.getQuests?.(tab.type) || [];
+                        const pending = list.filter(q => q.completed && !q.claimedAt && !q.claimed).length;
+                        return (
+                            <button
+                                key={tab.type}
+                                className={`quest-tab ${activeTab === tab.type ? 'active' : ''}`}
+                                data-quest-type={tab.type}
+                                onClick={() => { setActiveTab(tab.type); setClaimedCodes(new Set()); }}
+                            >
+                                <i className={`fas ${tab.icon}`}></i> {tab.label}
+                                {pending > 0 && <span className="tab-badge">{pending > 99 ? '99+' : pending}</span>}
+                            </button>
+                        );
+                    })}
                 </div>
                 <div className="quest-reset-info">
                     <span id="quest-screen-timer-label">Làm mới sau:</span>
@@ -202,6 +218,7 @@ export default function QuestScreen({ active }) {
                     })}
                 </div>
             </div>
+            <CheckinModal open={checkinOpen} onClose={() => setCheckinOpen(false)} />
         </div>
     );
 }

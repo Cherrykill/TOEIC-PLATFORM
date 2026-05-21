@@ -2,9 +2,18 @@ import { useEffect } from 'react';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { useFavorites } from './useFavorites.js';
 
+function speak(text) {
+    if (!text || typeof window === 'undefined' || !window.speechSynthesis) return;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    utter.rate = 0.95;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utter);
+}
+
 export default function FavoritesModal({ open, onClose }) {
     const { isLoggedIn } = useAuth();
-    const { words, loading, remove, reload } = useFavorites(isLoggedIn);
+    const { words, loading, remove, removeAll, reload } = useFavorites(isLoggedIn);
 
     useEffect(() => {
         if (open) reload();
@@ -19,60 +28,85 @@ export default function FavoritesModal({ open, onClose }) {
 
     if (!open) return null;
 
+    async function handleClearAll() {
+        if (words.length === 0) return;
+        if (!window.confirm(`Xoá toàn bộ ${words.length} từ yêu thích?`)) return;
+        await removeAll();
+    }
+
     return (
         <div id="modal-container" className="active">
             <div className="modal-backdrop" onClick={onClose}></div>
-            <div className="modal">
-                <div className="modal-header">
-                    <h3>⭐ Từ yêu thích</h3>
-                    <button className="icon-btn modal-close-btn" onClick={onClose}>
+            <div className="modal favorites-modal">
+                <div className="favorites-header">
+                    <h3><i className="fas fa-star"></i> Từ vựng yêu thích</h3>
+                    <button className="icon-btn favorites-close-btn" onClick={onClose}>
                         <i className="fas fa-times"></i>
                     </button>
                 </div>
-                <div className="modal-body">
+
+                <div className="favorites-toolbar">
+                    <span className="favorites-count">{words.length} từ</span>
+                    <button
+                        className="favorites-clear-btn"
+                        onClick={handleClearAll}
+                        disabled={words.length === 0}
+                    >
+                        <i className="fas fa-trash"></i> Xoá tất cả
+                    </button>
+                </div>
+
+                <div className="favorites-body">
                     {loading ? (
-                        <div style={{ textAlign: 'center', padding: 20 }}>
+                        <div className="favorites-empty">
                             <i className="fas fa-spinner fa-spin"></i> Đang tải...
                         </div>
                     ) : words.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 20, color: '#999' }}>
-                            <i className="fas fa-star" style={{ fontSize: '2rem', display: 'block', width: 'fit-content', margin: '0 auto 8px' }}></i>
+                        <div className="favorites-empty">
+                            <i className="fas fa-star" style={{ fontSize: 36, opacity: 0.4, display: 'block', margin: '0 auto 8px' }}></i>
                             Chưa có từ yêu thích nào
                         </div>
                     ) : (
-                        <div className="favorites-list">
-                            {words.map((w, i) => {
-                                const en = w.en || w.word || '';
-                                return (
-                                    <div key={`${en}-${i}`} className="favorites-item" style={{
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                        padding: '10px 0', borderBottom: '1px solid var(--border-color)',
-                                    }}>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <strong>{en}</strong>
-                                            {w.phonetic && (
-                                                <span style={{ color: '#888', marginLeft: 8, fontSize: '0.85em' }}>
-                                                    /{w.phonetic}/
-                                                </span>
-                                            )}
-                                            {w.vn && (
-                                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.9em' }}>
-                                                    {w.vn}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <button
-                                            className="icon-btn"
-                                            title="Xóa khỏi yêu thích"
-                                            onClick={() => remove(en)}
-                                            style={{ color: '#dc2626' }}
-                                        >
-                                            <i className="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                );
-                            })}
-                        </div>
+                        <table className="favorites-table">
+                            <thead>
+                                <tr>
+                                    <th>Tiếng Anh</th>
+                                    <th>Tiếng Việt</th>
+                                    <th>Đồng nghĩa</th>
+                                    <th>Phiên âm</th>
+                                    <th className="favorites-actions-col"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {words.map((w, i) => {
+                                    const en = w.en || w.word || '';
+                                    return (
+                                        <tr key={`${en}-${i}`}>
+                                            <td className="favorites-en">{en}</td>
+                                            <td className="favorites-vn">{w.vn || '—'}</td>
+                                            <td className="favorites-syn">{w.synonyms || '—'}</td>
+                                            <td className="favorites-ph">{w.phonetic ? `/${w.phonetic.replace(/^\/|\/$/g, '')}/` : '—'}</td>
+                                            <td className="favorites-actions">
+                                                <button
+                                                    className="favorites-speak-btn"
+                                                    onClick={() => speak(en)}
+                                                    title="Phát âm"
+                                                >
+                                                    <i className="fas fa-volume-up"></i>
+                                                </button>
+                                                <button
+                                                    className="favorites-del-btn"
+                                                    onClick={() => remove(en)}
+                                                    title="Xoá khỏi yêu thích"
+                                                >
+                                                    <i className="fas fa-times"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     )}
                 </div>
             </div>

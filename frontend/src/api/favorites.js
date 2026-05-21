@@ -37,4 +37,13 @@ export const FavoritesAPI = {
             body: JSON.stringify({ en }),
         }).catch(() => {});
     },
+
+    /** Xoá TOÀN BỘ favorites của user — backend nhận { all: true }. */
+    async removeAll() {
+        await fetch('/api/vocabulary/favorites', {
+            method: 'DELETE',
+            headers: { ...JSON_HEADERS, ...authHeaders() },
+            body: JSON.stringify({ all: true }),
+        }).catch(() => {});
+    },
 };

@@ -18,6 +18,15 @@ function fmtTime(ts) {
     });
 }
 
+/** Số ngày còn lại đến lúc auto-xoá (TTL). null nếu không có expiresAt
+ * hoặc đã quá hạn. */
+function daysLeft(ts) {
+    if (!ts) return null;
+    const ms = new Date(ts).getTime() - Date.now();
+    if (!isFinite(ms) || ms <= 0) return null;
+    return Math.ceil(ms / 86400000);
+}
+
 export default function NotificationPanel({ isLoggedIn }) {
     const { badge, items, tab, loading, unreadByTab, seenIds, fetchItems, changeTab, markAllRead, deleteAll, deleteOne, markRead, setBadge } = useNotifications(isLoggedIn);
     const [open, setOpen] = useState(false);
@@ -68,6 +77,11 @@ export default function NotificationPanel({ isLoggedIn }) {
                     <div className="notif-modal" role="dialog" aria-label="Thông báo">
                         <div className="notif-modal-header">
                             <h3><i className="fas fa-envelope-open-text"></i> Thông báo</h3>
+                            {/* Đếm notif CÁ NHÂN (không gồm broadcast hệ thống).
+                                Cap = 50 newest theo backend limit. Đặt sát X. */}
+                            <span className="notif-count">
+                                {items.filter(n => !n.isGlobal).length}/50
+                            </span>
                             <button className="notif-modal-close" onClick={() => setOpen(false)} title="Đóng (Esc)">
                                 <i className="fas fa-times"></i>
                             </button>
@@ -138,7 +152,13 @@ export default function NotificationPanel({ isLoggedIn }) {
                                                 <div className="notif-card-row">
                                                     <span className="notif-card-title">{n.title}</span>
                                                 </div>
-                                                <div className="notif-card-time">{fmtTime(n.createdAt)}</div>
+                                                <div className="notif-card-time">
+                                                    {fmtTime(n.createdAt)}
+                                                    {(() => {
+                                                        const d = daysLeft(n.expiresAt);
+                                                        return d != null ? <span className="notif-card-ttl"> · còn {d} ngày</span> : null;
+                                                    })()}
+                                                </div>
                                             </div>
                                         );
                                     })

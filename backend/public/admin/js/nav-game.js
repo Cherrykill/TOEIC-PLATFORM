@@ -644,11 +644,55 @@ document.addEventListener('DOMContentLoaded', function() {
     initQuestModal();
     initShopModal();
     initAiGenModal();
+    initCopyJsonButtons();
 
     // Auto-open group for current active tab
     var activeLink = document.querySelector('.sidebar-link.active[data-main-tab]');
     if (activeLink) openGroupForTab(activeLink.dataset.mainTab);
 });
+
+// ============================================================
+// COPY ALL AS JSON — xuất toàn bộ Thành tích / Nhiệm vụ ra JSON
+// (dùng làm backup hoặc đưa vào AI để sinh thêm theo style cũ).
+// ============================================================
+async function copyAllJson(kind) {
+    var endpoint = kind === 'quest' ? '/admin/quests' : '/admin/achievements';
+    try {
+        var res = await fetch(API_URL + endpoint, {
+            headers: { Authorization: 'Bearer ' + getToken() },
+        });
+        var data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Lỗi tải dữ liệu');
+        var arr = data.data || [];
+        // Strip các field nội bộ Mongoose để JSON gọn + import lại được sạch.
+        var STRIP = { _id: 1, __v: 1, createdAt: 1, updatedAt: 1 };
+        var cleaned = arr.map(function (d) {
+            var o = {};
+            Object.keys(d).forEach(function (k) { if (!STRIP[k]) o[k] = d[k]; });
+            return o;
+        });
+        var text = JSON.stringify(cleaned, null, 2);
+
+        var done = function () { showToast('Đã copy ' + cleaned.length + ' ' + (kind === 'quest' ? 'nhiệm vụ' : 'thành tích') + ' (JSON)', 'success'); };
+        var fail = function () { showToast('Không copy được', 'error'); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(fail);
+        } else {
+            var ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); done(); } catch (_) { fail(); }
+            document.body.removeChild(ta);
+        }
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+function initCopyJsonButtons() {
+    document.getElementById('btn-copy-achievement-json')?.addEventListener('click', function () { copyAllJson('achievement'); });
+    document.getElementById('btn-copy-quest-json')?.addEventListener('click', function () { copyAllJson('quest'); });
+}
 
 // ============================================================
 // AI GENERATE — chung cho Thành tích + Nhiệm vụ
@@ -694,12 +738,13 @@ function aiGenPrompt(mode, count) {
             '    "name":           "Tên hiển thị (tiếng Việt, ngắn gọn)",',
             '    "description":    "Mô tả ngắn 1 dòng",',
             '    "icon":           "🏆",                  // CHÍNH XÁC 1 emoji',
-            '    "category":       "learning",           // PHẢI là 1 trong 5:',
-            '         // learning  — học từ vựng (words-learned, words-mastered…)',
-            '         // practice  — luyện tập tổng (sessions, games-played, correct-answers…)',
-            '         // streak    — chuyên về chuỗi ngày (streak, streak-longest)',
-            '         // skill     — kỹ năng (accuracy, perfect-rounds, level, total-xp)',
-            '         // speed     — tốc độ (mode-plays trên speed-quiz, highest-score)',
+            '    "category":       "learning",           // PHẢI là 1 trong 6:',
+            '         // learning  — học từ vựng (words-learned, words-mastered…)  → tab "Học tập"',
+            '         // practice  — luyện tập tổng (sessions, games-played…)       → tab "Luyện tập"',
+            '         // skill     — kỹ năng (accuracy, perfect-rounds, level, total-xp) → tab "Luyện tập"',
+            '         // speed     — tốc độ (mode-plays speed-quiz, highest-score)  → tab "Luyện tập"',
+            '         // social    — xã hội/cộng đồng (leaderboard, …)              → tab "Xã hội"',
+            '         // streak    — chuỗi ngày (streak, streak-longest)            → tab "Đặc biệt"',
             '    "conditionType":  "words-learned",      // PHẢI là 1 trong 18 metric (xem bảng dưới)',
             '    "conditionValue": 10,                    // ngưỡng số — đối chiếu metric',
             '    "conditionMode":  "",                    // BẮT BUỘC "" với mọi metric TRỪ "mode-plays"',
@@ -751,7 +796,7 @@ function aiGenPrompt(mode, count) {
             '1. Trả về DUY NHẤT mảng JSON hợp lệ (bắt đầu [, kết thúc ]). KHÔNG markdown, KHÔNG ```.',
             '2. "code" duy nhất, snake_case, không dấu, dùng prefix mô tả category (vd "learn_100_words", "speed_demon_30", "perfect_streak_7").',
             '3. "conditionType" PHẢI nằm trong 18 metric ở bảng. Sai = backend reject.',
-            '4. "category" PHẢI là 1 trong 5: learning, practice, streak, skill, speed. KHÔNG được đặt giá trị khác.',
+            '4. "category" PHẢI là 1 trong 6: learning, practice, streak, skill, speed, social. KHÔNG được đặt giá trị khác.',
             '5. Mức ngưỡng + reward đa dạng: có dễ, vừa, khó, cực khó (xem gợi ý). Trộn category để không trùng thể loại.',
             '6. Nếu chọn metric "mode-plays" → BẮT BUỘC conditionMode = key của 1 trong 16 chế độ. Các metric khác conditionMode = "".',
             '7. "icon" = 1 emoji liên quan ngữ nghĩa (📚 cho từ vựng, 🔥 cho streak, ⚡ cho tốc độ, 🎯 cho chính xác, 👑/🏆 cho top tier…).',

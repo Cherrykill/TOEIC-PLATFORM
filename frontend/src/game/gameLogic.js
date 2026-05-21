@@ -369,10 +369,11 @@ export const GameLogic = {
             if (data.url) {
                 const audio = new Audio(data.url);
                 this._gttsAudio = audio;
-                if (onEnd) {
-                    audio.onended = onEnd;
-                    audio.onerror = onEnd;
-                }
+                // Backend giờ trả Object URL từ blob — phải revoke sau khi
+                // phát xong (hoặc lỗi) để khỏi rò rỉ bộ nhớ trình duyệt.
+                const revoke = () => { try { URL.revokeObjectURL(data.url); } catch (_) {} };
+                audio.onended = () => { revoke(); if (onEnd) onEnd(); };
+                audio.onerror = () => { revoke(); if (onEnd) onEnd(); };
                 await audio.play();
             } else if (data.urls) {
                 for (let i = 0; i < data.urls.length; i++) {
