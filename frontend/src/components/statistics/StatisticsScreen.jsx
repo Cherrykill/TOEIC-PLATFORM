@@ -30,8 +30,11 @@ export default function StatisticsScreen({ active }) {
     const { showScreen } = useGame();
     const [timeRange, setTimeRange] = useState('1');
     const [activeTab, setActiveTab] = useState('overview');
+    const [tick, setTick] = useState(0);
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
+    const hourlyChartRef = useRef(null);
+    const hourlyChartInstance = useRef(null);
 
     const state = GameState.state;
     const progress = state.progress;
@@ -65,8 +68,9 @@ export default function StatisticsScreen({ active }) {
 
     useEffect(() => {
         if (!active || activeTab !== 'overview') return;
-        drawChart();
-    }, [active, activeTab, timeRange]);
+        if (timeRange === '1') drawHourlyChart();
+        else drawChart();
+    }, [active, activeTab, timeRange, tick]);
 
     function exportReport() {
         const labelMap = { '1': 'hom-nay', '7': '7-ngay', '30': '30-ngay' };
@@ -205,6 +209,82 @@ export default function StatisticsScreen({ active }) {
         });
     }
 
+    function drawHourlyChart() {
+        const canvas = hourlyChartRef.current;
+        if (!canvas || typeof window.Chart === 'undefined') return;
+        if (hourlyChartInstance.current) { hourlyChartInstance.current.destroy(); hourlyChartInstance.current = null; }
+
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#cbd5e1' : '#555';
+        const gridColor = isDark ? 'rgba(71,85,105,0.3)' : 'rgba(0,0,0,0.1)';
+
+        const today = new Date().toISOString().split('T')[0];
+        const todayEntry = practiceHistory.find(e => e.date === today || e.date?.startsWith(today));
+        const hourlyStats = todayEntry?.hourlyStats || [];
+
+        const labels = Array.from({ length: 24 }, (_, i) => `${i}h`);
+        const sessionsData = labels.map((_, i) => hourlyStats.find(h => h.hour === i)?.sessions || 0);
+        const accData = labels.map((_, i) => {
+            const h = hourlyStats.find(x => x.hour === i);
+            return h && h.answered > 0 ? Math.round((h.correct / h.answered) * 100) : null;
+        });
+
+        hourlyChartInstance.current = new window.Chart(canvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: 'Phiên luyện tập',
+                        data: sessionsData,
+                        backgroundColor: 'rgba(75,192,192,0.55)',
+                        borderColor: 'rgb(75,192,192)',
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y',
+                        order: 2,
+                    },
+                    {
+                        type: 'line',
+                        label: 'Độ chính xác (%)',
+                        data: accData,
+                        borderColor: 'rgb(54,162,235)',
+                        backgroundColor: 'rgba(54,162,235,0.15)',
+                        yAxisID: 'y2',
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointBackgroundColor: 'rgb(54,162,235)',
+                        borderWidth: 2,
+                        spanGaps: true,
+                        order: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top', labels: { color: textColor } } },
+                scales: {
+                    x: { ticks: { color: textColor, maxRotation: 0, font: { size: 10 } }, grid: { color: gridColor } },
+                    y: {
+                        type: 'linear', position: 'left',
+                        title: { display: true, text: 'Phiên', color: textColor },
+                        ticks: { color: textColor, precision: 0 },
+                        grid: { color: gridColor },
+                        beginAtZero: true,
+                    },
+                    y2: {
+                        type: 'linear', position: 'right', min: 0, max: 100,
+                        title: { display: true, text: '%', color: textColor },
+                        ticks: { color: textColor },
+                        grid: { display: false },
+                    },
+                },
+            },
+        });
+    }
+
     const hours = Math.floor(totalTime / 3600);
     const mins = Math.floor((totalTime % 3600) / 60);
     const timeLabel = hours > 0 ? `${hours}h ${mins}m` : `${mins} phút`;
@@ -218,10 +298,14 @@ export default function StatisticsScreen({ active }) {
                 <h2><i className="fas fa-chart-line"></i> Thống kê</h2>
                 <button
                     className="stats-export-btn"
+                    style={{ marginLeft: 'auto' }}
                     onClick={exportReport}
                     title="Xuất báo cáo CSV (mở bằng Excel)"
                 >
                     <i className="fas fa-file-export"></i> Xuất báo cáo
+                </button>
+                <button className="icon-btn" title="Làm mới" onClick={() => setTick(t => t + 1)}>
+                    <i className="fas fa-rotate-right"></i>
                 </button>
             </div>
 
@@ -274,13 +358,8 @@ export default function StatisticsScreen({ active }) {
                 </div>
 
                 {timeRange === '1' ? (
-                    // 1 ngày = 1 điểm dữ liệu → chart vô nghĩa, ẩn đi để khỏi
-                    // hiển thị "đường thẳng" rỗng tuếch. Số liệu nằm ở thẻ trên.
-                    <div className="empty-state" style={{ paddingTop: 24, marginTop: 16, opacity: 0.7 }}>
-                        <i className="fas fa-chart-column" style={{ fontSize: 32, opacity: 0.35 }}></i>
-                        <p style={{ marginTop: 8, fontSize: 13 }}>
-                            Biểu đồ theo ngày sẽ hiện ở tab <b>7 ngày</b> hoặc <b>30 ngày</b>.
-                        </p>
+                    <div style={{ height: 380, marginTop: 16, position: 'relative' }}>
+                        <canvas ref={hourlyChartRef} style={{ width: '100%', height: '100%' }} />
                     </div>
                 ) : (
                     <div style={{ height: 380, marginTop: 16, position: 'relative' }}>

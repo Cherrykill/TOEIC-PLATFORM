@@ -4,6 +4,7 @@ import { useAuth } from '@components/auth/AuthContext.jsx';
 import { Quest } from '@components/quest/quest.js';
 import { calculateProgress } from '@components/achievements/AchievementsScreen.jsx';
 import { authHeaders } from '@/auth/token.js';
+import { CheckinAPI } from '@api/checkin.js';
 
 const menuItems = [
     { label: 'Hồ sơ',          icon: 'fa-user',             screen: 'profile-screen' },
@@ -51,13 +52,22 @@ export default function SideMenu() {
         if (!menuOpen) return;
         let cancelled = false;
 
+        const unclaimedQuests = countUnclaimedQuests();
         setBadges(b => ({
             ...b,
-            quest: countUnclaimedQuests(),
+            quest: unclaimedQuests,
             achievement: countClaimableAchievements(),
         }));
 
         if (!isLoggedIn) return;
+
+        // Checkin due today?
+        CheckinAPI.get().then(res => {
+            if (cancelled || !res.success) return;
+            const { currentDay, claimedDays } = res.data || {};
+            const due = currentDay > 0 && !(claimedDays || []).includes(currentDay);
+            if (due) setBadges(b => ({ ...b, quest: b.quest + 1 }));
+        }).catch(() => {});
 
         // Online users
         fetch('/api/leaderboard/online-count', { headers: authHeaders() })

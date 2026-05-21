@@ -94,6 +94,9 @@ export default function ShopScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-shopping-cart"></i> Cửa hàng</h2>
+                <button className="icon-btn" style={{ marginLeft: 'auto' }} title="Làm mới" onClick={loadItems}>
+                    <i className="fas fa-rotate-right"></i>
+                </button>
             </div>
             <div id="shop-content" className="shop-content">
                 {loading ? (

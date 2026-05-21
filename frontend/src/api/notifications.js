@@ -43,6 +43,14 @@ export const NotificationsAPI = {
         }).then(r => r.json()).catch(() => ({ success: false }));
     },
 
+    /** Nhận quà đính kèm thông báo cá nhân. */
+    async claimGift(id) {
+        return fetch(`/api/notifications/${encodeURIComponent(id)}/claim-gift`, {
+            method: 'POST',
+            headers: authHeaders(),
+        }).then(r => r.json()).catch(() => ({ success: false }));
+    },
+
     /** Xoá 1 notif CÁ NHÂN. Không gọi cho broadcast (server từ chối). */
     async deleteOne(id) {
         return fetch('/api/notifications/' + encodeURIComponent(id), {

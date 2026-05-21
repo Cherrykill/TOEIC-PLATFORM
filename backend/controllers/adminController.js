@@ -130,8 +130,11 @@ exports.listNotifications = async (req, res, next) => {
 // Gửi thông báo đến TẤT CẢ user hoặc 1 user cụ thể
 exports.broadcastNotification = async (req, res, next) => {
     try {
-        const { title, body, type = 'system', userId, userEmail } = req.body;
+        const { title, body, type = 'system', userId, userEmail, gift } = req.body;
         if (!title) return res.status(400).json({ success: false, message: 'title required' });
+
+        const cleanGift = { coins: Number(gift?.coins) || 0, gems: Number(gift?.gems) || 0, xp: Number(gift?.xp) || 0 };
+        const hasGift = cleanGift.coins > 0 || cleanGift.gems > 0 || cleanGift.xp > 0;
 
         // Gửi 1 user cụ thể → tạo 1 doc gắn userId.
         if (userId || userEmail) {
@@ -141,16 +144,25 @@ exports.broadcastNotification = async (req, res, next) => {
                 if (!user) return res.status(404).json({ success: false, message: `Không tìm thấy user: ${userEmail}` });
                 targetId = user._id;
             }
-            await Notification.create({ userId: targetId, type, title, body: body || '', read: false });
+            await Notification.create({ userId: targetId, type, title, body: body || '', read: false, ...(hasGift && { gift: cleanGift }) });
             return res.json({ success: true, sent: 1, broadcast: false });
         }
 
-        // Gửi TẤT CẢ → chỉ tạo DUY NHẤT 1 doc với userId=null (broadcast).
-        // Frontend khi list sẽ nối thêm các doc userId=null cho mọi user;
-        // khi user xoá broadcast thì frontend ghi id đó vào localStorage
-        // để ẩn lần sau (KHÔNG xoá doc server, vì user khác còn dùng).
-        // expiresAt = null → KHÔNG auto-xoá (broadcast giữ lâu, admin tự xoá
-        // khi cần). Notif cá nhân vẫn dùng default 30 ngày của schema.
+        // Gửi TẤT CẢ + kèm quà → phải tạo notif riêng cho từng user vì mỗi
+        // người cần trạng thái giftClaimed độc lập. Nếu không có quà thì
+        // dùng broadcast 1 doc để tiết kiệm DB.
+        if (hasGift) {
+            const allUsers = await User.find({}).select('_id').lean();
+            if (!allUsers.length) return res.json({ success: true, sent: 0, broadcast: false });
+            const docs = allUsers.map(u => ({
+                userId: u._id, type, title, body: body || '',
+                read: false, gift: cleanGift,
+            }));
+            await Notification.insertMany(docs, { ordered: false });
+            return res.json({ success: true, sent: allUsers.length, broadcast: false });
+        }
+
+        // Gửi TẤT CẢ không kèm quà → 1 broadcast doc.
         await Notification.create({ userId: null, type, title, body: body || '', read: false, expiresAt: null });
         res.json({ success: true, sent: 1, broadcast: true });
     } catch (err) {

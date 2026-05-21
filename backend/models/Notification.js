@@ -21,6 +21,15 @@ const notificationSchema = new mongoose.Schema(
         // Flexible payload, e.g. { achievementId, testId, levelGained }
         data: { type: mongoose.Schema.Types.Mixed, default: {} },
 
+        // Quà tặng đính kèm thông báo (chỉ dùng cho notif cá nhân userId != null).
+        gift: {
+            coins: { type: Number, default: 0 },
+            gems:  { type: Number, default: 0 },
+            xp:    { type: Number, default: 0 },
+        },
+        giftClaimed:   { type: Boolean, default: false },
+        giftClaimedAt: { type: Date, default: null },
+
         read: { type: Boolean, default: false },
         readAt: { type: Date, default: null },
 

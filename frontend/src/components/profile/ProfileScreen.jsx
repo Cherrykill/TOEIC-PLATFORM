@@ -76,6 +76,9 @@ export default function ProfileScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-user"></i> Hồ sơ</h2>
+                <button className="icon-btn" style={{ marginLeft: 'auto' }} title="Làm mới" onClick={() => { setStats(GameState.getStatistics()); setAchievements(GameState.state.achievements || []); syncFromState(); }}>
+                    <i className="fas fa-rotate-right"></i>
+                </button>
             </div>
             <div id="profile-content" className="profile-content">
 

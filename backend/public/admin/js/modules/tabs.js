@@ -746,9 +746,14 @@ async function sendBroadcast() {
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...'; }
 
     try {
+        const giftCoins = parseInt(document.getElementById('bc-gift-coins')?.value) || 0;
+        const giftGems  = parseInt(document.getElementById('bc-gift-gems')?.value)  || 0;
+        const giftXp    = parseInt(document.getElementById('bc-gift-xp')?.value)    || 0;
+
         const payload = { title, body, type };
         if (userId)    payload.userId    = userId;
         if (userEmail) payload.userEmail = userEmail;
+        if (giftCoins || giftGems || giftXp) payload.gift = { coins: giftCoins, gems: giftGems, xp: giftXp };
 
         const res = await fetch('/api/admin/notifications/broadcast', {
             method: 'POST',
@@ -763,6 +768,9 @@ async function sendBroadcast() {
         document.getElementById('bc-body').value  = '';
         document.getElementById('bc-user-email').value = '';
         document.getElementById('bc-user-id').value = '';
+        if (document.getElementById('bc-gift-coins')) document.getElementById('bc-gift-coins').value = '';
+        if (document.getElementById('bc-gift-gems'))  document.getElementById('bc-gift-gems').value  = '';
+        if (document.getElementById('bc-gift-xp'))    document.getElementById('bc-gift-xp').value    = '';
         const lbl = document.getElementById('bc-user-selected');
         if (lbl) lbl.style.display = 'none';
         loadNotifHistory();

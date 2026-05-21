@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNotifications } from './useNotifications.js';
+import { NotificationsAPI } from '@api/notifications.js';
+import { GameState } from '@game/state.js';
+import { useGame } from '@game/GameContext.jsx';
+import { Notification as Toast } from '@ui/Toaster.jsx';
 
 const TABS = [
     { key: 'all', label: 'Tất cả', icon: 'fa-list' },
@@ -29,8 +33,10 @@ function daysLeft(ts) {
 
 export default function NotificationPanel({ isLoggedIn }) {
     const { badge, items, tab, loading, unreadByTab, seenIds, fetchItems, changeTab, markAllRead, deleteAll, deleteOne, markRead, setBadge } = useNotifications(isLoggedIn);
+    const { syncFromState } = useGame();
     const [open, setOpen] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
+    const [claimingGift, setClaimingGift] = useState(false);
 
     // ESC để đóng
     useEffect(() => {
@@ -46,6 +52,22 @@ export default function NotificationPanel({ isLoggedIn }) {
         const stillExists = items.some(n => (n._id || n.id) === selectedId);
         if (!stillExists) setSelectedId(items[0]._id || items[0].id);
     }, [open, items, selectedId]);
+
+    async function handleClaimGift(id) {
+        if (claimingGift) return;
+        setClaimingGift(true);
+        const res = await NotificationsAPI.claimGift(id);
+        setClaimingGift(false);
+        if (res.success) {
+            const { coins = 0, gems = 0, xp = 0 } = res.reward || {};
+            GameState.creditServerRewards({ coins, gems, xp });
+            syncFromState();
+            Toast.success(`Đã nhận: ${[coins && `+${coins} Coins`, gems && `+${gems} Gems`, xp && `+${xp} XP`].filter(Boolean).join(', ')}`);
+            await fetchItems(tab);
+        } else {
+            Toast.error(res.message || 'Không thể nhận quà');
+        }
+    }
 
     async function handleBellClick() {
         if (!open) {
@@ -82,6 +104,9 @@ export default function NotificationPanel({ isLoggedIn }) {
                             <span className="notif-count">
                                 {items.filter(n => !n.isGlobal).length}/50
                             </span>
+                            <button className="icon-btn" title="Làm mới" onClick={() => fetchItems(tab)}>
+                                <i className="fas fa-rotate-right"></i>
+                            </button>
                             <button className="notif-modal-close" onClick={() => setOpen(false)} title="Đóng (Esc)">
                                 <i className="fas fa-times"></i>
                             </button>
@@ -104,6 +129,23 @@ export default function NotificationPanel({ isLoggedIn }) {
                                         <div className="notif-detail-body">
                                             {selected.message || selected.body || '(Không có nội dung)'}
                                         </div>
+                                        {(() => {
+                                            const g = selected.gift;
+                                            if (!g || (!g.coins && !g.gems && !g.xp)) return null;
+                                            return (
+                                                <div className="notif-gift-box">
+                                                    <div className="notif-gift-label">
+                                                        <i className="fas fa-gift"></i> Phần thưởng
+                                                        {selected.giftClaimed && <span className="notif-gift-claimed"><i className="fas fa-check-circle"></i> Đã nhận</span>}
+                                                    </div>
+                                                    <div className="notif-gift-rewards">
+                                                        {g.coins > 0 && <span className="notif-gift-item"><i className="fas fa-coins"></i> {g.coins}</span>}
+                                                        {g.gems  > 0 && <span className="notif-gift-item"><i className="fas fa-gem"></i> {g.gems}</span>}
+                                                        {g.xp    > 0 && <span className="notif-gift-item"><i className="fas fa-star"></i> {g.xp} XP</span>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
                                         <div className="notif-detail-actions">
                                             <button
                                                 className="btn btn-danger btn-sm"
@@ -115,6 +157,19 @@ export default function NotificationPanel({ isLoggedIn }) {
                                             >
                                                 <i className="fas fa-trash"></i> Xoá
                                             </button>
+                                            {(() => {
+                                                const g = selected.gift;
+                                                if (!g || (!g.coins && !g.gems && !g.xp) || selected.giftClaimed) return null;
+                                                return (
+                                                    <button
+                                                        className="btn btn-primary btn-sm"
+                                                        disabled={claimingGift}
+                                                        onClick={() => handleClaimGift(selected._id || selected.id)}
+                                                    >
+                                                        {claimingGift ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-gift"></i>} Nhận thưởng
+                                                    </button>
+                                                );
+                                            })()}
                                         </div>
                                     </>
                                 ) : (

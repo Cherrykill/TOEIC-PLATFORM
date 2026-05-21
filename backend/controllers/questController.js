@@ -89,10 +89,33 @@ const getQuests = async (req, res, next) => {
             }
         }
 
+        // Top-up: nếu admin thêm quest definition mới sau khi period doc đã
+        // tồn tại, tự động bổ sung vào doc của user để quest xuất hiện ngay.
+        const allDefs = await QuestDefinition.find({ type, isActive: true }).lean();
+        const existingCodes = new Set(doc.quests.map(q => q.code));
+        const newDefs = allDefs.filter(d => !existingCodes.has(d.code));
+        if (newDefs.length > 0) {
+            const startSnapshot = doc.startSnapshot || {};
+            for (const d of newDefs) {
+                doc.quests.push({
+                    questDefinitionId: d._id,
+                    code: d.code, name: d.name, description: d.description || '',
+                    icon: d.icon || '', mode: d.mode || 'any', metric: d.metric || '',
+                    source: d.source || 'computed',
+                    params: (d.params && Object.keys(d.params).length) ? d.params
+                            : (d.metric === 'play-mode' && d.mode && d.mode !== 'any') ? { mode: d.mode } : {},
+                    target: d.target, rewardCoins: d.rewardCoins || 0,
+                    rewardXp: d.rewardXp || 0, rewardGems: d.rewardGems || 0,
+                    progress: 0, completed: false,
+                });
+            }
+            doc.markModified('quests');
+        }
+
         // Re-evaluate mọi quest source='computed' từ UserStats — đảm bảo
         // tab Nhiệm vụ luôn hiện số liệu fresh, không phụ thuộc client emit.
         const changed = await refreshDoc(doc);
-        if (changed) {
+        if (changed || newDefs.length > 0) {
             doc.markModified('quests');
             await doc.save();
         }
@@ -128,7 +151,28 @@ const syncProgress = async (req, res, next) => {
             if (!doc) return res.json({ success: true });
         }
 
-        let changed = false;
+        // Top-up new definitions (same logic as getQuests)
+        const allDefsSync = await QuestDefinition.find({ type, isActive: true }).lean();
+        const existingCodesSync = new Set(doc.quests.map(q => q.code));
+        const newDefsSync = allDefsSync.filter(d => !existingCodesSync.has(d.code));
+        if (newDefsSync.length > 0) {
+            for (const d of newDefsSync) {
+                doc.quests.push({
+                    questDefinitionId: d._id,
+                    code: d.code, name: d.name, description: d.description || '',
+                    icon: d.icon || '', mode: d.mode || 'any', metric: d.metric || '',
+                    source: d.source || 'computed',
+                    params: (d.params && Object.keys(d.params).length) ? d.params
+                            : (d.metric === 'play-mode' && d.mode && d.mode !== 'any') ? { mode: d.mode } : {},
+                    target: d.target, rewardCoins: d.rewardCoins || 0,
+                    rewardXp: d.rewardXp || 0, rewardGems: d.rewardGems || 0,
+                    progress: 0, completed: false,
+                });
+            }
+            doc.markModified('quests');
+        }
+
+        let changed = newDefsSync.length > 0;
         // 1) Quest source='event' — apply client-reported progress (max-merge).
         for (const { code, value } of updates) {
             const q = doc.quests.find(q => q.code === code);

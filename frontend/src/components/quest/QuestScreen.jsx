@@ -8,6 +8,7 @@ import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { GameState } from '@game/state.js';
 import CheckinModal from '@components/checkin/CheckinModal.jsx';
+import { CheckinAPI } from '@api/checkin.js';
 
 const TABS = [
     { type: 'daily',   label: 'Hàng ngày',  icon: 'fa-sun' },
@@ -56,6 +57,7 @@ export default function QuestScreen({ active }) {
     const [timer, setTimer] = useState('--:--:--');
     const [claimedCodes, setClaimedCodes] = useState(new Set());
     const [checkinOpen, setCheckinOpen] = useState(false);
+    const [checkinDue, setCheckinDue] = useState(false);
 
     const readFromQuestModule = useCallback((type) => {
         const data = Quest?.getQuests?.(type);
@@ -89,6 +91,15 @@ export default function QuestScreen({ active }) {
     useEffect(() => {
         if (active) loadQuests(activeTab);
     }, [active, activeTab, loadQuests]);
+
+    useEffect(() => {
+        if (!active) return;
+        CheckinAPI.get().then(res => {
+            if (!res.success) return;
+            const { currentDay, claimedDays } = res.data || {};
+            setCheckinDue(currentDay > 0 && !(claimedDays || []).includes(currentDay));
+        });
+    }, [active, checkinOpen]);
 
     useEffect(() => {
         const unsub = EventBus.on(GameEvents.QUEST_UPDATED, ({ type }) => {
@@ -143,10 +154,15 @@ export default function QuestScreen({ active }) {
                 <h2><i className="fas fa-tasks"></i> Nhiệm vụ</h2>
                 <button
                     className="checkin-trigger-btn"
+                    style={{ marginLeft: 'auto' }}
                     onClick={() => setCheckinOpen(true)}
                     title="Điểm danh hằng tuần"
                 >
                     <i className="fas fa-calendar-check"></i> Điểm danh
+                    {checkinDue && <span className="checkin-trigger-dot" />}
+                </button>
+                <button className="icon-btn" title="Làm mới" onClick={() => loadQuests(activeTab)}>
+                    <i className="fas fa-rotate-right"></i>
                 </button>
             </div>
             <div className="quest-screen-body">
@@ -178,7 +194,10 @@ export default function QuestScreen({ active }) {
                         <div className="quest-loading"><i className="fas fa-spinner fa-spin"></i> Đang tải...</div>
                     ) : quests.length === 0 ? (
                         <div className="quest-empty">Không có nhiệm vụ nào</div>
-                    ) : quests.map((quest, i) => {
+                    ) : [...quests].sort((a, b) => {
+                        const claimable = q => (q.completed && !q.claimedAt && !q.claimed) ? 0 : q.completed ? 1 : 2;
+                        return claimable(a) - claimable(b);
+                    }).map((quest, i) => {
                         const progress = quest.progress ?? quest.current ?? 0;
                         const target = quest.target || 1;
                         const pct = Math.min(100, Math.round((progress / target) * 100));

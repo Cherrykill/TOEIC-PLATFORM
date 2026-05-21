@@ -182,21 +182,17 @@ export default function AchievementsScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-medal"></i> Thành tích</h2>
+                {achievements.length > 0 && (
+                    <span style={{ marginLeft: 'auto', fontSize: '0.82em', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', display: 'inline-block', boxShadow: '0 0 6px #f59e0b' }} />
+                        <span><strong style={{ color: '#f59e0b' }}>{unlocked}</strong> / {achievements.length} đã mở</span>
+                    </span>
+                )}
+                <button className="icon-btn" title="Làm mới" onClick={loadAchievements}>
+                    <i className="fas fa-rotate-right"></i>
+                </button>
             </div>
             <div className="achievements-content">
-                <div className="achievement-progress-card">
-                    <h3>🏆 Tiến độ thành tích</h3>
-                    <div className="progress-stats">
-                        <div className="progress-item">
-                            <span className="progress-label">Đã mở khóa</span>
-                            <span className="progress-value" id="unlocked-achievements">{unlocked}/{achievements.length}</span>
-                        </div>
-                        <span className="progress-label">Khóa</span>
-                        <div className="progress-bar-container">
-                            <div className="progress-bar-fill" id="achievement-progress" style={{ width: `${progressPct}%` }}></div>
-                        </div>
-                    </div>
-                </div>
 
                 <div className="achievement-tabs">
                     {(() => {
@@ -230,7 +226,14 @@ export default function AchievementsScreen({ active }) {
                             <i className="fas fa-trophy" style={{ fontSize: 48, marginBottom: 16, opacity: .3, display: 'block' }}></i>
                             <p>Chưa có thành tích nào trong danh mục này.</p>
                         </div>
-                    ) : filtered.map((ach, i) => {
+                    ) : [...filtered].sort((a, b) => {
+                        const rank = x => {
+                            if (x.unlocked) return 2;
+                            const p = calculateProgress(x);
+                            return p.current >= (x.conditionValue || x.target || 1) ? 0 : 1;
+                        };
+                        return rank(a) - rank(b);
+                    }).map((ach, i) => {
                         const isUnlocked = !!ach.unlocked;
                         const prog = calculateProgress(ach);
                         const target = ach.conditionValue || ach.target || 1;

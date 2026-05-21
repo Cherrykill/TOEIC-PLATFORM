@@ -1,4 +1,5 @@
 const Notification = require('../models/Notification');
+const UserStats    = require('../models/UserStats');
 
 const TAB_TYPES = {
     system:    ['system', 'reminder'],
@@ -91,6 +92,34 @@ exports.deleteOne = async (req, res, next) => {
         });
         if (!result) return res.status(404).json({ success: false, message: 'Notification not found or is a global broadcast' });
         res.json({ success: true });
+    } catch (err) {
+        next(err);
+    }
+};
+
+// POST /api/notifications/:id/claim-gift
+exports.claimGift = async (req, res, next) => {
+    try {
+        const notif = await Notification.findOne({ _id: req.params.id, userId: req.user.id });
+        if (!notif) return res.status(404).json({ success: false, message: 'Notification not found' });
+
+        const { coins = 0, gems = 0, xp = 0 } = notif.gift || {};
+        if (!coins && !gems && !xp) return res.status(400).json({ success: false, message: 'No gift attached' });
+        if (notif.giftClaimed) return res.status(400).json({ success: false, message: 'Gift already claimed' });
+
+        const stats = await UserStats.findOne({ userId: req.user.id });
+        if (stats) {
+            if (coins) stats.coins += coins;
+            if (gems)  stats.gems  += gems;
+            if (xp) { stats.xp += xp; stats.totalXp = (stats.totalXp || 0) + xp; }
+            await stats.save();
+        }
+
+        notif.giftClaimed   = true;
+        notif.giftClaimedAt = new Date();
+        await notif.save();
+
+        res.json({ success: true, reward: { coins, gems, xp } });
     } catch (err) {
         next(err);
     }

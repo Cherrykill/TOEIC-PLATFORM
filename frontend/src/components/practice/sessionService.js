@@ -101,6 +101,16 @@ export const SessionService = {
         entry.totalXpEarned += xpReward;
         entry.totalCoinsEarned += coinsReward;
         entry.timeSpent += Math.round(duration);
+
+        if (!entry.hourlyStats) entry.hourlyStats = [];
+        const hour = new Date().getHours();
+        let h = entry.hourlyStats.find(x => x.hour === hour);
+        if (!h) { h = { hour, sessions: 0, xp: 0, correct: 0, answered: 0, time: 0 }; entry.hourlyStats.push(h); }
+        h.sessions++;
+        h.xp += xpReward;
+        h.correct += session.correctAnswers;
+        h.answered += session.correctAnswers + session.wrongAnswers;
+        h.time += Math.round(duration);
     },
 };
 
