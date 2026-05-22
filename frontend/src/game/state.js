@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS = {
     practiceSoundEnabled: true,
     notificationsEnabled: true,
     volume: 70,
-    questionsPerSession: 10,
+    questionsPerSession: 'auto',
     timeLimitEnabled: true,
     timePerQuestion: 30,
     difficulty: "adaptive",
@@ -133,6 +133,8 @@ export const GameState = {
 
             console.log('🔍 DEBUG: cleanState.resources?.coins:', cleanState.resources?.coins);
             this.state = Utils.deepMerge(this.state, cleanState);
+            // Luôn reset về Toàn bộ mỗi lần load — không giữ số câu cũ.
+            this.state.settings.questionsPerSession = 'auto';
 
             if (cleanState.resources?.energy !== undefined) {
                 this.state.resources.lastEnergyUpdate = Date.now();

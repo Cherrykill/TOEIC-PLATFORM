@@ -10,6 +10,7 @@ import { GameLogic } from '@game/gameLogic.js';
 import { GameLoop, EnergySystem, DailyQuestTimer, BoostChecker, AutoSave, GameSystems } from '@game/gameLoop.js';
 import { Energy } from '@game/energy.js';
 import { Quest } from '@components/quest/quest.js';
+import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { WrongWordsManager } from '@components/vocab/wrongWords/wrongWordsManager.js';
 import { SessionService } from '@components/practice/sessionService.js';
 import { PracticeManager } from '@components/practice/practiceManager.js';
@@ -59,6 +60,9 @@ export function GameProvider({ children }) {
             //   không có quest nào tăng → server vẫn 0 → "đã làm xong nhưng
             //   tiến trình không cập nhật" (đúng triệu chứng).
             Quest.init();
+            // Khôi phục đề đã chọn từ lần trước — nếu không gọi thì sau F5
+            // currentTopic luôn null → HomeScreen luôn mở popup chọn đề.
+            TopicSelector.restoreLastTopic().catch(() => {});
             syncFromState();
             setInitialized(true);
         });

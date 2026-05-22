@@ -37,13 +37,22 @@ function getTimeUntilReset(type) {
         return midnight - now;
     }
     if (type === 'weekly') {
+        // Next Monday midnight
         const next = new Date(now);
-        next.setDate(now.getDate() + (7 - now.getDay()));
+        const day = now.getDay(); // 0=Sun
+        const daysUntilMonday = day === 0 ? 1 : (8 - day) % 7 || 7;
+        next.setDate(now.getDate() + daysUntilMonday);
         next.setHours(0, 0, 0, 0);
         return next - now;
     }
     if (type === 'monthly') {
-        const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        // Same day of month next month
+        const next = new Date(now);
+        const dayOfMonth = now.getDate();
+        next.setMonth(now.getMonth() + 1);
+        const maxDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+        next.setDate(Math.min(dayOfMonth, maxDay));
+        next.setHours(0, 0, 0, 0);
         return next - now;
     }
     return 0;

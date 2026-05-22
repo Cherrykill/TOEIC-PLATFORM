@@ -26,14 +26,23 @@ function getPeriodKey(type, now = new Date()) {
 function getNextReset(type, now = new Date()) {
     const d = new Date(now);
     if (type === 'daily') {
+        // Reset at next midnight (24h cadence)
         d.setDate(d.getDate() + 1);
         d.setHours(0, 0, 0, 0);
     } else if (type === 'weekly') {
-        const daysUntilMonday = (8 - d.getDay()) % 7 || 7;
+        // Reset on next Monday midnight (7 days from start of week)
+        const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+        const daysUntilMonday = day === 0 ? 1 : (8 - day) % 7 || 7;
         d.setDate(d.getDate() + daysUntilMonday);
         d.setHours(0, 0, 0, 0);
     } else if (type === 'monthly') {
-        d.setMonth(d.getMonth() + 1, 1);
+        // Reset on the same day of month next month
+        const dayOfMonth = d.getDate();
+        d.setMonth(d.getMonth() + 1);
+        // Handle months where the day doesn't exist (e.g. Jan 31 → Mar 3) →
+        // clamp to last day of target month instead.
+        const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        d.setDate(Math.min(dayOfMonth, maxDay));
         d.setHours(0, 0, 0, 0);
     } else {
         return null;

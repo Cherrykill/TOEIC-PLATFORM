@@ -800,7 +800,9 @@
     max-width: 1000px;
     width: 90%;
     max-height: 80vh;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     box-shadow: var(--shadow-large);
     animation: slideInUp var(--transition-base);
 }
@@ -812,7 +814,7 @@
     align-items: center;
     gap: var(--spacing-md);
     justify-content: space-between;
-    position: relative;
+    flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -853,6 +855,13 @@
 
 .modal-body {
     padding: var(--spacing-lg);
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+}
+
+.modal-footer {
+    flex-shrink: 0;
 }
 
 /* ===== Practice Mode Selector Buttons ===== */

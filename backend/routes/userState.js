@@ -38,6 +38,7 @@ router.delete('/progress', async (req, res) => {
         const ToeicAttempt   = require('../models/ToeicAttempt');
         const UserCheckin    = require('../models/UserCheckin');
         const Notification   = require('../models/Notification');
+        const User           = require('../models/User');
 
         const statsReset = {
             xp: 0, totalXp: 0,
@@ -65,6 +66,7 @@ router.delete('/progress', async (req, res) => {
             ToeicAttempt.deleteMany({ userId }),
             UserCheckin.deleteMany({ userId }),
             Notification.deleteMany({ userId }),
+            User.findByIdAndUpdate(userId, { $set: { favoriteWords: [] } }),
         ]);
 
         res.json({ success: true, message: 'Đã xóa toàn bộ tiến trình' });

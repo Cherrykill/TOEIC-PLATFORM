@@ -52,6 +52,8 @@ export const PartSelector = {
     },
 
     showPartSelectionModal() {
+        // Reload parts in case vocabulary finished loading after init
+        this.loadParts();
         let currentMode = this.practiceMode || 'sequential';
         let searchQuery = '';
 

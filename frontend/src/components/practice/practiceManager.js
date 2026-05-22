@@ -62,6 +62,14 @@ export const PracticeManager = {
             this.cleanupMode(this.currentSession.mode);
         }
 
+        // Nếu đã chọn đề nhưng chưa chọn Part → buộc chọn Part trước.
+        // Bỏ qua khi retry từ sai (retryWords) hoặc chế độ review-mistakes.
+        if (TopicSelector.currentTopic && !PartSelector.selectedPart && !PartSelector.retryWords?.length && mode !== 'review-mistakes') {
+            PartSelector.pendingMode = mode;
+            PartSelector.showPartSelectionModal();
+            return false;
+        }
+
         // Kiểm tra pool TRƯỚC khi trừ energy hoặc mở practice screen.
         // review-mistakes dùng pool riêng (wrong words) nên bỏ qua.
         if (mode !== 'review-mistakes') {

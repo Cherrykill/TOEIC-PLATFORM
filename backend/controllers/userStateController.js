@@ -89,11 +89,11 @@ exports.saveState = async (req, res, next) => {
         }
 
         // User / profile fields
+        // avatar intentionally excluded — only POST /api/auth/avatar may change it
         if (state.user) {
             if (state.user.level !== undefined) profile.level = state.user.level;
             if (state.user.xp !== undefined) stats.xp = state.user.xp;
             if (state.user.totalXp !== undefined) stats.totalXp = state.user.totalXp;
-            if (state.user.avatar) profile.avatar = state.user.avatar;
         }
 
         // Resources

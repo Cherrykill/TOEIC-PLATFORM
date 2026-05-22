@@ -39,8 +39,12 @@ export default function TopNav() {
         const mode = pendingModeRef.current;
         pendingModeRef.current = null;
         if (mode) {
-            // Chọn đề xong → tự bắt đầu chế độ đã click trước đó
-            setTimeout(() => EventBus.emit(GameEvents.PRACTICE_REQUESTED, { mode }), 200);
+            // Chọn đề xong → mở Part selector với pendingMode,
+            // PartSelector.selectPart() sẽ emit PRACTICE_REQUESTED sau khi user chọn part.
+            setTimeout(() => {
+                PartSelector.pendingMode = mode;
+                PartSelector.showPartSelectionModal();
+            }, 200);
         }
     }, []);
 

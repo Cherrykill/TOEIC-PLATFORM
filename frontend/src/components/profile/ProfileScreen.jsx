@@ -63,7 +63,8 @@ export default function ProfileScreen({ active }) {
             const blob = await resizeToBlob(file, 300);
             const res = await API.auth.uploadAvatar(blob);
             if (res.success) {
-                GameState.state.user.avatar = res.avatar;
+                // Thêm cache-buster để browser fetch lại ảnh mới (filename không đổi)
+                GameState.state.user.avatar = res.avatar + '?v=' + Date.now();
                 syncFromState();
                 Notification.success('Đã cập nhật ảnh đại diện!');
             } else {

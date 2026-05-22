@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Notification } from "@ui/Toaster.jsx";
 import { useTopics } from "./useTopics.js";
-import { PartSelector } from "@components/vocab/part/partSelector.js";
 
 export default function TopicModal({ open, onClose, onSelected }) {
   const {
@@ -54,7 +53,6 @@ export default function TopicModal({ open, onClose, onSelected }) {
   function afterSelect() {
     onSelected?.();
     onClose();
-    setTimeout(() => PartSelector.showPartSelectionModal?.(), 80);
   }
 
   async function handleSelectShared(topicId) {

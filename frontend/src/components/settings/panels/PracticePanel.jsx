@@ -7,7 +7,7 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
             <h3>Cài đặt luyện tập</h3>
             <div className="setting-item">
                 <label>Số câu mỗi lượt</label>
-                <select value={s.questionsPerSession || 10} onChange={e => handleQPS(e.target.value)}>
+                <select value={s.questionsPerSession ?? 'auto'} onChange={e => handleQPS(e.target.value)}>
                     {[5, 10, 15, 20, 25, 30, 50, 100].map(n => <option key={n} value={n}>{n} câu</option>)}
                     <option value="auto">Toàn bộ (auto)</option>
                 </select>

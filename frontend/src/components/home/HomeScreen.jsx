@@ -6,6 +6,9 @@ import { PracticeManager } from '@components/practice/practiceManager.js';
 import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { QuestsAPI } from '@api/quests.js';
 import { Quest } from '@components/quest/quest.js';
+import { Utils } from '@lib/utils.js';
+import { Config } from '@game/config.js';
+import { Notification } from '@ui/Toaster.jsx';
 
 const gameModes = [
     { group: 'Học & Nhận diện từ', icon: 'fa-book-open', modes: [
@@ -110,6 +113,8 @@ export default function HomeScreen({ active }) {
             rewards = await Quest.claimReward('daily', code);
             if (rewards != null) {
                 GameState.creditServerRewards(rewards);
+                Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
+                Notification.success('Nhận thưởng thành công!');
                 loadLocalData();
                 syncFromState();
                 return;
@@ -118,6 +123,8 @@ export default function HomeScreen({ active }) {
         const res = await QuestsAPI.claim({ type: 'daily', code });
         if (res.success) {
             GameState.creditServerRewards(res.rewards || {});
+            Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
+            Notification.success('Nhận thưởng thành công!');
             loadLocalData();
             syncFromState();
         }

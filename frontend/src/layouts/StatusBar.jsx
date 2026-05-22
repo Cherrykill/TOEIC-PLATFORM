@@ -15,7 +15,7 @@ function computeSessionLabel() {
 
 export default function StatusBar() {
     const { user, resources } = useGame();
-    const [questionsPerSession, setQuestionsPerSession] = useState(10);
+    const [questionsPerSession, setQuestionsPerSession] = useState('auto');
     const [difficulty, setDifficulty] = useState('adaptive');
     const [sessionLabel, setSessionLabel] = useState(computeSessionLabel);
 
@@ -23,7 +23,7 @@ export default function StatusBar() {
 
     useEffect(() => {
         const settings = GameState.state?.settings || {};
-        setQuestionsPerSession(settings.questionsPerSession || 10);
+        setQuestionsPerSession(settings.questionsPerSession ?? 'auto');
         setDifficulty(settings.difficulty || 'adaptive');
         refreshSessionLabel();
     }, [refreshSessionLabel]);

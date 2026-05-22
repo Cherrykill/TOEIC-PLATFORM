@@ -10,15 +10,34 @@ const { captureSnapshot, parsePeriodStart, refreshDoc } = require('../services/q
 // How many quests to assign per type. Phase A: cấp nhiều hơn để bớt cảm
 // giác "ai cũng giống nhau" — kết hợp với pool defaults mở rộng (xem
 // seedDefaults bên dưới) sẽ ra mix đa dạng hơn.
-const QUEST_COUNT = { daily: 5, weekly: 4, monthly: 3, special: 5 };
+const QUEST_COUNT = { daily: 6, weekly: 4, monthly: 3, special: 5 };
+
+// Deterministic seeded random từ chuỗi seed — dùng để mọi tài khoản nhận
+// cùng bộ nhiệm vụ trong cùng period (seed = type + periodKey).
+function seededRng(seed) {
+    let h = 2166136261;
+    for (let i = 0; i < seed.length; i++) {
+        h ^= seed.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    return () => {
+        h ^= h << 13; h = h >>> 0;
+        h ^= h >> 17; h = h >>> 0;
+        h ^= h << 5;  h = h >>> 0;
+        return h / 0x100000000;
+    };
+}
 
 async function generateQuests(userId, type, periodKey) {
     const defs = await QuestDefinition.find({ type, isActive: true }).lean();
     if (!defs.length) return [];
 
-    // Weighted random selection
     const count = QUEST_COUNT[type] || 3;
-    const selected = weightedSample(defs, count);
+    // special dùng random per-user; daily/weekly/monthly dùng deterministic
+    // seed theo periodKey để mọi tài khoản nhận cùng bộ nhiệm vụ.
+    const selected = type === 'special'
+        ? weightedSample(defs, count)
+        : weightedSampleSeeded(defs, count, `${type}:${periodKey}`);
 
     const entries = selected.map(d => ({
         questDefinitionId: d._id,
@@ -64,6 +83,20 @@ function weightedSample(items, n) {
     for (let i = 0; i < n; i++) {
         const totalWeight = pool.reduce((s, it) => s + (it.weight || 1), 0);
         let rnd = Math.random() * totalWeight;
+        const idx = pool.findIndex(it => { rnd -= (it.weight || 1); return rnd <= 0; });
+        result.push(pool.splice(idx === -1 ? 0 : idx, 1)[0]);
+    }
+    return result;
+}
+
+function weightedSampleSeeded(items, n, seed) {
+    if (items.length <= n) return [...items];
+    const rng = seededRng(seed);
+    const pool = [...items];
+    const result = [];
+    for (let i = 0; i < n; i++) {
+        const totalWeight = pool.reduce((s, it) => s + (it.weight || 1), 0);
+        let rnd = rng() * totalWeight;
         const idx = pool.findIndex(it => { rnd -= (it.weight || 1); return rnd <= 0; });
         result.push(pool.splice(idx === -1 ? 0 : idx, 1)[0]);
     }
