@@ -6117,3 +6117,145 @@ mark {
     font-size: 11px; color: var(--text-secondary);
     margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px;
 }
+
+/* ===================================
+   SPIN WHEEL MODAL
+   =================================== */
+.spin-overlay {
+    position: fixed; inset: 0; z-index: 1100;
+    background: rgba(0,0,0,0.65);
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+.spin-modal {
+    background: var(--bg-card, #fff);
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    width: 370px; max-width: 95vw;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideUp 0.3s ease;
+}
+.spin-modal-wide {
+    width: 660px;
+}
+.spin-close-btn {
+    position: absolute; top: 14px; right: 14px;
+    background: none; border: none; font-size: 18px;
+    cursor: pointer; color: var(--text-secondary);
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1;
+}
+.spin-close-btn:hover { background: var(--bg-hover, #f3f4f6); }
+
+/* 2-column layout */
+.spin-layout {
+    display: flex; gap: 20px; align-items: flex-start;
+}
+.spin-col-left {
+    display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0;
+}
+.spin-col-right {
+    flex: 1; display: flex; flex-direction: column; gap: 10px;
+    min-width: 0;
+}
+
+.spin-title {
+    margin: 0 0 12px; font-size: 18px; font-weight: 700; text-align: center;
+}
+.spin-wheel-container {
+    position: relative; display: inline-block; margin-bottom: 12px;
+}
+.spin-pointer {
+    position: absolute; top: -14px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px; color: #ef4444;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    z-index: 2; line-height: 1;
+}
+.spin-canvas { display: block; border-radius: 50%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+
+/* Action buttons (free / coin / gem) */
+.spin-action-btn {
+    width: 100%; padding: 10px 12px;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+    color: #fff;
+}
+.spin-action-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); }
+.spin-action-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+.spin-action-btn.spinning { filter: brightness(0.85); }
+.spin-free-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 3px 12px rgba(16,185,129,0.35);
+}
+.spin-coin-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 3px 12px rgba(245,158,11,0.35);
+}
+.spin-gem-btn {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    box-shadow: 0 3px 12px rgba(139,92,246,0.35);
+}
+.spin-balance {
+    font-size: 11px; font-weight: 400; opacity: 0.85;
+}
+.spin-paid-btns {
+    display: flex; flex-direction: column; gap: 8px;
+}
+
+/* Cooldown */
+.spin-cooldown {
+    padding: 10px 12px;
+    background: var(--bg-secondary, #f3f4f6);
+    border-radius: 10px; font-size: 13px;
+    color: var(--text-secondary); font-weight: 600;
+    text-align: center; width: 100%;
+}
+
+/* Result */
+.spin-result {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 10px; font-size: 14px;
+    animation: bounceIn 0.4s ease;
+}
+.spin-result-icon { font-size: 22px; }
+
+/* Prize list */
+.spin-prizes-title {
+    margin: 0; font-size: 14px; font-weight: 700;
+}
+.spin-prizes-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+}
+.spin-prize-row {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; padding: 4px 8px;
+    background: var(--bg-secondary, #f9fafb);
+    border-radius: 6px;
+    border-left: 3px solid #ccc;
+}
+
+/* Spin button in TopNav */
+.spin-nav-btn {
+    position: relative;
+}
+.spin-nav-btn .spin-pulse {
+    position: absolute; top: 4px; right: 4px;
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ef4444;
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.4); opacity: 0.6; }
+}
+@keyframes bounceIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}

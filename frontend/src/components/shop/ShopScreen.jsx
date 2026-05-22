@@ -94,7 +94,15 @@ export default function ShopScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-shopping-cart"></i> Cửa hàng</h2>
-                <button className="icon-btn" style={{ marginLeft: 'auto' }} title="Làm mới" onClick={loadItems}>
+                <button
+                    className="checkin-trigger-btn"
+                    style={{ marginLeft: 'auto' }}
+                    title="Vòng quay may mắn"
+                    onClick={() => window._openSpinWheel?.()}
+                >
+                    <i className="fas fa-dharmachakra"></i> Vòng quay
+                </button>
+                <button className="icon-btn" title="Làm mới" onClick={loadItems}>
                     <i className="fas fa-rotate-right"></i>
                 </button>
             </div>

@@ -7,6 +7,7 @@ import NotificationPanel from '@components/notifications/NotificationPanel.jsx';
 import FavoritesModal from '@components/favorites/FavoritesModal.jsx';
 import TopicModal from '@components/vocab/topic/TopicModal.jsx';
 import { openUploadModal } from '@components/vocab/upload/openUploadModal.js';
+import SpinWheelModal from '@components/spin/SpinWheelModal.jsx';
 
 export default function TopNav() {
     const { user, setMenuOpen, showScreen, menuOpen, currentScreen } = useGame();
@@ -20,6 +21,8 @@ export default function TopNav() {
     const [searchReadOnly, setSearchReadOnly] = useState(true);
     const [favOpen, setFavOpen] = useState(false);
     const [topicOpen, setTopicOpen] = useState(false);
+    const [spinOpen, setSpinOpen] = useState(false);
+    const [spinAvailable, setSpinAvailable] = useState(false);
     const pendingModeRef = useRef(null);
     const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
 
@@ -51,6 +54,24 @@ export default function TopNav() {
         PartSelector.showPartSelectionModal();
     }, []);
 
+
+    // Expose spin opener globally + check availability
+    useEffect(() => {
+        window._openSpinWheel = () => { setSpinOpen(true); setSpinAvailable(false); };
+        return () => { delete window._openSpinWheel; };
+    }, []);
+
+    useEffect(() => {
+        const token = user ? localStorage.getItem('authToken') : null;
+        if (!token) return;
+        const parsed = (() => { try { return JSON.parse(token); } catch { return {}; } })();
+        const t = parsed.token || token;
+        if (!t) return;
+        fetch('/api/spin/status', { headers: { Authorization: `Bearer ${t}` } })
+            .then(r => r.json())
+            .then(d => { if (d.success) setSpinAvailable(d.canSpin); })
+            .catch(() => {});
+    }, [user]);
 
     const avatarSrc = user?.avatar;
     const isAvatarImg = avatarSrc && (avatarSrc.startsWith('data:image') || avatarSrc.startsWith('http') || avatarSrc.startsWith('/'));
@@ -140,6 +161,7 @@ export default function TopNav() {
         </nav>
         <FavoritesModal open={favOpen} onClose={() => setFavOpen(false)} />
         <TopicModal open={topicOpen} onClose={handleTopicClose} onSelected={handleTopicSelected} />
+        <SpinWheelModal open={spinOpen} onClose={() => setSpinOpen(false)} />
         </>
     );
 }

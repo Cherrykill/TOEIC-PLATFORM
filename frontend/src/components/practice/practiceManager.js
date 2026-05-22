@@ -37,11 +37,76 @@ export const PracticeManager = {
     timeRemaining: 0,
     timeLimit: 0,
 
+    // Tính pool từ vựng sau khi áp filter (level + part).
+    // Trả về array — caller kiểm tra .length.
+    _getFilteredPool() {
+        const settings = GameState.state?.settings || {};
+        const levelFilter = settings.levelFilter;
+        const selectedPart = PartSelector.selectedPart;
+
+        let pool = selectedPart
+            ? GameLogic.vocabularyData.filter(w => w.part === selectedPart)
+            : [...GameLogic.vocabularyData];
+
+        if (levelFilter?.length > 0) {
+            pool = pool.filter(w => w.level && levelFilter.includes(w.level));
+        }
+
+        return pool;
+    },
+
     start(mode) {
         console.log('🚀 PracticeManager.start() called with mode:', mode);
 
         if (this.currentSession && this.currentSession.mode) {
             this.cleanupMode(this.currentSession.mode);
+        }
+
+        // Kiểm tra pool TRƯỚC khi trừ energy hoặc mở practice screen.
+        // review-mistakes dùng pool riêng (wrong words) nên bỏ qua.
+        if (mode !== 'review-mistakes') {
+            const pool = this._getFilteredPool();
+            if (pool.length < 4) {
+                const settings = GameState.state?.settings || {};
+                const levelNames = { easy: 'Dễ (A1-A2)', medium: 'Trung bình (B1-B2)', hard: 'Khó (C1-C2)', adaptive: 'Tự động' };
+                const filterDesc = [];
+                if (PartSelector.selectedPart) filterDesc.push(`Part: <strong>${PartSelector.selectedPart}</strong>`);
+                if (settings.levelFilter?.length > 0) filterDesc.push(`Cấp độ: <strong>${settings.levelFilter.join(', ')}</strong>`);
+
+                Modal.show({
+                    title: '⚠️ Không đủ từ vựng',
+                    content: `
+                        <div style="text-align:center;padding:8px 0">
+                            <div style="font-size:48px;margin-bottom:12px">📭</div>
+                            <p style="margin:0 0 8px;font-size:15px">
+                                Bộ lọc hiện tại chỉ tìm được <strong style="color:var(--error-color,#ef4444)">${pool.length} từ</strong>.
+                            </p>
+                            <p style="margin:0 0 12px;font-size:13px;color:var(--text-secondary)">
+                                Cần ít nhất <strong>4 từ</strong> để bắt đầu luyện tập.
+                            </p>
+                            ${filterDesc.length > 0 ? `<p style="margin:0;font-size:13px;color:var(--text-secondary)">
+                                Điều kiện lọc: ${filterDesc.join(' · ')}
+                            </p>` : ''}
+                        </div>
+                    `,
+                    buttons: [
+                        {
+                            text: 'Đổi bộ lọc',
+                            className: 'btn-secondary',
+                            onClick: () => {
+                                Modal.close();
+                                EventBus.emit(GameEvents.TOPIC_MODAL_REQUESTED);
+                            }
+                        },
+                        {
+                            text: 'Đóng',
+                            className: 'btn-primary',
+                            onClick: () => Modal.close()
+                        }
+                    ]
+                });
+                return false;
+            }
         }
 
         const energyCost = Config.energyCosts[mode];

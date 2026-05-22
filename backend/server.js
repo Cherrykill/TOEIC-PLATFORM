@@ -306,6 +306,7 @@ app.use('/api/admin', require('./routes/adminDefinitions')); // Achievement + Qu
 app.use('/api/quests', require('./routes/quests'));          // Quest system (daily/weekly/monthly/special)
 app.use('/api/checkin', require('./routes/checkin'));        // Weekly check-in (điểm danh hằng tuần)
 app.use('/api/notifications', require('./routes/notifications')); // In-app notification center
+app.use('/api/spin', require('./routes/spin'));              // Lucky spin wheel (1 lần/ngày)
 
 // ===================================
 // ADMIN STATS: USER GROWTH

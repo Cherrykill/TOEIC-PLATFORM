@@ -1,7 +1,7 @@
 // Static "About" panel — no props. Content moved verbatim from SettingsScreen.
 const ABOUT_ROWS = [
     { icon: 'fa-code-branch', label: 'Phiên bản', value: 'v2.0.0' },
-    { icon: 'fa-layer-group', label: 'Chế độ luyện tập', value: '9+ chế độ' },
+    { icon: 'fa-layer-group', label: 'Chế độ luyện tập', value: '16 chế độ' },
     { icon: 'fa-book', label: 'Từ vựng', value: 'ETS TOEIC chuẩn quốc tế' },
     { icon: 'fa-trophy', label: 'Gamification', value: 'XP • Coins • Gems • Streaks' },
     { icon: 'fa-graduation-cap', label: 'Bài thi TOEIC', value: 'Full Test • Mini Test • Đọc lẻ' },
