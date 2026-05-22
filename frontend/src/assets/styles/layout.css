@@ -1424,7 +1424,7 @@
 
 .search-result-item {
     padding: var(--spacing-md);
-    padding-right: 55px; /* Space for speak button */
+    padding-right: 90px;
     border-bottom: 1px solid var(--border-color);
     cursor: pointer;
     transition: background 0.2s ease;
@@ -1472,17 +1472,22 @@
     font-size: var(--font-size-xs);
 }
 
-.search-result-speak-btn {
+.search-result-actions {
     position: absolute;
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.search-result-speak-btn,
+.search-result-fav-btn {
+    width: 32px;
+    height: 32px;
     border: none;
     border-radius: 50%;
-    background: var(--primary-color);
-    color: white;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1491,14 +1496,41 @@
     opacity: 0.8;
 }
 
+.search-result-speak-btn {
+    background: var(--primary-color);
+    color: white;
+}
+
 .search-result-speak-btn:hover {
     opacity: 1;
-    transform: translateY(-50%) scale(1.1);
+    transform: scale(1.1);
     background: var(--primary-dark, #1a8c5a);
 }
 
 .search-result-speak-btn:active {
-    transform: translateY(-50%) scale(0.95);
+    transform: scale(0.95);
+}
+
+.search-result-fav-btn {
+    background: transparent;
+    color: #ccc;
+    border: 1.5px solid #ddd;
+    font-size: 13px;
+}
+
+.search-result-fav-btn:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    color: #ef4444;
+    border-color: #ef4444;
+    background: #fff0f0;
+}
+
+.search-result-fav-btn.active {
+    color: #ef4444;
+    border-color: #ef4444;
+    background: #fff0f0;
+    opacity: 1;
 }
 
 /* Search Results Header */

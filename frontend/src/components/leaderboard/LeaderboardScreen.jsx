@@ -125,7 +125,12 @@ export default function LeaderboardScreen({ active }) {
                         >
                             <div className="leaderboard-rank">{rank}</div>
                             <div className="leaderboard-avatar-wrap">
-                                <div className="leaderboard-avatar">{entry.avatar || entry.username?.charAt(0)?.toUpperCase() || 'P'}</div>
+                                <div className="leaderboard-avatar">
+                                    {entry.avatar && (entry.avatar.startsWith('data:image') || entry.avatar.startsWith('http') || entry.avatar.startsWith('/'))
+                                        ? <img src={entry.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                        : (entry.avatar || entry.username?.charAt(0)?.toUpperCase() || 'P')
+                                    }
+                                </div>
                                 {entry.isOnline && <span className="online-dot online-dot--on" />}
                             </div>
                             <div className="leaderboard-info">
@@ -148,7 +153,10 @@ export default function LeaderboardScreen({ active }) {
                             <i className="fas fa-times"></i>
                         </button>
                         <div className="player-popup-avatar">
-                            {selected.avatar || selected.username?.[0]?.toUpperCase() || '?'}
+                            {selected.avatar && (selected.avatar.startsWith('data:image') || selected.avatar.startsWith('http') || selected.avatar.startsWith('/'))
+                                ? <img src={selected.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                : (selected.avatar || selected.username?.[0]?.toUpperCase() || '?')
+                            }
                         </div>
                         <h3 className="player-popup-name">{selected.username || 'Ẩn danh'}</h3>
                         <div className="player-popup-id">

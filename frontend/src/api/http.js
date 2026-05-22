@@ -204,6 +204,18 @@ export const API = {
             return Http.put('/auth/profile', updates);
         },
 
+        async uploadAvatar(blob) {
+            const formData = new FormData();
+            formData.append('avatar', blob, 'avatar.jpg');
+            const token = Http._getToken();
+            const res = await fetch('/api/auth/avatar', {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+                body: formData,
+            });
+            return res.json();
+        },
+
         async changePassword(passwords) {
             return Http.put('/auth/password', passwords);
         },
@@ -263,8 +275,8 @@ export const API = {
             return Http.patch('/user/quests', { quests });
         },
 
-        async resetProgress() {
-            return Http.delete('/user/progress');
+        async resetProgress(confirmUserId) {
+            return Http.delete('/user/progress', { body: { confirmUserId } });
         }
     },
 

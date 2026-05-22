@@ -4,6 +4,7 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const authController = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
+const { uploadAvatar } = require('../middleware/upload');
 
 const otpLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
@@ -266,6 +267,7 @@ router.get('/me', protect, authController.getMe);
  *         description: Cập nhật thành công
  */
 router.put('/profile', protect, authController.updateProfile);
+router.post('/avatar', protect, uploadAvatar.single('avatar'), authController.uploadAvatar);
 
 /**
  * @swagger

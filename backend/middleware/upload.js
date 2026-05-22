@@ -104,7 +104,38 @@ const uploadAudio = multer({
     fileFilter: audioFilter,
 });
 
+// ===================================
+// AVATAR UPLOAD CONFIGURATION
+// ===================================
+
+const avatarDir = path.join(__dirname, '../public/uploads/avatars');
+if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, avatarDir),
+    filename: (req, file, cb) => {
+        // Dùng userId làm tên file → tự động ghi đè khi update
+        const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+        cb(null, `${req.user.id}${ext}`);
+    },
+});
+
+const avatarFilter = (req, file, cb) => {
+    if (/image\/(jpeg|jpg|png|gif|webp)/.test(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Chỉ hỗ trợ file ảnh (jpeg, png, gif, webp)'));
+    }
+};
+
+const uploadAvatar = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
+    fileFilter: avatarFilter,
+});
+
 module.exports = {
     uploadImage,
     uploadAudio,
+    uploadAvatar,
 };

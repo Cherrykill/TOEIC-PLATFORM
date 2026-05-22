@@ -53,7 +53,7 @@ export default function TopNav() {
 
 
     const avatarSrc = user?.avatar;
-    const isAvatarImg = avatarSrc && (avatarSrc.startsWith('data:image') || avatarSrc.startsWith('http'));
+    const isAvatarImg = avatarSrc && (avatarSrc.startsWith('data:image') || avatarSrc.startsWith('http') || avatarSrc.startsWith('/'));
 
     return (
         <>

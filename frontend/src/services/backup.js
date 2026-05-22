@@ -60,7 +60,8 @@ export function pickAndRestoreBackup() {
 
 /** Wipe all progress — calls backend then clears local state. */
 export async function resetProgress() {
-    const res = await API.user.resetProgress();
-    if (!res.success) throw new Error(res.error || 'Reset thất bại');
+    const confirmUserId = GameState.state?.user?._id;
+    const res = await API.user.resetProgress(confirmUserId);
+    if (!res.success) throw new Error(res.message || res.error || 'Reset thất bại');
     await GameState.reset?.();
 }

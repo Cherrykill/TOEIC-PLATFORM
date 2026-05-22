@@ -18,6 +18,16 @@ router.use(protect); // ← áp dụng cho tất cả route bên dưới
 router.delete('/progress', async (req, res) => {
     try {
         const userId = req.user.id;
+
+        // Kiểm tra client gửi đúng userId — phát hiện token/session bị lẫn giữa 2 tài khoản
+        const { confirmUserId } = req.body;
+        if (confirmUserId && confirmUserId.toString() !== userId.toString()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token không khớp với tài khoản hiện tại. Vui lòng đăng xuất và đăng nhập lại.',
+            });
+        }
+
         const UserStats      = require('../models/UserStats');
         const UserProfile    = require('../models/UserProfile');
         const WrongWord      = require('../models/WrongWord');

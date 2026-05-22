@@ -187,6 +187,25 @@ const updateProfile = async (req, res, next) => {
     }
 };
 
+const uploadAvatar = async (req, res, next) => {
+    try {
+        if (!req.file) return res.status(400).json({ success: false, message: 'Không có file ảnh' });
+
+        const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+        const profile = await UserProfile.findOne({ userId: req.user.id });
+        if (!profile) return res.status(404).json({ success: false, message: 'User not found' });
+
+        profile.avatar = avatarUrl;
+        await profile.save();
+
+        res.json({ success: true, avatar: avatarUrl });
+    } catch (error) {
+        logger.error('UploadAvatar error:', error);
+        next(error);
+    }
+};
+
 const changePassword = async (req, res, next) => {
     try {
         const { currentPassword, newPassword } = req.body;
@@ -513,6 +532,7 @@ module.exports = {
     logout,
     getMe,
     updateProfile,
+    uploadAvatar,
     changePassword,
     syncProgress,
     forgotPassword,

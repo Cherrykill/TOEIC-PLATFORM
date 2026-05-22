@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Utils } from '@lib/utils.js';
 import { Modal } from '@ui/Modal.jsx';
 import { GameLogic } from '@game/gameLogic.js';
 import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { VocabularyAPI } from '@api/vocabulary.js';
+import { FavoritesAPI } from '@api/favorites.js';
 
 function escapeHtml(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => (
@@ -15,6 +16,7 @@ export default function SearchResults() {
     const [results, setResults] = useState([]);
     const [query, setQuery] = useState('');
     const [visible, setVisible] = useState(false);
+    const [favorites, setFavorites] = useState(new Set());
     const ref = useRef(null);
 
     useEffect(() => {
@@ -51,6 +53,30 @@ export default function SearchResults() {
         window._reactClearSearch = () => { setVisible(false); setResults([]); };
         return () => { delete window._reactClearSearch; };
     }, []);
+
+    useEffect(() => {
+        FavoritesAPI.list().then(res => {
+            if (res.success && res.data) {
+                setFavorites(new Set(res.data.map(w => w.en?.toLowerCase())));
+            }
+        });
+    }, []);
+
+    const toggleFavorite = useCallback(async (e, word) => {
+        e.stopPropagation();
+        const key = word.en?.toLowerCase();
+        const isFav = favorites.has(key);
+        setFavorites(prev => {
+            const next = new Set(prev);
+            isFav ? next.delete(key) : next.add(key);
+            return next;
+        });
+        if (isFav) {
+            await FavoritesAPI.remove(word.en);
+        } else {
+            await FavoritesAPI.add(word);
+        }
+    }, [favorites]);
 
     if (!visible || results.length === 0) {
         return <div id="search-results" className="search-results"></div>;
@@ -128,26 +154,38 @@ export default function SearchResults() {
                 <span className="search-count">{results.length} kết quả</span>
             </div>
 
-            {results.map((word, i) => (
-                <div key={i} className="search-result-item" onClick={() => showWordDetail(word)}>
-                    <div className="search-result-word">
-                        <span className="search-result-en" dangerouslySetInnerHTML={{ __html: highlight(word.en, query) }} />
-                        {word.phonetic && <span className="search-result-phonetic">{word.phonetic}</span>}
+            {results.map((word, i) => {
+                const isFav = favorites.has(word.en?.toLowerCase());
+                return (
+                    <div key={i} className="search-result-item" onClick={() => showWordDetail(word)}>
+                        <div className="search-result-word">
+                            <span className="search-result-en" dangerouslySetInnerHTML={{ __html: highlight(word.en, query) }} />
+                            {word.phonetic && <span className="search-result-phonetic">{word.phonetic}</span>}
+                        </div>
+                        <div className="search-result-vn" dangerouslySetInnerHTML={{ __html: highlight(word.vn, query) }} />
+                        <div className="search-result-meta">
+                            {word.type && <span className="search-result-type">{word.type}</span>}
+                            {word.part && <span className="search-result-part">{word.part}</span>}
+                        </div>
+                        <div className="search-result-actions">
+                            <button
+                                className={`search-result-fav-btn${isFav ? ' active' : ''}`}
+                                title={isFav ? 'Bỏ yêu thích' : 'Yêu thích'}
+                                onClick={(e) => toggleFavorite(e, word)}
+                            >
+                                <i className={isFav ? 'fas fa-heart' : 'far fa-heart'}></i>
+                            </button>
+                            <button
+                                className="search-result-speak-btn"
+                                title="Phát âm"
+                                onClick={(e) => speak(e, word.en)}
+                            >
+                                <i className="fas fa-volume-up"></i>
+                            </button>
+                        </div>
                     </div>
-                    <div className="search-result-vn" dangerouslySetInnerHTML={{ __html: highlight(word.vn, query) }} />
-                    <div className="search-result-meta">
-                        {word.type && <span className="search-result-type">{word.type}</span>}
-                        {word.part && <span className="search-result-part">{word.part}</span>}
-                    </div>
-                    <button
-                        className="search-result-speak-btn"
-                        title="Phát âm"
-                        onClick={(e) => speak(e, word.en)}
-                    >
-                        <i className="fas fa-volume-up"></i>
-                    </button>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 }
