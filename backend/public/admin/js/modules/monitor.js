@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Broadcast tab
     document.getElementById('bc-send-btn')?.addEventListener('click', sendBroadcast);
     document.getElementById('bc-history-refresh-btn')?.addEventListener('click', loadNotifHistory);
-    document.getElementById('bc-type')?.addEventListener('change', _onBcTypeChange);
     _initBcEmailSearch();
 
     // User Stats tab

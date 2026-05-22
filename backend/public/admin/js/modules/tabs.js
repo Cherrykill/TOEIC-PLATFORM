@@ -659,32 +659,30 @@ function openUserAchievementsFor(userId, email) {
 
 // ---- BROADCAST TAB ----
 
-function toggleBcUser(val) {
-    const row = document.getElementById('bc-user-row');
-    if (row) row.style.display = (val === 'one') ? '' : 'none';
-}
-
-function _onBcTypeChange() {
-    const type = document.getElementById('bc-type')?.value;
-    const emailInput = document.getElementById('bc-user-email');
-    if (type === 'violation') {
-        if (emailInput) emailInput.placeholder = 'Bắt buộc nhập email người vi phạm...';
-    } else {
-        if (emailInput) emailInput.placeholder = 'Để trống = gửi tất cả. Nhập email để gửi 1 người...';
-    }
-}
-
 function _initBcEmailSearch() {
     const input = document.getElementById('bc-user-email');
     const suggestions = document.getElementById('bc-user-suggestions');
     const hiddenId = document.getElementById('bc-user-id');
     const selectedLabel = document.getElementById('bc-user-selected');
-    if (!input) return;
 
+    // Radio toggle: Tất cả / Người cụ thể
+    document.querySelectorAll('[name="bc-target"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            const isOne = radio.value === 'one';
+            const row = document.getElementById('bc-user-row');
+            if (row) row.style.display = isOne ? '' : 'none';
+            document.getElementById('bc-target-all-lbl').style.borderColor = isOne ? 'var(--border-color)' : 'var(--primary-color)';
+            document.getElementById('bc-target-one-lbl').style.borderColor = isOne ? 'var(--primary-color)' : 'var(--border-color)';
+        });
+    });
+
+    // Filter dropdown
+    document.getElementById('bc-filter-type')?.addEventListener('change', loadNotifHistory);
+
+    if (!input) return;
     input.addEventListener('input', () => {
         if (hiddenId) hiddenId.value = '';
         if (selectedLabel) selectedLabel.style.display = 'none';
-
         clearTimeout(_bcSearchTimer);
         const q = input.value.trim();
         if (q.length < 2) { if (suggestions) suggestions.style.display = 'none'; return; }
@@ -736,12 +734,13 @@ async function sendBroadcast() {
     const title  = document.getElementById('bc-title')?.value.trim();
     const body   = document.getElementById('bc-body')?.value.trim();
     const type   = document.getElementById('bc-type')?.value || 'system';
+    const target = document.querySelector('[name="bc-target"]:checked')?.value || 'all';
     const userId = document.getElementById('bc-user-id')?.value || '';
     const userEmail = document.getElementById('bc-user-email')?.value.trim() || '';
     const btn    = document.getElementById('bc-send-btn');
 
     if (!title) { showToast('Tiêu đề không được trống', 'error'); return; }
-    if (type === 'violation' && !userEmail) { showToast('Vi phạm phải chọn người dùng cụ thể', 'error'); return; }
+    if (target === 'one' && !userEmail) { showToast('Vui lòng chọn người dùng cụ thể', 'error'); return; }
 
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang gửi...'; }
 
@@ -751,8 +750,10 @@ async function sendBroadcast() {
         const giftXp    = parseInt(document.getElementById('bc-gift-xp')?.value)    || 0;
 
         const payload = { title, body, type };
-        if (userId)    payload.userId    = userId;
-        if (userEmail) payload.userEmail = userEmail;
+        if (target === 'one') {
+            if (userId)    payload.userId    = userId;
+            if (userEmail) payload.userEmail = userEmail;
+        }
         if (giftCoins || giftGems || giftXp) payload.gift = { coins: giftCoins, gems: giftGems, xp: giftXp };
 
         const res = await fetch('/api/admin/notifications/broadcast', {
@@ -763,14 +764,16 @@ async function sendBroadcast() {
         const result = await res.json();
         if (!result.success) throw new Error(result.message);
 
-        showToast(`Đã gửi thành công cho ${result.sent} người dùng`, 'success');
+        const sentTo = target === 'all' ? 'tất cả người dùng' : userEmail;
+        showToast(`Đã gửi thành công → ${sentTo}`, 'success');
+
         document.getElementById('bc-title').value = '';
         document.getElementById('bc-body').value  = '';
         document.getElementById('bc-user-email').value = '';
         document.getElementById('bc-user-id').value = '';
-        if (document.getElementById('bc-gift-coins')) document.getElementById('bc-gift-coins').value = '';
-        if (document.getElementById('bc-gift-gems'))  document.getElementById('bc-gift-gems').value  = '';
-        if (document.getElementById('bc-gift-xp'))    document.getElementById('bc-gift-xp').value    = '';
+        ['bc-gift-coins','bc-gift-gems','bc-gift-xp'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+        });
         const lbl = document.getElementById('bc-user-selected');
         if (lbl) lbl.style.display = 'none';
         loadNotifHistory();
@@ -784,36 +787,48 @@ async function sendBroadcast() {
 async function loadNotifHistory() {
     const list = document.getElementById('bc-history');
     if (!list) return;
-    list.innerHTML = '<p style="color:var(--text-secondary)">Đang tải...</p>';
+    list.innerHTML = '<p style="color:var(--text-secondary);padding:20px;text-align:center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>';
 
     try {
-        const res = await fetch('/api/admin/notifications?limit=30', {
-            headers: { Authorization: `Bearer ${authToken}` }
-        });
+        const filterType = document.getElementById('bc-filter-type')?.value || '';
+        const url = `/api/admin/notifications?limit=50${filterType ? '&type=' + filterType : ''}`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${authToken}` } });
         const result = await res.json();
         if (!result.success) throw new Error(result.message);
 
         if (!result.data.length) {
-            list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px">Chưa có thông báo nào.</p>';
+            list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;padding:20px;text-align:center">Chưa có thông báo nào.</p>';
             return;
         }
 
         list.innerHTML = result.data.map(n => {
-            const meta = NOTIF_TYPE_META[n.type] || { label: n.type, color: '#6b7280', bg: '#f3f4f6' };
+            const meta = NOTIF_TYPE_META[n.type] || { label: n.type, color: '#6b7280', bg: 'rgba(107,114,128,.15)' };
+            const isGlobal = !n.userId;
+            const recipientHtml = isGlobal
+                ? '<span style="color:#3b82f6;font-weight:600">👥 Tất cả người dùng</span>'
+                : `<span>${n.userId?.email || '?'}</span>`;
+            const readHtml = !isGlobal
+                ? (n.read ? ' · <span style="color:#10b981">✓ Đã đọc</span>' : ' · <span style="color:#f59e0b">Chưa đọc</span>')
+                : '';
+            const g = n.gift || {};
+            const hasGift = g.coins > 0 || g.gems > 0 || g.xp > 0;
+            const giftHtml = hasGift ? `
+                <div style="display:flex;gap:10px;margin-top:6px;font-size:12px;flex-wrap:wrap">
+                    ${g.coins > 0 ? `<span>🪙 <b>${g.coins}</b> coins</span>` : ''}
+                    ${g.gems  > 0 ? `<span>💎 <b>${g.gems}</b> gems</span>`  : ''}
+                    ${g.xp    > 0 ? `<span>⭐ <b>${g.xp}</b> XP</span>`     : ''}
+                </div>` : '';
             return `
-            <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:12px" id="nhi-${n._id}">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                    <span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${meta.bg};color:${meta.color};border:1px solid ${meta.color}33">${meta.label}</span>
+            <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:12px 14px" id="nhi-${n._id}">
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${meta.bg};color:${meta.color};border:1px solid ${meta.color}33;white-space:nowrap">${meta.label}</span>
                     <span style="color:var(--text-secondary);font-size:12px">${new Date(n.createdAt).toLocaleString('vi-VN')}</span>
-                    <button class="btn btn-sm nhi-del-btn" data-id="${n._id}" style="margin-left:auto;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.4);padding:2px 8px;font-size:11px;border-radius:6px">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <button class="btn btn-sm nhi-del-btn" data-id="${n._id}" style="margin-left:auto;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:2px 8px;font-size:11px;border-radius:6px"><i class="fas fa-trash"></i></button>
                 </div>
-                <div style="font-weight:600;margin-top:6px">${n.title}</div>
+                <div style="font-weight:600;margin-top:7px;font-size:14px">${n.title}</div>
                 ${n.body ? `<div style="color:var(--text-secondary);font-size:13px;margin-top:2px">${n.body}</div>` : ''}
-                <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">
-                    Gửi tới: <b>${n.userId?.email || 'N/A'}</b> · ${n.read ? '<span style="color:#10b981">✓ Đã đọc</span>' : '<span style="color:#f59e0b">Chưa đọc</span>'}
-                </div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-top:5px">${recipientHtml}${readHtml}</div>
+                ${giftHtml}
             </div>`;
         }).join('');
 
@@ -821,7 +836,7 @@ async function loadNotifHistory() {
             btn.addEventListener('click', () => deleteNotif(btn.dataset.id, btn));
         });
     } catch (err) {
-        list.innerHTML = `<p style="color:var(--danger-color)">Lỗi: ${err.message}</p>`;
+        list.innerHTML = `<p style="color:var(--danger-color);padding:16px">Lỗi: ${err.message}</p>`;
     }
 }
 

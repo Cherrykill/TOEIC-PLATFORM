@@ -7,6 +7,7 @@
 // Behaviour identical to the previous inline handlers.
 
 import { GameState } from '@game/state.js';
+import { API } from '@api/http.js';
 
 const BACKUP_VERSION = '2.0.0';
 
@@ -57,7 +58,9 @@ export function pickAndRestoreBackup() {
     });
 }
 
-/** Wipe all progress (delegates to GameState.reset). */
+/** Wipe all progress — calls backend then clears local state. */
 export async function resetProgress() {
+    const res = await API.user.resetProgress();
+    if (!res.success) throw new Error(res.error || 'Reset thất bại');
     await GameState.reset?.();
 }

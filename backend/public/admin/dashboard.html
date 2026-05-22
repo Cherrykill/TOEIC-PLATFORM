@@ -1231,6 +1231,9 @@
                   <button class="btn btn-ghost btn-sm" id="btn-ai-gen-achievement" title="Sinh thành tích bằng AI (copy prompt → dán vào ChatGPT/Claude → paste JSON về)">
                     <i class="fas fa-robot"></i> AI Generate
                   </button>
+                  <button class="btn btn-danger btn-sm" id="btn-delete-all-achievements" title="Xóa tất cả thành tích">
+                    <i class="fas fa-trash"></i> Xóa tất cả
+                  </button>
                   <button class="btn btn-primary btn-sm" id="btn-add-achievement">
                     <i class="fas fa-plus"></i> Thêm thành tích
                   </button>
@@ -1262,6 +1265,9 @@
                   </button>
                   <button class="btn btn-ghost btn-sm" id="btn-ai-gen-quest" title="Sinh nhiệm vụ bằng AI (copy prompt → dán vào ChatGPT/Claude → paste JSON về)">
                     <i class="fas fa-robot"></i> AI Generate
+                  </button>
+                  <button class="btn btn-danger btn-sm" id="btn-delete-all-quests" title="Xóa tất cả nhiệm vụ">
+                    <i class="fas fa-trash"></i> Xóa tất cả
                   </button>
                   <button class="btn btn-primary btn-sm" id="btn-add-quest">
                     <i class="fas fa-plus"></i> Thêm nhiệm vụ
@@ -1869,64 +1875,98 @@
               <h2><i class="fas fa-bullhorn"></i> Gửi thông báo hệ thống</h2>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
-              <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:24px">
-                <h3 style="margin-bottom:16px;font-size:15px">Soạn thông báo</h3>
-                <div style="margin-bottom:12px">
-                  <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Tiêu đề <span style="color:#ef4444">*</span></label>
-                  <input type="text" id="bc-title" placeholder="Tiêu đề thông báo..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary)">
-                </div>
-                <div style="margin-bottom:12px">
-                  <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Nội dung</label>
-                  <textarea id="bc-body" rows="3" placeholder="Nội dung chi tiết (tùy chọn)..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);resize:vertical"></textarea>
-                </div>
-                <div style="margin-bottom:12px">
-                  <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Loại</label>
-                  <select id="bc-type" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary)">
-                    <option value="system">📢 Hệ thống (gửi tất cả)</option>
-                    <option value="violation">⚠️ Vi phạm (1 người cụ thể)</option>
-                  </select>
-                </div>
-                <div id="bc-user-row" style="margin-bottom:16px">
-                  <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Gửi đến</label>
-                  <div style="position:relative">
-                    <input type="text" id="bc-user-email" placeholder="Để trống = gửi tất cả. Nhập email để gửi 1 người..."
-                      autocomplete="off"
-                      style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary);box-sizing:border-box" />
-                    <div id="bc-user-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;box-shadow:var(--shadow-lg);z-index:100;max-height:200px;overflow-y:auto"></div>
+
+              <!-- LEFT: Form -->
+              <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:20px">
+
+                <!-- Group 1: Nội dung -->
+                <div>
+                  <h4 style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Nội dung</h4>
+                  <div style="margin-bottom:10px">
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Tiêu đề <span style="color:#ef4444">*</span></label>
+                    <input type="text" id="bc-title" placeholder="Tiêu đề thông báo..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);box-sizing:border-box">
                   </div>
-                  <input type="hidden" id="bc-user-id" />
-                  <div id="bc-user-selected" style="display:none;margin-top:6px;padding:6px 10px;background:var(--bg-secondary);border-radius:6px;font-size:12px;color:var(--text-secondary)"></div>
+                  <div style="margin-bottom:10px">
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Mô tả <span style="font-weight:400;color:var(--text-secondary)">(tùy chọn)</span></label>
+                    <textarea id="bc-body" rows="3" placeholder="Nội dung chi tiết..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);resize:vertical;box-sizing:border-box"></textarea>
+                  </div>
+                  <div>
+                    <label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">Loại thông báo</label>
+                    <select id="bc-type" style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary)">
+                      <option value="system">📢 Hệ thống</option>
+                      <option value="reward">🎁 Phần thưởng</option>
+                      <option value="reminder">🔔 Nhắc nhở</option>
+                      <option value="violation">⚠️ Vi phạm</option>
+                    </select>
+                  </div>
                 </div>
-                <div style="margin-bottom:16px">
-                  <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">
-                    <i class="fas fa-gift" style="color:#f59e0b"></i> Quà tặng
-                    <span style="font-size:11px;font-weight:400;color:var(--text-secondary);margin-left:6px">(chỉ áp dụng khi gửi 1 người cụ thể)</span>
-                  </label>
+
+                <div style="border-top:1px solid var(--border-color)"></div>
+
+                <!-- Group 2: Gửi tới -->
+                <div>
+                  <h4 style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">Gửi tới</h4>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+                    <label id="bc-target-all-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:2px solid var(--primary-color);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:border-color .2s">
+                      <input type="radio" name="bc-target" value="all" checked style="accent-color:var(--primary-color)"> 🌐 Tất cả
+                    </label>
+                    <label id="bc-target-one-lbl" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:2px solid var(--border-color);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:border-color .2s">
+                      <input type="radio" name="bc-target" value="one" style="accent-color:var(--primary-color)"> 👤 Người cụ thể
+                    </label>
+                  </div>
+                  <div id="bc-user-row" style="display:none">
+                    <div style="position:relative">
+                      <input type="text" id="bc-user-email" placeholder="Tìm người dùng theo email..." autocomplete="off"
+                        style="width:100%;padding:9px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);box-sizing:border-box" />
+                      <div id="bc-user-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;box-shadow:var(--shadow-lg);z-index:100;max-height:200px;overflow-y:auto"></div>
+                    </div>
+                    <input type="hidden" id="bc-user-id" />
+                    <div id="bc-user-selected" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(16,185,129,.12);border-radius:6px;font-size:12px;color:#10b981;font-weight:600"></div>
+                  </div>
+                </div>
+
+                <div style="border-top:1px solid var(--border-color)"></div>
+
+                <!-- Group 3: Quà tặng -->
+                <div>
+                  <h4 style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">🎁 Kèm quà tặng <span style="font-weight:400;text-transform:none;font-size:12px">(tùy chọn)</span></h4>
                   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
                     <div>
-                      <label style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;display:block"><i class="fas fa-coins" style="color:#f59e0b"></i> Coins</label>
-                      <input type="number" id="bc-gift-coins" min="0" placeholder="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary)">
+                      <label style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;display:block">🪙 Coins</label>
+                      <input type="number" id="bc-gift-coins" min="0" placeholder="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);box-sizing:border-box">
                     </div>
                     <div>
-                      <label style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;display:block"><i class="fas fa-gem" style="color:#8b5cf6"></i> Gems</label>
-                      <input type="number" id="bc-gift-gems" min="0" placeholder="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary)">
+                      <label style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;display:block">💎 Gems</label>
+                      <input type="number" id="bc-gift-gems" min="0" placeholder="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);box-sizing:border-box">
                     </div>
                     <div>
-                      <label style="font-size:11px;color:var(--text-secondary);margin-bottom:2px;display:block"><i class="fas fa-star" style="color:#3b82f6"></i> XP</label>
-                      <input type="number" id="bc-gift-xp" min="0" placeholder="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary)">
+                      <label style="font-size:12px;color:var(--text-secondary);margin-bottom:4px;display:block">⭐ XP</label>
+                      <input type="number" id="bc-gift-xp" min="0" placeholder="0" style="width:100%;padding:8px 10px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);box-sizing:border-box">
                     </div>
                   </div>
                 </div>
-                <button class="btn btn-primary" id="bc-send-btn" style="width:100%">
+
+                <button class="btn btn-primary" id="bc-send-btn" style="width:100%;padding:11px">
                   <i class="fas fa-paper-plane"></i> Gửi thông báo
                 </button>
               </div>
+
+              <!-- RIGHT: History -->
               <div>
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-                  <h3 style="font-size:15px">Thông báo gần đây</h3>
-                  <button class="btn btn-ghost btn-sm" id="bc-history-refresh-btn"><i class="fas fa-sync"></i></button>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                  <h3 style="font-size:15px;font-weight:700;margin:0">Thông báo gần đây</h3>
+                  <select id="bc-filter-type" style="margin-left:auto;padding:5px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:var(--text-primary);font-size:12px">
+                    <option value="">Tất cả loại</option>
+                    <option value="system">Hệ thống</option>
+                    <option value="reward">Phần thưởng</option>
+                    <option value="reminder">Nhắc nhở</option>
+                    <option value="violation">Vi phạm</option>
+                    <option value="achievement">Thành tích</option>
+                    <option value="quest">Nhiệm vụ</option>
+                  </select>
+                  <button class="btn btn-ghost btn-sm" id="bc-history-refresh-btn" title="Làm mới"><i class="fas fa-sync"></i></button>
                 </div>
-                <div id="bc-history" style="display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto">
+                <div id="bc-history" style="display:flex;flex-direction:column;gap:8px;max-height:600px;overflow-y:auto">
                   <p style="color:var(--text-secondary);font-size:13px">Đang tải...</p>
                 </div>
               </div>

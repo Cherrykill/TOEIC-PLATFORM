@@ -8,6 +8,23 @@ const Vocabulary = require('../models/Vocabulary');
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+const _explainCache = new Map();
+const EXPLAIN_TTL = 24 * 60 * 60 * 1000;
+
+function getExplainCache(key) {
+    const e = _explainCache.get(key);
+    if (!e) return null;
+    if (Date.now() - e.ts > EXPLAIN_TTL) { _explainCache.delete(key); return null; }
+    return e.data;
+}
+function setExplainCache(key, data) {
+    _explainCache.set(key, { data, ts: Date.now() });
+    if (_explainCache.size > 500) {
+        const oldest = [..._explainCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+        _explainCache.delete(oldest[0]);
+    }
+}
+
 /**
  * @desc    Explain word with AI
  * @route   POST /api/ai/explain
@@ -23,6 +40,10 @@ exports.explainWord = async (req, res, next) => {
                 message: 'Word is required (wordEn)',
             });
         }
+
+        const cacheKey = wordEn.toLowerCase().trim();
+        const cached = getExplainCache(cacheKey);
+        if (cached) return res.json({ ...cached, _cached: true });
 
         let word = await Vocabulary.findOne({ scope: { $ne: 'private' }, en: new RegExp(`^${escapeRegex(wordEn)}$`, 'i') });
 
@@ -47,7 +68,7 @@ exports.explainWord = async (req, res, next) => {
             });
         }
 
-        res.json({
+        const responseObj = {
             success: true,
             word: {
                 en: word.en,
@@ -55,7 +76,9 @@ exports.explainWord = async (req, res, next) => {
                 phonetic: word.phonetic || '',
             },
             explanation: result.content,
-        });
+        };
+        setExplainCache(cacheKey, responseObj);
+        res.json(responseObj);
 
     } catch (error) {
         next(error);

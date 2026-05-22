@@ -11,7 +11,7 @@ import { STORAGE_KEYS, COLOR_THEME_GUEST_KEY } from '@/constants/storageKeys.js'
 import { applyUiTheme, applyColorTheme, currentColorThemeKey } from '@/services/theme.js';
 
 // Canonical defaults for the bits stored outside GameState.settings.
-const DEFAULT_THEME = 'dark';            // matches the Settings select default
+const DEFAULT_THEME = 'light';
 const DEFAULT_PRIMARY = '#E11D48';       // = COLOR_PRESETS[0]
 const DEFAULT_SECONDARY = '#F97316';
 

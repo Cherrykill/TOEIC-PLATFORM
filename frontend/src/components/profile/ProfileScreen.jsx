@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { API } from '@api/http.js';
@@ -13,6 +13,8 @@ export default function ProfileScreen({ active }) {
     const [stats, setStats] = useState(null);
     const [achievements, setAchievements] = useState([]);
     const [showAllAchievements, setShowAllAchievements] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
+    const avatarInputRef = useRef(null);
 
     useEffect(() => {
         if (active) {
@@ -30,6 +32,48 @@ export default function ProfileScreen({ active }) {
             syncFromState();
         } else {
             Notification.error(res.error || 'Cập nhật thất bại');
+        }
+    }
+
+    function resizeImage(file, maxSize) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
+                else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.85));
+            };
+            img.onerror = reject;
+            img.src = url;
+        });
+    }
+
+    async function handleAvatarChange(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith('image/')) { Notification.error('Chỉ hỗ trợ file ảnh'); return; }
+        setUploadingAvatar(true);
+        try {
+            const dataUrl = await resizeImage(file, 200);
+            const res = await API.auth.updateProfile({ avatar: dataUrl });
+            if (res.success) {
+                GameState.state.user.avatar = dataUrl;
+                syncFromState();
+                Notification.success('Đã cập nhật ảnh đại diện!');
+            } else {
+                Notification.error(res.error || 'Cập nhật thất bại');
+            }
+        } catch {
+            Notification.error('Không thể tải ảnh lên');
+        } finally {
+            setUploadingAvatar(false);
+            e.target.value = '';
         }
     }
 
@@ -83,7 +127,29 @@ export default function ProfileScreen({ active }) {
             <div id="profile-content" className="profile-content">
 
                 <div className="profile-header">
-                    <div className="profile-avatar">{user?.avatar || 'P'}</div>
+                    <div
+                        className="profile-avatar profile-avatar--clickable"
+                        onClick={() => avatarInputRef.current?.click()}
+                        title="Đổi ảnh đại diện"
+                    >
+                        {user?.avatar?.startsWith('data:image') || user?.avatar?.startsWith('http')
+                            ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                            : (user?.avatar || 'P')
+                        }
+                        <div className="profile-avatar-overlay">
+                            {uploadingAvatar
+                                ? <i className="fas fa-spinner fa-spin"></i>
+                                : <i className="fas fa-camera"></i>
+                            }
+                        </div>
+                    </div>
+                    <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={handleAvatarChange}
+                    />
 
                     <div className="profile-details">
                         {editing ? (

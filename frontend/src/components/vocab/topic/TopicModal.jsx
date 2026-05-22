@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Notification } from "@ui/Toaster.jsx";
 import { useTopics } from "./useTopics.js";
+import { PartSelector } from "@components/vocab/part/partSelector.js";
 
 export default function TopicModal({ open, onClose, onSelected }) {
   const {
@@ -50,18 +51,19 @@ export default function TopicModal({ open, onClose, onSelected }) {
 
   if (!open) return null;
 
+  function afterSelect() {
+    onSelected?.();
+    onClose();
+    setTimeout(() => PartSelector.showPartSelectionModal?.(), 80);
+  }
+
   async function handleSelectShared(topicId) {
     if (busyId) return;
-    if (current?.id === topicId) {
-      onSelected?.();
-      onClose();
-      return;
-    }
+    if (current?.id === topicId) { afterSelect(); return; }
     setBusyId(topicId);
     try {
       await selectShared(topicId);
-      onSelected?.();
-      onClose();
+      afterSelect();
     } catch {
       Notification.error("Không thể chọn đề này");
     } finally {
@@ -74,8 +76,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
     setBusyId(`personal:${source}`);
     try {
       await selectPersonal(source);
-      onSelected?.();
-      onClose();
+      afterSelect();
     } catch (err) {
       Notification.error(err.message || "Không thể tải từ vựng này");
     } finally {
@@ -88,8 +89,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
     setBusyId(`wrong:${source}`);
     try {
       await selectWrong(source);
-      onSelected?.();
-      onClose();
+      afterSelect();
     } catch (err) {
       Notification.error(err.message || "Không thể tải từ sai");
     } finally {
@@ -244,6 +244,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                         alignItems: "center",
                         justifyContent: "center",
                         minHeight: 260,
+                        width: "100%",
                       }}
                     >
                       <i
@@ -265,7 +266,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                       >
                         Chưa có từ vựng riêng
                       </p>
-                      <p style={{ margin: 0, fontSize: 13 }}>
+                      <p style={{ margin: 0, fontSize: 13, textAlign: 'center' }}>
                         Bấm nút tải lên ☁️ ở thanh điều hướng để thêm từ vựng
                         của bạn.
                       </p>
@@ -327,6 +328,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                         alignItems: "center",
                         justifyContent: "center",
                         minHeight: 260,
+                        width: "100%",
                       }}
                     >
                       <i
@@ -348,7 +350,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                       >
                         Chưa có từ sai
                       </p>
-                      <p style={{ margin: 0, fontSize: 13 }}>
+                      <p style={{ margin: 0, fontSize: 13, textAlign: 'center' }}>
                         Làm sai từ nào trong lúc luyện tập, từ đó sẽ xuất hiện
                         ở đây để ôn lại.
                       </p>

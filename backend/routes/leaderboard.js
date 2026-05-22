@@ -8,6 +8,24 @@ const UserStats = require('../models/UserStats');
 const SORT_FIELD_MAP = { score: 'highestScore', xp: 'xp', totalXp: 'totalXp' };
 const ONLINE_THRESHOLD_MS = 15 * 60 * 1000;
 
+// In-memory cache — tránh query MongoDB mỗi giây khi nhiều user load bảng xếp hạng
+const _cache = new Map();
+const LB_TTL = 5 * 60 * 1000; // 5 phút
+
+function getCache(key) {
+    const e = _cache.get(key);
+    if (!e) return null;
+    if (Date.now() - e.ts > LB_TTL) { _cache.delete(key); return null; }
+    return e.data;
+}
+function setCache(key, data) {
+    _cache.set(key, { data, ts: Date.now() });
+    if (_cache.size > 30) { // evict oldest khi cache quá lớn
+        const oldest = [..._cache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+        _cache.delete(oldest[0]);
+    }
+}
+
 function getPeriodQuery(period) {
     const now = new Date();
     if (period === 'daily') {
@@ -46,7 +64,14 @@ router.get('/:period?', async (req, res) => {
         const sortField = SORT_FIELD_MAP[sortBy] || 'totalXp';
         const onlineThreshold = new Date(Date.now() - ONLINE_THRESHOLD_MS);
 
-        // Eligible userIds from User (filter inactive + admin + period)
+        const cacheKey = `lb:${period}:${sortField}:${limitNum}`;
+        const cached = getCache(cacheKey);
+        if (cached) {
+            // Cập nhật isOnline realtime (không cache vì thay đổi theo giây)
+            cached.forEach(e => { e.isOnline = e._lastLogin && new Date(e._lastLogin) >= onlineThreshold; });
+            return res.json({ success: true, period, sortBy: sortField, count: cached.length, data: cached, _cached: true });
+        }
+
         const userQuery = { isActive: true, role: { $ne: 'admin' }, ...getPeriodQuery(period) };
         const eligibleUsers = await User.find(userQuery).select('_id lastLoginAt').lean();
         const eligibleIds = eligibleUsers.map(u => u._id);
@@ -74,9 +99,11 @@ router.get('/:period?', async (req, res) => {
                 streak: s.streakCurrent || 0,
                 gamesPlayed: s.totalGamesPlayed || 0,
                 isOnline: lastLogin && new Date(lastLogin) >= onlineThreshold,
+                _lastLogin: lastLogin, // giữ để recalc isOnline khi serve từ cache
             };
         });
 
+        setCache(cacheKey, leaderboard);
         res.json({ success: true, period, sortBy: sortField, count: leaderboard.length, data: leaderboard });
     } catch (error) {
         logger.error('Leaderboard error:', error);

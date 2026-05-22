@@ -15,6 +15,54 @@ const {
 
 router.use(protect); // ← áp dụng cho tất cả route bên dưới
 
+router.delete('/progress', async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const UserStats      = require('../models/UserStats');
+        const UserProfile    = require('../models/UserProfile');
+        const WrongWord      = require('../models/WrongWord');
+        const UserAchievement = require('../models/UserAchievement');
+        const UserQuest      = require('../models/UserQuest');
+        const UserDailyQuest = require('../models/UserDailyQuest');
+        const PracticeSession = require('../models/PracticeSession');
+        const ToeicAttempt   = require('../models/ToeicAttempt');
+        const UserCheckin    = require('../models/UserCheckin');
+        const Notification   = require('../models/Notification');
+
+        const statsReset = {
+            xp: 0, totalXp: 0,
+            coins: 0, gems: 0, energy: 100, maxEnergy: 100, lastEnergyUpdate: new Date(),
+            hints: 0, shields: 0, timeFreezes: 0,
+            streakCurrent: 0, streakLongest: 0, streakLastPlayDate: null, streakShieldsUsed: 0,
+            wordsLearned: [], wordsMastered: [],
+            totalSessions: 0, totalGamesPlayed: 0, totalQuestionsAnswered: 0,
+            totalCorrectAnswers: 0, totalWrongAnswers: 0, perfectRounds: 0,
+            highestScore: 0, totalPlayTime: 0,
+            modeStats: new Map(),
+            practiceHistory: [],
+            xpBoostActive: false, xpBoostMultiplier: 1, xpBoostExpiresAt: null,
+            coinsBoostActive: false, coinsBoostMultiplier: 1, coinsBoostExpiresAt: null,
+        };
+
+        await Promise.all([
+            UserStats.findOneAndUpdate({ userId }, { $set: statsReset }),
+            UserProfile.findOneAndUpdate({ userId }, { $set: { level: 1, currentLevelXp: 0 } }),
+            WrongWord.deleteMany({ userId }),
+            UserAchievement.deleteMany({ userId }),
+            UserQuest.deleteMany({ userId }),
+            UserDailyQuest.deleteMany({ userId }),
+            PracticeSession.deleteMany({ userId }),
+            ToeicAttempt.deleteMany({ userId }),
+            UserCheckin.deleteMany({ userId }),
+            Notification.deleteMany({ userId }),
+        ]);
+
+        res.json({ success: true, message: 'Đã xóa toàn bộ tiến trình' });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // Heartbeat — cập nhật lastLoginAt để leaderboard biết user đang online
 router.post('/heartbeat', async (req, res) => {
     await require('../models/User').findByIdAndUpdate(req.user.id, { lastLoginAt: Date.now() });

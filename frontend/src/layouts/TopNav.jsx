@@ -52,7 +52,8 @@ export default function TopNav() {
     }, []);
 
 
-    const avatarText = user?.avatar || user?.username?.charAt(0)?.toUpperCase() || 'P';
+    const avatarSrc = user?.avatar;
+    const isAvatarImg = avatarSrc && (avatarSrc.startsWith('data:image') || avatarSrc.startsWith('http'));
 
     return (
         <>
@@ -68,7 +69,12 @@ export default function TopNav() {
                 <NotificationPanel isLoggedIn={isLoggedIn} />
 
                 <div className="user-info" onClick={() => showScreen('home-screen')} style={{ cursor: 'pointer' }}>
-                    <div className="avatar-small" id="user-avatar">{avatarText}</div>
+                    <div className="avatar-small" id="user-avatar">
+                        {isAvatarImg
+                            ? <img src={avatarSrc} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                            : (avatarSrc || user?.username?.charAt(0)?.toUpperCase() || 'P')
+                        }
+                    </div>
                     <div className="user-details">
                         <span id="username" className="username">{user?.username || 'Player'}</span>
                         <div className="level-badge">

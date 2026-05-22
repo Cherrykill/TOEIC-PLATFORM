@@ -36,15 +36,7 @@ export const SessionService = {
         return { scoreData, xpReward, coinsReward, gemsBonus, isPerfect, totalQuestions, duration };
     },
 
-    calculateGemsBonus(totalQuestions, isRandomMode) {
-        if (!isRandomMode) return 0;
-        if (totalQuestions >= 200) return 100;
-        if (totalQuestions >= 150) return 50;
-        if (totalQuestions >= 100) return 30;
-        if (totalQuestions >= 75)  return 15;
-        if (totalQuestions >= 50)  return 10;
-        return 0;
-    },
+    calculateGemsBonus() { return 0; },
 
     applyResultsToState(session, results) {
         const { scoreData, xpReward, coinsReward, gemsBonus, isPerfect } = results;

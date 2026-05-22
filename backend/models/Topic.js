@@ -47,4 +47,7 @@ const topicSchema = new mongoose.Schema(
     }
 );
 
+topicSchema.index({ isPublic: 1, order: 1 });
+topicSchema.index({ sourceKeys: 1 });
+
 module.exports = mongoose.model('Topic', topicSchema);

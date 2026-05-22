@@ -645,6 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initShopModal();
     initAiGenModal();
     initCopyJsonButtons();
+    initDeleteAllButtons();
 
     // Auto-open group for current active tab
     var activeLink = document.querySelector('.sidebar-link.active[data-main-tab]');
@@ -692,6 +693,36 @@ async function copyAllJson(kind) {
 function initCopyJsonButtons() {
     document.getElementById('btn-copy-achievement-json')?.addEventListener('click', function () { copyAllJson('achievement'); });
     document.getElementById('btn-copy-quest-json')?.addEventListener('click', function () { copyAllJson('quest'); });
+}
+
+function initDeleteAllButtons() {
+    document.getElementById('btn-delete-all-achievements')?.addEventListener('click', async function () {
+        if (!confirm('Xóa TẤT CẢ thành tích? Hành động này không thể hoàn tác!')) return;
+        try {
+            const res = await fetch(API_URL + '/admin/achievements/delete-all', {
+                method: 'DELETE',
+                headers: { Authorization: 'Bearer ' + getToken() }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+            showToast('Đã xóa ' + (data.deletedCount || 0) + ' thành tích', 'success');
+            loadAchievements();
+        } catch (err) { showToast(err.message, 'error'); }
+    });
+
+    document.getElementById('btn-delete-all-quests')?.addEventListener('click', async function () {
+        if (!confirm('Xóa TẤT CẢ nhiệm vụ? Hành động này không thể hoàn tác!')) return;
+        try {
+            const res = await fetch(API_URL + '/admin/quests/delete-all', {
+                method: 'DELETE',
+                headers: { Authorization: 'Bearer ' + getToken() }
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+            showToast('Đã xóa ' + (data.deletedCount || 0) + ' nhiệm vụ', 'success');
+            loadQuests();
+        } catch (err) { showToast(err.message, 'error'); }
+    });
 }
 
 // ============================================================

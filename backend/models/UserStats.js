@@ -89,5 +89,7 @@ const userStatsSchema = new mongoose.Schema(
 userStatsSchema.index({ totalXp: -1 });
 userStatsSchema.index({ highestScore: -1 });
 userStatsSchema.index({ streakCurrent: -1 });
+userStatsSchema.index({ userId: 1, totalXp: -1 });
+userStatsSchema.index({ userId: 1, highestScore: -1 });
 
 module.exports = mongoose.model('UserStats', userStatsSchema);

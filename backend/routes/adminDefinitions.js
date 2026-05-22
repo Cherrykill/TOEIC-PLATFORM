@@ -48,6 +48,11 @@ router.put('/achievements/:id', admin, async (req, res) => {
     }
 });
 
+router.delete('/achievements/delete-all', admin, async (req, res) => {
+    const result = await AchievementDefinition.deleteMany({});
+    res.json({ success: true, message: `Đã xóa ${result.deletedCount} thành tích`, deletedCount: result.deletedCount });
+});
+
 router.delete('/achievements/:id', admin, async (req, res) => {
     const data = await AchievementDefinition.findByIdAndDelete(req.params.id);
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
@@ -83,6 +88,11 @@ router.put('/quests/:id', admin, async (req, res) => {
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }
+});
+
+router.delete('/quests/delete-all', admin, async (req, res) => {
+    const result = await QuestDefinition.deleteMany({});
+    res.json({ success: true, message: `Đã xóa ${result.deletedCount} nhiệm vụ`, deletedCount: result.deletedCount });
 });
 
 router.delete('/quests/:id', admin, async (req, res) => {

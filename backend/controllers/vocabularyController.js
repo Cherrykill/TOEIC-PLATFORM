@@ -77,7 +77,7 @@ exports.getAllVocabulary = async (req, res, next) => {
     try {
         const { limit = 20, page = 1, part, type, search, source } = req.query;
         const pageNum = parseInt(page);
-        const limitNum = parseInt(limit);
+        const limitNum = Math.min(parseInt(limit) || 20, 1000);
         const skip = (pageNum - 1) * limitNum;
 
         let query = Vocabulary.find(PUBLIC_FILTER);

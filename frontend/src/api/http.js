@@ -261,6 +261,10 @@ export const API = {
 
         async updateQuests(quests) {
             return Http.patch('/user/quests', { quests });
+        },
+
+        async resetProgress() {
+            return Http.delete('/user/progress');
         }
     },
 

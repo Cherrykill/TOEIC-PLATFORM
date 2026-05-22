@@ -129,17 +129,7 @@
 }
 
 .quest-card.completed {
-  background: linear-gradient(
-    135deg,
-    var(--success-color),
-    var(--primary-color)
-  );
-  color: var(--text-white);
-}
-
-.quest-card.completed .quest-description,
-.quest-card.completed .quest-progress-text {
-  color: rgba(255, 255, 255, 0.9);
+  border-color: var(--success-color);
 }
 
 /* ===================================
@@ -1706,6 +1696,30 @@
   font-weight: bold;
   color: var(--primary-color);
   flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.profile-avatar--clickable {
+  cursor: pointer;
+}
+
+.profile-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: #fff;
+  font-size: 22px;
+}
+
+.profile-avatar--clickable:hover .profile-avatar-overlay {
+  opacity: 1;
 }
 
 .profile-details {
@@ -1884,10 +1898,10 @@
   flex-wrap: wrap;
 }
 
-.btn-copy-id {
+.profile-header .btn-copy-id {
   background: rgba(255,255,255,0.2);
   border: none;
-  color: inherit;
+  color: #fff !important;
   cursor: pointer;
   padding: 2px 6px;
   border-radius: 4px;
@@ -1895,7 +1909,7 @@
   transition: background 0.15s;
 }
 
-.btn-copy-id:hover {
+.profile-header .btn-copy-id:hover {
   background: rgba(255,255,255,0.35);
 }
 
@@ -3019,6 +3033,7 @@ mark {
   border-radius: 50%;
   font-size: 24px;
 }
+.stat-box .stat-icon i, .stat-icon i { color: #fff !important; }
 
 .charts-section {
   display: grid;

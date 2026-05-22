@@ -51,6 +51,7 @@ export default function HomeScreen({ active }) {
     const [timer, setTimer] = useState(getTimeUntilMidnight());
     const [stats, setStats] = useState({});
     const [wrongWordsCount, setWrongWordsCount] = useState(0);
+    const [userRank, setUserRank] = useState(null);
 
     const loadLocalData = useCallback(() => {
         const s = GameState.state;
@@ -63,7 +64,16 @@ export default function HomeScreen({ active }) {
     }, []);
 
     useEffect(() => {
-        if (active) loadLocalData();
+        if (active) {
+            loadLocalData();
+            const userId = GameState.state.user?.id || GameState.state.user?._id;
+            if (userId) {
+                fetch(`/api/leaderboard/rank/${userId}/all-time`)
+                    .then(r => r.json())
+                    .then(j => { if (j.success) setUserRank(j.data.rank); })
+                    .catch(() => {});
+            }
+        }
     }, [active, loadLocalData]);
 
     useEffect(() => {
@@ -133,7 +143,13 @@ export default function HomeScreen({ active }) {
                 <div id="daily-quests" className="quests-container">
                     {quests.length === 0 ? (
                         <div className="empty-state"><i className="fas fa-tasks"></i><p>Không có nhiệm vụ nào</p></div>
-                    ) : quests.map((quest, i) => {
+                    ) : [...quests]
+                        .sort((a, b) => {
+                            const rank = q => (q.completed && !q.claimedAt && !q.claimed) ? 0 : (q.claimedAt || q.claimed) ? 2 : 1;
+                            return rank(a) - rank(b);
+                        })
+                        .slice(0, 3)
+                        .map((quest, i) => {
                         const progress = quest.progress ?? quest.current ?? 0;
                         const target = quest.target || 1;
                         const pct = Math.min(100, Math.round((progress / target) * 100));
@@ -234,7 +250,7 @@ export default function HomeScreen({ active }) {
                     </div>
                     <div className="stat-card">
                         <i className="fas fa-crown"></i>
-                        <div className="stat-value">-</div>
+                        <div className="stat-value">{userRank != null ? `#${userRank}` : '-'}</div>
                         <div className="stat-label">Xếp hạng</div>
                     </div>
                 </div>

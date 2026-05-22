@@ -50,20 +50,8 @@ export default function AccountPanel({
             </div>
 
             <div className="settings-section">
-                <h3>Đồng bộ & Dữ liệu</h3>
-                <div className="setting-item">
-                    <div className="setting-info"><h4>Tự động đồng bộ</h4><p>Lưu tiến độ lên cloud sau mỗi phiên</p></div>
-                    <Toggle checked={s.autoSync !== false} onChange={v => updateSetting('autoSync', v)} />
-                </div>
-                <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
-                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleBackup}>
-                        <i className="fas fa-download"></i> Sao lưu dữ liệu
-                    </button>
-                    <button className="btn btn-secondary" style={{ flex: 1 }} onClick={handleRestore}>
-                        <i className="fas fa-upload"></i> Khôi phục
-                    </button>
-                </div>
-                <button className="btn btn-secondary" style={{ width: '100%', marginTop: 10 }} onClick={handleResetSettings}>
+                <h3>Dữ liệu</h3>
+                <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleResetSettings}>
                     <i className="fas fa-rotate-left"></i> Khôi phục cài đặt mặc định
                 </button>
                 <button className="btn btn-danger" style={{ width: '100%', marginTop: 10 }} onClick={handleReset}>

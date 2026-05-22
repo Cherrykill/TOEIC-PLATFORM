@@ -67,10 +67,18 @@ export default function StatisticsScreen({ active }) {
     const partEntries = Object.entries(partMap).sort((a, b) => a[0].localeCompare(b[0]));
 
     useEffect(() => {
+        // Destroy cả 2 instance trước khi vẽ để tránh "Canvas already in use"
+        if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; }
+        if (hourlyChartInstance.current) { hourlyChartInstance.current.destroy(); hourlyChartInstance.current = null; }
         if (!active || activeTab !== 'overview') return;
         if (timeRange === '1') drawHourlyChart();
         else drawChart();
     }, [active, activeTab, timeRange, tick]);
+
+    useEffect(() => () => {
+        if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; }
+        if (hourlyChartInstance.current) { hourlyChartInstance.current.destroy(); hourlyChartInstance.current = null; }
+    }, []);
 
     function exportReport() {
         const labelMap = { '1': 'hom-nay', '7': '7-ngay', '30': '30-ngay' };
@@ -399,7 +407,7 @@ export default function StatisticsScreen({ active }) {
             <div className={`stats-tab-panel ${activeTab === 'vocabulary' ? 'active' : ''}`}>
                 <div id="part-progress" className="part-progress-list">
                     {partEntries.length === 0 ? (
-                        <div className="empty-state">
+                        <div className="empty-state" style={{ gridColumn: '1 / -1', textAlign: 'center' }}>
                             <i className="fas fa-book" style={{ fontSize: 36, opacity: 0.3 }}></i>
                             <p style={{ marginTop: 8 }}>Chưa có dữ liệu thống kê từ vựng</p>
                             <p style={{ fontSize: '0.85em', opacity: 0.6 }}>Dữ liệu sẽ hiện sau khi từ vựng được tải</p>

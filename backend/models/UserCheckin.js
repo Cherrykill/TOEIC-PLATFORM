@@ -14,4 +14,7 @@ const userCheckinSchema = new mongoose.Schema(
     { timestamps: true, collection: 'user_checkin', versionKey: false }
 );
 
+userCheckinSchema.index({ userId: 1 }, { unique: true });
+userCheckinSchema.index({ userId: 1, weekKey: 1 });
+
 module.exports = mongoose.model('UserCheckin', userCheckinSchema);

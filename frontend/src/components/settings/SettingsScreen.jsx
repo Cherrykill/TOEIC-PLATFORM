@@ -202,8 +202,12 @@ export default function SettingsScreen({ active }) {
             buttons: [
                 { text: 'Hủy', className: 'btn-secondary', onClick: () => {} },
                 { text: 'Xóa tất cả', className: 'btn-danger', onClick: async () => {
-                    await resetProgress();
-                    setTimeout(() => location.reload(), 500);
+                    try {
+                        await resetProgress();
+                        setTimeout(() => location.reload(), 500);
+                    } catch (err) {
+                        Notification.error(err.message || 'Xóa tiến trình thất bại');
+                    }
                 }},
             ],
         });
