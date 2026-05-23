@@ -66,12 +66,21 @@ function _renderAchievements(defs) {
 
 function _setupAchSearch() {
     const inp = document.getElementById('ach-search');
+    const sel = document.getElementById('ach-filter-cat');
     if (!inp || inp.dataset.bound) return;
     inp.dataset.bound = '1';
-    inp.addEventListener('input', function() {
+    
+    function filter() {
         const q = inp.value.trim().toLowerCase();
-        _renderAchievements(q ? _achData.filter(d => (d.name + d.code + d.category).toLowerCase().includes(q)) : _achData);
-    });
+        const cat = sel ? sel.value : '';
+        let result = _achData;
+        if (cat) result = result.filter(d => d.category === cat);
+        if (q) result = result.filter(d => (d.name + d.code + d.category).toLowerCase().includes(q));
+        _renderAchievements(result);
+    }
+    
+    inp.addEventListener('input', filter);
+    if (sel) sel.addEventListener('change', filter);
 }
 
 function openAchievementModal(data) {
@@ -202,12 +211,21 @@ function _renderQuests(defs) {
 
 function _setupQuestSearch() {
     const inp = document.getElementById('quest-search');
+    const sel = document.getElementById('quest-filter-type');
     if (!inp || inp.dataset.bound) return;
     inp.dataset.bound = '1';
-    inp.addEventListener('input', function() {
+    
+    function filter() {
         const q = inp.value.trim().toLowerCase();
-        _renderQuests(q ? _questData.filter(d => (d.name + d.code + (d.type||'')).toLowerCase().includes(q)) : _questData);
-    });
+        const type = sel ? sel.value : '';
+        let result = _questData;
+        if (type) result = result.filter(d => d.type === type);
+        if (q) result = result.filter(d => (d.name + d.code + (d.type||'')).toLowerCase().includes(q));
+        _renderQuests(result);
+    }
+    
+    inp.addEventListener('input', filter);
+    if (sel) sel.addEventListener('change', filter);
 }
 
 function openQuestModal(data) {

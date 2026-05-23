@@ -8,7 +8,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="/admin/css/dashboard.css?v=9" />
+    <link rel="stylesheet" href="/admin/css/dashboard.css?v=10" />
     <style>
       /* Login modal */
       #admin-login-modal {
@@ -275,6 +275,9 @@
         <div class="sidebar-brand">
           <i class="fas fa-chart-line"></i>
           <span>TOEIC Admin</span>
+          <button class="sidebar-toggle-btn" id="sidebar-toggle-brand" title="Ẩn/hiện menu" onclick="document.getElementById('sidebar-toggle').click()">
+            <i class="fas fa-bars"></i>
+          </button>
         </div>
         <nav class="sidebar-nav">
           <!-- Dashboard -->
@@ -685,35 +688,31 @@
                   </button>
                 </div>
               </div>
-              <div class="filter-bar">
-                <div class="filter-bar-row cols-3">
-                  <div class="form-group">
-                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                    <input type="text" id="topics-search" class="filter-input" placeholder="Tên đề, source key...">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"><i class="fas fa-book-open"></i> Số từ</label>
-                    <select id="topics-filter-words" class="filter-select">
-                      <option value="">Tất cả</option>
-                      <option value="0-99">&lt; 100 từ</option>
-                      <option value="100-499">100 – 499 từ</option>
-                      <option value="500-999">500 – 999 từ</option>
-                      <option value="1000-">≥ 1000 từ</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"><i class="fas fa-eye"></i> Hiển thị</label>
-                    <select id="topics-filter-visible" class="filter-select">
-                      <option value="">Tất cả</option>
-                      <option value="1">Đang hiện</option>
-                      <option value="0">Đang ẩn</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="filter-bar-footer">
-                  <span id="topics-filter-count" class="result-count"></span>
-                  <button class="btn btn-ghost btn-sm" id="topics-filter-clear"><i class="fas fa-times"></i> Xóa lọc</button>
-                </div>
+              <!-- Search + filters row (same layout as Vocabulary tab) -->
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input
+                  type="text"
+                  id="topics-search"
+                  class="card-search"
+                  style="flex: 1; margin: 0"
+                  placeholder="Tên đề, source key..."
+                />
+                <select id="topics-filter-words" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="">Tất cả</option>
+                  <option value="0-99">&lt; 100 từ</option>
+                  <option value="100-499">100 – 499 từ</option>
+                  <option value="500-999">500 – 999 từ</option>
+                  <option value="1000-">≥ 1000 từ</option>
+                </select>
+                <select id="topics-filter-visible" class="filter-select" style="width: auto; min-width: 120px; flex-shrink: 0">
+                  <option value="">Tất cả</option>
+                  <option value="1">Đang hiện</option>
+                  <option value="0">Đang ẩn</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                <span id="topics-filter-count" class="result-count" style="font-size: 13px; color: var(--text-secondary)"></span>
+                <button class="btn btn-ghost btn-sm" id="topics-filter-clear"><i class="fas fa-times"></i> Xóa lọc</button>
               </div>
               <div class="table-container">
                 <table id="topics-table">
@@ -773,13 +772,6 @@
                       title="Xóa toàn bộ docs khớp field=value"
                     >
                       <i class="fas fa-filter"></i> Xóa theo lọc
-                    </button>
-                    <button
-                      class="btn btn-danger btn-sm"
-                      id="btn-delete-all-vocab"
-                      title="Xóa toàn bộ từ vựng trong database"
-                    >
-                      <i class="fas fa-database"></i> Làm sạch DB
                     </button>
                   </div>
                 </div>
@@ -932,53 +924,35 @@
               </div>
 
               <!-- Users Search & Filter -->
-              <div class="filter-bar">
-                <div class="filter-bar-row cols-3">
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-search"></i> Search</label
-                    >
-                    <input
-                      type="text"
-                      id="user-search"
-                      class="filter-input"
-                      placeholder="Username hoặc email..."
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-user-tag"></i> Vai trò</label
-                    >
-                    <select id="filter-user-role" class="filter-select">
-                      <option value="">Tất cả vai trò</option>
-                      <option value="user">Người dùng</option>
-                      <option value="admin">Quản trị viên</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-toggle-on"></i> Trạng thái</label
-                    >
-                    <select id="filter-user-status" class="filter-select">
-                      <option value="">Tất cả trạng thái</option>
-                      <option value="active">Hoạt động</option>
-                      <option value="inactive">Không hoạt động</option>
-                    </select>
-                  </div>
+              <!-- Users Search & Filter -->
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input
+                  type="text"
+                  id="user-search"
+                  class="card-search"
+                  style="flex: 1; margin: 0"
+                  placeholder="Username hoặc email..."
+                />
+                <select id="filter-user-role" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="">Tất cả vai trò</option>
+                  <option value="user">Người dùng</option>
+                  <option value="admin">Quản trị viên</option>
+                </select>
+                <select id="filter-user-status" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="">Tất cả trạng thái</option>
+                  <option value="active">Hoạt động</option>
+                  <option value="inactive">Không hoạt động</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                <div id="user-filter-results-info" class="filter-results-text" style="font-size: 13px; color: var(--text-secondary); margin: 0">
+                  <i class="fas fa-users"></i>
+                  <strong id="user-filtered-count">0</strong> /
+                  <strong id="user-total-count">0</strong> users
                 </div>
-                <div class="filter-bar-footer">
-                  <div
-                    id="user-filter-results-info"
-                    class="filter-results-text"
-                  >
-                    <i class="fas fa-users"></i>
-                    <strong id="user-filtered-count">0</strong> /
-                    <strong id="user-total-count">0</strong> users
-                  </div>
-                  <button id="clear-user-filters" class="btn btn-ghost btn-sm">
-                    <i class="fas fa-times"></i> Clear
-                  </button>
-                </div>
+                <button id="clear-user-filters" class="btn btn-ghost btn-sm">
+                  <i class="fas fa-times"></i> Clear
+                </button>
               </div>
 
               <div class="table-container">
@@ -1036,58 +1010,43 @@
               </div>
 
               <!-- Search & Filter Controls -->
-              <div class="filter-bar">
-                <div class="filter-bar-row cols-3">
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-search"></i> Search</label
-                    >
-                    <input
-                      type="text"
-                      id="question-search"
-                      class="filter-input"
-                      placeholder="Question text, passage, explanation..."
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-filter"></i> Part</label
-                    >
-                    <select id="filter-part" class="filter-select">
-                      <option value="">Tất cả</option>
-                      <option value="1">Part 1</option>
-                      <option value="2">Part 2</option>
-                      <option value="3">Part 3</option>
-                      <option value="4">Part 4</option>
-                      <option value="5">Part 5</option>
-                      <option value="6">Part 6</option>
-                      <option value="7">Part 7</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-sort"></i> Sắp xếp</label
-                    >
-                    <select id="sort-by" class="filter-select">
-                      <option value="newest">Mới nhất</option>
-                      <option value="oldest">Cũ nhất</option>
-                      <option value="most-used">Dùng nhiều nhất</option>
-                      <option value="least-used">Dùng ít nhất</option>
-                      <option value="part-asc">Part ↑</option>
-                      <option value="part-desc">Part ↓</option>
-                    </select>
-                  </div>
+              <!-- Search & Filter Controls -->
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input
+                  type="text"
+                  id="question-search"
+                  class="card-search"
+                  style="flex: 1; margin: 0"
+                  placeholder="Question text, passage, explanation..."
+                />
+                <select id="filter-part" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="">Tất cả Part</option>
+                  <option value="1">Part 1</option>
+                  <option value="2">Part 2</option>
+                  <option value="3">Part 3</option>
+                  <option value="4">Part 4</option>
+                  <option value="5">Part 5</option>
+                  <option value="6">Part 6</option>
+                  <option value="7">Part 7</option>
+                </select>
+                <select id="sort-by" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="most-used">Dùng nhiều nhất</option>
+                  <option value="least-used">Dùng ít nhất</option>
+                  <option value="part-asc">Part ↑</option>
+                  <option value="part-desc">Part ↓</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                <div id="filter-results-info" class="filter-results-text" style="font-size: 13px; color: var(--text-secondary); margin: 0">
+                  <i class="fas fa-list"></i>
+                  <strong id="filtered-count">0</strong> /
+                  <strong id="total-count">0</strong> questions
                 </div>
-                <div class="filter-bar-footer">
-                  <div id="filter-results-info" class="filter-results-text">
-                    <i class="fas fa-list"></i>
-                    <strong id="filtered-count">0</strong> /
-                    <strong id="total-count">0</strong> questions
-                  </div>
-                  <button id="clear-filters" class="btn btn-ghost btn-sm">
-                    <i class="fas fa-times"></i> Clear
-                  </button>
-                </div>
+                <button id="clear-filters" class="btn btn-ghost btn-sm">
+                  <i class="fas fa-times"></i> Clear
+                </button>
               </div>
 
               <div class="table-container">
@@ -1139,56 +1098,37 @@
               </div>
 
               <!-- Tests Search & Filter -->
-              <div class="filter-bar">
-                <div class="filter-bar-row cols-3">
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-search"></i> Search</label
-                    >
-                    <input
-                      type="text"
-                      id="test-search"
-                      class="filter-input"
-                      placeholder="Tên đề thi..."
-                    />
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-layer-group"></i> Loại đề</label
-                    >
-                    <select id="filter-test-type" class="filter-select">
-                      <option value="">Tất cả loại</option>
-                      <option value="full">Full Test (200 câu)</option>
-                      <option value="mini">Mini Test</option>
-                      <option value="practice">Luyện tập</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"
-                      ><i class="fas fa-sort"></i> Sắp xếp</label
-                    >
-                    <select id="test-sort-by" class="filter-select">
-                      <option value="newest">Mới nhất</option>
-                      <option value="oldest">Cũ nhất</option>
-                      <option value="most-attempts">Nhiều lượt thi nhất</option>
-                      <option value="highest-score">Điểm TB cao nhất</option>
-                      <option value="lowest-score">Điểm TB thấp nhất</option>
-                    </select>
-                  </div>
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input
+                  type="text"
+                  id="test-search"
+                  class="card-search"
+                  style="flex: 1; margin: 0"
+                  placeholder="Tên đề thi..."
+                />
+                <select id="filter-test-type" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="">Tất cả loại</option>
+                  <option value="full">Full Test (200 câu)</option>
+                  <option value="mini">Mini Test</option>
+                  <option value="practice">Luyện tập</option>
+                </select>
+                <select id="test-sort-by" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="newest">Mới nhất</option>
+                  <option value="oldest">Cũ nhất</option>
+                  <option value="most-attempts">Nhiều lượt thi nhất</option>
+                  <option value="highest-score">Điểm TB cao nhất</option>
+                  <option value="lowest-score">Điểm TB thấp nhất</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                <div id="test-filter-results-info" class="filter-results-text" style="font-size: 13px; color: var(--text-secondary); margin: 0">
+                  <i class="fas fa-file-alt"></i>
+                  <strong id="test-filtered-count">0</strong> /
+                  <strong id="test-total-count">0</strong> tests
                 </div>
-                <div class="filter-bar-footer">
-                  <div
-                    id="test-filter-results-info"
-                    class="filter-results-text"
-                  >
-                    <i class="fas fa-file-alt"></i>
-                    <strong id="test-filtered-count">0</strong> /
-                    <strong id="test-total-count">0</strong> tests
-                  </div>
-                  <button id="clear-test-filters" class="btn btn-ghost btn-sm">
-                    <i class="fas fa-times"></i> Clear
-                  </button>
-                </div>
+                <button id="clear-test-filters" class="btn btn-ghost btn-sm">
+                  <i class="fas fa-times"></i> Clear
+                </button>
               </div>
 
               <div class="table-container">
@@ -1244,22 +1184,13 @@
                 <div class="card-header">
                   <h2><i class="fas fa-chart-line"></i> Thống kê người dùng</h2>
                 </div>
-                <div class="filter-bar">
-                  <div class="filter-bar-row">
-                    <div class="form-group" style="flex:1;max-width:480px">
-                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                      <div style="display:flex;gap:8px">
-                        <input type="text" id="us-search" class="filter-input" placeholder="Tìm theo email..." style="flex:1">
-                        <button class="btn btn-primary" id="us-search-btn" style="white-space:nowrap"><i class="fas fa-search"></i> Tìm</button>
-                      </div>
-                    </div>
-                    <div style="display:flex;align-items:flex-end;padding-bottom:1px">
-                      <button class="btn btn-ghost" id="us-reset-btn"><i class="fas fa-sync"></i> Làm mới</button>
-                    </div>
-                  </div>
-                  <div class="filter-bar-footer">
-                    <span id="us-total" class="filter-results-text"></span>
-                  </div>
+                <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                  <input type="text" id="us-search" class="card-search" placeholder="Tìm theo email..." style="flex: 1; margin: 0; max-width: 480px;">
+                  <button class="btn btn-primary" id="us-search-btn" style="white-space:nowrap"><i class="fas fa-search"></i> Tìm</button>
+                  <button class="btn btn-ghost" id="us-reset-btn"><i class="fas fa-sync"></i> Làm mới</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                  <span id="us-total" class="filter-results-text" style="font-size: 13px; color: var(--text-secondary); margin: 0"></span>
                 </div>
                 <div class="table-container">
                   <table class="data-table">
@@ -1282,35 +1213,25 @@
                 <div class="card-header">
                   <h2><i class="fas fa-gamepad"></i> Lịch sử luyện tập</h2>
                 </div>
-                <div class="filter-bar">
-                  <div class="filter-bar-row cols-3">
-                    <div class="form-group">
-                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                      <input type="text" id="ph-search" class="filter-input" placeholder="Tìm theo email...">
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label"><i class="fas fa-gamepad"></i> Chế độ</label>
-                      <select id="ph-mode" class="filter-select">
-                        <option value="">Tất cả chế độ</option>
-                        <option value="multiple-choice">Trắc nghiệm</option>
-                        <option value="fill-blank">Điền vào chỗ trống</option>
-                        <option value="listening">Nghe</option>
-                        <option value="matching">Ghép đôi</option>
-                        <option value="speed-quiz">Kiểm tra nhanh</option>
-                        <option value="flashcard">Thẻ ghi nhớ</option>
-                        <option value="synonym-check">Từ đồng nghĩa</option>
-                        <option value="word-type-check">Loại từ</option>
-                        <option value="word-scramble">Xếp chữ</option>
-                      </select>
-                    </div>
-                    <div class="form-group" style="display:flex;align-items:flex-end;gap:8px">
-                      <button class="btn btn-primary" id="ph-search-btn"><i class="fas fa-search"></i> Tìm</button>
-                      <button class="btn btn-ghost" id="ph-reset-btn"><i class="fas fa-sync"></i> Làm mới</button>
-                    </div>
-                  </div>
-                  <div class="filter-bar-footer">
-                    <span id="ph-total" class="filter-results-text"></span>
-                  </div>
+                <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                  <input type="text" id="ph-search" class="card-search" placeholder="Tìm theo email..." style="flex: 1; margin: 0">
+                  <select id="ph-mode" class="filter-select" style="width: auto; min-width: 150px; flex-shrink: 0">
+                    <option value="">Tất cả chế độ</option>
+                    <option value="multiple-choice">Trắc nghiệm</option>
+                    <option value="fill-blank">Điền vào chỗ trống</option>
+                    <option value="listening">Nghe</option>
+                    <option value="matching">Ghép đôi</option>
+                    <option value="speed-quiz">Kiểm tra nhanh</option>
+                    <option value="flashcard">Thẻ ghi nhớ</option>
+                    <option value="synonym-check">Từ đồng nghĩa</option>
+                    <option value="word-type-check">Loại từ</option>
+                    <option value="word-scramble">Xếp chữ</option>
+                  </select>
+                  <button class="btn btn-primary" id="ph-search-btn" style="white-space:nowrap"><i class="fas fa-search"></i> Tìm</button>
+                  <button class="btn btn-ghost" id="ph-reset-btn"><i class="fas fa-sync"></i> Làm mới</button>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                  <span id="ph-total" class="filter-results-text" style="font-size: 13px; color: var(--text-secondary); margin: 0"></span>
                 </div>
                 <div class="table-container">
                   <table class="data-table">
@@ -1343,19 +1264,11 @@
                     </button>
                   </div>
                 </div>
-                <div class="filter-bar">
-                  <div class="filter-bar-row cols-3">
-                    <div class="form-group">
-                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                      <input type="text" id="history-search" class="filter-input" placeholder="Tìm theo username..." />
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label"><i class="fas fa-user"></i> Lọc theo user</label>
-                      <select id="history-filter-user" class="filter-select">
-                        <option value="">-- Tất cả user --</option>
-                      </select>
-                    </div>
-                  </div>
+                <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                  <input type="text" id="history-search" class="card-search" placeholder="Tìm theo username..." style="flex: 1; margin: 0" />
+                  <select id="history-filter-user" class="filter-select" style="width: auto; min-width: 150px; flex-shrink: 0">
+                    <option value="">-- Tất cả user --</option>
+                  </select>
                 </div>
                 <div class="table-container">
                   <table id="history-table" class="data-table">
@@ -1388,18 +1301,11 @@
                 <div class="card-header">
                   <h2><i class="fas fa-medal"></i> Thành tích người dùng</h2>
                 </div>
-                <div class="filter-bar">
-                  <div class="filter-bar-row cols-3">
-                    <div class="form-group">
-                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                      <input type="text" id="ua-search-input" class="filter-input"
-                        placeholder="Tìm email hoặc username..."
-                        autocomplete="off">
-                    </div>
-                  </div>
-                  <div class="filter-bar-footer">
-                    <span id="ua-total" class="filter-results-text"></span>
-                  </div>
+                <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                  <input type="text" id="ua-search-input" class="card-search" placeholder="Tìm email hoặc username..." autocomplete="off" style="flex: 1; margin: 0" />
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                  <span id="ua-total" class="filter-results-text" style="font-size: 13px; color: var(--text-secondary); margin: 0"></span>
                 </div>
                 <div class="table-container">
                   <table id="ua-table" class="data-table">
@@ -1546,18 +1452,17 @@
                   <button class="btn btn-success btn-sm" id="btn-add-achievement">
                     <i class="fas fa-plus"></i> Thêm thành tích
                   </button>
-                  <button class="btn btn-danger btn-sm" id="btn-delete-all-achievements" title="Xóa tất cả thành tích">
-                    <i class="fas fa-trash"></i> Xóa tất cả
-                  </button>
                 </div>
               </div>
-              <div class="filter-bar" style="margin-bottom:0;border-bottom:1px solid var(--border-color);border-radius:0;padding:12px 16px">
-                <div class="filter-bar-row">
-                  <div class="form-group" style="flex:1;max-width:360px;margin:0">
-                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                    <input type="text" id="ach-search" class="filter-input" placeholder="Tên, mã, danh mục...">
-                  </div>
-                </div>
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input type="text" id="ach-search" class="card-search" placeholder="Tên, mã, danh mục..." style="flex: 1; margin: 0; max-width: 360px" />
+                <select id="ach-filter-cat" class="filter-select" style="width: auto; min-width: 150px; flex-shrink: 0">
+                  <option value="">Tất cả danh mục</option>
+                  <option value="learning">Học tập (learning)</option>
+                  <option value="practice">Luyện tập (practice)</option>
+                  <option value="social">Xã hội (social)</option>
+                  <option value="streak">Chuỗi (streak)</option>
+                </select>
               </div>
               <div class="table-container">
                 <table id="achievements-table" class="data-table">
@@ -1589,18 +1494,17 @@
                   <button class="btn btn-success btn-sm" id="btn-add-quest">
                     <i class="fas fa-plus"></i> Thêm nhiệm vụ
                   </button>
-                  <button class="btn btn-danger btn-sm" id="btn-delete-all-quests" title="Xóa tất cả nhiệm vụ">
-                    <i class="fas fa-trash"></i> Xóa tất cả
-                  </button>
                 </div>
               </div>
-              <div class="filter-bar" style="margin-bottom:0;border-bottom:1px solid var(--border-color);border-radius:0;padding:12px 16px">
-                <div class="filter-bar-row">
-                  <div class="form-group" style="flex:1;max-width:360px;margin:0">
-                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                    <input type="text" id="quest-search" class="filter-input" placeholder="Tên, mã nhiệm vụ...">
-                  </div>
-                </div>
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input type="text" id="quest-search" class="card-search" placeholder="Tên, mã nhiệm vụ..." style="flex: 1; margin: 0; max-width: 360px" />
+                <select id="quest-filter-type" class="filter-select" style="width: auto; min-width: 150px; flex-shrink: 0">
+                  <option value="">Tất cả loại</option>
+                  <option value="daily">Hàng ngày (daily)</option>
+                  <option value="weekly">Hàng tuần (weekly)</option>
+                  <option value="monthly">Hàng tháng (monthly)</option>
+                  <option value="event">Sự kiện (event)</option>
+                </select>
               </div>
               <div class="table-container">
                 <table id="quests-table" class="data-table">
@@ -1628,13 +1532,8 @@
                   </button>
                 </div>
               </div>
-              <div class="filter-bar" style="margin-bottom:0;border-bottom:1px solid var(--border-color);border-radius:0;padding:12px 16px">
-                <div class="filter-bar-row">
-                  <div class="form-group" style="flex:1;max-width:360px;margin:0">
-                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                    <input type="text" id="shop-search" class="filter-input" placeholder="Tên, mã item, danh mục...">
-                  </div>
-                </div>
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input type="text" id="shop-search" class="card-search" placeholder="Tên, mã item, danh mục..." style="flex: 1; margin: 0; max-width: 360px" />
               </div>
               <div class="table-container">
                 <table id="shop-table" class="data-table">
@@ -1969,6 +1868,9 @@
                       <button class="btn btn-success btn-sm" id="db-btn-insert">
                         <i class="fas fa-plus"></i> Thêm document
                       </button>
+                      <button class="btn btn-danger btn-sm" id="db-btn-clear" title="Xóa toàn bộ dữ liệu (giữ lại collection)">
+                        <i class="fas fa-eraser"></i> Xóa toàn bộ dữ liệu
+                      </button>
                       <button class="btn btn-danger btn-sm" id="db-btn-drop" title="Drop toàn bộ collection">
                         <i class="fas fa-trash-alt"></i> Drop collection
                       </button>
@@ -2026,35 +1928,30 @@
                 </p>
               </div>
 
-              <div class="filter-bar">
-                <div class="filter-bar-row cols-3">
-                  <div class="form-group">
-                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
-                    <input type="text" id="upload-search" class="filter-input" placeholder="Email, nguồn...">
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"><i class="fas fa-book-open"></i> Số từ</label>
-                    <select id="upload-filter-words" class="filter-select">
-                      <option value="">Tất cả</option>
-                      <option value="0-9">&lt; 10 từ</option>
-                      <option value="10-49">10 – 49 từ</option>
-                      <option value="50-99">50 – 99 từ</option>
-                      <option value="100-">≥ 100 từ</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label class="form-label"><i class="fas fa-toggle-on"></i> Trạng thái</label>
-                    <select id="upload-filter-status" class="filter-select">
-                      <option value="">Tất cả</option>
-                      <option value="active">Cho phép</option>
-                      <option value="blocked">Bị chặn</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="filter-bar-footer">
-                  <span id="upload-filter-count" class="result-count"></span>
-                  <button id="btn-refresh-uploads" class="btn btn-ghost btn-sm"><i class="fas fa-sync-alt"></i> Làm mới</button>
-                </div>
+              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center">
+                <input
+                  type="text"
+                  id="upload-search"
+                  class="card-search"
+                  style="flex: 1; margin: 0"
+                  placeholder="Email, nguồn..."
+                />
+                <select id="upload-filter-words" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="">Tất cả</option>
+                  <option value="0-9">&lt; 10 từ</option>
+                  <option value="10-49">10 – 49 từ</option>
+                  <option value="50-99">50 – 99 từ</option>
+                  <option value="100-">≥ 100 từ</option>
+                </select>
+                <select id="upload-filter-status" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                  <option value="">Tất cả</option>
+                  <option value="active">Cho phép</option>
+                  <option value="blocked">Bị chặn</option>
+                </select>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
+                <span id="upload-filter-count" class="result-count" style="font-size: 13px; color: var(--text-secondary)"></span>
+                <button id="btn-refresh-uploads" class="btn btn-ghost btn-sm"><i class="fas fa-sync-alt"></i> Làm mới</button>
               </div>
 
               <div class="table-container">

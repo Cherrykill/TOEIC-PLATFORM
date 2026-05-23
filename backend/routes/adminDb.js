@@ -111,6 +111,18 @@ router.put('/collections/:name/:id', admin, async (req, res) => {
     }
 });
 
+// ── Xóa toàn bộ documents trong collection ──────────────────────
+router.delete('/collections/:name/all', admin, async (req, res) => {
+    try {
+        const { name } = req.params;
+        const col = mongoose.connection.db.collection(name);
+        const result = await col.deleteMany({});
+        res.json({ success: true, message: `Đã xóa ${result.deletedCount} documents khỏi "${name}"` });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // ── Xóa 1 document ─────────────────────────────────────────────
 router.delete('/collections/:name/:id', admin, async (req, res) => {
     try {

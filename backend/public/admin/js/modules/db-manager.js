@@ -55,6 +55,7 @@ function initDbManager() {
         }
     });
     document.getElementById('db-btn-insert')?.addEventListener('click', openDbInsertModal);
+    document.getElementById('db-btn-clear')?.addEventListener('click', clearCurrentCollection);
     document.getElementById('db-btn-drop')?.addEventListener('click', dropCurrentCollection);
 
     loadDbCollections();
@@ -354,11 +355,34 @@ async function deleteDbDocument(id) {
 
 window.deleteDbDocument = deleteDbDocument;
 
+// ── Clear collection (Xóa toàn bộ data) ──────────────────────────
+async function clearCurrentCollection() {
+    const name = _db.currentCollection;
+    if (!name) return;
+    if (!confirm(`Xóa TOÀN BỘ dữ liệu của collection "${name}"? Hành động này không thể hoàn tác.`)) return;
+    try {
+        const res = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(name)}/all`, {
+            method: 'DELETE',
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        showToast(json.message || `Đã xóa toàn bộ dữ liệu của "${name}"`, 'success');
+        loadDbDocuments(1);
+        loadDbCollections();
+    } catch (err) {
+        showToast(`Lỗi: ${err.message}`, 'error');
+    }
+}
+
 // ── Drop collection ───────────────────────────────────────────
 async function dropCurrentCollection() {
     const name = _db.currentCollection;
     if (!name) return;
-    if (!confirm(`Drop toàn bộ collection "${name}"? Hành động này không thể hoàn tác.`)) return;
+    const input = prompt(`CẢNH BÁO: Bạn sắp xóa toàn bộ collection "${name}" bao gồm cả dữ liệu và index.\nHành động này không thể hoàn tác.\nVui lòng nhập chính xác tên collection "${name}" để xác nhận:`);
+    if (input !== name) {
+        if (input !== null) showToast('Tên collection không khớp, đã hủy thao tác.', 'error');
+        return;
+    }
     try {
         const res = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(name)}`, {
             method: 'DELETE',
