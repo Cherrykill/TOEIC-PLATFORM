@@ -23,6 +23,7 @@ let vocabCurrentPage = 1;
 const vocabCurrentLimit = 50;
 let vocabCurrentPart = '';
 let vocabCurrentSource = '';
+let vocabCurrentType = '';
 let vocabSearchTerm = '';
 
 // ===================================

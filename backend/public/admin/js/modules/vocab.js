@@ -8,19 +8,20 @@
  * [PHẦN LỌC DỮ LIỆU]
  * Tải danh sách từ vựng từ API, có hỗ trợ phân trang và lọc Part.
  */
-async function loadVocabulary(page = vocabCurrentPage, part = vocabCurrentPart, source = vocabCurrentSource) {
+async function loadVocabulary(page = vocabCurrentPage, part = vocabCurrentPart, source = vocabCurrentSource, type = vocabCurrentType) {
     const tbody = document.querySelector("#vocabulary-table tbody");
     const paginationControls = document.getElementById('vocabulary-pagination-controls');
 
     vocabCurrentPage = page;
     vocabCurrentPart = part;
     vocabCurrentSource = source;
+    vocabCurrentType = type;
 
     tbody.innerHTML = `<tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải từ vựng...</td></tr>`;
     if (paginationControls) paginationControls.innerHTML = '';
 
     try {
-        const url = `${API_URL}/vocabulary?limit=${vocabCurrentLimit}&page=${page}&part=${part || ''}&source=${source || ''}&search=${encodeURIComponent(vocabSearchTerm)}`;
+        const url = `${API_URL}/vocabulary?limit=${vocabCurrentLimit}&page=${page}&part=${part || ''}&source=${source || ''}&type=${encodeURIComponent(type || '')}&search=${encodeURIComponent(vocabSearchTerm)}`;
         const res = await fetch(url); // <-- API call to filter
         const data = await res.json();
 
@@ -135,7 +136,7 @@ function renderVocabularyPagination(_currentPage, _limit, total, filteredCount) 
 
     const displayCount = filteredCount !== undefined ? filteredCount : total;
     const totalPages = Math.ceil(total / vocabCurrentLimit);
-    const hasFilter = vocabCurrentPart || vocabSearchTerm || vocabCurrentSource;
+    const hasFilter = vocabCurrentPart || vocabSearchTerm || vocabCurrentSource || vocabCurrentType;
 
     if (total === 0) {
         container.innerHTML = `<span style="color:#999;">Không có từ vựng nào.</span>`;
@@ -170,7 +171,7 @@ function renderVocabularyPagination(_currentPage, _limit, total, filteredCount) 
         const btn = document.createElement('button');
         btn.innerHTML = label;
         btn.style.cssText = `padding:4px ${active ? '10' : '8'}px;border-radius:6px;border:1px solid ${active ? '#3b82f6' : '#334155'};background:${active ? '#3b82f6' : '#1e293b'};color:${active ? '#fff' : '#94a3b8'};cursor:pointer;font-size:12px;font-weight:${active ? '600' : '400'};${disabled ? 'opacity:.4;pointer-events:none;' : ''}`;
-        if (!disabled) btn.addEventListener('click', () => loadVocabulary(page, vocabCurrentPart, vocabCurrentSource));
+        if (!disabled) btn.addEventListener('click', () => loadVocabulary(page, vocabCurrentPart, vocabCurrentSource, vocabCurrentType));
         return btn;
     }
 
@@ -190,25 +191,76 @@ function renderVocabularyPagination(_currentPage, _limit, total, filteredCount) 
 function clearVocabFilters() {
     vocabCurrentPart = '';
     vocabCurrentSource = '';
+    vocabCurrentType = '';
     vocabSearchTerm = '';
 
     const partFilter = document.getElementById('vocab-part-filter');
     const searchInput = document.getElementById('vocab-search');
     const pickerLabel = document.getElementById('vocab-file-picker-label');
+    const sourceSelect = document.getElementById('vocab-filter-source');
+    const typeSelect = document.getElementById('vocab-filter-type');
 
     if (partFilter) partFilter.value = '';
     if (searchInput) searchInput.value = '';
     if (pickerLabel) pickerLabel.textContent = 'Tất cả';
+    if (sourceSelect) sourceSelect.value = '';
+    if (typeSelect) typeSelect.value = '';
 
     // Reset active card
     document.querySelectorAll('.vocab-picker-card').forEach(c => c.classList.remove('active'));
     const allCard = document.querySelector('.vocab-picker-card[data-source=""]');
     if (allCard) allCard.classList.add('active');
 
-    loadVocabulary(1, '', '');
+    loadVocabulary(1, '', '', '');
 }
 // Expose to window for HTML onclick
 window.clearVocabFilters = clearVocabFilters;
+
+/**
+ * Khởi tạo bộ lọc Source (fetch từ API) và Type (tĩnh) cho vocab tab.
+ */
+async function initVocabExtraFilters() {
+    const sourceSelect = document.getElementById('vocab-filter-source');
+    const typeSelect = document.getElementById('vocab-filter-type');
+
+    // Populate source options from API
+    if (sourceSelect && !sourceSelect.dataset.loaded) {
+        try {
+            const res = await fetch(`${API_URL}/vocabulary/sources`);
+            const data = await res.json();
+            if (data.success && Array.isArray(data.data)) {
+                data.data.forEach(({ source, count }) => {
+                    if (!source || source === 'unknown') return;
+                    const opt = document.createElement('option');
+                    opt.value = source;
+                    opt.textContent = `${source} (${count})`;
+                    sourceSelect.appendChild(opt);
+                });
+            }
+        } catch (e) {
+            console.warn('Could not load vocab sources:', e);
+        }
+        sourceSelect.dataset.loaded = '1';
+    }
+
+    // Wire up source select
+    if (sourceSelect && !sourceSelect.dataset.bound) {
+        sourceSelect.addEventListener('change', () => {
+            vocabCurrentSource = sourceSelect.value;
+            loadVocabulary(1, vocabCurrentPart, vocabCurrentSource, vocabCurrentType);
+        });
+        sourceSelect.dataset.bound = '1';
+    }
+
+    // Wire up type select
+    if (typeSelect && !typeSelect.dataset.bound) {
+        typeSelect.addEventListener('change', () => {
+            vocabCurrentType = typeSelect.value;
+            loadVocabulary(1, vocabCurrentPart, vocabCurrentSource, vocabCurrentType);
+        });
+        typeSelect.dataset.bound = '1';
+    }
+}
 
 
 /* =========================================================
@@ -284,7 +336,7 @@ function updateVocabCountAfterDelete() {
     const rowCount = tbody ? tbody.querySelectorAll('tr').length : 0;
 
     // Cập nhật hiển thị
-    const hasFilter = vocabCurrentPart || vocabSearchTerm;
+    const hasFilter = vocabCurrentPart || vocabSearchTerm || vocabCurrentSource || vocabCurrentType;
     if (hasFilter) {
         container.innerHTML = `<i class="fas fa-info-circle"></i> Hiển thị <strong>${rowCount}</strong> từ vựng`;
     } else {
@@ -1073,7 +1125,18 @@ function openEditWordModal(wordData) {
     document.getElementById("word-vn").value = wordData.vn || '';
     document.getElementById("word-phonetic").value = wordData.phonetic || '';
     document.getElementById("word-part").value = wordData.part || '';
-    document.getElementById("word-type").value = wordData.type || '';
+    // Type: try single first, then phrase
+    const sel1 = document.getElementById("word-type");
+    const sel2 = document.getElementById("word-type-phrase");
+    if (sel1) sel1.value = '';
+    if (sel2) sel2.value = '';
+    if (wordData.type) {
+        const t = wordData.type.toLowerCase().trim();
+        if (sel1 && Array.from(sel1.options).some(o => o.value === t)) sel1.value = t;
+        else if (sel2 && Array.from(sel2.options).some(o => o.value === t)) sel2.value = t;
+        else if (sel1) sel1.value = t;
+    }
+    if (document.getElementById("word-level")) document.getElementById("word-level").value = wordData.level || '';
     document.getElementById("word-synonyms").value = wordData.synonyms || '';
     // Fix đường dẫn ảnh cũ sang format mới
     const rawImage = wordData.image || '';

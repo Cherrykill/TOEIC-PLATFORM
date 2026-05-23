@@ -26,6 +26,7 @@ function openGroupForTab(tab) {
 // ============================================================
 // ACHIEVEMENT DEFINITIONS CRUD
 // ============================================================
+var _achData = [];
 async function loadAchievements() {
     const tbody = document.getElementById('achievements-tbody');
     tbody.innerHTML = '<tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
@@ -33,28 +34,44 @@ async function loadAchievements() {
         const res = await fetch(API_URL + '/admin/achievements', { headers: { Authorization: 'Bearer ' + getToken() } });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        const defs = data.data || [];
-        if (!defs.length) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-secondary)">Chưa có thành tích nào. Bấm "Thêm thành tích" để bắt đầu.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = defs.map(d =>
-            '<tr>' +
-            '<td style="font-size:20px;text-align:center">' + (d.icon || '🏆') + '</td>' +
-            '<td><strong>' + d.name + '</strong><br><small style="color:var(--text-secondary)">' + d.code + '</small></td>' +
-            '<td><span class="badge neutral">' + d.category + '</span></td>' +
-            '<td style="font-size:12px">' + d.conditionType + ' &ge; ' + d.conditionValue + (d.conditionMode ? ' [' + d.conditionMode + ']' : '') + '</td>' +
-            '<td style="font-size:12px">XP:' + (d.rewardXp||0) + ' 🪙' + (d.rewardCoins||0) + ' 💎' + (d.rewardGems||0) + '</td>' +
-            '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
-            '<td>' +
-              '<button class="btn btn-ghost btn-sm btn-ach-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
-              '<button class="btn btn-danger btn-sm btn-ach-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
-            '</td></tr>'
-        ).join('');
-        attachAchievementListeners();
+        _achData = data.data || [];
+        _renderAchievements(_achData);
+        _setupAchSearch();
     } catch (err) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--danger)">' + err.message + '</td></tr>';
     }
+}
+
+function _renderAchievements(defs) {
+    const tbody = document.getElementById('achievements-tbody');
+    if (!defs.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-secondary)">Không có kết quả phù hợp.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = defs.map(d =>
+        '<tr>' +
+        '<td style="font-size:20px;text-align:center">' + (d.icon || '🏆') + '</td>' +
+        '<td><strong>' + d.name + '</strong><br><small style="color:var(--text-secondary)">' + d.code + '</small></td>' +
+        '<td><span class="badge neutral">' + d.category + '</span></td>' +
+        '<td style="font-size:12px">' + d.conditionType + ' &ge; ' + d.conditionValue + (d.conditionMode ? ' [' + d.conditionMode + ']' : '') + '</td>' +
+        '<td style="font-size:12px">XP:' + (d.rewardXp||0) + ' 🪙' + (d.rewardCoins||0) + ' 💎' + (d.rewardGems||0) + '</td>' +
+        '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
+        '<td>' +
+          '<button class="btn btn-ghost btn-sm btn-ach-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
+          '<button class="btn btn-danger btn-sm btn-ach-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
+        '</td></tr>'
+    ).join('');
+    attachAchievementListeners();
+}
+
+function _setupAchSearch() {
+    const inp = document.getElementById('ach-search');
+    if (!inp || inp.dataset.bound) return;
+    inp.dataset.bound = '1';
+    inp.addEventListener('input', function() {
+        const q = inp.value.trim().toLowerCase();
+        _renderAchievements(q ? _achData.filter(d => (d.name + d.code + d.category).toLowerCase().includes(q)) : _achData);
+    });
 }
 
 function openAchievementModal(data) {
@@ -144,6 +161,7 @@ function initAchievementModal() {
 // ============================================================
 // QUEST DEFINITIONS CRUD
 // ============================================================
+var _questData = [];
 async function loadQuests() {
     const tbody = document.getElementById('quests-tbody');
     tbody.innerHTML = '<tr><td colspan="8" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
@@ -151,29 +169,45 @@ async function loadQuests() {
         const res = await fetch(API_URL + '/admin/quests', { headers: { Authorization: 'Bearer ' + getToken() } });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        const defs = data.data || [];
-        if (!defs.length) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-secondary)">Chưa có nhiệm vụ nào. Bấm "Thêm nhiệm vụ" để bắt đầu.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = defs.map(d =>
-            '<tr>' +
-            '<td style="font-size:20px;text-align:center">' + (d.icon || '⚔️') + '</td>' +
-            '<td><strong>' + d.name + '</strong><br><small style="color:var(--text-secondary)">' + d.code + '</small></td>' +
-            '<td><span class="badge ' + (d.type === 'daily' ? 'success' : 'neutral') + '">' + d.type + '</span></td>' +
-            '<td>' + (d.mode || 'any') + '</td>' +
-            '<td>' + d.target + '</td>' +
-            '<td style="font-size:12px">XP:' + (d.rewardXp||0) + ' 🪙' + (d.rewardCoins||0) + '</td>' +
-            '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
-            '<td>' +
-              '<button class="btn btn-ghost btn-sm btn-quest-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
-              '<button class="btn btn-danger btn-sm btn-quest-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
-            '</td></tr>'
-        ).join('');
-        attachQuestListeners();
+        _questData = data.data || [];
+        _renderQuests(_questData);
+        _setupQuestSearch();
     } catch (err) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger)">' + err.message + '</td></tr>';
     }
+}
+
+function _renderQuests(defs) {
+    const tbody = document.getElementById('quests-tbody');
+    if (!defs.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-secondary)">Không có kết quả phù hợp.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = defs.map(d =>
+        '<tr>' +
+        '<td style="font-size:20px;text-align:center">' + (d.icon || '⚔️') + '</td>' +
+        '<td><strong>' + d.name + '</strong><br><small style="color:var(--text-secondary)">' + d.code + '</small></td>' +
+        '<td><span class="badge ' + (d.type === 'daily' ? 'success' : 'neutral') + '">' + d.type + '</span></td>' +
+        '<td>' + (d.mode || 'any') + '</td>' +
+        '<td>' + d.target + '</td>' +
+        '<td style="font-size:12px">XP:' + (d.rewardXp||0) + ' 🪙' + (d.rewardCoins||0) + '</td>' +
+        '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
+        '<td>' +
+          '<button class="btn btn-ghost btn-sm btn-quest-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
+          '<button class="btn btn-danger btn-sm btn-quest-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
+        '</td></tr>'
+    ).join('');
+    attachQuestListeners();
+}
+
+function _setupQuestSearch() {
+    const inp = document.getElementById('quest-search');
+    if (!inp || inp.dataset.bound) return;
+    inp.dataset.bound = '1';
+    inp.addEventListener('input', function() {
+        const q = inp.value.trim().toLowerCase();
+        _renderQuests(q ? _questData.filter(d => (d.name + d.code + (d.type||'')).toLowerCase().includes(q)) : _questData);
+    });
 }
 
 function openQuestModal(data) {
@@ -294,6 +328,7 @@ function _shopEffectSummary(effect) {
     } catch(e) { return '?'; }
 }
 
+var _shopData = [];
 async function loadShopItems() {
     var tbody = document.getElementById('shop-tbody');
     tbody.innerHTML = '<tr><td colspan="9" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
@@ -301,12 +336,21 @@ async function loadShopItems() {
         var res = await fetch(API_URL + '/admin/shop-items', { headers: { Authorization: 'Bearer ' + getToken() } });
         var data = await res.json();
         if (!data.success) throw new Error(data.message);
-        var items = data.data || [];
-        if (!items.length) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-secondary)">Chưa có item nào.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = items.map(function(d) {
+        _shopData = data.data || [];
+        _renderShopItems(_shopData);
+        _setupShopSearch();
+    } catch (err) {
+        document.getElementById('shop-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger)">' + err.message + '</td></tr>';
+    }
+}
+
+function _renderShopItems(items) {
+    var tbody = document.getElementById('shop-tbody');
+    if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-secondary)">Không có kết quả phù hợp.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = items.map(function(d) {
             var icon = d.currency === 'gems' ? '💎' : '🪙';
             var saleTd;
             if (d.discountPercent > 0) {
@@ -330,10 +374,19 @@ async function loadShopItems() {
                   '<button class="btn btn-danger btn-sm btn-shop-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
                 '</td></tr>';
         }).join('');
-        attachShopListeners();
-    } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger)">' + err.message + '</td></tr>';
-    }
+    attachShopListeners();
+}
+
+function _setupShopSearch() {
+    var inp = document.getElementById('shop-search');
+    if (!inp || inp.dataset.bound) return;
+    inp.dataset.bound = '1';
+    inp.addEventListener('input', function() {
+        var q = inp.value.trim().toLowerCase();
+        _renderShopItems(q ? _shopData.filter(function(d) {
+            return (d.name + (d.itemId||'') + (d.category||'')).toLowerCase().includes(q);
+        }) : _shopData);
+    });
 }
 
 function _shopShowEffectSection(category) {

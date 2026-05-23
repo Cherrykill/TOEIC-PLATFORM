@@ -594,8 +594,9 @@ async function loadDashboard() {
 
         // 1. Tải danh sách file JSON có sẵn
         await loadAvailableFiles();
-        // 2. Khởi tạo bộ lọc (Quét Part)
+        // 2. Khởi tạo bộ lọc (Quét Part) + Source/Type filters
         await initializeVocabFilters();
+        if (typeof initVocabExtraFilters === 'function') await initVocabExtraFilters();
         // 3. Tải dữ liệu từ vựng ban đầu (Lọc Part theo mặc định là Tất cả)
         await loadVocabulary();
 

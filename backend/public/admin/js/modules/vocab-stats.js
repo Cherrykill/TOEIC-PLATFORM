@@ -288,6 +288,7 @@ async function switchVocabularyFile(filename) {
                 await loadVocabulary(1, '');
                 await loadVocabularyStats();
                 await initializeVocabFilters();
+                if (typeof initVocabExtraFilters === 'function') await initVocabExtraFilters();
             }
         } catch (apiError) {
             console.warn('API not available, using local data:', apiError.message);

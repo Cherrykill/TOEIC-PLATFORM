@@ -50,8 +50,9 @@ export const WordTypeCheck = {
             ? words
             : words.slice(0, this.config.questionsPerRound || 20);
 
+        const uniqueTypes = [...new Set(selectedWords.map(w => w.type).filter(Boolean))];
         this.questions = selectedWords.map(word =>
-            GameLogic.generateWordTypeCheck(word, this.config.optionsCount)
+            GameLogic.generateWordTypeCheck(word, this.config.optionsCount, uniqueTypes)
         );
     },
 
@@ -78,7 +79,7 @@ export const WordTypeCheck = {
         const container = document.getElementById('practice-content');
         if (!container) return;
 
-        const typeLabels = {
+        const TYPE_LABELS_VI = {
             'noun': 'Danh từ',
             'verb': 'Động từ',
             'adjective': 'Tính từ',
@@ -87,8 +88,23 @@ export const WordTypeCheck = {
             'conjunction': 'Liên từ',
             'pronoun': 'Đại từ',
             'interjection': 'Thán từ',
-            'unknown': 'Không rõ'
+            'article': 'Mạo từ',
+            'determiner': 'Từ hạn định',
+            'auxiliary': 'Trợ động từ',
+            'noun phrase': 'Cụm danh từ',
+            'verb phrase': 'Cụm động từ',
+            'adjective phrase': 'Cụm tính từ',
+            'adverb phrase': 'Cụm trạng từ',
+            'prepositional phrase': 'Cụm giới từ',
+            'participle phrase': 'Cụm phân từ',
+            'gerund phrase': 'Cụm danh động từ',
+            'infinitive phrase': 'Cụm động từ nguyên thể',
+            'unknown': 'Không rõ',
         };
+        // Type ngoài danh sách trên vẫn hiển thị được — dùng chính key làm label
+        const typeLabels = new Proxy(TYPE_LABELS_VI, {
+            get: (target, key) => target[key] ?? key,
+        });
 
         container.innerHTML = `
             <div class="question-container">

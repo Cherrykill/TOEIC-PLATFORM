@@ -311,6 +311,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (typeof initPartFilterDropdown === 'function') initPartFilterDropdown();
 
+    // Type mutual-exclusion (chọn đơn thì xóa cụm và ngược lại)
+    document.getElementById("word-type")?.addEventListener("change", function() {
+        if (this.value) document.getElementById("word-type-phrase").value = '';
+    });
+    document.getElementById("word-type-phrase")?.addEventListener("change", function() {
+        if (this.value) document.getElementById("word-type").value = '';
+    });
+
     document.getElementById("btn-ai-fill")?.addEventListener("click", async () => {
         const wordInput = document.getElementById("word-en");
         const word = wordInput?.value.trim();
@@ -333,11 +341,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (data.phonetic) document.getElementById("word-phonetic").value = data.phonetic;
                 if (data.synonyms) document.getElementById("word-synonyms").value = data.synonyms;
                 if (data.example) document.getElementById("word-example").value = data.example;
+                if (data.level) { const lv = document.getElementById("word-level"); if (lv) lv.value = data.level.toUpperCase(); }
                 if (data.type) {
-                    const typeSelect = document.getElementById("word-type");
                     const normalizedType = data.type.toLowerCase().trim();
-                    const optionExists = Array.from(typeSelect.options).some(opt => opt.value === normalizedType);
-                    typeSelect.value = optionExists ? normalizedType : 'noun';
+                    const sel1 = document.getElementById("word-type");
+                    const sel2 = document.getElementById("word-type-phrase");
+                    sel1.value = ''; sel2.value = '';
+                    if (sel1 && Array.from(sel1.options).some(o => o.value === normalizedType)) {
+                        sel1.value = normalizedType;
+                    } else if (sel2 && Array.from(sel2.options).some(o => o.value === normalizedType)) {
+                        sel2.value = normalizedType;
+                    }
                 }
                 showToast(`Da dien thong tin cho "${word}" bang AI!`, 'success');
             } else {
@@ -357,13 +371,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const editMode = modal.dataset.editMode === 'true';
         const originalEn = modal.dataset.originalEn;
         const wordData = {
-            en: document.getElementById("word-en").value.trim(),
-            vn: document.getElementById("word-vn").value.trim(),
+            en: document.getElementById("word-en").value.trim().toLowerCase(),
+            vn: document.getElementById("word-vn").value.trim().toLowerCase(),
             phonetic: document.getElementById("word-phonetic").value.trim(),
             part: document.getElementById("word-part").value.trim().toUpperCase(),
-            type: document.getElementById("word-type").value,
-            synonyms: document.getElementById("word-synonyms").value.trim(),
-            image: document.getElementById("word-image").value.trim(),
+            type: document.getElementById("word-type").value || document.getElementById("word-type-phrase").value,
+            level: document.getElementById("word-level")?.value.trim().toUpperCase() || '',
+            synonyms: document.getElementById("word-synonyms").value.trim().toLowerCase(),
+            image: document.getElementById("word-image").value.trim().toLowerCase(),
             example: document.getElementById("word-example").value.trim(),
             source: (document.getElementById("word-sources")?.value.trim() || 'custom').toLowerCase(),
         };

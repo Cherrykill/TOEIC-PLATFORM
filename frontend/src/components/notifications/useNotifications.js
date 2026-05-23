@@ -29,14 +29,16 @@ const saveSeenIds   = (s) => saveSet(SEEN_KEY, s);
 
 // Bản đồ type → tab — đồng bộ với TAB_TYPES ở backend.
 const TYPE_TO_TAB = {
-    system: 'system', reminder: 'system',
-    achievement: 'account', quest: 'account', level_up: 'account', test_result: 'account',
+    system: 'system', reminder: 'system', reward: 'system',
+    achievement: 'achievement', quest: 'achievement', level_up: 'achievement', test_result: 'achievement',
     violation: 'violation',
 };
 
+const EMPTY_UNREAD = () => ({ all: 0, system: 0, achievement: 0, violation: 0 });
+
 /** Tính unread theo từng tab từ items + seenIds (broadcast). */
 function computeUnreadCounts(items, seenIds) {
-    const c = { all: 0, system: 0, account: 0, violation: 0 };
+    const c = EMPTY_UNREAD();
     for (const n of items) {
         const id = String(n._id || n.id);
         const unread = n.isGlobal ? !seenIds.has(id) : !n.read;
@@ -55,7 +57,7 @@ export function useNotifications(isLoggedIn) {
     const [loading, setLoading] = useState(false);
     // Đếm unread theo tab — phải fetch tab='all' để có đủ items mới chuẩn;
     // trong các tab khác chỉ tính trên items hiện tại (đỡ phải gọi 4 lần).
-    const [unreadByTab, setUnreadByTab] = useState({ all: 0, system: 0, account: 0, violation: 0 });
+    const [unreadByTab, setUnreadByTab] = useState(EMPTY_UNREAD);
     const [seenIds, setSeenIds] = useState(() => loadSeenIds());
 
     /**
@@ -64,7 +66,7 @@ export function useNotifications(isLoggedIn) {
      * nhân → chuông luôn 0 dù có broadcast mới → user không biết.
      */
     const loadBadge = useCallback(async () => {
-        if (!isLoggedIn) { setBadge(0); setItems([]); setUnreadByTab({ all: 0, system: 0, account: 0, violation: 0 }); return; }
+        if (!isLoggedIn) { setBadge(0); setItems([]); setUnreadByTab(EMPTY_UNREAD()); return; }
         const res = await NotificationsAPI.list('all');
         if (!res.success) { setBadge(0); return; }
         const hidden = loadHiddenIds();
@@ -138,7 +140,7 @@ export function useNotifications(isLoggedIn) {
         const next = new Set(seenIds);
         items.filter(n => n.isGlobal).forEach(n => next.add(String(n._id || n.id)));
         saveSeenIds(next); setSeenIds(next);
-        setUnreadByTab({ all: 0, system: 0, account: 0, violation: 0 });
+        setUnreadByTab(EMPTY_UNREAD());
     }, [items, seenIds]);
 
     const deleteAll = useCallback(async () => {

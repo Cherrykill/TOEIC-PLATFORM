@@ -5,6 +5,9 @@
 
 // Dùng rgba alpha 0.15 cho bg để badge đọc tốt trên cả nền sáng và tối
 // (light/dark mode) — tránh tình trạng badge trắng tinh trên nền tối.
+let _notifData = [];
+let _notifSrc  = '';
+
 const NOTIF_TYPE_META = {
     system:      { label: 'Hệ thống',   color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)' },
     reminder:    { label: 'Nhắc nhở',   color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.15)' },
@@ -37,6 +40,7 @@ const MODE_LABELS = {
 
 // ---- TOPICS TAB ----
 
+let _topicsData = [];
 async function loadTopicsTab() {
     const tbody = document.getElementById('topics-tbody');
     if (!tbody) return;
@@ -48,10 +52,54 @@ async function loadTopicsTab() {
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        renderTopicsTable(data.data);
+        _topicsData = data.data;
+        renderTopicsTable(_topicsData);
+        const countEl = document.getElementById('topics-filter-count');
+        if (countEl) countEl.textContent = `${_topicsData.length} / ${_topicsData.length} đề`;
+        _setupTopicsSearch();
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7" style="color:#ef4444;text-align:center;padding:20px;">${err.message}</td></tr>`;
     }
+}
+
+function _applyTopicsFilter() {
+    const q       = (document.getElementById('topics-search')?.value || '').trim().toLowerCase();
+    const words   = document.getElementById('topics-filter-words')?.value || '';
+    const visible = document.getElementById('topics-filter-visible')?.value || '';
+
+    let data = _topicsData;
+    if (q)       data = data.filter(t => (t.displayName + (t.sourceKeys || []).join(',')).toLowerCase().includes(q));
+    if (visible) data = data.filter(t => visible === '1' ? t.isPublic : !t.isPublic);
+    if (words) {
+        const [lo, hi] = words.split('-').map(v => v === '' ? Infinity : Number(v));
+        data = data.filter(t => {
+            const w = t.wordCount || 0;
+            return w >= lo && (hi === Infinity ? true : w <= hi);
+        });
+    }
+
+    renderTopicsTable(data);
+    const countEl = document.getElementById('topics-filter-count');
+    if (countEl) countEl.textContent = `${data.length} / ${_topicsData.length} đề`;
+}
+
+function _setupTopicsSearch() {
+    const search = document.getElementById('topics-search');
+    if (!search || search.dataset.topicsFiltersBound) return;
+    search.dataset.topicsFiltersBound = '1';
+
+    search.addEventListener('input', _applyTopicsFilter);
+    document.getElementById('topics-filter-words')?.addEventListener('change', _applyTopicsFilter);
+    document.getElementById('topics-filter-visible')?.addEventListener('change', _applyTopicsFilter);
+    document.getElementById('topics-filter-clear')?.addEventListener('click', () => {
+        const s = document.getElementById('topics-search');
+        const w = document.getElementById('topics-filter-words');
+        const v = document.getElementById('topics-filter-visible');
+        if (s) s.value = '';
+        if (w) w.value = '';
+        if (v) v.value = '';
+        _applyTopicsFilter();
+    });
 }
 
 function renderTopicsTable(topics) {
@@ -224,84 +272,87 @@ async function deleteTopicConfirm(id, name) {
 
 // ---- UPLOAD MANAGEMENT TAB ----
 
+let _uploadsData = [];
+
 function initUploadManagement() {
-    const refreshBtn = document.getElementById('btn-refresh-uploads');
-    refreshBtn?.addEventListener('click', () => loadUploadMonitoring());
+    document.getElementById('btn-refresh-uploads')?.addEventListener('click', loadUploadMonitoring);
     loadUploadMonitoring();
+}
+
+function _renderUploads(data) {
+    const tbody = document.getElementById('upload-monitoring-tbody');
+    if (!tbody) return;
+
+    const countEl = document.getElementById('upload-filter-count');
+    if (countEl) countEl.textContent = `${data.length} / ${_uploadsData.length} bản ghi`;
+
+    if (!data.length) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:40px;text-align:center;color:var(--text-secondary)"><i class="fas fa-inbox" style="font-size:32px;opacity:.3;display:block;margin-bottom:10px"></i>Không có kết quả</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(u => {
+        const isActive   = u.status === 'active';
+        const statusColor = isActive ? '#10b981' : '#ef4444';
+        const statusLabel = isActive ? '✓ Cho phép' : '✗ Chặn';
+        const statusBg    = isActive ? 'rgba(16,185,129,.12)' : 'rgba(239,68,68,.12)';
+        const preview = (u.contentPreview || []).slice(0, 3).join(', ');
+        const more    = u.wordCount > 3 ? ` +${u.wordCount - 3}` : '';
+        return `<tr>
+            <td style="padding:12px;font-weight:500">${u.email}</td>
+            <td style="padding:12px;font-size:13px"><code style="background:var(--bg-tertiary);padding:2px 8px;border-radius:4px;font-size:12px">${u.source}</code></td>
+            <td style="padding:12px;font-size:13px;color:var(--text-secondary);max-width:260px;overflow:hidden;text-overflow:ellipsis"><span title="${(u.contentPreview||[]).join(', ')}">${preview}${more}</span></td>
+            <td style="padding:12px;text-align:right;font-family:monospace;font-weight:600">${u.wordCount}</td>
+            <td style="padding:12px;text-align:center"><span style="display:inline-block;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${statusBg};color:${statusColor}">${statusLabel}</span></td>
+            <td style="padding:12px;text-align:center;font-size:12px;color:var(--text-secondary)">${new Date(u.createdAt).toLocaleString('vi-VN',{dateStyle:'short',timeStyle:'short'})}</td>
+        </tr>`;
+    }).join('');
+}
+
+function _applyUploadsFilter() {
+    const q      = (document.getElementById('upload-search')?.value || '').trim().toLowerCase();
+    const words  = document.getElementById('upload-filter-words')?.value || '';
+    const status = document.getElementById('upload-filter-status')?.value || '';
+
+    let data = _uploadsData;
+    if (q)      data = data.filter(u => (u.email + u.source).toLowerCase().includes(q));
+    if (status) data = data.filter(u => u.status === status);
+    if (words) {
+        const [lo, hi] = words.split('-').map(v => v === '' ? Infinity : Number(v));
+        data = data.filter(u => {
+            const w = u.wordCount || 0;
+            return w >= lo && (hi === Infinity ? true : w <= hi);
+        });
+    }
+    _renderUploads(data);
+}
+
+function _setupUploadsFilters() {
+    const search = document.getElementById('upload-search');
+    if (!search || search.dataset.bound) return;
+    search.dataset.bound = '1';
+    search.addEventListener('input', _applyUploadsFilter);
+    document.getElementById('upload-filter-words')?.addEventListener('change', _applyUploadsFilter);
+    document.getElementById('upload-filter-status')?.addEventListener('change', _applyUploadsFilter);
 }
 
 async function loadUploadMonitoring() {
     const tbody = document.getElementById('upload-monitoring-tbody');
     if (!tbody) return;
-
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="6" style="padding: 30px; text-align: center; color: var(--text-secondary);">
-                <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
-            </td>
-        </tr>
-    `;
+    tbody.innerHTML = `<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--text-secondary)"><i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>`;
 
     try {
-        const response = await fetch('/api/upload/admin/monitoring', {
+        const res = await fetch('/api/upload/admin/monitoring', {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
-
-        const result = await response.json();
+        const result = await res.json();
         if (!result.success) throw new Error(result.message);
 
-        const uploads = result.data || [];
-        document.getElementById('upload-total-count').textContent = uploads.length;
-
-        if (uploads.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" style="padding: 40px; text-align: center; color: var(--text-secondary);">
-                        <i class="fas fa-inbox" style="font-size: 32px; opacity: 0.3; display: block; margin-bottom: 10px;"></i>
-                        Chưa có upload nào
-                    </td>
-                </tr>
-            `;
-            return;
-        }
-
-        tbody.innerHTML = uploads.map(u => {
-            const statusColor = u.status === 'active' ? '#10b981' : '#ef4444';
-            const statusLabel = u.status === 'active' ? '✓ Allowed' : '✗ Blocked';
-            const statusBg = u.status === 'active' ? '#dcfce7' : '#fee2e2';
-            const preview = (u.contentPreview || []).slice(0, 3).join(', ');
-            const more = u.wordCount > 3 ? ` +${u.wordCount - 3}` : '';
-
-            return `
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 12px; font-weight: 500;">${u.email}</td>
-                    <td style="padding: 12px; font-size: 13px;">
-                        <code style="background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; font-size: 12px;">${u.source}</code>
-                    </td>
-                    <td style="padding: 12px; font-size: 13px; color: var(--text-secondary); max-width: 300px; overflow: hidden; text-overflow: ellipsis;">
-                        <span title="${(u.contentPreview || []).join(', ')}">${preview}${more}</span>
-                    </td>
-                    <td style="padding: 12px; text-align: right; font-family: monospace; font-weight: 600;">${u.wordCount}</td>
-                    <td style="padding: 12px; text-align: center;">
-                        <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: ${statusBg}; color: ${statusColor};">
-                            ${statusLabel}
-                        </span>
-                    </td>
-                    <td style="padding: 12px; text-align: center; font-size: 12px; color: var(--text-secondary);">
-                        ${new Date(u.createdAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        _uploadsData = result.data || [];
+        _setupUploadsFilters();
+        _applyUploadsFilter();
     } catch (err) {
-        console.error('Error loading uploads:', err);
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" style="padding: 20px; text-align: center; color: #ef4444;">
-                    Lỗi tải dữ liệu: ${err.message}
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;text-align:center;color:#ef4444">Lỗi tải dữ liệu: ${err.message}</td></tr>`;
     }
 }
 
@@ -649,12 +700,16 @@ function renderUaPagination(pagination) {
 
 function openUserAchievementsFor(userId, email) {
     _uaAutoExpandId = userId;
-    document.querySelector('.sidebar-link[data-main-tab="user-achievements"]')?.click();
+    // Navigate to Activity tab, then switch to Thành tích sub-tab
+    document.querySelector('.sidebar-link[data-main-tab="activity"]')?.click();
     setTimeout(() => {
+        if (typeof activateActivitySubtab === 'function') {
+            activateActivitySubtab('user-achievements');
+        }
         const input = document.getElementById('ua-search-input');
         if (input) input.value = email;
         loadUaUsers(1, email);
-    }, 50);
+    }, 80);
 }
 
 // ---- BROADCAST TAB ----
@@ -677,7 +732,30 @@ function _initBcEmailSearch() {
     });
 
     // Filter dropdown
-    document.getElementById('bc-filter-type')?.addEventListener('change', loadNotifHistory);
+    document.getElementById('bc-filter-type')?.addEventListener('change', _renderNotifList);
+
+    // Refresh button
+    document.getElementById('bc-history-refresh-btn')?.addEventListener('click', loadNotifHistory);
+
+    // Source filter pills (guard against double-bind)
+    const pillContainer = document.querySelector('.notif-src-btn')?.parentElement;
+    if (pillContainer && !pillContainer.dataset.srcBound) {
+        pillContainer.dataset.srcBound = '1';
+        pillContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.notif-src-btn');
+            if (!btn) return;
+            _notifSrc = btn.dataset.src;
+            pillContainer.querySelectorAll('.notif-src-btn').forEach(b => {
+                const active = b === btn;
+                b.style.background = active ? 'var(--primary-color)' : 'transparent';
+                b.style.color      = active ? '#fff' : 'var(--text-secondary)';
+                b.style.borderColor = active ? 'var(--primary-color)' : 'var(--border-color)';
+                b.classList.toggle('active', active);
+            });
+            _updateNotifTypeOptions();
+            _renderNotifList();
+        });
+    }
 
     if (!input) return;
     input.addEventListener('input', () => {
@@ -784,57 +862,93 @@ async function sendBroadcast() {
     }
 }
 
+const ADMIN_NOTIF_TYPES = new Set(['system', 'reward', 'reminder', 'violation']);
+const AUTO_NOTIF_TYPES  = new Set(['achievement', 'quest']);
+
+function _updateNotifTypeOptions() {
+    const sel = document.getElementById('bc-filter-type');
+    if (!sel) return;
+    sel.querySelectorAll('option').forEach(opt => {
+        if (!opt.value) return; // "Tất cả loại" — always visible
+        const isAdmin = ADMIN_NOTIF_TYPES.has(opt.value);
+        const isAuto  = AUTO_NOTIF_TYPES.has(opt.value);
+        if (_notifSrc === 'admin')     opt.style.display = isAdmin ? '' : 'none';
+        else if (_notifSrc === 'auto') opt.style.display = isAuto  ? '' : 'none';
+        else                           opt.style.display = '';
+    });
+    // Reset selection if current value is hidden
+    const cur = sel.value;
+    if (cur && ((_notifSrc === 'admin' && !ADMIN_NOTIF_TYPES.has(cur)) ||
+                (_notifSrc === 'auto'  && !AUTO_NOTIF_TYPES.has(cur)))) {
+        sel.value = '';
+    }
+}
+
+function _renderNotifList() {
+    const list = document.getElementById('bc-history');
+    if (!list) return;
+
+    const filterType = document.getElementById('bc-filter-type')?.value || '';
+
+    let data = _notifData;
+    if (_notifSrc === 'admin') data = data.filter(n => ADMIN_NOTIF_TYPES.has(n.type));
+    else if (_notifSrc === 'auto') data = data.filter(n => AUTO_NOTIF_TYPES.has(n.type));
+    if (filterType) data = data.filter(n => n.type === filterType);
+
+    if (!data.length) {
+        list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;padding:20px;text-align:center">Không có thông báo nào.</p>';
+        return;
+    }
+
+    list.innerHTML = data.map(n => {
+        const meta = NOTIF_TYPE_META[n.type] || { label: n.type, color: '#6b7280', bg: 'rgba(107,114,128,.15)' };
+        const isGlobal = !n.userId;
+        const recipientHtml = isGlobal
+            ? '<span style="color:#3b82f6;font-weight:600">👥 Tất cả người dùng</span>'
+            : `<span>${n.userId?.email || '?'}</span>`;
+        const readHtml = !isGlobal
+            ? (n.read ? ' · <span style="color:#10b981">✓ Đã đọc</span>' : ' · <span style="color:#f59e0b">Chưa đọc</span>')
+            : '';
+        const g = n.gift || {};
+        const hasGift = g.coins > 0 || g.gems > 0 || g.xp > 0;
+        const giftHtml = hasGift ? `
+            <div style="display:flex;gap:10px;margin-top:6px;font-size:12px;flex-wrap:wrap">
+                ${g.coins > 0 ? `<span>🪙 <b>${g.coins}</b> coins</span>` : ''}
+                ${g.gems  > 0 ? `<span>💎 <b>${g.gems}</b> gems</span>`  : ''}
+                ${g.xp    > 0 ? `<span>⭐ <b>${g.xp}</b> XP</span>`     : ''}
+            </div>` : '';
+        return `
+        <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:12px 14px" id="nhi-${n._id}">
+            <div style="display:flex;align-items:center;gap:8px">
+                <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${meta.bg};color:${meta.color};border:1px solid ${meta.color}33;white-space:nowrap">${meta.label}</span>
+                <span style="color:var(--text-secondary);font-size:12px">${new Date(n.createdAt).toLocaleString('vi-VN')}</span>
+                <button class="btn btn-sm nhi-del-btn" data-id="${n._id}" style="margin-left:auto;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:2px 8px;font-size:11px;border-radius:6px"><i class="fas fa-trash"></i></button>
+            </div>
+            <div style="font-weight:600;margin-top:7px;font-size:14px">${n.title}</div>
+            ${n.body ? `<div style="color:var(--text-secondary);font-size:13px;margin-top:2px">${n.body}</div>` : ''}
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:5px">${recipientHtml}${readHtml}</div>
+            ${giftHtml}
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.nhi-del-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteNotif(btn.dataset.id, btn));
+    });
+}
+
 async function loadNotifHistory() {
     const list = document.getElementById('bc-history');
     if (!list) return;
     list.innerHTML = '<p style="color:var(--text-secondary);padding:20px;text-align:center"><i class="fas fa-spinner fa-spin"></i> Đang tải...</p>';
 
     try {
-        const filterType = document.getElementById('bc-filter-type')?.value || '';
-        const url = `/api/admin/notifications?limit=50${filterType ? '&type=' + filterType : ''}`;
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${authToken}` } });
+        const res = await fetch('/api/admin/notifications?limit=50', {
+            headers: { Authorization: `Bearer ${authToken}` }
+        });
         const result = await res.json();
         if (!result.success) throw new Error(result.message);
-
-        if (!result.data.length) {
-            list.innerHTML = '<p style="color:var(--text-secondary);font-size:13px;padding:20px;text-align:center">Chưa có thông báo nào.</p>';
-            return;
-        }
-
-        list.innerHTML = result.data.map(n => {
-            const meta = NOTIF_TYPE_META[n.type] || { label: n.type, color: '#6b7280', bg: 'rgba(107,114,128,.15)' };
-            const isGlobal = !n.userId;
-            const recipientHtml = isGlobal
-                ? '<span style="color:#3b82f6;font-weight:600">👥 Tất cả người dùng</span>'
-                : `<span>${n.userId?.email || '?'}</span>`;
-            const readHtml = !isGlobal
-                ? (n.read ? ' · <span style="color:#10b981">✓ Đã đọc</span>' : ' · <span style="color:#f59e0b">Chưa đọc</span>')
-                : '';
-            const g = n.gift || {};
-            const hasGift = g.coins > 0 || g.gems > 0 || g.xp > 0;
-            const giftHtml = hasGift ? `
-                <div style="display:flex;gap:10px;margin-top:6px;font-size:12px;flex-wrap:wrap">
-                    ${g.coins > 0 ? `<span>🪙 <b>${g.coins}</b> coins</span>` : ''}
-                    ${g.gems  > 0 ? `<span>💎 <b>${g.gems}</b> gems</span>`  : ''}
-                    ${g.xp    > 0 ? `<span>⭐ <b>${g.xp}</b> XP</span>`     : ''}
-                </div>` : '';
-            return `
-            <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:12px 14px" id="nhi-${n._id}">
-                <div style="display:flex;align-items:center;gap:8px">
-                    <span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:${meta.bg};color:${meta.color};border:1px solid ${meta.color}33;white-space:nowrap">${meta.label}</span>
-                    <span style="color:var(--text-secondary);font-size:12px">${new Date(n.createdAt).toLocaleString('vi-VN')}</span>
-                    <button class="btn btn-sm nhi-del-btn" data-id="${n._id}" style="margin-left:auto;background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:2px 8px;font-size:11px;border-radius:6px"><i class="fas fa-trash"></i></button>
-                </div>
-                <div style="font-weight:600;margin-top:7px;font-size:14px">${n.title}</div>
-                ${n.body ? `<div style="color:var(--text-secondary);font-size:13px;margin-top:2px">${n.body}</div>` : ''}
-                <div style="font-size:12px;color:var(--text-secondary);margin-top:5px">${recipientHtml}${readHtml}</div>
-                ${giftHtml}
-            </div>`;
-        }).join('');
-
-        list.querySelectorAll('.nhi-del-btn').forEach(btn => {
-            btn.addEventListener('click', () => deleteNotif(btn.dataset.id, btn));
-        });
+        _notifData = result.data || [];
+        _renderNotifList();
     } catch (err) {
         list.innerHTML = `<p style="color:var(--danger-color);padding:16px">Lỗi: ${err.message}</p>`;
     }
@@ -851,6 +965,7 @@ async function deleteNotif(id, btn) {
         const result = await res.json();
         if (!result.success) throw new Error(result.message);
         document.getElementById(`nhi-${id}`)?.remove();
+        _notifData = _notifData.filter(n => n._id !== id);
         showToast('Đã xóa', 'success');
     } catch (err) {
         showToast(`Lỗi: ${err.message}`, 'error');

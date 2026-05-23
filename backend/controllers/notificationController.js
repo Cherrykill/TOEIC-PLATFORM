@@ -2,9 +2,9 @@ const Notification = require('../models/Notification');
 const UserStats    = require('../models/UserStats');
 
 const TAB_TYPES = {
-    system:    ['system', 'reminder'],
-    account:   ['achievement', 'quest', 'level_up', 'test_result'],
-    violation: ['violation'],
+    system:      ['system', 'reminder', 'reward'],
+    achievement: ['achievement', 'quest', 'level_up', 'test_result'],
+    violation:   ['violation'],
 };
 
 // GET /api/notifications?tab=system|account|violation — 30 thông báo mới nhất.

@@ -1,0 +1,376 @@
+// ===================================
+// DB MANAGER MODULE
+// MongoDB collection browser + CRUD
+// ===================================
+
+const _db = {
+    currentCollection: null,
+    currentPage: 1,
+    currentSearch: '',
+    totalPages: 1,
+    initialized: false,
+};
+
+// ── API helpers ──────────────────────────────────────────────
+function dbFetch(url, options = {}) {
+    return fetch(url, {
+        ...options,
+        headers: {
+            'Authorization': `Bearer ${getToken()}`,
+            ...(options.headers || {}),
+        },
+    });
+}
+
+// ── Init ─────────────────────────────────────────────────────
+function initDbManager() {
+    if (_db.initialized) {
+        loadDbCollections();
+        return;
+    }
+    _db.initialized = true;
+
+    document.getElementById('db-refresh-btn')?.addEventListener('click', loadDbCollections);
+
+    // Event delegation cho collection list (tránh inline onclick)
+    document.getElementById('db-col-list')?.addEventListener('click', (e) => {
+        const item = e.target.closest('.db-col-item');
+        if (item) selectDbCollection(item.dataset.col);
+    });
+
+    document.getElementById('db-search-btn')?.addEventListener('click', () => {
+        _db.currentSearch = document.getElementById('db-search')?.value.trim() || '';
+        loadDbDocuments(1);
+    });
+    document.getElementById('db-search-clear')?.addEventListener('click', () => {
+        const inp = document.getElementById('db-search');
+        if (inp) inp.value = '';
+        _db.currentSearch = '';
+        loadDbDocuments(1);
+    });
+    document.getElementById('db-search')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            _db.currentSearch = e.target.value.trim();
+            loadDbDocuments(1);
+        }
+    });
+    document.getElementById('db-btn-insert')?.addEventListener('click', openDbInsertModal);
+    document.getElementById('db-btn-drop')?.addEventListener('click', dropCurrentCollection);
+
+    loadDbCollections();
+}
+
+// ── Collections list ─────────────────────────────────────────
+async function loadDbCollections() {
+    const list = document.getElementById('db-col-list');
+    if (!list) return;
+    list.innerHTML = '<div class="db-col-empty"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+
+    try {
+        const res = await dbFetch('/api/admin/db/collections');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        if (!json.data.length) {
+            list.innerHTML = '<div class="db-col-empty">Không có collection nào</div>';
+            return;
+        }
+
+        list.innerHTML = json.data.map(col => `
+            <div class="db-col-item${_db.currentCollection === col.name ? ' active' : ''}"
+                 data-col="${col.name}" style="cursor:pointer">
+                <span class="db-col-name">${col.name}</span>
+                <span class="db-col-count-badge">${col.count.toLocaleString()}</span>
+            </div>
+        `).join('');
+    } catch (err) {
+        list.innerHTML = `<div class="db-col-empty" style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> ${err.message}</div>`;
+    }
+}
+
+// ── Select collection ─────────────────────────────────────────
+function selectDbCollection(name) {
+    _db.currentCollection = name;
+    _db.currentPage = 1;
+    _db.currentSearch = '';
+
+    document.querySelectorAll('.db-col-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.col === name);
+    });
+
+    const inp = document.getElementById('db-search');
+    if (inp) inp.value = '';
+
+    document.getElementById('db-doc-empty').style.display = 'none';
+    document.getElementById('db-doc-content').style.display = 'block';
+    document.getElementById('db-col-title').textContent = name;
+
+    loadDbDocuments(1);
+}
+
+// Expose for inline onclick
+window.selectDbCollection = selectDbCollection;
+
+// ── Documents list ────────────────────────────────────────────
+async function loadDbDocuments(page = 1) {
+    if (!_db.currentCollection) return;
+    _db.currentPage = page;
+
+    const tbody = document.getElementById('db-doc-tbody');
+    const thead = document.getElementById('db-doc-thead');
+    if (tbody) tbody.innerHTML = '<tr><td class="loading" colspan="100"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+    if (thead) thead.innerHTML = '';
+
+    try {
+        const params = new URLSearchParams({
+            page,
+            limit: 20,
+            search: _db.currentSearch,
+        });
+        const res = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(_db.currentCollection)}?${params}`);
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        _db.totalPages = json.pagination.pages;
+
+        document.getElementById('db-col-count').textContent = `${json.pagination.total.toLocaleString()} docs`;
+
+        renderDbTable(json.data);
+        renderDbPagination(json.pagination);
+    } catch (err) {
+        if (tbody) tbody.innerHTML = `<tr><td class="loading" colspan="100" style="color:var(--danger)">${err.message}</td></tr>`;
+    }
+}
+
+// ── Table render ──────────────────────────────────────────────
+function renderDbTable(docs) {
+    const thead = document.getElementById('db-doc-thead');
+    const tbody = document.getElementById('db-doc-tbody');
+    if (!thead || !tbody) return;
+
+    if (!docs.length) {
+        thead.innerHTML = '';
+        tbody.innerHTML = '<tr><td class="loading" colspan="100">Không có dữ liệu</td></tr>';
+        return;
+    }
+
+    // Collect all keys across all docs (up to first 5 docs for perf), _id first
+    const keySet = new Set(['_id']);
+    docs.slice(0, 5).forEach(doc => Object.keys(doc).forEach(k => keySet.add(k)));
+    const keys = [...keySet].slice(0, 12); // cap at 12 columns to avoid overflow
+
+    thead.innerHTML = '<tr>' +
+        keys.map(k => `<th>${k}</th>`).join('') +
+        '<th style="min-width:80px">Thao tác</th>' +
+        '</tr>';
+
+    tbody.innerHTML = docs.map(doc => {
+        const id = doc._id;
+        const cells = keys.map(k => {
+            const val = doc[k];
+            const display = formatDbCell(val);
+            return `<td title="${escapeHtml(String(val ?? ''))}">${display}</td>`;
+        }).join('');
+        return `<tr>
+            ${cells}
+            <td>
+                <button class="btn btn-ghost btn-sm" onclick="openDbEditModal(${escapeAttr(JSON.stringify(doc))})" title="Sửa">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="deleteDbDocument('${id}')" title="Xóa">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function formatDbCell(val) {
+    if (val === null || val === undefined) return '<span style="opacity:.4">—</span>';
+    if (typeof val === 'object') {
+        const s = JSON.stringify(val);
+        return `<span style="opacity:.6;font-size:11px">${escapeHtml(s.length > 60 ? s.slice(0, 60) + '…' : s)}</span>`;
+    }
+    const s = String(val);
+    return escapeHtml(s.length > 80 ? s.slice(0, 80) + '…' : s);
+}
+
+function escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escapeAttr(str) {
+    return str.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+}
+
+// ── Pagination ────────────────────────────────────────────────
+function renderDbPagination(pagination) {
+    const el = document.getElementById('db-doc-pagination');
+    if (!el) return;
+
+    const { page, pages, total, limit } = pagination;
+    if (pages <= 1) { el.innerHTML = ''; return; }
+
+    const from = (page - 1) * limit + 1;
+    const to = Math.min(page * limit, total);
+
+    let html = `<span class="pagination-info">${from}–${to} / ${total.toLocaleString()}</span><div class="pagination-btns">`;
+
+    html += `<button class="btn btn-ghost btn-sm" onclick="loadDbDocuments(1)" ${page === 1 ? 'disabled' : ''}><i class="fas fa-angle-double-left"></i></button>`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="loadDbDocuments(${page - 1})" ${page === 1 ? 'disabled' : ''}><i class="fas fa-angle-left"></i></button>`;
+
+    const start = Math.max(1, page - 2);
+    const end   = Math.min(pages, page + 2);
+    for (let p = start; p <= end; p++) {
+        html += `<button class="btn ${p === page ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="loadDbDocuments(${p})">${p}</button>`;
+    }
+
+    html += `<button class="btn btn-ghost btn-sm" onclick="loadDbDocuments(${page + 1})" ${page === pages ? 'disabled' : ''}><i class="fas fa-angle-right"></i></button>`;
+    html += `<button class="btn btn-ghost btn-sm" onclick="loadDbDocuments(${pages})" ${page === pages ? 'disabled' : ''}><i class="fas fa-angle-double-right"></i></button>`;
+    html += '</div>';
+
+    el.innerHTML = html;
+}
+
+// ── JSON modal (shared for insert + edit) ────────────────────
+function openDbJsonModal({ title, json, onSave }) {
+    let modal = document.getElementById('db-json-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'db-json-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content" style="max-width:640px;width:95%">
+                <div class="modal-header">
+                    <h3 id="db-modal-title">Document</h3>
+                    <button class="btn btn-ghost btn-sm" onclick="closeDbJsonModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div style="padding:16px">
+                    <textarea id="db-modal-textarea" style="width:100%;min-height:320px;font-family:monospace;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:10px;background:var(--bg-secondary);color:var(--text-primary);resize:vertical"></textarea>
+                    <div id="db-modal-error" style="color:var(--danger);font-size:12px;margin-top:6px;display:none"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-ghost" onclick="closeDbJsonModal()">Hủy</button>
+                    <button class="btn btn-primary" id="db-modal-save">Lưu</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    document.getElementById('db-modal-title').textContent = title;
+    document.getElementById('db-modal-textarea').value = JSON.stringify(json, null, 2);
+    document.getElementById('db-modal-error').style.display = 'none';
+    modal.style.display = 'flex';
+
+    const saveBtn = document.getElementById('db-modal-save');
+    saveBtn.onclick = async () => {
+        const errEl = document.getElementById('db-modal-error');
+        errEl.style.display = 'none';
+        let parsed;
+        try {
+            parsed = JSON.parse(document.getElementById('db-modal-textarea').value);
+        } catch {
+            errEl.textContent = 'JSON không hợp lệ';
+            errEl.style.display = 'block';
+            return;
+        }
+        saveBtn.disabled = true;
+        try {
+            await onSave(parsed);
+            closeDbJsonModal();
+        } catch (err) {
+            errEl.textContent = err.message;
+            errEl.style.display = 'block';
+        } finally {
+            saveBtn.disabled = false;
+        }
+    };
+}
+
+window.closeDbJsonModal = function () {
+    const modal = document.getElementById('db-json-modal');
+    if (modal) modal.style.display = 'none';
+};
+
+// ── Insert document ───────────────────────────────────────────
+function openDbInsertModal() {
+    openDbJsonModal({
+        title: `Thêm document vào "${_db.currentCollection}"`,
+        json: {},
+        onSave: async (doc) => {
+            const res = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(_db.currentCollection)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(doc),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.message);
+            showToast('Đã thêm document', 'success');
+            loadDbDocuments(_db.currentPage);
+            loadDbCollections();
+        },
+    });
+}
+
+// ── Edit document ─────────────────────────────────────────────
+function openDbEditModal(doc) {
+    const id = doc._id;
+    openDbJsonModal({
+        title: `Sửa document`,
+        json: doc,
+        onSave: async (updated) => {
+            const res = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(_db.currentCollection)}/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updated),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.message);
+            showToast('Đã cập nhật document', 'success');
+            loadDbDocuments(_db.currentPage);
+        },
+    });
+}
+
+window.openDbEditModal = openDbEditModal;
+
+// ── Delete document ───────────────────────────────────────────
+async function deleteDbDocument(id) {
+    if (!confirm(`Xóa document này?`)) return;
+    try {
+        const res = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(_db.currentCollection)}/${id}`, {
+            method: 'DELETE',
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        showToast('Đã xóa document', 'success');
+        loadDbDocuments(_db.currentPage);
+        loadDbCollections();
+    } catch (err) {
+        showToast(`Lỗi: ${err.message}`, 'error');
+    }
+}
+
+window.deleteDbDocument = deleteDbDocument;
+
+// ── Drop collection ───────────────────────────────────────────
+async function dropCurrentCollection() {
+    const name = _db.currentCollection;
+    if (!name) return;
+    if (!confirm(`Drop toàn bộ collection "${name}"? Hành động này không thể hoàn tác.`)) return;
+    try {
+        const res = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(name)}`, {
+            method: 'DELETE',
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+        showToast(`Đã drop "${name}"`, 'success');
+        _db.currentCollection = null;
+        document.getElementById('db-doc-empty').style.display = '';
+        document.getElementById('db-doc-content').style.display = 'none';
+        loadDbCollections();
+    } catch (err) {
+        showToast(`Lỗi: ${err.message}`, 'error');
+    }
+}

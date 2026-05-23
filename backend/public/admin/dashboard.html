@@ -74,6 +74,146 @@
         border-color: var(--primary, #e11d48);
         box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.08);
       }
+
+      /* Activity sub-tab nav */
+      .activity-subtab-nav {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+        background: var(--bg-card, #fff);
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 10px;
+        padding: 4px;
+      }
+      .activity-subtab-btn {
+        flex: 1;
+        padding: 9px 12px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary, #6b7280);
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+      }
+      .activity-subtab-btn:hover {
+        background: var(--bg-secondary, #f3f4f6);
+        color: var(--text-primary, #111827);
+      }
+      .activity-subtab-btn.active {
+        background: var(--primary, #e11d48);
+        color: #fff;
+      }
+      .activity-panel { display: none; }
+      .activity-panel.active { display: block; }
+
+      /* DB Manager layout */
+      .db-manager-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 16px;
+        align-items: start;
+        height: calc(100vh - 120px);
+      }
+      .db-col-sidebar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .db-col-sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: .4px;
+      }
+      .db-col-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .db-col-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--text-primary);
+        transition: background .12s;
+        gap: 6px;
+      }
+      .db-col-item:hover { background: var(--bg-secondary); }
+      .db-col-item.active {
+        background: var(--primary, #e11d48);
+        color: #fff;
+      }
+      .db-col-item.active .db-col-count-badge { background: rgba(255,255,255,.25); color:#fff; }
+      .db-col-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .db-col-count-badge {
+        font-size: 10px;
+        font-weight: 700;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        padding: 2px 7px;
+        border-radius: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .db-col-empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .db-doc-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px 20px;
+        overflow-y: auto;
+        height: 100%;
+      }
+      .db-doc-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--text-secondary);
+        font-size: 14px;
+        text-align: center;
+      }
+      /* JSON editor modal */
+      #db-json-modal textarea {
+        width: 100%;
+        min-height: 300px;
+        font-family: monospace;
+        font-size: 13px;
+        padding: 12px;
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        resize: vertical;
+        box-sizing: border-box;
+      }
     </style>
   </head>
   <body>
@@ -139,7 +279,7 @@
         <nav class="sidebar-nav">
           <!-- Dashboard -->
           <a href="#" class="sidebar-link active" data-main-tab="overview">
-            <i class="fas fa-home"></i><span>Dashboard</span>
+            <i class="fas fa-home"></i><span>Tổng quan</span>
           </a>
 
           <!-- Group: Nội dung -->
@@ -150,7 +290,7 @@
             </div>
             <div class="nav-group-items open" id="nav-group-content">
               <a href="#" class="sidebar-link" data-main-tab="topics">
-                <i class="fas fa-tags"></i><span>Chủ đề từ vựng</span>
+                <i class="fas fa-tags"></i><span>Chủ đề luyện tập</span>
               </a>
               <a href="#" class="sidebar-link" data-main-tab="vocabulary">
                 <i class="fas fa-book"></i><span>Từ vựng TOEIC</span>
@@ -159,7 +299,10 @@
                 <i class="fas fa-question-circle"></i><span>Câu hỏi TOEIC</span>
               </a>
               <a href="#" class="sidebar-link" data-main-tab="toeic-tests">
-                <i class="fas fa-file-alt"></i><span>Bài kiểm tra TOEIC</span>
+                <i class="fas fa-file-alt"></i><span>Đề thi TOEIC</span>
+              </a>
+              <a href="#" class="sidebar-link" data-main-tab="upload-management">
+                <i class="fas fa-cloud-upload-alt"></i><span>Nội dung người dùng</span>
               </a>
             </div>
           </div>
@@ -172,31 +315,22 @@
             </div>
             <div class="nav-group-items" id="nav-group-users">
               <a href="#" class="sidebar-link" data-main-tab="users">
-                <i class="fas fa-user-cog"></i><span>Quản lý tài khoản</span>
+                <i class="fas fa-user-cog"></i><span>Tài khoản</span>
               </a>
-              <a href="#" class="sidebar-link" data-main-tab="user-stats">
-                <i class="fas fa-chart-line"></i><span>Thống kê người dùng</span>
-              </a>
-              <a href="#" class="sidebar-link" data-main-tab="user-achievements">
-                <i class="fas fa-medal"></i><span>Thành tích người dùng</span>
-              </a>
-              <a href="#" class="sidebar-link" data-main-tab="practice-history">
-                <i class="fas fa-gamepad"></i><span>Lịch sử luyện tập</span>
-              </a>
-              <a href="#" class="sidebar-link" data-main-tab="toeic-history">
-                <i class="fas fa-file-alt"></i><span>Lịch sử luyện thi TOEIC</span>
+              <a href="#" class="sidebar-link" data-main-tab="activity">
+                <i class="fas fa-chart-bar"></i><span>Hoạt động</span>
               </a>
               <a href="#" class="sidebar-link" data-main-tab="reports">
-                <i class="fas fa-flag"></i><span>Báo cáo người dùng</span>
+                <i class="fas fa-flag"></i><span>Báo cáo</span>
                 <span class="sidebar-badge" id="sidebar-report-badge" style="display:none"></span>
               </a>
             </div>
           </div>
 
-          <!-- Group: Game -->
+          <!-- Group: Gamification -->
           <div class="nav-group">
             <div class="nav-group-toggle" data-group="game">
-              <i class="fas fa-gamepad"></i><span>Game</span>
+              <i class="fas fa-gamepad"></i><span>Gamification</span>
               <i class="fas fa-chevron-down nav-arrow"></i>
             </div>
             <div class="nav-group-items" id="nav-group-game">
@@ -220,16 +354,16 @@
             </div>
             <div class="nav-group-items" id="nav-group-system">
               <a href="#" class="sidebar-link" data-main-tab="monitor">
-                <i class="fas fa-tachometer-alt"></i><span>Giám sát hệ thống</span>
+                <i class="fas fa-tachometer-alt"></i><span>Giám sát</span>
               </a>
               <a href="#" class="sidebar-link" data-main-tab="broadcast">
-                <i class="fas fa-bullhorn"></i><span>Gửi thông báo</span>
+                <i class="fas fa-bullhorn"></i><span>Thông báo</span>
               </a>
-              <a href="#" class="sidebar-link" data-main-tab="upload-management">
-                <i class="fas fa-cloud-upload-alt"></i><span>Từ vựng tải lên</span>
+              <a href="#" class="sidebar-link" data-main-tab="db-manager">
+                <i class="fas fa-database"></i><span>Quản lý Database</span>
               </a>
               <a href="#" class="sidebar-link" data-main-tab="token-management">
-                <i class="fas fa-key"></i><span>Token đã dùng</span>
+                <i class="fas fa-robot"></i><span>Chi phí AI</span>
               </a>
             </div>
           </div>
@@ -244,17 +378,17 @@
             <button
               class="sidebar-toggle-btn"
               id="sidebar-toggle"
-              title="Toggle sidebar"
+              title="Ẩn/hiện menu"
             >
               <i class="fas fa-bars"></i>
             </button>
-            <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+            <h1 class="topbar-title" id="topbar-title">Tổng quan</h1>
           </div>
           <div class="topbar-right">
             <span
               class="status-dot online"
               id="topbar-server-status"
-              title="Server status"
+              title="Trạng thái máy chủ"
               >Online</span
             >
 
@@ -263,7 +397,7 @@
             <button
               class="topbar-icon-btn"
               id="btn-refresh"
-              title="Refresh data"
+              title="Làm mới"
             >
               <i class="fas fa-sync-alt"></i>
             </button>
@@ -271,7 +405,7 @@
             <button
               class="theme-toggle topbar-icon-btn"
               id="theme-toggle"
-              title="Toggle theme"
+              title="Đổi giao diện"
             >
               <i class="fas fa-moon"></i>
             </button>
@@ -292,7 +426,7 @@
                   <div class="avatar-dropdown-name" id="avatar-dropdown-name">
                     Admin
                   </div>
-                  <div class="avatar-dropdown-role">Administrator</div>
+                  <div class="avatar-dropdown-role">Quản trị viên</div>
                 </div>
                 <button class="avatar-dropdown-item" id="btn-logout">
                   <i class="fas fa-sign-out-alt"></i>
@@ -311,7 +445,7 @@
             <div class="stats-grid">
               <div class="stat-card">
                 <div class="stat-info">
-                  <h3>Total Users</h3>
+                  <h3>Tổng người dùng</h3>
                   <div class="value" id="total-users">-</div>
                   <div class="stat-meta">
                     <i class="fas fa-users"></i> Tổng tài khoản
@@ -324,7 +458,7 @@
 
               <div class="stat-card">
                 <div class="stat-info">
-                  <h3>TOEIC Vocabulary</h3>
+                  <h3>Từ vựng TOEIC</h3>
                   <div class="value" id="total-vocabulary">-</div>
                   <div class="stat-meta">
                     <i class="fas fa-book-open"></i> Từ vựng trong DB
@@ -337,7 +471,7 @@
 
               <div class="stat-card">
                 <div class="stat-info">
-                  <h3>TOEIC Questions</h3>
+                  <h3>Câu hỏi TOEIC</h3>
                   <div class="value" id="total-sessions">-</div>
                   <div class="stat-meta">
                     <i class="fas fa-question-circle"></i> Câu hỏi luyện thi
@@ -350,7 +484,7 @@
 
               <div class="stat-card">
                 <div class="stat-info">
-                  <h3>TOEIC Tests</h3>
+                  <h3>Đề thi TOEIC</h3>
                   <div class="value" id="toeic-tests-count">-</div>
                   <div class="stat-meta">
                     <i class="fas fa-file-alt"></i> Đề thi đã tạo
@@ -490,7 +624,7 @@
                   <div class="card-header">
                     <h2><i class="fas fa-server"></i> Trạng thái hệ thống</h2>
                     <span class="badge success" id="server-status"
-                      >Running</span
+                      >Đang chạy</span
                     >
                   </div>
                   <div>
@@ -551,6 +685,36 @@
                   </button>
                 </div>
               </div>
+              <div class="filter-bar">
+                <div class="filter-bar-row cols-3">
+                  <div class="form-group">
+                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                    <input type="text" id="topics-search" class="filter-input" placeholder="Tên đề, source key...">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label"><i class="fas fa-book-open"></i> Số từ</label>
+                    <select id="topics-filter-words" class="filter-select">
+                      <option value="">Tất cả</option>
+                      <option value="0-99">&lt; 100 từ</option>
+                      <option value="100-499">100 – 499 từ</option>
+                      <option value="500-999">500 – 999 từ</option>
+                      <option value="1000-">≥ 1000 từ</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label"><i class="fas fa-eye"></i> Hiển thị</label>
+                    <select id="topics-filter-visible" class="filter-select">
+                      <option value="">Tất cả</option>
+                      <option value="1">Đang hiện</option>
+                      <option value="0">Đang ẩn</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="filter-bar-footer">
+                  <span id="topics-filter-count" class="result-count"></span>
+                  <button class="btn btn-ghost btn-sm" id="topics-filter-clear"><i class="fas fa-times"></i> Xóa lọc</button>
+                </div>
+              </div>
               <div class="table-container">
                 <table id="topics-table">
                   <thead>
@@ -561,7 +725,7 @@
                       <th>Số từ</th>
                       <th>Thứ tự</th>
                       <th>Hiện</th>
-                      <th>Actions</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody id="topics-tbody">
@@ -584,77 +748,17 @@
                 <div class="card-header">
                   <h2><i class="fas fa-book"></i> TOEIC Vocabulary Database</h2>
                   <div class="card-header-actions">
-                    <!-- Part filter dropdown -->
-                    <div style="position: relative" id="part-filter-wrapper">
-                      <button
-                        type="button"
-                        id="part-filter-btn"
-                        class="btn btn-ghost btn-sm"
-                        style="
-                          min-width: 130px;
-                          display: flex;
-                          align-items: center;
-                          gap: 6px;
-                        "
-                      >
-                        <i
-                          class="fas fa-layer-group"
-                          style="font-size: 11px"
-                        ></i>
-                        <span id="part-filter-label">Tất cả Part</span>
-                        <i
-                          class="fas fa-chevron-down"
-                          style="
-                            font-size: 9px;
-                            opacity: 0.6;
-                            margin-left: auto;
-                          "
-                        ></i>
-                      </button>
-                      <div
-                        id="part-filter-dropdown"
-                        style="
-                          display: none;
-                          position: absolute;
-                          top: calc(100% + 4px);
-                          left: 0;
-                          min-width: 220px;
-                          max-width: 300px;
-                          background: #1e293b;
-                          border: 1px solid #334155;
-                          border-radius: 10px;
-                          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-                          z-index: 999;
-                          padding: 8px;
-                        "
-                      >
-                        <div
-                          id="part-filter-pills"
-                          style="
-                            display: flex;
-                            flex-wrap: wrap;
-                            gap: 6px;
-                            max-height: 260px;
-                            overflow-y: auto;
-                            padding: 2px;
-                          "
-                        ></div>
-                      </div>
-                    </div>
-                    <!-- Hidden select for backward-compat JS logic -->
+                    <!-- Hidden selects for backward-compat JS logic -->
                     <select
                       id="vocab-part-filter"
                       style="display: none"
                     ></select>
-                    <!-- Bộ chọn "Chọn bộ từ vựng" (nút đỏ Tất cả) đã gỡ theo
-                         yêu cầu. Giữ hidden select bên dưới cho JS cũ. -->
-                    <!-- Hidden select kept for backward-compat (not shown) -->
                     <select
                       id="vocab-file-selector"
                       style="display: none"
                     ></select>
-                    <button class="btn btn-success" id="btn-add-vocabulary">
-                      <i class="fas fa-plus"></i> Add Word
+                    <button class="btn btn-success btn-sm" id="btn-add-vocabulary">
+                      <i class="fas fa-plus"></i> Thêm từ
                     </button>
                     <button
                       class="btn btn-ghost btn-sm"
@@ -668,7 +772,7 @@
                       id="btn-filter-delete-vocab"
                       title="Xóa toàn bộ docs khớp field=value"
                     >
-                      <i class="fas fa-filter"></i> Xóa lọc
+                      <i class="fas fa-filter"></i> Xóa theo lọc
                     </button>
                     <button
                       class="btn btn-danger btn-sm"
@@ -680,14 +784,84 @@
                   </div>
                 </div>
 
-                <!-- Search + filter info -->
-                <div style="padding: 0 0 12px">
+                <!-- Search + filters row -->
+                <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center; position: relative">
                   <input
                     type="text"
                     id="vocab-search"
                     class="card-search"
+                    style="flex: 1; margin: 0"
                     placeholder="Tìm kiếm từ vựng (English, Vietnamese, Chinese)..."
                   />
+                  <!-- Source filter -->
+                  <select id="vocab-filter-source" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
+                    <option value="">Tất cả Source</option>
+                  </select>
+                  <!-- Type filter -->
+                  <select id="vocab-filter-type" class="filter-select" style="width: auto; min-width: 140px; flex-shrink: 0">
+                    <option value="">Tất cả loại từ</option>
+                    <option value="noun">Danh từ</option>
+                    <option value="verb">Động từ</option>
+                    <option value="adjective">Tính từ</option>
+                    <option value="adverb">Trạng từ</option>
+                    <option value="preposition">Giới từ</option>
+                    <option value="conjunction">Liên từ</option>
+                    <option value="pronoun">Đại từ</option>
+                    <option value="interjection">Thán từ</option>
+                    <option value="article">Mạo từ</option>
+                    <option value="determiner">Từ hạn định</option>
+                    <option value="auxiliary">Trợ động từ</option>
+                    <option value="noun phrase">Cụm danh từ</option>
+                    <option value="verb phrase">Cụm động từ</option>
+                    <option value="adjective phrase">Cụm tính từ</option>
+                    <option value="adverb phrase">Cụm trạng từ</option>
+                    <option value="prepositional phrase">Cụm giới từ</option>
+                    <option value="participle phrase">Cụm phân từ</option>
+                    <option value="gerund phrase">Cụm danh động từ</option>
+                    <option value="infinitive phrase">Cụm động từ nguyên thể</option>
+                  </select>
+                  <!-- Part filter dropdown -->
+                  <div style="position: relative; flex-shrink: 0" id="part-filter-wrapper">
+                    <button
+                      type="button"
+                      id="part-filter-btn"
+                      class="btn btn-ghost btn-sm"
+                      style="min-width: 130px; display: flex; align-items: center; gap: 6px; height: 38px"
+                    >
+                      <i class="fas fa-layer-group" style="font-size: 11px"></i>
+                      <span id="part-filter-label">Tất cả Part</span>
+                      <i class="fas fa-chevron-down" style="font-size: 9px; opacity: 0.6; margin-left: auto"></i>
+                    </button>
+                    <div
+                      id="part-filter-dropdown"
+                      style="
+                        display: none;
+                        position: absolute;
+                        top: calc(100% + 4px);
+                        right: 0;
+                        min-width: 220px;
+                        max-width: 300px;
+                        background: #1e293b;
+                        border: 1px solid #334155;
+                        border-radius: 10px;
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+                        z-index: 999;
+                        padding: 8px;
+                      "
+                    >
+                      <div
+                        id="part-filter-pills"
+                        style="
+                          display: flex;
+                          flex-wrap: wrap;
+                          gap: 6px;
+                          max-height: 260px;
+                          overflow-y: auto;
+                          padding: 2px;
+                        "
+                      ></div>
+                    </div>
+                  </div>
                 </div>
 
                 <div
@@ -722,23 +896,23 @@
                 </div>
 
                 <div class="table-container">
-                  <table id="vocabulary-table">
+                  <table id="vocabulary-table" class="data-table">
                     <thead>
                       <tr>
                         <th style="width:36px;"><input type="checkbox" id="vocab-select-all" title="Chọn tất cả"></th>
-                        <th>English</th>
-                        <th>Vietnamese</th>
-                        <th>Type</th>
+                        <th>Tiếng Anh</th>
+                        <th>Tiếng Việt</th>
+                        <th>Loại từ</th>
                         <th>Part</th>
-                        <th>Sources</th>
-                        <th>Actions</th>
+                        <th>Nguồn</th>
+                        <th>Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
                         <td colspan="7" class="loading">
                           <i class="fas fa-spinner"></i>
-                          <p>Loading vocabulary...</p>
+                          <p>Đang tải từ vựng...</p>
                         </td>
                       </tr>
                     </tbody>
@@ -773,22 +947,22 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label"
-                      ><i class="fas fa-user-tag"></i> Role</label
+                      ><i class="fas fa-user-tag"></i> Vai trò</label
                     >
                     <select id="filter-user-role" class="filter-select">
-                      <option value="">All Roles</option>
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
+                      <option value="">Tất cả vai trò</option>
+                      <option value="user">Người dùng</option>
+                      <option value="admin">Quản trị viên</option>
                     </select>
                   </div>
                   <div class="form-group">
                     <label class="form-label"
-                      ><i class="fas fa-toggle-on"></i> Status</label
+                      ><i class="fas fa-toggle-on"></i> Trạng thái</label
                     >
                     <select id="filter-user-status" class="filter-select">
-                      <option value="">All Status</option>
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
+                      <option value="">Tất cả trạng thái</option>
+                      <option value="active">Hoạt động</option>
+                      <option value="inactive">Không hoạt động</option>
                     </select>
                   </div>
                 </div>
@@ -808,14 +982,14 @@
               </div>
 
               <div class="table-container">
-                <table id="users-table-tab">
+                <table id="users-table-tab" class="data-table">
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Username</th>
+                      <th>Tên đăng nhập</th>
                       <th>Email</th>
                       <th>Khóa</th>
-                      <th>Role</th>
+                      <th>Vai trò</th>
                       <th>Đăng ký</th>
                       <th>Trạng thái</th>
                       <th>Hành động</th>
@@ -843,23 +1017,20 @@
                 <h2><i class="fas fa-question-circle"></i> TOEIC Questions</h2>
                 <div class="card-header-actions">
                   <button class="btn btn-ghost btn-sm" id="btn-view-statistics">
-                    <i class="fas fa-chart-bar"></i> Statistics
+                    <i class="fas fa-chart-bar"></i> Thống kê
+                  </button>
+                  <button class="btn btn-primary btn-sm" id="btn-ai-generate-questions">
+                    <i class="fas fa-magic"></i> AI Generate
+                  </button>
+                  <button class="btn btn-success btn-sm" id="btn-add-question">
+                    <i class="fas fa-plus"></i> Thêm câu hỏi
                   </button>
                   <button
                     class="btn btn-danger btn-sm"
                     id="btn-delete-all-questions"
                     title="Xóa toàn bộ câu hỏi TOEIC"
                   >
-                    <i class="fas fa-trash-alt"></i> Delete All
-                  </button>
-                  <button
-                    class="btn btn-primary btn-sm"
-                    id="btn-ai-generate-questions"
-                  >
-                    <i class="fas fa-magic"></i> AI Generate
-                  </button>
-                  <button class="btn btn-success btn-sm" id="btn-add-question">
-                    <i class="fas fa-plus"></i> Add
+                    <i class="fas fa-trash-alt"></i> Xóa tất cả
                   </button>
                 </div>
               </div>
@@ -883,7 +1054,7 @@
                       ><i class="fas fa-filter"></i> Part</label
                     >
                     <select id="filter-part" class="filter-select">
-                      <option value="">All Parts</option>
+                      <option value="">Tất cả</option>
                       <option value="1">Part 1</option>
                       <option value="2">Part 2</option>
                       <option value="3">Part 3</option>
@@ -895,13 +1066,13 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label"
-                      ><i class="fas fa-sort"></i> Sort</label
+                      ><i class="fas fa-sort"></i> Sắp xếp</label
                     >
                     <select id="sort-by" class="filter-select">
-                      <option value="newest">Newest First</option>
-                      <option value="oldest">Oldest First</option>
-                      <option value="most-used">Most Used</option>
-                      <option value="least-used">Least Used</option>
+                      <option value="newest">Mới nhất</option>
+                      <option value="oldest">Cũ nhất</option>
+                      <option value="most-used">Dùng nhiều nhất</option>
+                      <option value="least-used">Dùng ít nhất</option>
                       <option value="part-asc">Part ↑</option>
                       <option value="part-desc">Part ↓</option>
                     </select>
@@ -920,25 +1091,25 @@
               </div>
 
               <div class="table-container">
-                <table id="questions-table">
+                <table id="questions-table" class="data-table">
                   <thead>
                     <tr>
                       <th>Part</th>
-                      <th>Question Text</th>
-                      <th>Correct Answer</th>
-                      <th>Keywords</th>
-                      <th>Image URL</th>
-                      <th>Audio URL</th>
-                      <th>Used</th>
-                      <th>Created At</th>
-                      <th>Actions</th>
+                      <th>Nội dung câu hỏi</th>
+                      <th>Đáp án đúng</th>
+                      <th>Từ khóa</th>
+                      <th>Ảnh</th>
+                      <th>Audio</th>
+                      <th>Đã dùng</th>
+                      <th>Ngày tạo</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td colspan="10" class="loading">
                         <i class="fas fa-spinner"></i>
-                        <p>Loading questions...</p>
+                        <p>Đang tải câu hỏi...</p>
                       </td>
                     </tr>
                   </tbody>
@@ -955,17 +1126,14 @@
               <div class="card-header">
                 <h2><i class="fas fa-file-alt"></i> TOEIC Tests</h2>
                 <div class="card-header-actions">
-                  <button
-                    class="btn btn-danger btn-sm"
-                    id="btn-delete-all-tests"
-                  >
-                    <i class="fas fa-trash-alt"></i> Delete All
-                  </button>
                   <button class="btn btn-primary btn-sm" id="btn-generate-test">
                     <i class="fas fa-magic"></i> Auto Generate
                   </button>
                   <button class="btn btn-success btn-sm" id="btn-create-test">
-                    <i class="fas fa-plus"></i> Create
+                    <i class="fas fa-plus"></i> Tạo đề thi
+                  </button>
+                  <button class="btn btn-danger btn-sm" id="btn-delete-all-tests">
+                    <i class="fas fa-trash-alt"></i> Xóa tất cả
                   </button>
                 </div>
               </div>
@@ -986,25 +1154,25 @@
                   </div>
                   <div class="form-group">
                     <label class="form-label"
-                      ><i class="fas fa-layer-group"></i> Type</label
+                      ><i class="fas fa-layer-group"></i> Loại đề</label
                     >
                     <select id="filter-test-type" class="filter-select">
-                      <option value="">All Types</option>
-                      <option value="full">Full Test (200Q)</option>
+                      <option value="">Tất cả loại</option>
+                      <option value="full">Full Test (200 câu)</option>
                       <option value="mini">Mini Test</option>
-                      <option value="practice">Practice</option>
+                      <option value="practice">Luyện tập</option>
                     </select>
                   </div>
                   <div class="form-group">
                     <label class="form-label"
-                      ><i class="fas fa-sort"></i> Sort</label
+                      ><i class="fas fa-sort"></i> Sắp xếp</label
                     >
                     <select id="test-sort-by" class="filter-select">
-                      <option value="newest">Newest First</option>
-                      <option value="oldest">Oldest First</option>
-                      <option value="most-attempts">Most Attempts</option>
-                      <option value="highest-score">Highest Avg Score</option>
-                      <option value="lowest-score">Lowest Avg Score</option>
+                      <option value="newest">Mới nhất</option>
+                      <option value="oldest">Cũ nhất</option>
+                      <option value="most-attempts">Nhiều lượt thi nhất</option>
+                      <option value="highest-score">Điểm TB cao nhất</option>
+                      <option value="lowest-score">Điểm TB thấp nhất</option>
                     </select>
                   </div>
                 </div>
@@ -1024,23 +1192,23 @@
               </div>
 
               <div class="table-container">
-                <table id="tests-table">
+                <table id="tests-table" class="data-table">
                   <thead>
                     <tr>
-                      <th>Test Name</th>
-                      <th>Type</th>
-                      <th>Questions</th>
-                      <th>Time (min)</th>
-                      <th>Attempts</th>
-                      <th>Avg Score</th>
-                      <th>Actions</th>
+                      <th>Tên đề thi</th>
+                      <th>Loại</th>
+                      <th>Câu hỏi</th>
+                      <th>Thời gian (phút)</th>
+                      <th>Lượt thi</th>
+                      <th>Điểm TB</th>
+                      <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
                       <td colspan="7" class="loading">
                         <i class="fas fa-spinner"></i>
-                        <p>Loading tests...</p>
+                        <p>Đang tải đề thi...</p>
                       </td>
                     </tr>
                   </tbody>
@@ -1051,89 +1219,210 @@
           </div>
           <!-- End TOEIC Tests Tab -->
 
-          <!-- Practice History Tab Content (12 game modes) -->
-          <div id="main-tab-practice-history" class="main-tab-content">
-            <div class="tab-header">
-              <h2><i class="fas fa-gamepad"></i> Lịch sử luyện tập (12 chế độ)</h2>
-            </div>
-            <div class="tab-toolbar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
-              <input type="text" id="ph-search" placeholder="Tìm theo email..." style="padding:8px 12px;border:1.5px solid var(--border-color);border-radius:8px;min-width:220px;background:var(--bg-card);color:var(--text-primary)">
-              <select id="ph-mode" style="padding:8px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary)">
-                <option value="">Tất cả chế độ</option>
-                <option value="multiple-choice">Multiple Choice</option>
-                <option value="fill-blank">Fill Blank</option>
-                <option value="listening">Listening</option>
-                <option value="matching">Matching</option>
-                <option value="speed-quiz">Speed Quiz</option>
-                <option value="flashcard">Flashcard</option>
-                <option value="synonym-check">Synonym Check</option>
-                <option value="word-type-check">Word Type Check</option>
-                <option value="word-scramble">Word Scramble</option>
-              </select>
-              <button class="btn btn-primary" id="ph-search-btn"><i class="fas fa-search"></i> Tìm</button>
-              <button class="btn btn-ghost" id="ph-reset-btn"><i class="fas fa-sync"></i></button>
-              <span id="ph-total" style="margin-left:auto;color:var(--text-secondary);font-size:13px"></span>
-            </div>
-            <div style="overflow-x:auto">
-              <table class="data-table">
-                <thead><tr>
-                  <th>Email</th><th>Chế độ</th><th>Điểm</th>
-                  <th>Đúng</th><th>Sai</th><th>XP</th><th>Coins</th>
-                  <th>Thời gian</th><th>Ngày</th><th>Thao tác</th>
-                </tr></thead>
-                <tbody id="ph-tbody"><tr><td colspan="10" style="text-align:center;padding:20px">Đang tải...</td></tr></tbody>
-              </table>
-            </div>
-            <div id="ph-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px"></div>
-          </div>
-          <!-- End Practice History Tab -->
+          <!-- ===== ACTIVITY TAB (Hoạt động người dùng) ===== -->
+          <div id="main-tab-activity" class="main-tab-content">
 
-          <!-- TOEIC History Tab Content -->
-          <div id="main-tab-toeic-history" class="main-tab-content">
-            <div class="card">
-              <div class="card-header">
-                <h2><i class="fas fa-file-alt"></i> Lịch sử luyện thi TOEIC</h2>
-                <div class="card-header-actions">
-                  <select id="history-filter-user" class="filter-select" style="width:auto;min-width:160px">
-                    <option value="">-- All Users --</option>
-                  </select>
-                  <button class="btn btn-danger btn-sm" id="btn-delete-all-history">
-                    <i class="fas fa-trash-alt"></i> Delete All
-                  </button>
-                  <button class="btn btn-danger btn-sm" id="btn-delete-user-history" style="display:none">
-                    <i class="fas fa-user-times"></i> Delete User
-                  </button>
-                  <button class="btn btn-ghost btn-sm" id="btn-refresh-history">
-                    <i class="fas fa-sync-alt"></i>
-                  </button>
-                </div>
-              </div>
-              <input type="text" id="history-search" class="card-search" placeholder="Search by username..." />
-              <div class="table-container">
-                <table id="history-table" class="data-table">
-                  <thead>
-                    <tr>
-                      <th style="width:5%">#</th>
-                      <th style="width:15%">User</th>
-                      <th style="width:10%">Test Type</th>
-                      <th style="width:10%">Total Score</th>
-                      <th style="width:10%">Listening</th>
-                      <th style="width:10%">Reading</th>
-                      <th style="width:10%">Accuracy</th>
-                      <th style="width:15%">Date</th>
-                      <th style="width:10%">Duration</th>
-                      <th style="width:5%">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="history-table-body">
-                    <tr><td colspan="10" style="text-align:center;padding:20px">Loading...</td></tr>
-                  </tbody>
-                </table>
-              </div>
-              <div id="history-pagination" class="pagination-row"></div>
+            <!-- Sub-tab navigation -->
+            <div class="activity-subtab-nav">
+              <button class="activity-subtab-btn active" data-subtab="user-stats">
+                <i class="fas fa-chart-line"></i> Tổng quan
+              </button>
+              <button class="activity-subtab-btn" data-subtab="practice-history">
+                <i class="fas fa-gamepad"></i> Luyện tập
+              </button>
+              <button class="activity-subtab-btn" data-subtab="toeic-history">
+                <i class="fas fa-file-alt"></i> Thi TOEIC
+              </button>
+              <button class="activity-subtab-btn" data-subtab="user-achievements">
+                <i class="fas fa-medal"></i> Thành tích
+              </button>
             </div>
+
+            <!-- Panel: Tổng quan (User Stats) -->
+            <div class="activity-panel active" id="activity-panel-user-stats">
+              <div class="card">
+                <div class="card-header">
+                  <h2><i class="fas fa-chart-line"></i> Thống kê người dùng</h2>
+                </div>
+                <div class="filter-bar">
+                  <div class="filter-bar-row">
+                    <div class="form-group" style="flex:1;max-width:480px">
+                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                      <div style="display:flex;gap:8px">
+                        <input type="text" id="us-search" class="filter-input" placeholder="Tìm theo email..." style="flex:1">
+                        <button class="btn btn-primary" id="us-search-btn" style="white-space:nowrap"><i class="fas fa-search"></i> Tìm</button>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:flex-end;padding-bottom:1px">
+                      <button class="btn btn-ghost" id="us-reset-btn"><i class="fas fa-sync"></i> Làm mới</button>
+                    </div>
+                  </div>
+                  <div class="filter-bar-footer">
+                    <span id="us-total" class="filter-results-text"></span>
+                  </div>
+                </div>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead><tr>
+                      <th>Email</th><th>Tên đăng nhập</th><th>Level</th>
+                      <th>XP</th><th>Coins</th><th>Gems</th>
+                      <th>Streak</th><th>Sessions</th><th>Đúng</th>
+                      <th>Vai trò</th><th>Đăng ký</th><th>Thao tác</th>
+                    </tr></thead>
+                    <tbody id="us-tbody"><tr><td colspan="12" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr></tbody>
+                  </table>
+                </div>
+                <div id="us-pagination" class="pagination-row"></div>
+              </div>
+            </div>
+
+            <!-- Panel: Luyện tập (Practice History) -->
+            <div class="activity-panel" id="activity-panel-practice-history">
+              <div class="card">
+                <div class="card-header">
+                  <h2><i class="fas fa-gamepad"></i> Lịch sử luyện tập</h2>
+                </div>
+                <div class="filter-bar">
+                  <div class="filter-bar-row cols-3">
+                    <div class="form-group">
+                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                      <input type="text" id="ph-search" class="filter-input" placeholder="Tìm theo email...">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label"><i class="fas fa-gamepad"></i> Chế độ</label>
+                      <select id="ph-mode" class="filter-select">
+                        <option value="">Tất cả chế độ</option>
+                        <option value="multiple-choice">Trắc nghiệm</option>
+                        <option value="fill-blank">Điền vào chỗ trống</option>
+                        <option value="listening">Nghe</option>
+                        <option value="matching">Ghép đôi</option>
+                        <option value="speed-quiz">Kiểm tra nhanh</option>
+                        <option value="flashcard">Thẻ ghi nhớ</option>
+                        <option value="synonym-check">Từ đồng nghĩa</option>
+                        <option value="word-type-check">Loại từ</option>
+                        <option value="word-scramble">Xếp chữ</option>
+                      </select>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:flex-end;gap:8px">
+                      <button class="btn btn-primary" id="ph-search-btn"><i class="fas fa-search"></i> Tìm</button>
+                      <button class="btn btn-ghost" id="ph-reset-btn"><i class="fas fa-sync"></i> Làm mới</button>
+                    </div>
+                  </div>
+                  <div class="filter-bar-footer">
+                    <span id="ph-total" class="filter-results-text"></span>
+                  </div>
+                </div>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead><tr>
+                      <th>Email</th><th>Chế độ</th><th>Điểm</th>
+                      <th>Đúng</th><th>Sai</th><th>XP</th><th>Coins</th>
+                      <th>Thời gian</th><th>Ngày</th><th>Thao tác</th>
+                    </tr></thead>
+                    <tbody id="ph-tbody"><tr><td colspan="10" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr></tbody>
+                  </table>
+                </div>
+                <div id="ph-pagination" class="pagination-row"></div>
+              </div>
+            </div>
+
+            <!-- Panel: Thi TOEIC (TOEIC History) -->
+            <div class="activity-panel" id="activity-panel-toeic-history">
+              <div class="card">
+                <div class="card-header">
+                  <h2><i class="fas fa-file-alt"></i> Lịch sử luyện thi TOEIC</h2>
+                  <div class="card-header-actions">
+                    <button class="btn btn-ghost btn-sm" id="btn-refresh-history">
+                      <i class="fas fa-sync-alt"></i> Làm mới
+                    </button>
+                    <button class="btn btn-danger btn-sm" id="btn-delete-user-history" style="display:none">
+                      <i class="fas fa-user-times"></i> Xóa user này
+                    </button>
+                    <button class="btn btn-danger btn-sm" id="btn-delete-all-history">
+                      <i class="fas fa-trash-alt"></i> Xóa tất cả
+                    </button>
+                  </div>
+                </div>
+                <div class="filter-bar">
+                  <div class="filter-bar-row cols-3">
+                    <div class="form-group">
+                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                      <input type="text" id="history-search" class="filter-input" placeholder="Tìm theo username..." />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label"><i class="fas fa-user"></i> Lọc theo user</label>
+                      <select id="history-filter-user" class="filter-select">
+                        <option value="">-- Tất cả user --</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <div class="table-container">
+                  <table id="history-table" class="data-table">
+                    <thead>
+                      <tr>
+                        <th style="width:5%">#</th>
+                        <th style="width:15%">Người dùng</th>
+                        <th style="width:10%">Loại đề</th>
+                        <th style="width:10%">Tổng điểm</th>
+                        <th style="width:10%">Nghe</th>
+                        <th style="width:10%">Đọc</th>
+                        <th style="width:10%">Chính xác</th>
+                        <th style="width:15%">Ngày thi</th>
+                        <th style="width:10%">Thời gian</th>
+                        <th style="width:5%">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                      <tr><td colspan="10" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div id="history-pagination" class="pagination-row"></div>
+              </div>
+            </div>
+
+            <!-- Panel: Thành tích (User Achievements) -->
+            <div class="activity-panel" id="activity-panel-user-achievements">
+              <div class="card">
+                <div class="card-header">
+                  <h2><i class="fas fa-medal"></i> Thành tích người dùng</h2>
+                </div>
+                <div class="filter-bar">
+                  <div class="filter-bar-row cols-3">
+                    <div class="form-group">
+                      <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                      <input type="text" id="ua-search-input" class="filter-input"
+                        placeholder="Tìm email hoặc username..."
+                        autocomplete="off">
+                    </div>
+                  </div>
+                  <div class="filter-bar-footer">
+                    <span id="ua-total" class="filter-results-text"></span>
+                  </div>
+                </div>
+                <div class="table-container">
+                  <table id="ua-table" class="data-table">
+                    <thead>
+                      <tr>
+                        <th style="width:40px">#</th>
+                        <th>Tên đăng nhập</th>
+                        <th>Email</th>
+                        <th style="width:130px">Ngày đăng ký</th>
+                        <th style="width:40px"></th>
+                      </tr>
+                    </thead>
+                    <tbody id="ua-tbody">
+                      <tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div id="ua-pagination" class="pagination-row"></div>
+              </div>
+            </div>
+
           </div>
-          <!-- End TOEIC History Tab -->
+          <!-- End Activity Tab -->
 
           <!-- ===== REPORTS TAB ===== -->
           <div id="main-tab-reports" class="main-tab-content">
@@ -1247,19 +1536,27 @@
             <div class="card">
               <div class="card-header">
                 <h2><i class="fas fa-trophy"></i> Quản lý Thành tích</h2>
-                <div style="display:flex;gap:8px">
+                <div class="card-header-actions">
                   <button class="btn btn-ghost btn-sm" id="btn-copy-achievement-json" title="Copy toàn bộ thành tích hiện có dưới dạng JSON">
                     <i class="fas fa-clipboard"></i> Copy JSON
                   </button>
                   <button class="btn btn-ghost btn-sm" id="btn-ai-gen-achievement" title="Sinh thành tích bằng AI (copy prompt → dán vào ChatGPT/Claude → paste JSON về)">
                     <i class="fas fa-robot"></i> AI Generate
                   </button>
+                  <button class="btn btn-success btn-sm" id="btn-add-achievement">
+                    <i class="fas fa-plus"></i> Thêm thành tích
+                  </button>
                   <button class="btn btn-danger btn-sm" id="btn-delete-all-achievements" title="Xóa tất cả thành tích">
                     <i class="fas fa-trash"></i> Xóa tất cả
                   </button>
-                  <button class="btn btn-primary btn-sm" id="btn-add-achievement">
-                    <i class="fas fa-plus"></i> Thêm thành tích
-                  </button>
+                </div>
+              </div>
+              <div class="filter-bar" style="margin-bottom:0;border-bottom:1px solid var(--border-color);border-radius:0;padding:12px 16px">
+                <div class="filter-bar-row">
+                  <div class="form-group" style="flex:1;max-width:360px;margin:0">
+                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                    <input type="text" id="ach-search" class="filter-input" placeholder="Tên, mã, danh mục...">
+                  </div>
                 </div>
               </div>
               <div class="table-container">
@@ -1282,19 +1579,27 @@
             <div class="card">
               <div class="card-header">
                 <h2><i class="fas fa-tasks"></i> Quản lý Nhiệm vụ hàng ngày</h2>
-                <div style="display:flex;gap:8px">
+                <div class="card-header-actions">
                   <button class="btn btn-ghost btn-sm" id="btn-copy-quest-json" title="Copy toàn bộ nhiệm vụ hiện có dưới dạng JSON">
                     <i class="fas fa-clipboard"></i> Copy JSON
                   </button>
                   <button class="btn btn-ghost btn-sm" id="btn-ai-gen-quest" title="Sinh nhiệm vụ bằng AI (copy prompt → dán vào ChatGPT/Claude → paste JSON về)">
                     <i class="fas fa-robot"></i> AI Generate
                   </button>
+                  <button class="btn btn-success btn-sm" id="btn-add-quest">
+                    <i class="fas fa-plus"></i> Thêm nhiệm vụ
+                  </button>
                   <button class="btn btn-danger btn-sm" id="btn-delete-all-quests" title="Xóa tất cả nhiệm vụ">
                     <i class="fas fa-trash"></i> Xóa tất cả
                   </button>
-                  <button class="btn btn-primary btn-sm" id="btn-add-quest">
-                    <i class="fas fa-plus"></i> Thêm nhiệm vụ
-                  </button>
+                </div>
+              </div>
+              <div class="filter-bar" style="margin-bottom:0;border-bottom:1px solid var(--border-color);border-radius:0;padding:12px 16px">
+                <div class="filter-bar-row">
+                  <div class="form-group" style="flex:1;max-width:360px;margin:0">
+                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                    <input type="text" id="quest-search" class="filter-input" placeholder="Tên, mã nhiệm vụ...">
+                  </div>
                 </div>
               </div>
               <div class="table-container">
@@ -1317,15 +1622,25 @@
             <div class="card">
               <div class="card-header">
                 <h2><i class="fas fa-store"></i> Quản lý Cửa hàng</h2>
-                <button class="btn btn-primary btn-sm" id="btn-add-shop-item">
-                  <i class="fas fa-plus"></i> Thêm item
-                </button>
+                <div class="card-header-actions">
+                  <button class="btn btn-success btn-sm" id="btn-add-shop-item">
+                    <i class="fas fa-plus"></i> Thêm item
+                  </button>
+                </div>
+              </div>
+              <div class="filter-bar" style="margin-bottom:0;border-bottom:1px solid var(--border-color);border-radius:0;padding:12px 16px">
+                <div class="filter-bar-row">
+                  <div class="form-group" style="flex:1;max-width:360px;margin:0">
+                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                    <input type="text" id="shop-search" class="filter-input" placeholder="Tên, mã item, danh mục...">
+                  </div>
+                </div>
               </div>
               <div class="table-container">
                 <table id="shop-table" class="data-table">
                   <thead><tr>
                     <th>Icon</th><th>Tên</th><th>Danh mục</th>
-                    <th>Giá gốc</th><th>Giá giảm</th><th>Effect</th>
+                    <th>Giá gốc</th><th>Giá giảm</th><th>Hiệu ứng</th>
                     <th>Thứ tự</th><th>Trạng thái</th><th>Thao tác</th>
                   </tr></thead>
                   <tbody id="shop-tbody">
@@ -1414,7 +1729,7 @@
                 <div class="card-header">
                   <h2><i class="fas fa-chart-area"></i> Request Timeline</h2>
                   <span class="badge neutral" id="m-timeline-label"
-                    >últimos 60 min</span
+                    >60 phút gần nhất</span
                   >
                 </div>
                 <div class="monitor-sparkline-wrap">
@@ -1616,12 +1931,89 @@
           </div>
           <!-- End System Monitor Tab -->
 
+          <!-- ===== DB MANAGER TAB ===== -->
+          <div id="main-tab-db-manager" class="main-tab-content">
+            <div class="db-manager-layout">
+
+              <!-- LEFT: Collection list -->
+              <div class="db-col-sidebar">
+                <div class="db-col-sidebar-header">
+                  <span><i class="fas fa-database"></i> Collections</span>
+                  <button class="btn btn-ghost btn-sm" id="db-refresh-btn" title="Làm mới">
+                    <i class="fas fa-sync-alt"></i>
+                  </button>
+                </div>
+                <div id="db-col-list" class="db-col-list">
+                  <div class="db-col-empty"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>
+                </div>
+              </div>
+
+              <!-- RIGHT: Document viewer -->
+              <div class="db-doc-panel">
+                <div id="db-doc-empty" class="db-doc-placeholder">
+                  <i class="fas fa-hand-point-left" style="font-size:32px;opacity:.3;display:block;margin-bottom:12px"></i>
+                  Chọn một collection để xem dữ liệu
+                </div>
+
+                <div id="db-doc-content" style="display:none">
+                  <!-- Header -->
+                  <div class="card-header" style="margin-bottom:12px;padding:0">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <h2 style="margin:0;font-size:16px">
+                        <i class="fas fa-table"></i>
+                        <span id="db-col-title">—</span>
+                      </h2>
+                      <span id="db-col-count" class="badge neutral" style="font-size:11px">0 docs</span>
+                    </div>
+                    <div class="card-header-actions">
+                      <button class="btn btn-success btn-sm" id="db-btn-insert">
+                        <i class="fas fa-plus"></i> Thêm document
+                      </button>
+                      <button class="btn btn-danger btn-sm" id="db-btn-drop" title="Drop toàn bộ collection">
+                        <i class="fas fa-trash-alt"></i> Drop collection
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Search -->
+                  <div style="margin-bottom:12px">
+                    <div style="display:flex;gap:8px">
+                      <input type="text" id="db-search" class="filter-input"
+                        placeholder="Tìm trong collection..." style="flex:1">
+                      <button class="btn btn-primary btn-sm" id="db-search-btn">
+                        <i class="fas fa-search"></i>
+                      </button>
+                      <button class="btn btn-ghost btn-sm" id="db-search-clear">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Table -->
+                  <div class="table-container" style="overflow-x:auto">
+                    <table class="data-table" id="db-doc-table">
+                      <thead id="db-doc-thead"></thead>
+                      <tbody id="db-doc-tbody">
+                        <tr><td class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Pagination -->
+                  <div id="db-doc-pagination" class="pagination-row"></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <!-- End DB Manager Tab -->
+
           <!-- Upload Management Tab -->
           <div id="main-tab-upload-management" class="main-tab-content">
             <div class="card">
               <div class="card-header">
                 <h2>
-                  <i class="fas fa-cloud-upload-alt"></i> Upload Management
+                  <i class="fas fa-cloud-upload-alt"></i> Quản lý nội dung người dùng
                 </h2>
                 <p
                   style="
@@ -1634,118 +2026,53 @@
                 </p>
               </div>
 
-              <div
-                style="
-                  padding: 16px;
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                "
-              >
-                <div style="color: var(--text-secondary); font-size: 13px">
-                  <i class="fas fa-users"></i> Tổng:
-                  <strong id="upload-total-count">0</strong> uploads
+              <div class="filter-bar">
+                <div class="filter-bar-row cols-3">
+                  <div class="form-group">
+                    <label class="form-label"><i class="fas fa-search"></i> Tìm kiếm</label>
+                    <input type="text" id="upload-search" class="filter-input" placeholder="Email, nguồn...">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label"><i class="fas fa-book-open"></i> Số từ</label>
+                    <select id="upload-filter-words" class="filter-select">
+                      <option value="">Tất cả</option>
+                      <option value="0-9">&lt; 10 từ</option>
+                      <option value="10-49">10 – 49 từ</option>
+                      <option value="50-99">50 – 99 từ</option>
+                      <option value="100-">≥ 100 từ</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label"><i class="fas fa-toggle-on"></i> Trạng thái</label>
+                    <select id="upload-filter-status" class="filter-select">
+                      <option value="">Tất cả</option>
+                      <option value="active">Cho phép</option>
+                      <option value="blocked">Bị chặn</option>
+                    </select>
+                  </div>
                 </div>
-                <button id="btn-refresh-uploads" class="btn btn-ghost btn-sm">
-                  <i class="fas fa-sync-alt"></i> Refresh
-                </button>
+                <div class="filter-bar-footer">
+                  <span id="upload-filter-count" class="result-count"></span>
+                  <button id="btn-refresh-uploads" class="btn btn-ghost btn-sm"><i class="fas fa-sync-alt"></i> Làm mới</button>
+                </div>
               </div>
 
               <div class="table-container">
-                <table style="width: 100%; border-collapse: collapse">
+                <table class="data-table">
                   <thead>
-                    <tr
-                      style="
-                        border-bottom: 2px solid var(--border-color);
-                        background: var(--bg-secondary, #f9fafb);
-                      "
-                    >
-                      <th
-                        style="
-                          padding: 12px;
-                          text-align: left;
-                          font-weight: 600;
-                          color: var(--text-secondary);
-                          font-size: 12px;
-                          text-transform: uppercase;
-                        "
-                      >
-                        Email
-                      </th>
-                      <th
-                        style="
-                          padding: 12px;
-                          text-align: left;
-                          font-weight: 600;
-                          color: var(--text-secondary);
-                          font-size: 12px;
-                          text-transform: uppercase;
-                        "
-                      >
-                        Source
-                      </th>
-                      <th
-                        style="
-                          padding: 12px;
-                          text-align: left;
-                          font-weight: 600;
-                          color: var(--text-secondary);
-                          font-size: 12px;
-                          text-transform: uppercase;
-                        "
-                      >
-                        Content
-                      </th>
-                      <th
-                        style="
-                          padding: 12px;
-                          text-align: right;
-                          font-weight: 600;
-                          color: var(--text-secondary);
-                          font-size: 12px;
-                          text-transform: uppercase;
-                        "
-                      >
-                        Words
-                      </th>
-                      <th
-                        style="
-                          padding: 12px;
-                          text-align: center;
-                          font-weight: 600;
-                          color: var(--text-secondary);
-                          font-size: 12px;
-                          text-transform: uppercase;
-                        "
-                      >
-                        Status
-                      </th>
-                      <th
-                        style="
-                          padding: 12px;
-                          text-align: center;
-                          font-weight: 600;
-                          color: var(--text-secondary);
-                          font-size: 12px;
-                          text-transform: uppercase;
-                        "
-                      >
-                        Last Upload
-                      </th>
+                    <tr>
+                      <th>Email</th>
+                      <th>Nguồn</th>
+                      <th>Nội dung</th>
+                      <th>Số từ</th>
+                      <th>Trạng thái</th>
+                      <th>Lần upload cuối</th>
                     </tr>
                   </thead>
                   <tbody id="upload-monitoring-tbody">
                     <tr>
-                      <td
-                        colspan="6"
-                        style="
-                          padding: 30px;
-                          text-align: center;
-                          color: var(--text-secondary);
-                        "
-                      >
-                        <i class="fas fa-spinner fa-spin"></i> Đang tải dữ
-                        liệu...
+                      <td colspan="6" class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Đang tải dữ liệu...
                       </td>
                     </tr>
                   </tbody>
@@ -1826,7 +2153,7 @@
                       <th style="padding:10px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-secondary)">Model</th>
                       <th style="padding:10px;text-align:left;font-size:11px;text-transform:uppercase;color:var(--text-secondary)">Email</th>
                       <th style="padding:10px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-secondary)">Token</th>
-                      <th style="padding:10px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-secondary)">Cost</th>
+                      <th style="padding:10px;text-align:right;font-size:11px;text-transform:uppercase;color:var(--text-secondary)">Chi phí</th>
                     </tr>
                   </thead>
                   <tbody id="ai-recent-tbody">
@@ -1836,62 +2163,6 @@
               </div>
             </div>
           </div>
-          <!-- ===== TAB: USER STATS ===== -->
-          <div id="main-tab-user-stats" class="main-tab-content">
-            <div class="tab-header">
-              <h2><i class="fas fa-chart-line"></i> Thống kê người dùng</h2>
-            </div>
-            <div class="tab-toolbar" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
-              <input type="text" id="us-search" placeholder="Tìm theo email..." style="padding:8px 12px;border:1.5px solid var(--border-color);border-radius:8px;min-width:220px;background:var(--bg-card);color:var(--text-primary)">
-              <button class="btn btn-primary" id="us-search-btn"><i class="fas fa-search"></i> Tìm</button>
-              <button class="btn btn-ghost" id="us-reset-btn"><i class="fas fa-sync"></i> Làm mới</button>
-              <span id="us-total" style="margin-left:auto;color:var(--text-secondary);font-size:13px"></span>
-            </div>
-            <div style="overflow-x:auto">
-              <table class="data-table">
-                <thead><tr>
-                  <th>Email</th><th>Username</th><th>Level</th>
-                  <th>XP</th><th>Coins</th><th>Gems</th>
-                  <th>Streak</th><th>Sessions</th><th>Đúng</th>
-                  <th>Role</th><th>Đăng ký</th><th>Thao tác</th>
-                </tr></thead>
-                <tbody id="us-tbody"><tr><td colspan="12" style="text-align:center;padding:20px">Đang tải...</td></tr></tbody>
-              </table>
-            </div>
-            <div id="us-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:16px"></div>
-          </div>
-
-          <!-- ===== TAB: USER ACHIEVEMENTS ===== -->
-          <div id="main-tab-user-achievements" class="main-tab-content">
-            <div class="tab-header">
-              <h2><i class="fas fa-medal"></i> Thành tích người dùng</h2>
-            </div>
-            <div class="tab-toolbar" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
-              <input type="text" id="ua-search-input"
-                placeholder="Tìm email hoặc username..."
-                autocomplete="off"
-                style="min-width:280px;padding:8px 12px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-card);color:var(--text-primary)">
-              <span id="ua-total" style="font-size:13px;color:var(--text-secondary)"></span>
-            </div>
-            <div class="table-container">
-              <table id="ua-table">
-                <thead>
-                  <tr>
-                    <th style="width:40px">#</th>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th style="width:130px">Ngày đăng ký</th>
-                    <th style="width:40px"></th>
-                  </tr>
-                </thead>
-                <tbody id="ua-tbody">
-                  <tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:32px 0">Đang tải...</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div id="ua-pagination" style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap"></div>
-          </div>
-
           <!-- ===== TAB: BROADCAST ===== -->
           <div id="main-tab-broadcast" class="main-tab-content">
             <div class="tab-header">
@@ -1976,20 +2247,33 @@
 
               <!-- RIGHT: History -->
               <div>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                <!-- Header -->
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
                   <h3 style="font-size:15px;font-weight:700;margin:0">Thông báo gần đây</h3>
-                  <select id="bc-filter-type" style="margin-left:auto;padding:5px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:var(--text-primary);font-size:12px">
-                    <option value="">Tất cả loại</option>
-                    <option value="system">Hệ thống</option>
-                    <option value="reward">Phần thưởng</option>
-                    <option value="reminder">Nhắc nhở</option>
-                    <option value="violation">Vi phạm</option>
-                    <option value="achievement">Thành tích</option>
-                    <option value="quest">Nhiệm vụ</option>
-                  </select>
-                  <button class="btn btn-ghost btn-sm" id="bc-history-refresh-btn" title="Làm mới"><i class="fas fa-sync"></i></button>
+                  <button class="btn btn-ghost btn-sm" id="bc-history-refresh-btn" title="Làm mới" style="margin-left:auto"><i class="fas fa-sync"></i></button>
                 </div>
-                <div id="bc-history" style="display:flex;flex-direction:column;gap:8px;max-height:600px;overflow-y:auto">
+
+                <!-- Source filter pills -->
+                <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+                  <button class="notif-src-btn active" data-src="" style="padding:4px 12px;border-radius:20px;border:1.5px solid var(--primary-color);background:var(--primary-color);color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:.15s">Tất cả</button>
+                  <button class="notif-src-btn" data-src="admin" style="padding:4px 12px;border-radius:20px;border:1.5px solid var(--border-color);background:transparent;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:.15s">👤 Admin gửi</button>
+                  <button class="notif-src-btn" data-src="auto" style="padding:4px 12px;border-radius:20px;border:1.5px solid var(--border-color);background:transparent;color:var(--text-secondary);font-size:12px;font-weight:600;cursor:pointer;transition:.15s">👤 User gửi</button>
+                </div>
+
+                <!-- Type filter -->
+                <div style="margin-bottom:12px">
+                  <select id="bc-filter-type" style="width:100%;padding:6px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-card);color:var(--text-primary);font-size:12px">
+                    <option value="">Tất cả loại</option>
+                    <option value="system" class="opt-admin">📢 Hệ thống</option>
+                    <option value="reward" class="opt-admin">🎁 Phần thưởng</option>
+                    <option value="reminder" class="opt-admin">🔔 Nhắc nhở</option>
+                    <option value="violation" class="opt-admin">⚠️ Vi phạm</option>
+                    <option value="achievement" class="opt-auto">🏆 Thành tích</option>
+                    <option value="quest" class="opt-auto">⚔️ Nhiệm vụ</option>
+                  </select>
+                </div>
+
+                <div id="bc-history" style="display:flex;flex-direction:column;gap:8px;max-height:580px;overflow-y:auto">
                   <p style="color:var(--text-secondary);font-size:13px">Đang tải...</p>
                 </div>
               </div>
@@ -2030,7 +2314,7 @@
         "
       >
         <h3 style="margin-bottom: 15px; color: var(--primary)">
-          ➕ Add New Word
+          ➕ Thêm từ mới
         </h3>
 
         <!-- Tab toggle -->
@@ -2160,282 +2444,105 @@
                 font-weight: 600;
               "
             >
-              Import JSON
+              Nhập JSON
             </button>
           </div>
         </div>
 
         <form id="add-word-form">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px">
-            <div style="grid-column: 1 / -1">
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-en"
-                >English *</label
-              >
-              <div style="display: flex; gap: 10px">
-                <input
-                  type="text"
-                  id="word-en"
-                  required
-                  placeholder="Nhập từ tiếng Anh..."
-                  style="
-                    flex: 1;
-                    padding: 10px;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 8px;
-                  "
-                />
-                <button
-                  type="button"
-                  id="btn-ai-fill"
-                  title="Điền tự động bằng AI (OpenAI)"
-                  style="
-                    padding: 10px 15px;
-                    border: none;
-                    background: linear-gradient(135deg, #e11d48, #f97316);
-                    color: white;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 600;
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                    white-space: nowrap;
-                  "
-                >
-                  <i class="fas fa-magic"></i> AI Fill
-                </button>
-              </div>
+          <!-- AI Fill button at top -->
+          <button type="button" id="btn-ai-fill"
+            style="width:100%;padding:10px;border:none;background:linear-gradient(135deg,#e11d48,#f97316);color:#fff;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <i class="fas fa-magic"></i> AI Tự điền
+          </button>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <!-- EN + VN -->
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Tiếng Anh <span style="color:#ef4444">*</span></label>
+              <input type="text" id="word-en" required placeholder="caterer" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);text-transform:lowercase">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Tiếng Việt <span style="color:#ef4444">*</span></label>
+              <input type="text" id="word-vn" required placeholder="người cung cấp đồ ăn" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);text-transform:lowercase">
             </div>
 
+            <!-- Part + Source -->
             <div>
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-vn"
-                >Vietnamese *</label
-              >
-              <input
-                type="text"
-                id="word-vn"
-                required
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  border: 2px solid #e0e0e0;
-                  border-radius: 8px;
-                "
-              />
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Part <span style="color:#ef4444">*</span></label>
+              <input type="text" id="word-part" required placeholder="ETS26T10-RC" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);text-transform:uppercase">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Nguồn <span style="color:#ef4444">*</span></label>
+              <input type="text" id="word-sources" placeholder="ets2026" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);text-transform:lowercase">
             </div>
 
+            <!-- Type đơn + Type cụm -->
             <div>
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-phonetic"
-                >Phonetic</label
-              >
-              <input
-                type="text"
-                id="word-phonetic"
-                placeholder="ˈoʊpən"
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  border: 2px solid #e0e0e0;
-                  border-radius: 8px;
-                "
-              />
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Type (đơn)</label>
+              <select id="word-type" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary)">
+                <option value="">— Loại từ —</option>
+                <option value="noun">noun</option>
+                <option value="verb">verb</option>
+                <option value="adjective">adjective</option>
+                <option value="adverb">adverb</option>
+                <option value="pronoun">pronoun</option>
+                <option value="preposition">preposition</option>
+                <option value="conjunction">conjunction</option>
+                <option value="interjection">interjection</option>
+                <option value="article">article</option>
+                <option value="determiner">determiner</option>
+                <option value="auxiliary">auxiliary</option>
+              </select>
             </div>
-
             <div>
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-part"
-                >Part *</label
-              >
-              <input
-                type="text"
-                id="word-part"
-                required
-                placeholder="E2XA-P1"
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  border: 2px solid #e0e0e0;
-                  border-radius: 8px;
-                  text-transform: uppercase;
-                "
-              />
-            </div>
-
-            <div>
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-type"
-                >Type *</label
-              >
-              <select
-                id="word-type"
-                required
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  border: 2px solid #e0e0e0;
-                  border-radius: 8px;
-                "
-              >
-                <option value="">Select Type</option>
-                <option value="noun">Noun (Danh từ)</option>
-                <option value="verb">Verb (Động từ)</option>
-                <option value="adjective">Adjective (Tính từ)</option>
-                <option value="adverb">Adverb (Trạng từ)</option>
-                <option value="preposition">Preposition (Giới từ)</option>
-                <option value="conjunction">Conjunction (Liên từ)</option>
-                <option value="pronoun">Pronoun (Đại từ)</option>
-                <option value="interjection">Interjection (Thán từ)</option>
-                <option value="phrase">Phrase (Cụm từ)</option>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Type (cụm)</label>
+              <select id="word-type-phrase" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary)">
+                <option value="">— Cụm từ —</option>
+                <option value="noun phrase">noun phrase</option>
+                <option value="verb phrase">verb phrase</option>
+                <option value="adjective phrase">adjective phrase</option>
+                <option value="adverb phrase">adverb phrase</option>
+                <option value="prepositional phrase">prepositional phrase</option>
+                <option value="participle phrase">participle phrase</option>
+                <option value="gerund phrase">gerund phrase</option>
+                <option value="infinitive phrase">infinitive phrase</option>
               </select>
             </div>
 
-            <div style="grid-column: 1 / -1">
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-synonyms"
-                >Synonyms</label
-              >
-              <input
-                type="text"
-                id="word-synonyms"
-                placeholder="unlock, unseal, start, begin"
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  border: 2px solid #e0e0e0;
-                  border-radius: 8px;
-                "
-              />
-              <small style="color: #666; font-size: 12px"
-                >Separate with commas</small
-              >
+            <!-- Level + Phonetic -->
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Level</label>
+              <input type="text" id="word-level" placeholder="B2" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);text-transform:uppercase">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Phiên âm</label>
+              <input type="text" id="word-phonetic" placeholder="ˈkeɪtərər" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary)">
             </div>
 
-            <div style="grid-column: 1 / -1">
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-sources"
-                >Sources</label
-              >
-              <input
-                type="text"
-                id="word-sources"
-                placeholder="ets2024, ets2026"
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  border: 2px solid #e0e0e0;
-                  border-radius: 8px;
-                "
-              />
-              <small style="color: #666; font-size: 12px"
-                >Tên bộ từ vựng, cách nhau bằng dấu phẩy (vd: ets2024,
-                custom)</small
-              >
+            <!-- Example full width -->
+            <div style="grid-column:1/-1">
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Ví dụ</label>
+              <input type="text" id="word-example" placeholder="The caterer provided lunch for the entire staff." style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary)">
             </div>
 
-            <div style="grid-column: 1 / -1">
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-image"
-                >Image Path</label
-              >
-              <div style="display: flex; gap: 8px; align-items: center">
-                <input
-                  type="text"
-                  id="word-image"
-                  placeholder="images/pages/ETS26T01-LC/arrange.jpg"
-                  style="
-                    flex: 1;
-                    padding: 10px;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 8px;
-                  "
-                />
-                <button
-                  type="button"
-                  id="btn-gen-image-path"
-                  style="
-                    padding: 10px 14px;
-                    background: #6366f1;
-                    color: #fff;
-                    border: none;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    white-space: nowrap;
-                    font-size: 13px;
-                  "
-                >
-                  ⚙️ Tự sinh
-                </button>
+            <!-- Synonyms + Image -->
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Từ đồng nghĩa</label>
+              <input type="text" id="word-synonyms" placeholder="food provider, caterer" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);text-transform:lowercase">
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--text-primary)">Đường dẫn ảnh</label>
+              <div style="display:flex;gap:6px">
+                <input type="text" id="word-image" placeholder="images/pages/ets26t10-rc/caterer.jpg" style="flex:1;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:13px;background:var(--bg-secondary);color:var(--text-primary);text-transform:lowercase">
+                <button type="button" id="btn-gen-image-path" title="Tự sinh đường dẫn" style="padding:8px 10px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap">⚙️</button>
               </div>
-              <small style="color: #888; font-size: 12px"
-                >Format: images/pages/{PART}/{word}.jpg</small
-              >
-            </div>
-
-            <div style="grid-column: 1 / -1">
-              <label
-                style="display: block; margin-bottom: 5px; font-weight: 500"
-                for="word-example"
-                >Example</label
-              >
-              <textarea
-                id="word-example"
-                rows="2"
-                placeholder="She opened the door."
-                style="
-                  width: 100%;
-                  padding: 10px;
-                  border: 2px solid #e0e0e0;
-                  border-radius: 8px;
-                "
-              ></textarea>
             </div>
           </div>
 
-          <div
-            style="
-              display: flex;
-              gap: 10px;
-              justify-content: flex-end;
-              margin-top: 20px;
-            "
-          >
-            <button
-              type="button"
-              id="btn-close-modal"
-              style="
-                padding: 10px 20px;
-                border: 2px solid #ccc;
-                background: white;
-                border-radius: 8px;
-                cursor: pointer;
-              "
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style="
-                padding: 10px 20px;
-                border: none;
-                background: var(--primary);
-                color: white;
-                border-radius: 8px;
-                cursor: pointer;
-              "
-            >
-              Add Word
-            </button>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+            <button type="button" id="btn-close-modal" class="btn btn-ghost">Hủy</button>
+            <button type="submit" class="btn btn-primary">Thêm từ</button>
           </div>
         </form>
       </div>
@@ -2503,9 +2610,9 @@
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Username</th>
+                  <th>Tên đăng nhập</th>
                   <th>Email</th>
-                  <th>Role</th>
+                  <th>Vai trò</th>
                   <th>Đăng ký</th>
                   <th>Trạng thái</th>
                   <th>Khóa</th>
@@ -2695,7 +2802,7 @@
           <input type="hidden" id="edit-user-id" />
 
           <div style="margin-bottom: 15px">
-            <label>Username *</label>
+            <label>Tên đăng nhập *</label>
             <input
               type="text"
               id="user-username"
@@ -2739,7 +2846,7 @@
           </div>
 
           <div style="margin-bottom: 15px">
-            <label>Role</label>
+            <label>Vai trò</label>
             <select
               id="user-role"
               style="
@@ -2749,8 +2856,8 @@
                 border-radius: 8px;
               "
             >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
+              <option value="user">Người dùng</option>
+              <option value="admin">Quản trị viên</option>
             </select>
           </div>
 
@@ -2981,7 +3088,7 @@
                 font-weight: 600;
               "
             >
-              Import JSON
+              Nhập JSON
             </button>
           </div>
         </div>
@@ -3019,12 +3126,12 @@
             <div class="full-width" id="audio-text-field" style="display: none">
               <label
                 style="display: block; margin-bottom: 5px; font-weight: 500"
-                >Audio Text (for Listening parts)</label
+                >Nội dung audio (cho phần Nghe)</label
               >
               <textarea
                 id="question-audio-text"
                 rows="3"
-                placeholder="Text to be spoken for listening questions..."
+                placeholder="Nội dung được đọc cho câu hỏi nghe..."
                 style="
                   width: 100%;
                   padding: 10px;
@@ -3038,8 +3145,7 @@
               <label
                 style="display: block; margin-bottom: 5px; font-weight: 500"
               >
-                <i class="fas fa-volume-up"></i> Audio File (Optional - for
-                Listening parts)
+                <i class="fas fa-volume-up"></i> File audio (Tùy chọn - cho phần Nghe)
               </label>
               <input
                 type="file"
@@ -3086,7 +3192,7 @@
             >
               <label
                 style="display: block; margin-bottom: 5px; font-weight: 500"
-                >Question Text (Câu hỏi)</label
+                >Nội dung câu hỏi</label
               >
               <input
                 type="text"
@@ -3104,12 +3210,12 @@
             <div class="full-width" id="passage-field" style="display: none">
               <label
                 style="display: block; margin-bottom: 5px; font-weight: 500"
-                >Passage (for Reading parts)</label
+                >Đoạn văn (cho phần Đọc)</label
               >
               <textarea
                 id="question-passage"
                 rows="5"
-                placeholder="Reading passage text..."
+                placeholder="Nội dung đoạn văn đọc..."
                 style="
                   width: 100%;
                   padding: 10px;
@@ -3171,7 +3277,7 @@
             <div class="full-width">
               <label
                 style="display: block; margin-bottom: 10px; font-weight: 500"
-                >Answer Options *</label
+                >Các đáp án *</label
               >
               <div class="options-container">
                 <div class="option-item">
@@ -3271,19 +3377,19 @@
                 </div>
               </div>
               <small style="color: #666; display: block; margin-top: 5px"
-                >Select the radio button for the correct answer</small
+                >Chọn đáp án đúng bằng nút radio</small
               >
             </div>
 
             <div class="full-width">
               <label
                 style="display: block; margin-bottom: 5px; font-weight: 500"
-                >Explanation (optional)</label
+                >Giải thích (tùy chọn)</label
               >
               <textarea
                 id="question-explanation"
                 rows="2"
-                placeholder="Explain why this is the correct answer..."
+                placeholder="Giải thích tại sao đây là đáp án đúng..."
                 style="
                   width: 100%;
                   padding: 10px;
@@ -3432,7 +3538,7 @@
                 cursor: pointer;
               "
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
@@ -3445,7 +3551,7 @@
                 cursor: pointer;
               "
             >
-              Save Question
+              Lưu câu hỏi
             </button>
           </div>
         </form>
@@ -3477,18 +3583,18 @@
         "
       >
         <h3 style="margin-bottom: 20px; color: #e11d48">
-          <i class="fas fa-file-alt"></i> Create New Test
+          <i class="fas fa-file-alt"></i> Tạo đề thi mới
         </h3>
         <form id="test-form">
           <div style="margin-bottom: 15px">
             <label style="display: block; margin-bottom: 5px; font-weight: 500"
-              >Test Name *</label
+              >Tên đề thi *</label
             >
             <input
               type="text"
               id="test-name"
               required
-              placeholder="e.g., TOEIC Practice Test 1"
+              placeholder="VD: Đề thi TOEIC thực hành 1"
               style="
                 width: 100%;
                 padding: 10px;
@@ -3500,7 +3606,7 @@
 
           <div style="margin-bottom: 15px">
             <label style="display: block; margin-bottom: 5px; font-weight: 500"
-              >Test Type *</label
+              >Loại đề *</label
             >
             <select
               id="test-type"
@@ -3512,8 +3618,8 @@
                 border-radius: 8px;
               "
             >
-              <option value="">Select Type</option>
-              <option value="full-test">Full Test (200 questions)</option>
+              <option value="">Chọn loại đề</option>
+              <option value="full-test">Full Test (200 câu)</option>
               <option value="mini-part1">Mini Test - Part 1</option>
               <option value="mini-part2">Mini Test - Part 2</option>
               <option value="mini-part3">Mini Test - Part 3</option>
@@ -3526,14 +3632,14 @@
 
           <div style="margin-bottom: 15px">
             <label style="display: block; margin-bottom: 5px; font-weight: 500"
-              >Time Duration (minutes) *</label
+              >Thời gian (phút) *</label
             >
             <input
               type="number"
               id="test-duration"
               required
               min="1"
-              placeholder="e.g., 120 for Full Test"
+              placeholder="VD: 120 cho Full Test"
               style="
                 width: 100%;
                 padding: 10px;
@@ -3549,12 +3655,12 @@
 
           <div style="margin-bottom: 15px">
             <label style="display: block; margin-bottom: 5px; font-weight: 500"
-              >Description</label
+              >Mô tả</label
             >
             <textarea
               id="test-description"
               rows="3"
-              placeholder="Brief description of this test..."
+              placeholder="Mô tả ngắn về đề thi..."
               style="
                 width: 100%;
                 padding: 10px;
@@ -3656,7 +3762,7 @@
                 cursor: pointer;
               "
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
@@ -3669,7 +3775,7 @@
                 cursor: pointer;
               "
             >
-              Create Test
+              Tạo đề thi
             </button>
           </div>
         </form>
@@ -3743,14 +3849,14 @@
               text-align: center;
             "
           >
-            <div style="font-size: 14px; opacity: 0.9">Total Available</div>
+            <div style="font-size: 14px; opacity: 0.9">Tổng có sẵn</div>
             <div
               id="stat-total-available"
               style="font-size: 32px; font-weight: bold; margin: 10px 0"
             >
               -
             </div>
-            <div style="font-size: 12px; opacity: 0.8">questions</div>
+            <div style="font-size: 12px; opacity: 0.8">câu hỏi</div>
           </div>
           <div
             style="
@@ -3761,14 +3867,14 @@
               text-align: center;
             "
           >
-            <div style="font-size: 14px; opacity: 0.9">Progress</div>
+            <div style="font-size: 14px; opacity: 0.9">Tiến độ</div>
             <div
               id="stat-progress"
               style="font-size: 32px; font-weight: bold; margin: 10px 0"
             >
               -
             </div>
-            <div style="font-size: 12px; opacity: 0.8">complete</div>
+            <div style="font-size: 12px; opacity: 0.8">hoàn thành</div>
           </div>
           <div
             style="
@@ -3779,14 +3885,14 @@
               text-align: center;
             "
           >
-            <div style="font-size: 14px; opacity: 0.9">Missing</div>
+            <div style="font-size: 14px; opacity: 0.9">Còn thiếu</div>
             <div
               id="stat-missing"
               style="font-size: 32px; font-weight: bold; margin: 10px 0"
             >
               -
             </div>
-            <div style="font-size: 12px; opacity: 0.8">questions needed</div>
+            <div style="font-size: 12px; opacity: 0.8">câu hỏi</div>
           </div>
           <div
             id="stat-full-test-card"
@@ -3805,7 +3911,7 @@
             >
               -
             </div>
-            <div style="font-size: 12px; opacity: 0.8">status</div>
+            <div style="font-size: 12px; opacity: 0.8">trạng thái</div>
           </div>
         </div>
 
@@ -3823,14 +3929,14 @@
             <thead style="background: #e11d48; color: white">
               <tr>
                 <th style="padding: 12px; text-align: left">Part</th>
-                <th style="padding: 12px; text-align: left">Name</th>
-                <th style="padding: 12px; text-align: center">Available</th>
-                <th style="padding: 12px; text-align: center">Required</th>
-                <th style="padding: 12px; text-align: center">Missing</th>
-                <th style="padding: 12px; text-align: center">Easy</th>
-                <th style="padding: 12px; text-align: center">Medium</th>
-                <th style="padding: 12px; text-align: center">Hard</th>
-                <th style="padding: 12px; text-align: center">Status</th>
+                <th style="padding: 12px; text-align: left">Tên</th>
+                <th style="padding: 12px; text-align: center">Có sẵn</th>
+                <th style="padding: 12px; text-align: center">Yêu cầu</th>
+                <th style="padding: 12px; text-align: center">Còn thiếu</th>
+                <th style="padding: 12px; text-align: center">Dễ</th>
+                <th style="padding: 12px; text-align: center">TB</th>
+                <th style="padding: 12px; text-align: center">Khó</th>
+                <th style="padding: 12px; text-align: center">Trạng thái</th>
               </tr>
             </thead>
             <tbody id="statistics-tbody" style="background: white">
@@ -3839,7 +3945,7 @@
                   colspan="9"
                   style="text-align: center; padding: 20px; color: #999"
                 >
-                  <i class="fas fa-spinner fa-spin"></i> Loading statistics...
+                  <i class="fas fa-spinner fa-spin"></i> Đang tải thống kê...
                 </td>
               </tr>
             </tbody>
@@ -3857,7 +3963,7 @@
         >
           <div style="background: #f8f9fa; padding: 20px; border-radius: 10px">
             <h4 style="margin: 0 0 15px 0; color: #e11d48">
-              <i class="fas fa-headphones"></i> Listening Section (Part 1-4)
+              <i class="fas fa-headphones"></i> Phần Nghe (Part 1-4)
             </h4>
             <div
               style="
@@ -3890,7 +3996,7 @@
           </div>
           <div style="background: #f8f9fa; padding: 20px; border-radius: 10px">
             <h4 style="margin: 0 0 15px 0; color: #e11d48">
-              <i class="fas fa-book-open"></i> Reading Section (Part 5-7)
+              <i class="fas fa-book-open"></i> Phần Đọc (Part 5-7)
             </h4>
             <div
               style="
@@ -3929,7 +4035,7 @@
             class="btn btn-primary"
             style="background: #e11d48"
           >
-            <i class="fas fa-sync-alt"></i> Refresh Statistics
+            <i class="fas fa-sync-alt"></i> Làm mới thống kê
           </button>
         </div>
       </div>
@@ -4329,6 +4435,7 @@
     <script src="/admin/js/modules/toeic.js?v=1"></script>
     <script src="/admin/js/modules/monitor.js?v=1"></script>
     <script src="/admin/js/modules/tabs.js?v=1"></script>
+    <script src="/admin/js/modules/db-manager.js?v=1"></script>
     <script src="/admin/js/modules/ui-init.js?v=1"></script>
     <script src="/admin/js/nav-game.js?v=3"></script>
   </body>

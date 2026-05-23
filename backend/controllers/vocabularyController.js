@@ -60,6 +60,19 @@ function validateAndNormalizeType(type) {
     return DEFAULT_TYPE;
 }
 
+function normalizeWord(word) {
+    const lowerKeys = ['en', 'vn', 'type', 'synonyms', 'source'];
+    const upperKeys = ['part', 'level'];
+    const result = { ...word };
+    for (const key of lowerKeys) {
+        if (typeof result[key] === 'string') result[key] = result[key].toLowerCase();
+    }
+    for (const key of upperKeys) {
+        if (typeof result[key] === 'string') result[key] = result[key].toUpperCase();
+    }
+    return result;
+}
+
 // Public vocab filter — excludes private user uploads.
 // Uses $ne so legacy docs without `scope` field still match.
 const PUBLIC_FILTER = { scope: { $ne: 'private' } };
@@ -566,8 +579,9 @@ exports.bulkImportVocabulary = async (req, res, next) => {
         let skipped = 0;
         const errors = [];
 
-        for (const word of words) {
+        for (let word of words) {
             try {
+                word = normalizeWord(word);
                 if (!word.en || !word.vn) {
                     errors.push(`Skipping word (missing en/vn): ${JSON.stringify(word)}`);
                     continue;

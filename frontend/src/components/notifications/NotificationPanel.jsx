@@ -6,10 +6,10 @@ import { useGame } from '@game/GameContext.jsx';
 import { Notification as Toast } from '@ui/Toaster.jsx';
 
 const TABS = [
-    { key: 'all', label: 'Tất cả', icon: 'fa-list' },
-    { key: 'system', label: 'Hệ thống', icon: 'fa-cog' },
-    { key: 'account', label: 'Tài khoản', icon: 'fa-user' },
-    { key: 'violation', label: 'Vi phạm', icon: 'fa-shield-alt' },
+    { key: 'all',         label: 'Tất cả',    icon: 'fa-list' },
+    { key: 'system',      label: 'Hệ thống',  icon: 'fa-cog' },
+    { key: 'achievement', label: 'Tài khoản', icon: 'fa-user' },
+    { key: 'violation',   label: 'Vi phạm',   icon: 'fa-shield-alt' },
 ];
 
 function fmtTime(ts) {

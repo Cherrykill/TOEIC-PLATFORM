@@ -666,10 +666,12 @@ export const GameLogic = {
         return sel.size === cor.length && cor.every(c => sel.has(c));
     },
 
-    generateWordTypeCheck(word, optionsCount = 6) {
+    generateWordTypeCheck(word, optionsCount = 6, availableTypes = null) {
         const correctAnswer = word.type || 'unknown';
 
-        const allTypes = ['noun', 'verb', 'adjective', 'adverb', 'preposition', 'conjunction'];
+        // Dùng hoàn toàn từ dữ liệu thực — không hardcode.
+        // availableTypes là unique types collect từ tập từ đang luyện.
+        const allTypes = availableTypes || [correctAnswer];
 
         const wrongTypes = allTypes.filter(t => t.toLowerCase() !== correctAnswer.toLowerCase());
 

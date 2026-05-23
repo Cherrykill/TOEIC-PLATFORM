@@ -3,24 +3,50 @@
 // initMainTabs + TOEIC/practice history DOMContentLoaded event listeners
 // ===================================
 
+// Track which activity sub-panels have been loaded
+const _activityLoaded = {};
+
+function activateActivitySubtab(subtab) {
+    document.querySelectorAll('.activity-subtab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.subtab === subtab);
+    });
+    document.querySelectorAll('.activity-panel').forEach(panel => {
+        panel.classList.toggle('active', panel.id === `activity-panel-${subtab}`);
+    });
+
+    if (_activityLoaded[subtab]) return;
+    _activityLoaded[subtab] = true;
+
+    if (subtab === 'user-stats') {
+        loadUserStats();
+    } else if (subtab === 'practice-history') {
+        loadPracticeHistory12();
+    } else if (subtab === 'toeic-history') {
+        loadUsersListForHistory();
+        loadPracticeHistory();
+    } else if (subtab === 'user-achievements') {
+        initUserAchievementsTab();
+    }
+}
+
 function initMainTabs() {
     const TAB_TITLES = {
-        overview:          'Dashboard',
-        topics:            'Quản lý Đề',
-        vocabulary:        'TOEIC Vocabulary',
-        users:             'User Management',
-        'toeic-questions': 'TOEIC Questions',
-        'toeic-tests':     'TOEIC Tests',
-        'practice-history':'Practice History',
-        reports:           'Báo cáo người dùng',
-        monitor:           'System Monitor',
-        achievements:      'Quản lý Thành tích',
-        quests:            'Quản lý Nhiệm vụ',
-        shop:              'Quản lý Cửa hàng',
-        'user-stats':        'Thống kê người dùng',
-        'user-achievements': 'Thành tích người dùng',
-        broadcast:           'Gửi thông báo hệ thống',
-        'toeic-history':     'Lịch sử luyện thi TOEIC',
+        overview:            'Dashboard',
+        topics:              'Chủ đề luyện tập',
+        vocabulary:          'Từ vựng TOEIC',
+        users:               'Tài khoản người dùng',
+        'toeic-questions':   'Câu hỏi TOEIC',
+        'toeic-tests':       'Đề thi TOEIC',
+        activity:            'Hoạt động người dùng',
+        reports:             'Báo cáo người dùng',
+        achievements:        'Quản lý Thành tích',
+        quests:              'Quản lý Nhiệm vụ',
+        shop:                'Quản lý Cửa hàng',
+        monitor:             'Giám sát hệ thống',
+        broadcast:           'Gửi thông báo',
+        'upload-management': 'Nội dung người dùng',
+        'token-management':  'Chi phí AI',
+        'db-manager':        'Quản lý Database',
     };
 
     const sidebarLinks = document.querySelectorAll('.sidebar-link[data-main-tab]');
@@ -49,11 +75,11 @@ function initMainTabs() {
         } else if (tab === 'toeic-tests') {
             loadToeicStats();
             loadTests();
-        } else if (tab === 'practice-history') {
-            loadPracticeHistory12();
-        } else if (tab === 'toeic-history') {
-            loadUsersListForHistory();
-            loadPracticeHistory();
+        } else if (tab === 'activity') {
+            // Activate default sub-tab (Tổng quan) on first visit
+            const activeBtn = document.querySelector('.activity-subtab-btn.active');
+            const activeSub = activeBtn?.dataset.subtab || 'user-stats';
+            activateActivitySubtab(activeSub);
         } else if (tab === 'reports') {
             loadReports();
             loadReportStats();
@@ -70,12 +96,10 @@ function initMainTabs() {
             initUploadManagement();
         } else if (tab === 'token-management') {
             loadTokenStats();
-        } else if (tab === 'user-stats') {
-            loadUserStats();
-        } else if (tab === 'user-achievements') {
-            initUserAchievementsTab();
         } else if (tab === 'broadcast') {
             loadNotifHistory();
+        } else if (tab === 'db-manager') {
+            initDbManager();
         } else {
             stopMetricsPolling();
         }
@@ -127,7 +151,15 @@ function initMainTabs() {
     if (window.innerWidth > 900) {
         expandSidebar();
     }
+
+    // Activity sub-tab click handlers
+    document.querySelectorAll('.activity-subtab-btn').forEach(btn => {
+        btn.addEventListener('click', () => activateActivitySubtab(btn.dataset.subtab));
+    });
 }
+
+// Expose activateActivitySubtab for external callers (e.g. openUserAchievementsFor)
+window.activateActivitySubtab = activateActivitySubtab;
 
 // DOMContentLoaded: TOEIC events + practice history events
 // (user/vocab/quick-delete events are registered in users.js)

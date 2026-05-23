@@ -2094,7 +2094,7 @@ async function loadUsersListForHistory() {
         if (result.success) {
             const select = document.getElementById('history-filter-user');
             if (select) {
-                select.innerHTML = '<option value="">-- All Users --</option>' +
+                select.innerHTML = '<option value="">-- Tất cả --</option>' +
                     result.data.map(user => `
                         <option value="${user._id}">${user.username} (${user.email})</option>
                     `).join('');

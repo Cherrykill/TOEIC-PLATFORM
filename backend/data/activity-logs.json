@@ -1,5 +1,18 @@
 [
   {
+    "id": "1779549463019",
+    "timestamp": "2026-05-23T15:17:43.019Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "collocations"
+      },
+      "deleted": 490
+    }
+  },
+  {
     "id": "1779508044300",
     "timestamp": "2026-05-23T03:47:24.300Z",
     "type": "vocabulary",
