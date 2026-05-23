@@ -397,13 +397,6 @@
 
             <div class="topbar-divider"></div>
 
-            <button
-              class="topbar-icon-btn"
-              id="btn-refresh"
-              title="Làm mới"
-            >
-              <i class="fas fa-sync-alt"></i>
-            </button>
 
             <button
               class="theme-toggle topbar-icon-btn"
@@ -747,6 +740,9 @@
                 <div class="card-header">
                   <h2><i class="fas fa-book"></i> TOEIC Vocabulary Database</h2>
                   <div class="card-header-actions">
+                    <button class="btn btn-ghost btn-sm" id="btn-sync-all-vocab" title="Đồng bộ toàn bộ từ vựng">
+                      <i class="fas fa-sync"></i> Sync tất cả
+                    </button>
                     <!-- Hidden selects for backward-compat JS logic -->
                     <select
                       id="vocab-part-filter"
@@ -990,6 +986,9 @@
               <div class="card-header">
                 <h2><i class="fas fa-question-circle"></i> TOEIC Questions</h2>
                 <div class="card-header-actions">
+                  <button class="btn btn-ghost btn-sm" id="btn-sync-all-questions" title="Đồng bộ toàn bộ câu hỏi">
+                    <i class="fas fa-sync"></i> Sync tất cả
+                  </button>
                   <button class="btn btn-ghost btn-sm" id="btn-view-statistics">
                     <i class="fas fa-chart-bar"></i> Thống kê
                   </button>
@@ -1085,6 +1084,9 @@
               <div class="card-header">
                 <h2><i class="fas fa-file-alt"></i> TOEIC Tests</h2>
                 <div class="card-header-actions">
+                  <button class="btn btn-ghost btn-sm" id="btn-sync-all-tests" title="Đồng bộ toàn bộ đề thi">
+                    <i class="fas fa-sync"></i> Sync tất cả
+                  </button>
                   <button class="btn btn-primary btn-sm" id="btn-generate-test">
                     <i class="fas fa-magic"></i> Auto Generate
                   </button>
@@ -1917,6 +1919,11 @@
                 <h2>
                   <i class="fas fa-cloud-upload-alt"></i> Quản lý nội dung người dùng
                 </h2>
+                <div class="card-header-actions">
+                  <button class="btn btn-ghost btn-sm" id="btn-sync-all-uploads" title="Đồng bộ toàn bộ nội dung người dùng">
+                    <i class="fas fa-sync"></i> Sync tất cả
+                  </button>
+                </div>
                 <p
                   style="
                     margin-top: 4px;

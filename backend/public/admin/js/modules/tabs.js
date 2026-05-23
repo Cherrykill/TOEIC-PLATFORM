@@ -175,7 +175,7 @@ function showTopicModal(topic) {
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     <div>
                         <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:5px;">THỨ TỰ</label>
-                        <input type="number" id="ti-order" value="${topic?.order ?? 0}" style="width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
+                        <input type="number" id="ti-order" value="${topic?.order ?? (_topicsData.length > 0 ? Math.max(..._topicsData.map(t => t.order ?? 0)) + 1 : 0)}" style="width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
                     </div>
                     <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
                         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#e2e8f0;">

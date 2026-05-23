@@ -11,53 +11,9 @@ const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // ===================================
 // ALLOWED WORD TYPES (sync with frontend)
 // ===================================
-const ALLOWED_TYPES = [
-    'noun',
-    'verb',
-    'adjective',
-    'adverb',
-    'preposition',
-    'conjunction',
-    'pronoun',
-    'interjection',
-    'phrase'
-];
-
-const DEFAULT_TYPE = 'noun';
-
 function validateAndNormalizeType(type) {
-    if (!type) return DEFAULT_TYPE;
-
-    const normalizedType = type.toLowerCase().trim();
-
-    if (ALLOWED_TYPES.includes(normalizedType)) {
-        return normalizedType;
-    }
-
-    const corrections = {
-        'n': 'noun',
-        'v': 'verb',
-        'adj': 'adjective',
-        'adv': 'adverb',
-        'prep': 'preposition',
-        'conj': 'conjunction',
-        'pron': 'pronoun',
-        'interj': 'interjection',
-        'phr': 'phrase',
-        'word': 'noun',
-        'nouns': 'noun',
-        'verbs': 'verb',
-        'adjectives': 'adjective',
-        'adverbs': 'adverb',
-    };
-
-    if (corrections[normalizedType]) {
-        logger.debug(`ℹ️  Auto-corrected type "${type}" → "${corrections[normalizedType]}"`);
-        return corrections[normalizedType];
-    }
-
-    logger.warn(`⚠️  Invalid type "${type}" - using default "${DEFAULT_TYPE}"`);
-    return DEFAULT_TYPE;
+    if (!type) return '';
+    return type.toLowerCase().trim();
 }
 
 function normalizeWord(word) {

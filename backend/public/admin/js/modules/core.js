@@ -467,6 +467,26 @@ async function initDashboard() {
         }
     });
 
+    document.getElementById('btn-sync-all-vocab')?.addEventListener('click', () => {
+        loadVocabulary(1);
+        showToast('Đã tải lại dữ liệu từ vựng', 'success');
+    });
+
+    document.getElementById('btn-sync-all-questions')?.addEventListener('click', () => {
+        loadQuestions();
+        showToast('Đã tải lại dữ liệu câu hỏi', 'success');
+    });
+
+    document.getElementById('btn-sync-all-tests')?.addEventListener('click', () => {
+        loadTests();
+        showToast('Đã tải lại dữ liệu đề thi', 'success');
+    });
+
+    document.getElementById('btn-sync-all-uploads')?.addEventListener('click', () => {
+        loadUploadMonitoring();
+        showToast('Đã tải lại nội dung người dùng', 'success');
+    });
+
     // "Xem tất cả" in Recent Users → switch to Users tab
     document.getElementById('action-btn-view-users')?.addEventListener('click', () => {
         document.querySelector('.sidebar-link[data-main-tab="users"]')?.click();

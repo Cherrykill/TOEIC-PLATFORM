@@ -1127,7 +1127,6 @@ table tbody tr:hover td { background: var(--hover-bg); }
 
 .loading i {
   font-size: 36px;
-  animation: spin 1s linear infinite;
   display: block;
   margin-bottom: 10px;
   opacity: 0.4;
