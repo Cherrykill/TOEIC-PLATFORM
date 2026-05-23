@@ -1,5 +1,28 @@
 [
   {
+    "id": "1779508044300",
+    "timestamp": "2026-05-23T03:47:24.300Z",
+    "type": "vocabulary",
+    "action": "delete-all",
+    "admin": "Admin",
+    "data": {
+      "deleted": 5814
+    }
+  },
+  {
+    "id": "1779506812067",
+    "timestamp": "2026-05-23T03:26:52.067Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "1000words"
+      },
+      "deleted": 1275
+    }
+  },
+  {
     "id": "1778128446786",
     "timestamp": "2026-05-07T04:34:06.786Z",
     "type": "vocabulary",

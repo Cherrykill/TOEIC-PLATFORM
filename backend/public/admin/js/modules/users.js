@@ -299,6 +299,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("btn-scan-duplicates")?.addEventListener("click", () => scanDuplicates());
+    document.getElementById("btn-filter-delete-vocab")?.addEventListener("click", () => { if (typeof showFilterDeleteVocabModal === 'function') showFilterDeleteVocabModal(); });
+    document.getElementById("btn-delete-all-vocab")?.addEventListener("click", () => { if (typeof deleteAllVocabulary === 'function') deleteAllVocabulary(); });
 
     document.getElementById("btn-close-modal")?.addEventListener("click", () => { if (typeof closeWordModal === 'function') closeWordModal(); });
     document.getElementById("btn-close-modal-json")?.addEventListener("click", () => { if (typeof closeWordModal === 'function') closeWordModal(); });

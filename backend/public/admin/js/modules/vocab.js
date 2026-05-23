@@ -16,7 +16,7 @@ async function loadVocabulary(page = vocabCurrentPage, part = vocabCurrentPart, 
     vocabCurrentPart = part;
     vocabCurrentSource = source;
 
-    tbody.innerHTML = `<tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải từ vựng...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải từ vựng...</td></tr>`;
     if (paginationControls) paginationControls.innerHTML = '';
 
     try {
@@ -33,12 +33,12 @@ async function loadVocabulary(page = vocabCurrentPage, part = vocabCurrentPart, 
             }
         } else {
             const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
-            tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color: ${dangerColor}">Lỗi tải dữ liệu: ${data.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: ${dangerColor}">Lỗi tải dữ liệu: ${data.message}</td></tr>`;
         }
     } catch (err) {
         console.error("Lỗi tải từ vựng:", err);
         const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
-        tbody.innerHTML = `<tr><td colspan="6" class="loading" style="color: ${dangerColor}">Không thể kết nối đến API từ vựng.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: ${dangerColor}">Không thể kết nối đến API từ vựng.</td></tr>`;
     }
 }
 
@@ -49,18 +49,25 @@ function displayVocabulary(words) {
     const tbody = document.querySelector("#vocabulary-table tbody");
     tbody.innerHTML = '';
 
+    // Reset select-all checkbox
+    const selectAll = document.getElementById('vocab-select-all');
+    if (selectAll) selectAll.checked = false;
+    updateVocabBulkToolbar();
+
     if (words.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #999; padding: 40px;">Không có từ vựng nào được tìm thấy.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #999; padding: 40px;">Không có từ vựng nào được tìm thấy.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = words
         .map((word) => {
+            const enSafe = word.en.replace(/"/g, '&quot;');
             const sources = Array.isArray(word.sources) && word.sources.length
                 ? word.sources.map(s => `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:10px;">${s}</span>`).join(' ')
                 : (word.source ? `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:10px;">${word.source}</span>` : '<span style="color:#666;font-size:11px;">—</span>');
             return `
         <tr>
+            <td style="text-align:center;"><input type="checkbox" class="vocab-row-cb" data-word-en="${enSafe}"></td>
             <td><strong>${word.en}</strong> <span style="color:#888;font-size:12px;">${word.phonetic || ''}</span></td>
             <td>${word.vn}</td>
             <td><span class="badge info">${word.type}</span></td>
@@ -72,7 +79,7 @@ function displayVocabulary(words) {
                     <i class="fas fa-edit"></i>
                 </button>
                 <button class="btn btn-danger btn-sm btn-delete-word"
-                    data-word-en="${word.en}">
+                    data-word-en="${enSafe}">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -82,6 +89,7 @@ function displayVocabulary(words) {
 
     attachEditWordListeners();
     attachDeleteWordListeners();
+    attachVocabCheckboxListeners();
 }
 
 /**
@@ -768,6 +776,288 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// ===================================
+// BULK DELETE LOGIC
+// ===================================
+
+function getSelectedVocabEns() {
+    return Array.from(document.querySelectorAll('.vocab-row-cb:checked'))
+        .map(cb => cb.dataset.wordEn);
+}
+
+function updateVocabBulkToolbar() {
+    const toolbar = document.getElementById('vocab-bulk-toolbar');
+    const countEl = document.getElementById('vocab-bulk-count');
+    if (!toolbar) return;
+    const selected = document.querySelectorAll('.vocab-row-cb:checked').length;
+    if (selected > 0) {
+        toolbar.style.display = 'flex';
+        if (countEl) countEl.textContent = `${selected} đã chọn`;
+    } else {
+        toolbar.style.display = 'none';
+    }
+}
+
+function attachVocabCheckboxListeners() {
+    // Individual row checkboxes
+    document.querySelectorAll('.vocab-row-cb').forEach(cb => {
+        cb.addEventListener('change', () => {
+            updateVocabBulkToolbar();
+            // Sync select-all state
+            const all = document.querySelectorAll('.vocab-row-cb');
+            const checked = document.querySelectorAll('.vocab-row-cb:checked');
+            const selectAll = document.getElementById('vocab-select-all');
+            if (selectAll) {
+                selectAll.checked = all.length > 0 && checked.length === all.length;
+                selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+            }
+        });
+    });
+
+    // Select-all checkbox
+    const selectAll = document.getElementById('vocab-select-all');
+    if (selectAll) {
+        // Replace listener (in case of re-render)
+        const newSelectAll = selectAll.cloneNode(true);
+        selectAll.parentNode.replaceChild(newSelectAll, selectAll);
+        newSelectAll.addEventListener('change', () => {
+            document.querySelectorAll('.vocab-row-cb').forEach(cb => {
+                cb.checked = newSelectAll.checked;
+            });
+            updateVocabBulkToolbar();
+        });
+    }
+
+    // Bulk toolbar buttons
+    const deleteSelectedBtn = document.getElementById('btn-delete-selected-vocab');
+    if (deleteSelectedBtn && !deleteSelectedBtn._bulkBound) {
+        deleteSelectedBtn._bulkBound = true;
+        deleteSelectedBtn.addEventListener('click', deleteSelectedVocab);
+    }
+    const deselectBtn = document.getElementById('btn-deselect-all-vocab');
+    if (deselectBtn && !deselectBtn._bulkBound) {
+        deselectBtn._bulkBound = true;
+        deselectBtn.addEventListener('click', () => {
+            document.querySelectorAll('.vocab-row-cb').forEach(cb => cb.checked = false);
+            const sa = document.getElementById('vocab-select-all');
+            if (sa) { sa.checked = false; sa.indeterminate = false; }
+            updateVocabBulkToolbar();
+        });
+    }
+}
+
+async function deleteSelectedVocab() {
+    const ens = getSelectedVocabEns();
+    if (ens.length === 0) return;
+    if (!confirm(`Xóa ${ens.length} từ đã chọn?\n\n⚠️ Thao tác này XÓA VĨNH VIỄN trong database!`)) return;
+
+    const btn = document.getElementById('btn-delete-selected-vocab');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...'; }
+
+    try {
+        const res = await fetch(`${API_URL}/vocabulary/bulk`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ens }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`✅ Đã xóa ${data.deleted} từ vựng`, 'success');
+            await loadVocabulary();
+            loadVocabularyStats();
+            loadRecentActivities();
+        } else {
+            showToast(`❌ Lỗi: ${data.message}`, 'error');
+        }
+    } catch (err) {
+        showToast(`❌ Lỗi kết nối: ${err.message}`, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-trash"></i> Xóa đã chọn'; }
+    }
+}
+
+function showFilterDeleteVocabModal() {
+    const existing = document.getElementById('filter-delete-vocab-modal');
+    if (existing) existing.remove();
+
+    const FIELDS = [
+        { value: 'part',          label: 'Part' },
+        { value: 'type',          label: 'Loại từ (type)' },
+        { value: 'source',        label: 'Nguồn (source)' },
+        { value: 'level',         label: 'Cấp độ (level)' },
+        { value: 'en',            label: 'Từ tiếng Anh (en)' },
+        { value: 'uploadBatchId', label: 'Batch ID' },
+        { value: 'image',         label: 'Đường dẫn ảnh (image)' },
+    ];
+    const fieldOptions = FIELDS.map(f => `<option value="${f.value}">${f.label}</option>`).join('');
+
+    const INPUT_STYLE = 'width:100%;padding:8px 10px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:14px;box-sizing:border-box;';
+    const SEL_STYLE   = `${INPUT_STYLE}cursor:pointer;`;
+
+    function makeRow(idx) {
+        return `
+        <div class="fd-row" style="display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-bottom:10px;">
+            <select class="fd-field" data-idx="${idx}" style="${SEL_STYLE}">
+                <option value="">-- Trường --</option>
+                ${fieldOptions}
+            </select>
+            <input class="fd-value" data-idx="${idx}" type="text" placeholder="Giá trị..." style="${INPUT_STYLE}">
+        </div>`;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'filter-delete-vocab-modal';
+    modal.innerHTML = `
+        <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;">
+            <div style="background:#1e1e2e;border-radius:12px;max-width:520px;width:95%;padding:28px;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+                <h3 style="margin:0 0 6px;color:#fff;"><i class="fas fa-filter"></i> Xóa từ vựng theo điều kiện</h3>
+                <p style="color:#94a3b8;font-size:13px;margin:0 0 4px;">Xóa tất cả từ vựng thỏa <strong>tất cả</strong> điều kiện bên dưới (AND). Dòng trống sẽ bị bỏ qua.</p>
+                <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-bottom:6px;padding:0 0 4px;">
+                    <span style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Trường</span>
+                    <span style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Giá trị</span>
+                </div>
+                <div id="fd-rows">
+                    ${makeRow(0)}${makeRow(1)}${makeRow(2)}${makeRow(3)}${makeRow(4)}
+                </div>
+                <div id="fd-preview" style="font-size:13px;color:#94a3b8;min-height:20px;margin-bottom:16px;"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button id="fd-cancel" style="padding:9px 18px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;cursor:pointer;">Hủy</button>
+                    <button id="fd-confirm" style="padding:9px 18px;background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">
+                        <i class="fas fa-trash"></i> Xóa
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+
+    const overlay = modal.querySelector('div');
+    document.getElementById('fd-cancel').addEventListener('click', () => modal.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) modal.remove(); });
+
+    document.getElementById('fd-confirm').addEventListener('click', async () => {
+        const filters = Array.from(modal.querySelectorAll('.fd-row')).map(row => ({
+            field: row.querySelector('.fd-field').value,
+            value: row.querySelector('.fd-value').value.trim(),
+        })).filter(p => p.field && p.value);
+
+        if (filters.length === 0) {
+            document.getElementById('fd-preview').innerHTML = '<span style="color:#f87171;">⚠️ Nhập ít nhất 1 điều kiện</span>';
+            return;
+        }
+
+        const condStr = filters.map(p => `${p.field} = "${p.value}"`).join(' AND ');
+        if (!confirm(`Xóa TẤT CẢ từ vựng thỏa:\n${condStr}\n\n⚠️ Thao tác này XÓA VĨNH VIỄN trong database!`)) return;
+
+        const confirmBtn = document.getElementById('fd-confirm');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
+
+        try {
+            const res = await fetch(`${API_URL}/vocabulary/filter-delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filters }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ Đã xóa ${data.deleted} từ vựng (${condStr})`, 'success');
+                modal.remove();
+                await loadVocabulary();
+                loadVocabularyStats();
+                loadRecentActivities();
+            } else {
+                document.getElementById('fd-preview').innerHTML = `<span style="color:#f87171;">❌ ${data.message}</span>`;
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa';
+            }
+        } catch (err) {
+            showToast(`❌ Lỗi kết nối: ${err.message}`, 'error');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-trash"></i> Xóa';
+        }
+    });
+}
+window.showFilterDeleteVocabModal = showFilterDeleteVocabModal;
+
+const DELETE_ALL_KEYWORD = 'XOA TAT CA';
+
+function deleteAllVocabulary() {
+    const existing = document.getElementById('delete-all-vocab-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'delete-all-vocab-modal';
+    modal.innerHTML = `
+        <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;">
+            <div style="background:#1e1e2e;border-radius:12px;max-width:440px;width:95%;padding:28px;box-shadow:0 10px 40px rgba(0,0,0,0.6);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                    <span style="font-size:28px;">⚠️</span>
+                    <h3 style="margin:0;color:#f87171;">Xóa toàn bộ từ vựng</h3>
+                </div>
+                <p style="color:#94a3b8;font-size:14px;margin:0 0 18px;line-height:1.6;">
+                    Thao tác này sẽ <strong style="color:#f87171;">XÓA VĨNH VIỄN</strong> toàn bộ từ vựng trong database và <strong>không thể hoàn tác</strong>.<br><br>
+                    Gõ <code style="background:#0f172a;padding:2px 8px;border-radius:4px;color:#fb923c;letter-spacing:1px;">${DELETE_ALL_KEYWORD}</code> để xác nhận:
+                </p>
+                <input id="da-confirm-input" type="text" autocomplete="off" placeholder="Gõ lệnh xác nhận..." style="width:100%;padding:10px 12px;background:#0f172a;border:2px solid #334155;border-radius:8px;color:#e2e8f0;font-size:15px;box-sizing:border-box;letter-spacing:1px;transition:border-color .2s;">
+                <div id="da-error" style="min-height:18px;font-size:12px;color:#f87171;margin:8px 0 16px;"></div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;">
+                    <button id="da-cancel" style="padding:9px 18px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;cursor:pointer;">Hủy</button>
+                    <button id="da-confirm" disabled style="padding:9px 20px;background:#475569;color:#94a3b8;border:none;border-radius:6px;cursor:not-allowed;font-weight:bold;transition:background .2s,color .2s;">
+                        <i class="fas fa-database"></i> Xóa tất cả
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+
+    const input = document.getElementById('da-confirm-input');
+    const confirmBtn = document.getElementById('da-confirm');
+    const errorEl = document.getElementById('da-error');
+
+    input.focus();
+    input.addEventListener('input', () => {
+        const match = input.value.trim().toUpperCase() === DELETE_ALL_KEYWORD;
+        confirmBtn.disabled = !match;
+        confirmBtn.style.background = match ? 'linear-gradient(135deg,#e74c3c,#c0392b)' : '#475569';
+        confirmBtn.style.color = match ? '#fff' : '#94a3b8';
+        confirmBtn.style.cursor = match ? 'pointer' : 'not-allowed';
+        input.style.borderColor = input.value ? (match ? '#ef4444' : '#334155') : '#334155';
+        errorEl.textContent = '';
+    });
+
+    document.getElementById('da-cancel').addEventListener('click', () => modal.remove());
+    modal.querySelector('div').addEventListener('click', e => { if (e.target === modal.querySelector('div')) modal.remove(); });
+
+    confirmBtn.addEventListener('click', async () => {
+        if (input.value.trim().toUpperCase() !== DELETE_ALL_KEYWORD) {
+            errorEl.textContent = '⚠️ Lệnh không khớp';
+            return;
+        }
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
+        try {
+            const res = await fetch(`${API_URL}/vocabulary/all`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ Đã xóa ${data.deleted} từ vựng khỏi database`, 'success');
+                modal.remove();
+                await loadVocabulary();
+                loadVocabularyStats();
+                loadRecentActivities();
+            } else {
+                errorEl.textContent = `❌ ${data.message}`;
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-database"></i> Xóa tất cả';
+            }
+        } catch (err) {
+            showToast(`❌ Lỗi kết nối: ${err.message}`, 'error');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-database"></i> Xóa tất cả';
+        }
+    });
+}
+window.deleteAllVocabulary = deleteAllVocabulary;
 
 function openEditWordModal(wordData) {
     const modal = document.getElementById("add-word-modal");

@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { FavoritesAPI } from '@api/favorites.js';
 
 export const Flashcard = {
 
@@ -131,7 +132,12 @@ export const Flashcard = {
                                 <div class="card-text-col">
                                     <h2 class="card-word">${word.en}</h2>
                                     <p class="card-phonetic">${word.phonetic || ''}</p>
-                                    <span class="card-type">${word.type || ''}</span>
+                                    <div class="card-type-row">
+                                        <span class="card-type">${word.type || ''}</span>
+                                        <button class="card-fav-btn${this._isFavorite(word.en) ? ' active' : ''}" id="fav-btn" title="${this._isFavorite(word.en) ? 'Bỏ yêu thích' : 'Thêm yêu thích'}">
+                                            <i class="${this._isFavorite(word.en) ? 'fas' : 'far'} fa-heart"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <div class="card-hint">
@@ -228,6 +234,12 @@ export const Flashcard = {
         const unknownBtn = document.getElementById('unknown-btn');
         unknownBtn?.addEventListener('click', () => {
             this.markAsUnknown(word);
+        });
+
+        const favBtn = document.getElementById('fav-btn');
+        favBtn?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this._toggleFavorite(word);
         });
 
         if (!this.boundKeyboardHandler) {
@@ -451,6 +463,35 @@ export const Flashcard = {
         });
 
         this.showCard();
+    },
+
+    _isFavorite(en) {
+        const favs = GameState.state?.progress?.favoriteWords || [];
+        return favs.some(w => (w.en || w.word) === en);
+    },
+
+    _toggleFavorite(word) {
+        const favs = GameState.state?.progress?.favoriteWords || [];
+        const isFav = this._isFavorite(word.en);
+        if (!GameState.state.progress) GameState.state.progress = {};
+        if (isFav) {
+            GameState.state.progress.favoriteWords = favs.filter(w => (w.en || w.word) !== word.en);
+            FavoritesAPI.remove(word.en).catch(() => {});
+        } else {
+            const entry = { en: word.en, vn: word.vn || word.vi || '', phonetic: word.phonetic || '', synonyms: word.synonyms || '', part: word.part || '' };
+            GameState.state.progress.favoriteWords = [...favs, entry];
+            FavoritesAPI.add(entry).catch(() => {});
+        }
+        GameState.save?.();
+        // Cập nhật trạng thái nút mà không re-render toàn bộ card
+        const btn = document.getElementById('fav-btn');
+        if (btn) {
+            const nowFav = !isFav;
+            btn.classList.toggle('active', nowFav);
+            btn.title = nowFav ? 'Bỏ yêu thích' : 'Thêm yêu thích';
+            btn.querySelector('i').className = nowFav ? 'fas fa-heart' : 'far fa-heart';
+        }
+        Notification.show({ type: isFav ? 'info' : 'success', message: isFav ? `Đã bỏ "${word.en}" khỏi yêu thích` : `Đã thêm "${word.en}" vào yêu thích`, duration: 1500 });
     },
 
     cleanup() {

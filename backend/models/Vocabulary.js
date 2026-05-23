@@ -51,9 +51,9 @@ const vocabularySchema = new mongoose.Schema(
 // Public docs (expiresAt = null) are never deleted.
 vocabularySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-// Public: 1 word per (en, part, source). Personal can duplicate freely.
+// Public: 1 word per (en, part, source, vn). Same word can appear as noun AND verb.
 vocabularySchema.index(
-    { en: 1, part: 1, source: 1 },
+    { en: 1, part: 1, source: 1, vn: 1 },
     { unique: true, partialFilterExpression: { scope: 'public' } }
 );
 

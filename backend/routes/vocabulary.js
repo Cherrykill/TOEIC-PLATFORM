@@ -6,6 +6,7 @@ const {
     searchVocabulary, createVocabulary, updateVocabulary, deleteVocabulary,
     getVocabularyStats, getVocabularyParts, bulkImportVocabulary,
     replaceVocabulary, upsertVocabulary,
+    bulkDeleteVocabulary, filterDeleteVocabulary, deleteAllVocabulary,
 } = require('../controllers/vocabularyController');
 const {
     getAvailableFiles, switchVocabularyFile, getVocabularySources,
@@ -312,6 +313,10 @@ router.post('/remove-duplicates/:filename', removeDuplicates);
  *       200:
  *         description: Xoá thành công
  */
+router.delete('/bulk', bulkDeleteVocabulary);
+router.delete('/all', deleteAllVocabulary);
+router.post('/filter-delete', filterDeleteVocabulary);
+
 router.put('/:id', updateVocabulary);
 router.delete('/:id', deleteVocabulary);
 

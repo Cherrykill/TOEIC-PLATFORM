@@ -340,8 +340,15 @@ exports.upsertVocabulary = async (req, res, next) => {
                     ...(word.source    !== undefined && { source: word.source }),
                     updatedAt: new Date(),
                 };
+                const upsertKey = {
+                    ...PUBLIC_FILTER,
+                    en: word.en,
+                    ...(word.part   && { part:   word.part.toUpperCase() }),
+                    ...(word.source && { source: word.source.toLowerCase() }),
+                    ...(word.vn     !== undefined && { vn: word.vn }),
+                };
                 const result = await Vocabulary.updateOne(
-                    { ...PUBLIC_FILTER, en: word.en },
+                    upsertKey,
                     { $set: doc, $setOnInsert: { en: word.en, scope: 'public', createdAt: new Date() } },
                     { upsert: true }
                 );
@@ -376,7 +383,7 @@ exports.createVocabulary = async (req, res, next) => {
 
         const sourceVal = (source || (Array.isArray(sources) ? sources[0] : sources) || 'custom').toLowerCase();
 
-        const existing = await Vocabulary.findOne({ ...PUBLIC_FILTER, en, part: part.toUpperCase(), source: sourceVal });
+        const existing = await Vocabulary.findOne({ ...PUBLIC_FILTER, en, part: part.toUpperCase(), source: sourceVal, vn });
         if (existing) {
             return res.status(400).json({
                 success: false,
@@ -566,7 +573,9 @@ exports.bulkImportVocabulary = async (req, res, next) => {
                     continue;
                 }
 
-                const exists = await Vocabulary.findOne({ en: word.en });
+                const partKey = (word.part || 'PART1').toUpperCase();
+                const srcKey  = (word.source || source).toLowerCase();
+                const exists  = await Vocabulary.findOne({ en: word.en, part: partKey, source: srcKey, vn: word.vn || '' });
                 if (exists) {
                     skipped++;
                     continue;
@@ -602,6 +611,78 @@ exports.bulkImportVocabulary = async (req, res, next) => {
             errors: errors.length > 0 ? errors : undefined,
         });
 
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Bulk delete by array of "en" values
+ * @route   DELETE /api/vocabulary/bulk
+ */
+exports.bulkDeleteVocabulary = async (req, res, next) => {
+    try {
+        const { ens } = req.body;
+        if (!Array.isArray(ens) || ens.length === 0) {
+            return res.status(400).json({ success: false, message: 'ens array is required' });
+        }
+        const result = await Vocabulary.deleteMany({ ...PUBLIC_FILTER, en: { $in: ens } });
+        await activityLogger.logActivity('vocabulary', 'bulk-delete', { count: result.deletedCount });
+        res.json({ success: true, deleted: result.deletedCount });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const FILTER_DELETE_ALLOWED_FIELDS = ['part', 'type', 'source', 'level', 'en', 'uploadBatchId', 'image'];
+
+/**
+ * @desc    Delete all docs matching one or more field=value conditions (AND)
+ * @route   POST /api/vocabulary/filter-delete
+ * Body: { filters: [{field, value}, ...] }  OR legacy { field, value }
+ */
+exports.filterDeleteVocabulary = async (req, res, next) => {
+    try {
+        // Normalise input: accept both legacy {field,value} and new {filters:[...]}
+        let pairs = req.body.filters;
+        if (!Array.isArray(pairs)) {
+            const { field, value } = req.body;
+            pairs = [{ field, value }];
+        }
+
+        // Validate & normalise each pair
+        const conditions = {};
+        for (const { field, value } of pairs) {
+            if (!field || value === undefined || value === '') continue; // skip blank rows
+            if (!FILTER_DELETE_ALLOWED_FIELDS.includes(field)) {
+                return res.status(400).json({ success: false, message: `Invalid field "${field}". Allowed: ${FILTER_DELETE_ALLOWED_FIELDS.join(', ')}` });
+            }
+            conditions[field] = field === 'part' ? value.toUpperCase() : value;
+        }
+
+        if (Object.keys(conditions).length === 0) {
+            return res.status(400).json({ success: false, message: 'At least one field+value pair is required' });
+        }
+
+        const filter = { ...PUBLIC_FILTER, ...conditions };
+        const count = await Vocabulary.countDocuments(filter);
+        const result = await Vocabulary.deleteMany(filter);
+        await activityLogger.logActivity('vocabulary', 'filter-delete', { conditions, deleted: result.deletedCount });
+        res.json({ success: true, deleted: result.deletedCount, matched: count });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Delete ALL public vocabulary (Admin only)
+ * @route   DELETE /api/vocabulary/all
+ */
+exports.deleteAllVocabulary = async (req, res, next) => {
+    try {
+        const result = await Vocabulary.deleteMany(PUBLIC_FILTER);
+        await activityLogger.logActivity('vocabulary', 'delete-all', { deleted: result.deletedCount });
+        res.json({ success: true, deleted: result.deletedCount });
     } catch (error) {
         next(error);
     }
