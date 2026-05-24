@@ -68,7 +68,7 @@ function displayVocabulary(words) {
         return;
     }
 
-    const visibleWords = words.filter((word) => typeof word.en === 'string' && word.en.trim());
+    const visibleWords = words.filter((word) => (word.en || word.zh));
 
     if (visibleWords.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #999; padding: 40px;">Không có từ vựng hợp lệ nào được tìm thấy.</td></tr>`;
@@ -77,7 +77,8 @@ function displayVocabulary(words) {
 
     tbody.innerHTML = visibleWords
         .map((word) => {
-            const enSafe = word.en.replace(/"/g, '&quot;');
+            const primaryWord = word.en || word.zh || '';
+            const wordSafe = primaryWord.replace(/"/g, '&quot;');
             const vn = word.vn || '';
             const type = word.type || '';
             const part = word.part || '';
@@ -86,19 +87,19 @@ function displayVocabulary(words) {
                 : (word.source ? `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:10px;">${word.source}</span>` : '<span style="color:#666;font-size:11px;">—</span>');
             return `
         <tr>
-            <td style="text-align:center;"><input type="checkbox" class="vocab-row-cb" data-word-en="${enSafe}"></td>
-            <td><strong>${word.en}</strong> <span style="color:#888;font-size:12px;">${word.phonetic || ''}</span></td>
+            <td style="text-align:center;"><input type="checkbox" class="vocab-row-cb" data-word-en="${wordSafe}"></td>
+            <td><strong>${primaryWord}</strong> <span style="color:#888;font-size:12px;">${word.phonetic || ''}</span></td>
             <td>${vn}</td>
             <td><span class="badge info">${type}</span></td>
             <td><span class="badge warning">${part}</span></td>
             <td style="white-space:nowrap;">${sources}</td>
             <td>
                 <button class="btn btn-primary btn-sm btn-edit-word"
-                    data-word='${JSON.stringify(word).replace(/'/g, "&apos;")}'>
+                    data-word='${JSON.stringify(word).replace(/'/g, "&#39;")}'>
                     <i class="fas fa-edit"></i>
                 </button>
                 <button class="btn btn-danger btn-sm btn-delete-word"
-                    data-word-en="${enSafe}">
+                    data-word-en="${wordSafe}">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -1134,13 +1135,20 @@ function openEditWordModal(wordData) {
     const modal = document.getElementById("add-word-modal");
     const modalTitle = modal.querySelector("h3");
     const submitBtn = modal.querySelector('button[type="submit"]');
+    const currentLang = typeof vocabCurrentLang !== 'undefined' ? vocabCurrentLang : 'en';
 
     // Thay đổi tiêu đề modal
     modalTitle.innerHTML = '✏️ Edit Word';
     submitBtn.textContent = 'Update Word';
 
+    // Cập nhật nhãn input chính
+    const wordLabel = modal.querySelector('label[for="word-en"]');
+    if (wordLabel) {
+        wordLabel.innerHTML = currentLang === 'zh' ? 'Từ Tiếng Trung (ZH) <span style="color:#ef4444">*</span>' : 'English Word (EN) <span style="color:#ef4444">*</span>';
+    }
+
     // Điền dữ liệu vào form
-    document.getElementById("word-en").value = wordData.en || '';
+    document.getElementById("word-en").value = wordData.en || wordData.zh || '';
     document.getElementById("word-vn").value = wordData.vn || '';
     document.getElementById("word-phonetic").value = wordData.phonetic || '';
     document.getElementById("word-part").value = wordData.part || '';
@@ -1167,7 +1175,7 @@ function openEditWordModal(wordData) {
 
     // Lưu trạng thái edit mode
     modal.dataset.editMode = 'true';
-    modal.dataset.originalEn = wordData.en;
+    modal.dataset.originalEn = wordData.en || wordData.zh;
 
     // Hiển thị modal
     modal.style.display = "flex";

@@ -1,5 +1,25 @@
 [
   {
+    "id": "1779619284297",
+    "timestamp": "2026-05-24T10:41:24.297Z",
+    "type": "vocabulary",
+    "action": "bulk-delete",
+    "admin": "Admin",
+    "data": {
+      "count": 6
+    }
+  },
+  {
+    "id": "1779616301644",
+    "timestamp": "2026-05-24T09:51:41.644Z",
+    "type": "vocabulary",
+    "action": "bulk-delete",
+    "admin": "Admin",
+    "data": {
+      "count": 4
+    }
+  },
+  {
     "id": "1779549463019",
     "timestamp": "2026-05-23T15:17:43.019Z",
     "type": "vocabulary",

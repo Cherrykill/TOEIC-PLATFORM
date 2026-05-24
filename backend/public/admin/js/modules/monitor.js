@@ -496,9 +496,12 @@ async function submitJsonImport() {
     let inserted = 0, updated = 0, errors = [];
 
     try {
-        const res = await fetch(`${API_URL}/vocabulary/upsert`, {
+        const res = await fetch(withVocabLang(`${API_URL}/vocabulary/upsert`), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+            headers: { 
+                'Content-Type': 'application/json', 
+                'Authorization': `Bearer ${getToken()}` 
+            },
             body: JSON.stringify(words),
         });
         const data = await res.json();
