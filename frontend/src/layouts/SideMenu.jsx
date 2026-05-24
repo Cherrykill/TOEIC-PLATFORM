@@ -42,7 +42,6 @@ function countClaimableAchievements() {
 export default function SideMenu() {
     const { menuOpen, setMenuOpen, showScreen, currentScreen } = useGame();
     const { isLoggedIn, setAuthModal, logout } = useAuth();
-    const [reverseMode, setReverseMode] = useState(false);
     const [badges, setBadges] = useState({ quest: 0, achievement: 0, online: 0, shopDiscount: 0 });
 
     // Mỗi lần mở menu (hoặc login state đổi): tính lại badge. Local data
@@ -89,23 +88,6 @@ export default function SideMenu() {
         return () => { cancelled = true; };
     }, [menuOpen, isLoggedIn]);
 
-    useEffect(() => {
-        const saved = window.GameState?.state?.settings?.reverseMode || false;
-        setReverseMode(saved);
-        window._reactSetReverseMode = setReverseMode;
-        return () => { delete window._reactSetReverseMode; };
-    }, []);
-
-    const handleReverseMode = () => {
-        const next = !reverseMode;
-        setReverseMode(next);
-        if (window.GameState) {
-            window.GameState.state.settings.reverseMode = next;
-            window.GameState.save?.();
-        }
-        window.Notification?.info?.('Đảo chiều', next ? 'VN → EN' : 'EN → VN');
-    };
-
     const handleNav = (screen) => {
         showScreen(screen);
         setMenuOpen(false);
@@ -124,10 +106,6 @@ export default function SideMenu() {
                 <div className="menu-header">
                     <h3>Menu</h3>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <button id="reverse-mode-btn" className="icon-btn icon-btn--labeled" title="Đảo chiều EN ↔ VN" onClick={handleReverseMode}>
-                            <i className="fas fa-right-left"></i>
-                            <span className="icon-btn-label" id="reverse-mode-label">{reverseMode ? 'VN→EN' : 'EN→VN'}</span>
-                        </button>
                         <button id="close-menu-btn" className="icon-btn" onClick={() => setMenuOpen(false)}>
                             <i className="fas fa-times"></i>
                         </button>

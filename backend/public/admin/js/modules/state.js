@@ -25,6 +25,7 @@ let vocabCurrentPart = '';
 let vocabCurrentSource = '';
 let vocabCurrentType = '';
 let vocabSearchTerm = '';
+let vocabCurrentLang = 'en';
 
 // ===================================
 // OFFLINE / FALLBACK MODE STATE

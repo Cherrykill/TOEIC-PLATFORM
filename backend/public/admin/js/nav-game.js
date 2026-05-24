@@ -212,20 +212,24 @@ function _renderQuests(defs) {
 function _setupQuestSearch() {
     const inp = document.getElementById('quest-search');
     const sel = document.getElementById('quest-filter-type');
+    const selMode = document.getElementById('quest-filter-mode');
     if (!inp || inp.dataset.bound) return;
     inp.dataset.bound = '1';
-    
+
     function filter() {
         const q = inp.value.trim().toLowerCase();
         const type = sel ? sel.value : '';
+        const mode = selMode ? selMode.value : '';
         let result = _questData;
         if (type) result = result.filter(d => d.type === type);
+        if (mode) result = result.filter(d => (d.mode || d.gameMode || '') === mode);
         if (q) result = result.filter(d => (d.name + d.code + (d.type||'')).toLowerCase().includes(q));
         _renderQuests(result);
     }
-    
+
     inp.addEventListener('input', filter);
     if (sel) sel.addEventListener('change', filter);
+    if (selMode) selMode.addEventListener('change', filter);
 }
 
 function openQuestModal(data) {
@@ -355,8 +359,8 @@ async function loadShopItems() {
         var data = await res.json();
         if (!data.success) throw new Error(data.message);
         _shopData = data.data || [];
-        _renderShopItems(_shopData);
         _setupShopSearch();
+        _applyShopFilters();
     } catch (err) {
         document.getElementById('shop-tbody').innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--danger)">' + err.message + '</td></tr>';
     }
@@ -395,15 +399,43 @@ function _renderShopItems(items) {
     attachShopListeners();
 }
 
+function _applyShopFilters() {
+    var q        = (document.getElementById('shop-search')?.value || '').trim().toLowerCase();
+    var cat      = document.getElementById('shop-filter-category')?.value || '';
+    var discount = document.getElementById('shop-filter-discount')?.value || '';
+    var sort     = document.getElementById('shop-filter-sort')?.value || '';
+
+    var result = _shopData.filter(function(d) {
+        if (q && !(d.name + (d.itemId||'') + (d.category||'')).toLowerCase().includes(q)) return false;
+        if (cat && d.category !== cat) return false;
+        if (discount === 'yes' && !(d.discountPrice > 0)) return false;
+        if (discount === 'no' && d.discountPrice > 0) return false;
+        return true;
+    });
+
+    if (sort === 'price-desc') result.sort(function(a, b) { return (b.price||0) - (a.price||0); });
+    if (sort === 'price-asc')  result.sort(function(a, b) { return (a.price||0) - (b.price||0); });
+
+    var countEl = document.getElementById('shop-filter-count');
+    if (countEl) countEl.textContent = result.length + ' / ' + _shopData.length + ' item';
+
+    _renderShopItems(result);
+}
+
 function _setupShopSearch() {
     var inp = document.getElementById('shop-search');
     if (!inp || inp.dataset.bound) return;
     inp.dataset.bound = '1';
-    inp.addEventListener('input', function() {
-        var q = inp.value.trim().toLowerCase();
-        _renderShopItems(q ? _shopData.filter(function(d) {
-            return (d.name + (d.itemId||'') + (d.category||'')).toLowerCase().includes(q);
-        }) : _shopData);
+    inp.addEventListener('input', _applyShopFilters);
+    document.getElementById('shop-filter-category')?.addEventListener('change', _applyShopFilters);
+    document.getElementById('shop-filter-discount')?.addEventListener('change', _applyShopFilters);
+    document.getElementById('shop-filter-sort')?.addEventListener('change', _applyShopFilters);
+    document.getElementById('btn-clear-shop-filters')?.addEventListener('click', function() {
+        if (inp) inp.value = '';
+        var cat = document.getElementById('shop-filter-category'); if (cat) cat.value = '';
+        var disc = document.getElementById('shop-filter-discount'); if (disc) disc.value = '';
+        var srt = document.getElementById('shop-filter-sort'); if (srt) srt.value = '';
+        _applyShopFilters();
     });
 }
 

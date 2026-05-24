@@ -93,7 +93,7 @@ export const PartSelector = {
                          data-part="${part}" style="cursor:${disabled ? 'not-allowed' : 'pointer'}">
                         <div class="topic-icon"><i class="fas fa-layer-group"></i></div>
                         <div class="topic-info">
-                            <h3>${part}</h3>
+                            <h3 title="${part}">${part}</h3>
                             <p>${this.partCounts[part]} từ vựng</p>
                             ${!disabled ? getLevelBar(part) : ''}
                         </div>

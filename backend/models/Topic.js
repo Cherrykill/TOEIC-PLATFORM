@@ -40,10 +40,15 @@ const topicSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        lang: {
+            type: String,
+            enum: ['en', 'zh'],
+            default: 'en',
+        },
     },
     {
         timestamps: true,
-        collection: 'vocabulary_topics',
+        collection: 'vocabularies_topics',
     }
 );
 

@@ -472,6 +472,21 @@ async function initDashboard() {
         showToast('Đã tải lại dữ liệu từ vựng', 'success');
     });
 
+    // Vocab lang sub-tabs (EN / ZH)
+    document.querySelectorAll('[data-vocab-lang]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('[data-vocab-lang]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            vocabCurrentLang = btn.dataset.vocabLang;
+            vocabCurrentPage = 1;
+            vocabCurrentPart = '';
+            vocabCurrentSource = '';
+            vocabCurrentType = '';
+            vocabSearchTerm = '';
+            loadVocabulary(1);
+        });
+    });
+
     document.getElementById('btn-sync-all-questions')?.addEventListener('click', () => {
         loadQuestions();
         showToast('Đã tải lại dữ liệu câu hỏi', 'success');
@@ -485,6 +500,11 @@ async function initDashboard() {
     document.getElementById('btn-sync-all-uploads')?.addEventListener('click', () => {
         loadUploadMonitoring();
         showToast('Đã tải lại nội dung người dùng', 'success');
+    });
+
+    document.getElementById('btn-sync-all-users')?.addEventListener('click', () => {
+        loadUsersInTab();
+        showToast('Đã tải lại danh sách người dùng', 'success');
     });
 
     // "Xem tất cả" in Recent Users → switch to Users tab

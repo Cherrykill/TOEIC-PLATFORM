@@ -177,10 +177,7 @@ document.addEventListener("DOMContentLoaded", () => {
         openQuestionModal();
     });
 
-    document.getElementById('btn-view-statistics')?.addEventListener('click', openStatisticsModal);
     document.getElementById('btn-delete-all-questions')?.addEventListener('click', deleteAllQuestions);
-    document.getElementById('btn-close-statistics-modal')?.addEventListener('click', closeStatisticsModal);
-    document.getElementById('btn-refresh-statistics')?.addEventListener('click', loadStatistics);
     document.getElementById('btn-close-question-modal')?.addEventListener('click', closeQuestionModal);
 
     document.getElementById('question-form')?.addEventListener('submit', handleQuestionSubmit);

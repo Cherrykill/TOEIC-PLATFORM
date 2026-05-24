@@ -31,6 +31,7 @@ function initDbManager() {
     _db.initialized = true;
 
     document.getElementById('db-refresh-btn')?.addEventListener('click', loadDbCollections);
+    document.getElementById('db-export-all-btn')?.addEventListener('click', exportAllCollections);
 
     // Event delegation cho collection list (tránh inline onclick)
     document.getElementById('db-col-list')?.addEventListener('click', (e) => {
@@ -86,6 +87,50 @@ async function loadDbCollections() {
         `).join('');
     } catch (err) {
         list.innerHTML = `<div class="db-col-empty" style="color:var(--danger)"><i class="fas fa-exclamation-circle"></i> ${err.message}</div>`;
+    }
+}
+
+// ── Export tất cả collections thành các file JSON riêng ──────
+async function exportAllCollections() {
+    const btn = document.getElementById('db-export-all-btn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    try {
+        const res = await dbFetch('/api/admin/db/collections');
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        const collections = json.data.map(c => c.name);
+        let done = 0;
+
+        for (const name of collections) {
+            // Lấy tất cả docs (limit lớn)
+            const r = await dbFetch(`/api/admin/db/collections/${encodeURIComponent(name)}?page=1&limit=100000`);
+            const d = await r.json();
+            if (!d.success) continue;
+
+            const docs = d.data || [];
+            const blob = new Blob([JSON.stringify(docs, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${name}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            done++;
+
+            // Delay nhỏ để trình duyệt không block download
+            await new Promise(r => setTimeout(r, 300));
+        }
+
+        showToast(`Đã xuất ${done} / ${collections.length} collections`, 'success');
+    } catch (err) {
+        showToast('Lỗi xuất dữ liệu: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
     }
 }
 

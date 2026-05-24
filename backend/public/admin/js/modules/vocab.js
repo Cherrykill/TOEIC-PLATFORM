@@ -21,7 +21,7 @@ async function loadVocabulary(page = vocabCurrentPage, part = vocabCurrentPart, 
     if (paginationControls) paginationControls.innerHTML = '';
 
     try {
-        const url = `${API_URL}/vocabulary?limit=${vocabCurrentLimit}&page=${page}&part=${part || ''}&source=${source || ''}&type=${encodeURIComponent(type || '')}&search=${encodeURIComponent(vocabSearchTerm)}`;
+        const url = `${API_URL}/vocabulary?limit=${vocabCurrentLimit}&page=${page}&part=${part || ''}&source=${source || ''}&type=${encodeURIComponent(type || '')}&search=${encodeURIComponent(vocabSearchTerm)}&lang=${vocabCurrentLang}`;
         const res = await fetch(url); // <-- API call to filter
         const data = await res.json();
 

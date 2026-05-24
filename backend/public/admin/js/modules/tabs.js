@@ -66,10 +66,12 @@ function _applyTopicsFilter() {
     const q       = (document.getElementById('topics-search')?.value || '').trim().toLowerCase();
     const words   = document.getElementById('topics-filter-words')?.value || '';
     const visible = document.getElementById('topics-filter-visible')?.value || '';
+    const lang    = document.getElementById('topics-filter-lang')?.value || '';
 
     let data = _topicsData;
     if (q)       data = data.filter(t => (t.displayName + (t.sourceKeys || []).join(',')).toLowerCase().includes(q));
     if (visible) data = data.filter(t => visible === '1' ? t.isPublic : !t.isPublic);
+    if (lang)    data = data.filter(t => (t.lang || 'en') === lang);
     if (words) {
         const [lo, hi] = words.split('-').map(v => v === '' ? Infinity : Number(v));
         data = data.filter(t => {
@@ -91,13 +93,16 @@ function _setupTopicsSearch() {
     search.addEventListener('input', _applyTopicsFilter);
     document.getElementById('topics-filter-words')?.addEventListener('change', _applyTopicsFilter);
     document.getElementById('topics-filter-visible')?.addEventListener('change', _applyTopicsFilter);
+    document.getElementById('topics-filter-lang')?.addEventListener('change', _applyTopicsFilter);
     document.getElementById('topics-filter-clear')?.addEventListener('click', () => {
         const s = document.getElementById('topics-search');
         const w = document.getElementById('topics-filter-words');
         const v = document.getElementById('topics-filter-visible');
+        const l = document.getElementById('topics-filter-lang');
         if (s) s.value = '';
         if (w) w.value = '';
         if (v) v.value = '';
+        if (l) l.value = '';
         _applyTopicsFilter();
     });
 }
@@ -105,7 +110,7 @@ function _setupTopicsSearch() {
 function renderTopicsTable(topics) {
     const tbody = document.getElementById('topics-tbody');
     if (!topics.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#64748b;padding:30px;">Chưa có đề nào. Nhấn "+ Thêm đề" để tạo.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#64748b;padding:30px;">Chưa có đề nào. Nhấn "+ Thêm đề" để tạo.</td></tr>`;
         return;
     }
 
@@ -121,6 +126,11 @@ function renderTopicsTable(topics) {
             <td><span class="badge info" style="font-family:monospace;">${(t.sourceKeys || []).join(', ')}</span></td>
             <td><strong>${t.wordCount.toLocaleString()}</strong> từ</td>
             <td style="text-align:center;">${t.order}</td>
+            <td style="text-align:center;">
+                <span class="badge" style="background:${(t.lang || 'en') === 'zh' ? '#dc2626' : '#2563eb'};color:#fff;">
+                    ${(t.lang || 'en') === 'zh' ? '🇨🇳 ZH' : '🇬🇧 EN'}
+                </span>
+            </td>
             <td style="text-align:center;">
                 <span class="badge ${t.isPublic ? 'success' : ''}" style="${!t.isPublic ? 'background:#374151;color:#9ca3af;' : ''}">
                     ${t.isPublic ? 'Hiện' : 'Ẩn'}
@@ -177,12 +187,19 @@ function showTopicModal(topic) {
                         <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:5px;">THỨ TỰ</label>
                         <input type="number" id="ti-order" value="${topic?.order ?? (_topicsData.length > 0 ? Math.max(..._topicsData.map(t => t.order ?? 0)) + 1 : 0)}" style="width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
                     </div>
-                    <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
-                        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#e2e8f0;">
-                            <input type="checkbox" id="ti-isPublic" ${topic?.isPublic !== false ? 'checked' : ''}
-                                style="width:16px;height:16px;accent-color:#3b82f6;"> Hiển thị cho người dùng
-                        </label>
+                    <div>
+                        <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:5px;">NGÔN NGỮ</label>
+                        <select id="ti-lang" style="width:100%;padding:9px 12px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;">
+                            <option value="en" ${(topic?.lang || 'en') === 'en' ? 'selected' : ''}>🇬🇧 Tiếng Anh (EN)</option>
+                            <option value="zh" ${topic?.lang === 'zh' ? 'selected' : ''}>🇨🇳 Tiếng Trung (ZH)</option>
+                        </select>
                     </div>
+                </div>
+                <div style="display:flex;align-items:center;padding-bottom:2px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#e2e8f0;">
+                        <input type="checkbox" id="ti-isPublic" ${topic?.isPublic !== false ? 'checked' : ''}
+                            style="width:16px;height:16px;accent-color:#3b82f6;"> Hiển thị cho người dùng
+                    </label>
                 </div>
                 <div>
                     <label style="font-size:12px;color:#94a3b8;display:block;margin-bottom:5px;">MÔ TẢ</label>
@@ -213,6 +230,7 @@ async function saveTopicModal(id, modal) {
         order: parseInt(document.getElementById('ti-order')?.value) || 0,
         isPublic: document.getElementById('ti-isPublic')?.checked,
         description: document.getElementById('ti-description')?.value.trim(),
+        lang: document.getElementById('ti-lang')?.value || 'en',
     };
 
     if (!body.displayName) return showToast('Vui lòng nhập tên hiển thị', 'warning');
@@ -276,6 +294,15 @@ let _uploadsData = [];
 
 function initUploadManagement() {
     document.getElementById('btn-refresh-uploads')?.addEventListener('click', loadUploadMonitoring);
+    document.getElementById('btn-clear-upload-filters')?.addEventListener('click', () => {
+        const s = document.getElementById('upload-search');
+        if (s) s.value = '';
+        const w = document.getElementById('upload-filter-words');
+        if (w) w.value = '';
+        const st = document.getElementById('upload-filter-status');
+        if (st) st.value = '';
+        _applyUploadsFilter();
+    });
     loadUploadMonitoring();
 }
 

@@ -71,7 +71,7 @@
 /* Topics List */
 .topics-list {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   max-height: 420px;
   overflow-y: auto;
@@ -84,10 +84,46 @@
   }
 }
 
+/* Part selector: căn thẳng mode buttons với part cards theo cùng 3 cột */
+.part-selector-modal {
+  width: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* pmode-group và hint span full 3 cột */
+.part-selector-modal .pmode-group,
+.part-selector-modal .pmode-hint {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+/* mỗi topic-card chạy thẳng vào grid cha */
+.part-selector-modal .topics-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px;
+}
+
+@media (max-width: 540px) {
+  .part-selector-modal,
+  .part-selector-modal .pmode-group,
+  .part-selector-modal .topics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
 /* Topic Card — theme aware */
 .topic-card {
   display: flex;
   align-items: center;
+  min-width: 0;
   padding: 12px 15px;
   border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 8px;
@@ -133,6 +169,13 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary, #333);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.topic-details {
+  min-width: 0;
 }
 
 .topic-description {
@@ -163,6 +206,7 @@
 /* topic-info block used by Part selector */
 .topic-info {
   flex: 1;
+  min-width: 0;
   color: var(--text-primary, #333);
 }
 
@@ -172,6 +216,9 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary, #333);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .topic-info p {

@@ -36,6 +36,17 @@ export default function StatusBar() {
         return () => unsubs.forEach(fn => fn());
     }, [refreshSessionLabel]);
 
+    const [vocabLang, setVocabLang] = useState(() => window.GameState?.state?.settings?.vocabLang || 'en');
+
+    const handleToggleVocabLang = () => {
+        const next = vocabLang === 'en' ? 'zh' : 'en';
+        setVocabLang(next);
+        if (window.GameState?.state?.settings) {
+            window.GameState.state.settings.vocabLang = next;
+            window.GameState.save?.();
+        }
+    };
+
     const xpPercent = user ? Math.min(100, Math.round((user.xp / (user.neededXp || 100)) * 100)) : 0;
 
     const handleQuestionsChange = (e) => {
@@ -108,6 +119,14 @@ export default function StatusBar() {
                         <option value="adaptive">Toàn bộ</option>
                     </select>
                 </div>
+                <button
+                    onClick={handleToggleVocabLang}
+                    title={vocabLang === 'en' ? 'Đang học Tiếng Anh — bấm để chuyển Tiếng Trung' : 'Đang học Tiếng Trung — bấm để chuyển Tiếng Anh'}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                >
+                    <span>{vocabLang === 'en' ? '🇬🇧' : '🇨🇳'}</span>
+                    <span>{vocabLang === 'en' ? 'Tiếng Anh' : 'Tiếng Trung'}</span>
+                </button>
             </div>
         </div>
     );

@@ -530,6 +530,7 @@ async function submitJsonImport() {
         await loadLocalVocabulary(currentLocalFile);
         displayLocalVocabulary();
         updateLocalPartFilter();
+        document.getElementById("word-json-input").value = '';
     }
 }
 

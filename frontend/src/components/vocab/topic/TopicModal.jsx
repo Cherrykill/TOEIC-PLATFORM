@@ -193,7 +193,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                         >
                           <div className="topic-icon">{topic.icon}</div>
                           <div className="topic-details">
-                            <h4>{topic.name}</h4>
+                            <h4 title={topic.name}>{topic.name}</h4>
                             {topic.description && (
                               <p className="topic-description">
                                 {topic.description}
@@ -281,7 +281,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                         >
                           <div className="topic-icon">📤</div>
                           <div className="topic-details">
-                            <h4>{t.source}</h4>
+                            <h4 title={t.source}>{t.source}</h4>
                             <div className="topic-meta">
                               <span className="word-count">
                                 <i className="fas fa-book"></i> {t.wordCount} từ
@@ -367,7 +367,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                         >
                           <div className="topic-icon">❌</div>
                           <div className="topic-details">
-                            <h4>{label}</h4>
+                            <h4 title={label}>{label}</h4>
                             <div className="topic-meta">
                               <span className="word-count">
                                 <i className="fas fa-book"></i> {g.wordCount} từ

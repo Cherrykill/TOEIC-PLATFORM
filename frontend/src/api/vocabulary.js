@@ -2,12 +2,20 @@
 // VOCABULARY API SERVICE
 // ===================================
 
+function getVocabLang() {
+    try {
+        return window.GameState?.state?.settings?.vocabLang || 'en';
+    } catch {
+        return 'en';
+    }
+}
+
 export const VocabularyAPI = {
     /**
      * Get list of available vocabulary sources from MongoDB
      */
     async getFiles() {
-        const res = await fetch('/api/vocabulary/files');
+        const res = await fetch(`/api/vocabulary/files?lang=${getVocabLang()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         return json.data || [];
@@ -17,7 +25,7 @@ export const VocabularyAPI = {
      * Get all words for a given source from MongoDB
      */
     async getWordsBySource(source) {
-        const res = await fetch(`/api/vocabulary?source=${encodeURIComponent(source)}&limit=9999&page=1`);
+        const res = await fetch(`/api/vocabulary?source=${encodeURIComponent(source)}&limit=9999&page=1&lang=${getVocabLang()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         return json.data || [];
@@ -30,7 +38,7 @@ export const VocabularyAPI = {
      * @returns {Promise<{success:boolean,data?:any[]}>}
      */
     async search(query, limit = 20) {
-        return fetch(`/api/vocabulary/search?q=${encodeURIComponent(query)}&limit=${limit}`)
+        return fetch(`/api/vocabulary/search?q=${encodeURIComponent(query)}&limit=${limit}&lang=${getVocabLang()}`)
             .then(r => r.json())
             .catch(() => ({ success: false }));
     },

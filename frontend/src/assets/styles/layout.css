@@ -70,32 +70,31 @@
 }
 
 .quick-difficulty-selector select {
-    padding: 6px 10px;
-    border: 2px solid var(--primary-color);
-    border-radius: 8px;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
+    padding: 3px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     outline: none;
-    transition: all 0.3s ease;
-    min-width: 90px;
+    transition: border-color 0.2s ease;
+    min-width: 80px;
 }
 
 .quick-difficulty-selector select:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+    border-color: var(--primary-color);
 }
 
 .quick-difficulty-selector select:focus {
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
 }
 
 .quick-difficulty-selector select option {
-    background: white;
-    color: #333;
-    padding: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
 }
 
 .nav-center {
@@ -856,6 +855,7 @@
 .modal-body {
     padding: var(--spacing-lg);
     overflow-y: auto;
+    overflow-x: hidden;
     flex: 1;
     min-height: 0;
 }

@@ -31,6 +31,16 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                     <option value="adaptive">Toàn bộ</option>
                 </select>
             </div>
+            <div className="setting-item">
+                <div className="setting-info">
+                    <h4>Ngôn ngữ từ vựng</h4>
+                    <p>Chọn bộ từ vựng để luyện tập</p>
+                </div>
+                <select value={s.vocabLang || 'en'} onChange={e => updateSetting('vocabLang', e.target.value)}>
+                    <option value="en">🇬🇧 Tiếng Anh (EN)</option>
+                    <option value="zh">🇨🇳 Tiếng Trung (ZH)</option>
+                </select>
+            </div>
         </div>
     );
 }

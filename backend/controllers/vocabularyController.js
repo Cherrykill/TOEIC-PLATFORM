@@ -5,8 +5,13 @@
 const logger = require('../utils/logger');
 const activityLogger = require('../utils/activityLogger');
 const Vocabulary = require('../models/Vocabulary');
+const VocabularyZh = require('../models/VocabularyZh');
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+function getVocabModel(req) {
+    return req.query.lang === 'zh' ? VocabularyZh : Vocabulary;
+}
 
 // ===================================
 // ALLOWED WORD TYPES (sync with frontend)
@@ -48,8 +53,9 @@ exports.getAllVocabulary = async (req, res, next) => {
         const pageNum = parseInt(page);
         const limitNum = Math.min(parseInt(limit) || 20, 10000);
         const skip = (pageNum - 1) * limitNum;
+        const Model = getVocabModel(req);
 
-        let query = Vocabulary.find(PUBLIC_FILTER);
+        let query = Model.find(PUBLIC_FILTER);
 
         if (part) {
             query = query.where('part').equals(part.toUpperCase());
@@ -67,8 +73,8 @@ exports.getAllVocabulary = async (req, res, next) => {
             ]);
         }
 
-        const total = await Vocabulary.countDocuments(query.getFilter());
-        const vocabulary = await query.skip(skip).limit(limitNum).lean().exec();
+        const total = await Model.countDocuments(query.getFilter());
+        const vocabulary = await query.sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean().exec();
 
         res.json({
             success: true,
@@ -93,7 +99,7 @@ exports.getAllVocabulary = async (req, res, next) => {
  */
 exports.getVocabularyById = async (req, res, next) => {
     try {
-        const word = await Vocabulary.findOne({ ...PUBLIC_FILTER, en: req.params.id }).lean();
+        const word = await getVocabModel(req).findOne({ ...PUBLIC_FILTER, en: req.params.id }).lean();
 
         if (!word) {
             return res.status(404).json({
@@ -121,8 +127,9 @@ exports.getRandomVocabulary = async (req, res, next) => {
     try {
         const count = Math.min(parseInt(req.params.count) || 10, 50);
         const { part, type } = req.query;
+        const Model = getVocabModel(req);
 
-        let query = Vocabulary.find(PUBLIC_FILTER);
+        let query = Model.find(PUBLIC_FILTER);
 
         if (part) {
             query = query.where('part').equals(part.toUpperCase());
@@ -153,7 +160,7 @@ exports.getVocabularyByPart = async (req, res, next) => {
     try {
         const { part } = req.params;
 
-        const filtered = await Vocabulary.find({ ...PUBLIC_FILTER, part: part.toUpperCase() }).lean().exec();
+        const filtered = await getVocabModel(req).find({ ...PUBLIC_FILTER, part: part.toUpperCase() }).lean().exec();
 
         res.json({
             success: true,
@@ -183,7 +190,7 @@ exports.searchVocabulary = async (req, res, next) => {
             });
         }
 
-        const results = await Vocabulary.find({
+        const results = await getVocabModel(req).find({
             ...PUBLIC_FILTER,
             $or: [
                 { en: new RegExp(escapeRegex(q), 'i') },
@@ -210,24 +217,25 @@ exports.searchVocabulary = async (req, res, next) => {
  */
 exports.getVocabularyStats = async (req, res, next) => {
     try {
+        const Model = getVocabModel(req);
         const stats = {
-            total: await Vocabulary.countDocuments(PUBLIC_FILTER),
+            total: await Model.countDocuments(PUBLIC_FILTER),
             byPart: {},
             byType: {},
             byLevel: {},
         };
 
-        const partStats = await Vocabulary.aggregate([
+        const partStats = await Model.aggregate([
             { $match: PUBLIC_FILTER },
             { $group: { _id: '$part', count: { $sum: 1 } } }
         ]);
 
-        const typeStats = await Vocabulary.aggregate([
+        const typeStats = await Model.aggregate([
             { $match: PUBLIC_FILTER },
             { $group: { _id: '$type', count: { $sum: 1 } } }
         ]);
 
-        const levelStats = await Vocabulary.aggregate([
+        const levelStats = await Model.aggregate([
             { $match: PUBLIC_FILTER },
             { $group: { _id: '$level', count: { $sum: 1 } } }
         ]);
@@ -256,7 +264,7 @@ exports.getVocabularyParts = async (req, res, next) => {
         const match = { ...PUBLIC_FILTER };
         if (req.query.source) match.source = req.query.source;
 
-        const grouped = await Vocabulary.aggregate([
+        const grouped = await getVocabModel(req).aggregate([
             { $match: match },
             { $group: { _id: '$part', count: { $sum: 1 } } },
             { $sort: { _id: 1 } },

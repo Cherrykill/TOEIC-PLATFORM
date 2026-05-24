@@ -19,7 +19,9 @@ async function countWords(sourceKeys) {
 // GET /api/topics — public, dùng cho frontend chọn đề
 exports.getTopics = async (req, res, next) => {
     try {
-        const topics = await Topic.find({ isPublic: true }).sort({ order: 1, displayName: 1 });
+        const filter = { isPublic: true };
+        if (req.query.lang) filter.lang = req.query.lang;
+        const topics = await Topic.find(filter).sort({ order: 1, displayName: 1 });
         res.json({ success: true, data: topics });
     } catch (err) {
         next(err);
@@ -29,7 +31,9 @@ exports.getTopics = async (req, res, next) => {
 // GET /api/topics/all — admin, bao gồm cả isPublic: false
 exports.getAllTopics = async (req, res, next) => {
     try {
-        const topics = await Topic.find().sort({ order: 1, displayName: 1 });
+        const filter = {};
+        if (req.query.lang) filter.lang = req.query.lang;
+        const topics = await Topic.find(filter).sort({ order: 1, displayName: 1 });
         res.json({ success: true, data: topics });
     } catch (err) {
         next(err);
@@ -39,7 +43,7 @@ exports.getAllTopics = async (req, res, next) => {
 // POST /api/topics — tạo topic mới
 exports.createTopic = async (req, res, next) => {
     try {
-        const { sourceKeys: rawKeys, displayName, description, icon, color, order, isPublic } = req.body;
+        const { sourceKeys: rawKeys, displayName, description, icon, color, order, isPublic, lang } = req.body;
 
         const sourceKeys = parseSourceKeys(rawKeys);
         if (!sourceKeys.length || !displayName) {
@@ -56,6 +60,7 @@ exports.createTopic = async (req, res, next) => {
             color: color || '#3b82f6',
             order: order ?? 0,
             isPublic: isPublic ?? true,
+            lang: lang || 'en',
             wordCount,
         });
 
@@ -68,9 +73,10 @@ exports.createTopic = async (req, res, next) => {
 // PUT /api/topics/:id — cập nhật topic
 exports.updateTopic = async (req, res, next) => {
     try {
-        const { sourceKeys: rawKeys, displayName, description, icon, color, order, isPublic } = req.body;
+        const { sourceKeys: rawKeys, displayName, description, icon, color, order, isPublic, lang } = req.body;
 
         const update = { displayName, description, icon, color, order, isPublic };
+        if (lang !== undefined) update.lang = lang;
         if (rawKeys !== undefined) {
             const sourceKeys = parseSourceKeys(rawKeys);
             if (!sourceKeys.length) {
