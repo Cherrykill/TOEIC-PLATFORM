@@ -388,11 +388,11 @@ document.addEventListener("DOMContentLoaded", () => {
         try {
             let res, data;
             if (editMode) {
-                res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(originalEn)}`, {
+                res = await fetch(withVocabLang(`${API_URL}/vocabulary/${encodeURIComponent(originalEn)}`), {
                     method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(wordData),
                 });
             } else {
-                res = await fetch(`${API_URL}/vocabulary`, {
+                res = await fetch(withVocabLang(`${API_URL}/vocabulary`), {
                     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(wordData),
                 });
             }
@@ -420,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("action-btn-export-vocab")?.addEventListener("click", async () => {
         try {
-            const res = await fetch(`${API_URL}/vocabulary?limit=10000`);
+            const res = await fetch(`${API_URL}/vocabulary?limit=10000&lang=${encodeURIComponent(vocabCurrentLang || 'en')}`);
             const data = await res.json();
             if (data.success) {
                 const blob = new Blob([JSON.stringify(data.data, null, 2)], { type: 'application/json' });
@@ -437,7 +437,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("action-btn-backup-db")?.addEventListener("click", async () => {
         try {
-            const vocabRes = await fetch(`${API_URL}/vocabulary?limit=10000`);
+            const vocabRes = await fetch(`${API_URL}/vocabulary?limit=10000&lang=${encodeURIComponent(vocabCurrentLang || 'en')}`);
             const vocabData = await vocabRes.json();
             const usersRes = await fetch(`${API_URL}/users`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
             const usersData = await usersRes.json();

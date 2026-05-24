@@ -4,6 +4,7 @@ import { GameLogic } from '@game/gameLogic.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { TopicsAPI } from '@api/topics.js';
+import { normalizeVocabularyWords } from '@api/vocabulary.js';
 import { UploadVocabAPI } from '@api/uploadVocab.js';
 import { WrongWordsAPI } from '@api/wrongWords.js';
 
@@ -66,7 +67,7 @@ export const TopicSelector = {
     async selectPersonalTopic(source) {
         const data = await UploadVocabAPI.myVocabulary(source);
         if (!data.success) throw new Error(data.message);
-        const words = data.data || [];
+        const words = normalizeVocabularyWords(data.data || []);
         if (words.length === 0) throw new Error('Source trống, không có từ nào');
 
         GameLogic.vocabularyData = words;
@@ -92,9 +93,10 @@ export const TopicSelector = {
         const raw = all.filter(w => (w.source || '') === source);
         if (raw.length === 0) throw new Error('Nhóm từ sai này trống');
 
-        const words = raw.map(w => ({
+        const words = normalizeVocabularyWords(raw.map(w => ({
             id: w.wordId || w._id,
             en: w.en,
+            zh: w.zh,
             vn: w.vn,
             phonetic: w.phonetic || '',
             type: w.type || '',
@@ -103,7 +105,7 @@ export const TopicSelector = {
             example: w.example || '',
             image: w.image || '',
             synonyms: w.synonyms || '',
-        }));
+        })));
 
         const label = source || 'Chưa rõ nguồn';
         GameLogic.vocabularyData = words;

@@ -1,3 +1,5 @@
+import { getVocabLang } from '@api/vocabulary.js';
+
 // ===================================
 // TOPICS API SERVICE
 // ===================================
@@ -7,6 +9,6 @@
 export const TopicsAPI = {
     /** @returns raw Response (caller does await res.json()). */
     listRaw() {
-        return fetch('/api/topics');
+        return fetch(`/api/topics?lang=${getVocabLang()}`);
     },
 };

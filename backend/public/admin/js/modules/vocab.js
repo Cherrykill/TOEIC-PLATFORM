@@ -4,6 +4,14 @@
 // 4. VOCABULARY MANAGEMENT FUNCTIONS (UPDATED)
 // ===================================
 
+function vocabLangQuery(prefix = '?') {
+    return `${prefix}lang=${encodeURIComponent(vocabCurrentLang || 'en')}`;
+}
+
+function withVocabLang(url) {
+    return `${url}${url.includes('?') ? '&' : '?'}lang=${encodeURIComponent(vocabCurrentLang || 'en')}`;
+}
+
 /**
  * [PHẦN LỌC DỮ LIỆU]
  * Tải danh sách từ vựng từ API, có hỗ trợ phân trang và lọc Part.
@@ -60,9 +68,19 @@ function displayVocabulary(words) {
         return;
     }
 
-    tbody.innerHTML = words
+    const visibleWords = words.filter((word) => typeof word.en === 'string' && word.en.trim());
+
+    if (visibleWords.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #999; padding: 40px;">Không có từ vựng hợp lệ nào được tìm thấy.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = visibleWords
         .map((word) => {
             const enSafe = word.en.replace(/"/g, '&quot;');
+            const vn = word.vn || '';
+            const type = word.type || '';
+            const part = word.part || '';
             const sources = Array.isArray(word.sources) && word.sources.length
                 ? word.sources.map(s => `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:10px;">${s}</span>`).join(' ')
                 : (word.source ? `<span class="badge" style="background:#1e3a5f;color:#60a5fa;font-size:10px;">${word.source}</span>` : '<span style="color:#666;font-size:11px;">—</span>');
@@ -70,9 +88,9 @@ function displayVocabulary(words) {
         <tr>
             <td style="text-align:center;"><input type="checkbox" class="vocab-row-cb" data-word-en="${enSafe}"></td>
             <td><strong>${word.en}</strong> <span style="color:#888;font-size:12px;">${word.phonetic || ''}</span></td>
-            <td>${word.vn}</td>
-            <td><span class="badge info">${word.type}</span></td>
-            <td><span class="badge warning">${word.part}</span></td>
+            <td>${vn}</td>
+            <td><span class="badge info">${type}</span></td>
+            <td><span class="badge warning">${part}</span></td>
             <td style="white-space:nowrap;">${sources}</td>
             <td>
                 <button class="btn btn-primary btn-sm btn-edit-word"
@@ -226,7 +244,7 @@ async function initVocabExtraFilters() {
     // Populate source options from API
     if (sourceSelect && !sourceSelect.dataset.loaded) {
         try {
-            const res = await fetch(`${API_URL}/vocabulary/sources`);
+            const res = await fetch(`${API_URL}/vocabulary/sources${vocabLangQuery()}`);
             const data = await res.json();
             if (data.success && Array.isArray(data.data)) {
                 data.data.forEach(({ source, count }) => {
@@ -286,7 +304,7 @@ function attachDeleteWordListeners() {
             if (!confirm(`Bạn có chắc chắn muốn XÓA từ vựng "${wordEn}"?`)) return;
 
             try {
-                const res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`, {
+                const res = await fetch(withVocabLang(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`), {
                     method: "DELETE",
                 });
 
@@ -349,7 +367,7 @@ function updateVocabCountAfterDelete() {
  */
 async function deleteWord(wordEn) {
     try {
-        const res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`, {
+        const res = await fetch(withVocabLang(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`), {
             method: "DELETE",
         });
 
@@ -426,6 +444,7 @@ async function scanDuplicates() {
         if (vocabCurrentSource) params.set('source', vocabCurrentSource);
         if (vocabCurrentPart) params.set('part', vocabCurrentPart);
 
+        params.set('lang', vocabCurrentLang || 'en');
         const res = await fetch(`${API_URL}/vocabulary/duplicates?${params.toString()}`);
         const data = await res.json();
 
@@ -538,7 +557,7 @@ function showDbDuplicateModal(groups, summary) {
         delBtn.disabled = true;
         delBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
         try {
-            const response = await fetch(`/api/vocabulary/remove-duplicates/${encodeURIComponent(removeScope)}`, {
+            const response = await fetch(withVocabLang(`/api/vocabulary/remove-duplicates/${encodeURIComponent(removeScope)}`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             });
@@ -633,7 +652,7 @@ function showDuplicateModal(duplicates) {
         if (confirm(`Bạn có chắc muốn xóa ${duplicates.length} từ vựng trùng lặp?\n\n⚠️ Thao tác này sẽ XÓA VĨNH VIỄN các từ trùng lặp trong file "${currentLocalFile}"!`)) {
             try {
                 // Gọi API để xóa duplicates trong file JSON thực sự
-                const response = await fetch(`/api/vocabulary/remove-duplicates/${encodeURIComponent(currentLocalFile)}`, {
+                const response = await fetch(withVocabLang(`/api/vocabulary/remove-duplicates/${encodeURIComponent(currentLocalFile)}`), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -730,7 +749,7 @@ async function removeDuplicates(duplicates) {
         document.getElementById('delete-progress-text').textContent = `${i + 1} / ${duplicates.length}`;
 
         try {
-            const res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(dup.duplicate.en)}`, {
+            const res = await fetch(withVocabLang(`${API_URL}/vocabulary/${encodeURIComponent(dup.duplicate.en)}`), {
                 method: 'DELETE'
             });
             const data = await res.json();
@@ -908,7 +927,7 @@ async function deleteSelectedVocab() {
     if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...'; }
 
     try {
-        const res = await fetch(`${API_URL}/vocabulary/bulk`, {
+        const res = await fetch(withVocabLang(`${API_URL}/vocabulary/bulk`), {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ens }),
@@ -1006,7 +1025,7 @@ function showFilterDeleteVocabModal() {
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
 
         try {
-            const res = await fetch(`${API_URL}/vocabulary/filter-delete`, {
+            const res = await fetch(withVocabLang(`${API_URL}/vocabulary/filter-delete`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ filters }),
@@ -1089,7 +1108,7 @@ function deleteAllVocabulary() {
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xóa...';
         try {
-            const res = await fetch(`${API_URL}/vocabulary/all`, { method: 'DELETE' });
+            const res = await fetch(withVocabLang(`${API_URL}/vocabulary/all`), { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
                 showToast(`✅ Đã xóa ${data.deleted} từ vựng khỏi database`, 'success');

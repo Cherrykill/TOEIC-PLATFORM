@@ -1,5 +1,5 @@
 import { Http } from '@api/http.js';
-import { VocabularyAPI } from '@api/vocabulary.js';
+import { getVocabLang, normalizeVocabularyWords, VocabularyAPI } from '@api/vocabulary.js';
 import { TtsAPI } from '@api/tts.js';
 import { GameState } from './state.js';
 import { Utils } from '@lib/utils.js';
@@ -24,7 +24,7 @@ export const GameLogic = {
             return false;
         }
 
-        this.vocabularyData = result.data.slice();
+        this.vocabularyData = normalizeVocabularyWords(result.data);
         console.log(`Loaded ${this.vocabularyData.length} vocabulary words`);
         return true;
     },
@@ -37,7 +37,7 @@ export const GameLogic = {
                 console.error(`❌ No words found for source: ${source}`);
                 return false;
             }
-            this.vocabularyData = words;
+            this.vocabularyData = normalizeVocabularyWords(words);
             console.log(`✅ GameLogic: Loaded ${this.vocabularyData.length} words (source: ${source})`);
             return true;
         } catch (err) {
@@ -57,7 +57,7 @@ export const GameLogic = {
         }
 
         this.vocabularyData = [];
-        this.vocabularyData = result.data.slice();
+        this.vocabularyData = normalizeVocabularyWords(result.data);
 
         console.log(`✅ GameLogic: Loaded ${this.vocabularyData.length} words from ${filePath}`);
 
@@ -292,11 +292,15 @@ export const GameLogic = {
     },
 
     speakWord(text, lang = 'en-US', onEnd = null) {
+        const isZhText = /[\u3400-\u9fff]/.test(String(text || ''));
+        if (getVocabLang() === 'zh' && isZhText) {
+            lang = 'zh-CN';
+        }
         const savedVoiceName = localStorage.getItem('toeic_voice') || '';
 
         this._replayCallback = () => this.speakWord(text, lang);
 
-        if (savedVoiceName.startsWith('__gtts_')) {
+        if (lang !== 'zh-CN' && savedVoiceName.startsWith('__gtts_')) {
             this._speakGoogleTTS(text, savedVoiceName, onEnd);
             return;
         }
@@ -321,9 +325,9 @@ export const GameLogic = {
         const voices = window.speechSynthesis.getVoices();
 
         if (savedVoiceName === '__random__' && voices.length > 0) {
-            const toeicAccents = ['en-US', 'en-GB', 'en-AU', 'en-CA'];
+            const toeicAccents = lang === 'zh-CN' ? ['zh-CN', 'zh-Hans', 'zh'] : ['en-US', 'en-GB', 'en-AU', 'en-CA'];
             const toeicVoices = voices.filter(v => toeicAccents.some(a => v.lang.startsWith(a)));
-            const pool = toeicVoices.length > 0 ? toeicVoices : voices.filter(v => v.lang.startsWith('en'));
+            const pool = toeicVoices.length > 0 ? toeicVoices : voices.filter(v => v.lang.startsWith(lang === 'zh-CN' ? 'zh' : 'en'));
             if (pool.length > 0) {
                 const picked = pool[Math.floor(Math.random() * pool.length)];
                 utterance.voice = picked;

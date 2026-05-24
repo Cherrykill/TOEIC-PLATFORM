@@ -4,6 +4,7 @@
 
 import { Config } from '@game/config.js';
 import { EventBus } from '@game/eventBus.js';
+import { getVocabLang, normalizeVocabularyWords } from '@api/vocabulary.js';
 
 export const Http = {
 
@@ -155,13 +156,13 @@ export const Http = {
 
     async loadVocabulary() {
         // Load all vocabulary from MongoDB — no JSON fallback
-        const res = await fetch('/api/vocabulary?limit=9999&page=1');
+        const res = await fetch(`/api/vocabulary?limit=9999&page=1&lang=${getVocabLang()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
         if (!json.success || !Array.isArray(json.data)) {
             return { success: false, error: 'Invalid vocabulary response', data: [] };
         }
-        return { success: true, data: json.data };
+        return { success: true, data: normalizeVocabularyWords(json.data) };
     },
 
     _getToken() {

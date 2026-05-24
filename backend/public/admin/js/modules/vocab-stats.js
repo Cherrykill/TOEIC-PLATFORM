@@ -22,7 +22,7 @@ async function startQuickDelete() {
     `;
 
     try {
-        const res = await fetch(`${API_URL}/vocabulary?limit=100000`);
+        const res = await fetch(`${API_URL}/vocabulary?limit=100000&lang=${encodeURIComponent(vocabCurrentLang || 'en')}`);
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {
@@ -100,7 +100,7 @@ async function handleQuickDeleteRemove(wordEn) {
     `;
 
     try {
-        const res = await fetch(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`, {
+        const res = await fetch(withVocabLang(`${API_URL}/vocabulary/${encodeURIComponent(wordEn)}`), {
             method: "DELETE",
         });
 
@@ -183,7 +183,7 @@ async function loadAvailableFiles() {
     if (pickerBtn) pickerBtn.disabled = true;
 
     try {
-        const res = await fetch(`${API_URL}/vocabulary/files`);
+        const res = await fetch(`${API_URL}/vocabulary/files?lang=${encodeURIComponent(vocabCurrentLang || 'en')}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
@@ -273,7 +273,7 @@ async function switchVocabularyFile(filename) {
         displayLocalVocabulary();
 
         try {
-            const res = await fetch(`${API_URL}/vocabulary/switch/${encodeURIComponent(filename)}`, {
+            const res = await fetch(withVocabLang(`${API_URL}/vocabulary/switch/${encodeURIComponent(filename)}`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });

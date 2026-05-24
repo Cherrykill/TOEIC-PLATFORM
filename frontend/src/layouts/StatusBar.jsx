@@ -36,15 +36,25 @@ export default function StatusBar() {
         return () => unsubs.forEach(fn => fn());
     }, [refreshSessionLabel]);
 
-    const [vocabLang, setVocabLang] = useState(() => window.GameState?.state?.settings?.vocabLang || 'en');
+    const [vocabLang, setVocabLang] = useState(() => {
+        try {
+            return localStorage.getItem('vocabLang') || window.GameState?.state?.settings?.vocabLang || 'en';
+        } catch {
+            return window.GameState?.state?.settings?.vocabLang || 'en';
+        }
+    });
 
     const handleToggleVocabLang = () => {
         const next = vocabLang === 'en' ? 'zh' : 'en';
         setVocabLang(next);
+        try {
+            localStorage.setItem('vocabLang', next);
+        } catch {}
         if (window.GameState?.state?.settings) {
             window.GameState.state.settings.vocabLang = next;
             window.GameState.save?.();
         }
+        window.location.reload();
     };
 
     const xpPercent = user ? Math.min(100, Math.round((user.xp / (user.neededXp || 100)) * 100)) : 0;

@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 
 const vocabularyZhSchema = new mongoose.Schema(
     {
-        en: { type: String, required: true, trim: true },
+        en: { type: String, trim: true, default: '' },
         vn: { type: String, trim: true, default: '' },
-        zh: { type: String, trim: true, default: '' },
+        zh: { type: String, required: true, trim: true },
         phonetic: { type: String, default: '' },
         part: { type: String, required: true, trim: true },
         synonyms: { type: String, default: '' },
@@ -45,7 +45,7 @@ const vocabularyZhSchema = new mongoose.Schema(
 
 vocabularyZhSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 vocabularyZhSchema.index(
-    { en: 1, part: 1, source: 1, vn: 1 },
+    { zh: 1, part: 1, source: 1, vn: 1 },
     { unique: true, partialFilterExpression: { scope: 'public' } }
 );
 vocabularyZhSchema.index({ ownerEmail: 1, source: 1 });
@@ -53,7 +53,7 @@ vocabularyZhSchema.index({ ownerId: 1, scope: 1 });
 vocabularyZhSchema.index({ source: 1, scope: 1 });
 vocabularyZhSchema.index({ level: 1 });
 vocabularyZhSchema.index({ type: 1 });
-vocabularyZhSchema.index({ en: 1, scope: 1 });
+vocabularyZhSchema.index({ zh: 1, scope: 1 });
 vocabularyZhSchema.index({ part: 1, scope: 1 });
 
 module.exports = mongoose.model('VocabularyZh', vocabularyZhSchema);

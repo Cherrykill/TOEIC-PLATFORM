@@ -6,6 +6,11 @@
 // Verbatim move; behaviour unchanged. routes/vocabulary.js imports here.
 
 const Vocabulary = require('../models/Vocabulary');
+const VocabularyZh = require('../models/VocabularyZh');
+
+function getVocabModel(req) {
+    return req.query.lang === 'zh' ? VocabularyZh : Vocabulary;
+}
 
 /**
  * @desc    List available vocabulary sources (replaces JSON file listing)
@@ -14,7 +19,7 @@ const Vocabulary = require('../models/Vocabulary');
  */
 exports.getAvailableFiles = async (req, res, next) => {
     try {
-        const sourceStats = await Vocabulary.aggregate([
+        const sourceStats = await getVocabModel(req).aggregate([
             { $group: { _id: '$source', count: { $sum: 1 } } },
             { $sort: { _id: 1 } }
         ]);
@@ -61,7 +66,7 @@ exports.switchVocabularyFile = async (req, res, next) => {
         const { filename } = req.params;
         const source = filename.replace('.json', '').toLowerCase();
 
-        const count = await Vocabulary.countDocuments({ source });
+        const count = await getVocabModel(req).countDocuments({ source });
 
         if (count === 0) {
             return res.status(404).json({
@@ -90,7 +95,7 @@ exports.switchVocabularyFile = async (req, res, next) => {
  */
 exports.getVocabularySources = async (req, res, next) => {
     try {
-        const sourceStats = await Vocabulary.aggregate([
+        const sourceStats = await getVocabModel(req).aggregate([
             { $group: { _id: '$source', count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);

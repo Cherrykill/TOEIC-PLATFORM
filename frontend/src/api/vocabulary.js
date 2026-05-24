@@ -2,12 +2,35 @@
 // VOCABULARY API SERVICE
 // ===================================
 
-function getVocabLang() {
+export function getVocabLang() {
     try {
+        const stored = localStorage.getItem('vocabLang');
+        if (stored === 'en' || stored === 'zh') return stored;
         return window.GameState?.state?.settings?.vocabLang || 'en';
     } catch {
         return 'en';
     }
+}
+
+export function normalizeVocabularyWord(word, lang = getVocabLang()) {
+    if (!word || typeof word !== 'object') return word;
+    if (lang !== 'zh') return word;
+
+    const primary = typeof word.zh === 'string' && word.zh.trim()
+        ? word.zh.trim()
+        : word.en;
+
+    return {
+        ...word,
+        en: word.en || primary,
+        word: word.word || primary,
+    };
+}
+
+export function normalizeVocabularyWords(words, lang = getVocabLang()) {
+    return Array.isArray(words)
+        ? words.map(word => normalizeVocabularyWord(word, lang)).filter(word => word?.en)
+        : [];
 }
 
 export const VocabularyAPI = {
@@ -28,7 +51,7 @@ export const VocabularyAPI = {
         const res = await fetch(`/api/vocabulary?source=${encodeURIComponent(source)}&limit=9999&page=1&lang=${getVocabLang()}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();
-        return json.data || [];
+        return normalizeVocabularyWords(json.data || []);
     },
 
     /**
@@ -40,6 +63,7 @@ export const VocabularyAPI = {
     async search(query, limit = 20) {
         return fetch(`/api/vocabulary/search?q=${encodeURIComponent(query)}&limit=${limit}&lang=${getVocabLang()}`)
             .then(r => r.json())
+            .then(json => json?.success ? { ...json, data: normalizeVocabularyWords(json.data || []) } : json)
             .catch(() => ({ success: false }));
     },
 };

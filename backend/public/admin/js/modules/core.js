@@ -70,7 +70,7 @@ async function checkApiAvailability() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-        const res = await fetch(`${API_URL}/vocabulary/stats`, {
+        const res = await fetch(`${API_URL}/vocabulary/stats?lang=${encodeURIComponent(vocabCurrentLang || 'en')}`, {
             signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -393,10 +393,9 @@ function renderPartFilter(partList) {
  */
 async function updateLocalPartFilter(vocabData) {
     try {
-        const qs = vocabCurrentSource
-            ? `?source=${encodeURIComponent(vocabCurrentSource)}`
-            : '';
-        const res = await fetch(`${API_URL}/vocabulary/parts${qs}`);
+        const params = new URLSearchParams({ lang: vocabCurrentLang || 'en' });
+        if (vocabCurrentSource) params.set('source', vocabCurrentSource);
+        const res = await fetch(`${API_URL}/vocabulary/parts?${params.toString()}`);
         const data = await res.json();
         if (data && data.success && Array.isArray(data.data)) {
             const counts = data.counts || {};
@@ -483,6 +482,17 @@ async function initDashboard() {
             vocabCurrentSource = '';
             vocabCurrentType = '';
             vocabSearchTerm = '';
+            const searchInput = document.getElementById('vocab-search');
+            const sourceSelect = document.getElementById('vocab-filter-source');
+            const typeSelect = document.getElementById('vocab-filter-type');
+            if (searchInput) searchInput.value = '';
+            if (sourceSelect) {
+                sourceSelect.innerHTML = '<option value="">Tất cả Source</option>';
+                delete sourceSelect.dataset.loaded;
+            }
+            if (typeSelect) typeSelect.value = '';
+            loadAvailableFiles();
+            initVocabExtraFilters();
             loadVocabulary(1);
         });
     });

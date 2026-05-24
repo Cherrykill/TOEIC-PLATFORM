@@ -36,7 +36,14 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                     <h4>Ngôn ngữ từ vựng</h4>
                     <p>Chọn bộ từ vựng để luyện tập</p>
                 </div>
-                <select value={s.vocabLang || 'en'} onChange={e => updateSetting('vocabLang', e.target.value)}>
+                <select value={s.vocabLang || 'en'} onChange={e => {
+                    const next = e.target.value;
+                    updateSetting('vocabLang', next);
+                    try {
+                        localStorage.setItem('vocabLang', next);
+                    } catch {}
+                    window.location.reload();
+                }}>
                     <option value="en">🇬🇧 Tiếng Anh (EN)</option>
                     <option value="zh">🇨🇳 Tiếng Trung (ZH)</option>
                 </select>

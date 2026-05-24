@@ -48,7 +48,7 @@ function normalizeVocabularyObject(item) {
 async function fetchUniqueVocabParts() {
     try {
         // Gọi API để quét toàn bộ data và chỉ trả về danh sách các Part duy nhất
-        const res = await fetch(`${API_URL}/vocabulary/parts`);
+        const res = await fetch(`${API_URL}/vocabulary/parts?lang=${encodeURIComponent(vocabCurrentLang || 'en')}`);
         const data = await res.json();
 
         if (data.success && Array.isArray(data.data)) {

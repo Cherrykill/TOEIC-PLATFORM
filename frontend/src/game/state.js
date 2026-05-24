@@ -25,6 +25,7 @@ export const DEFAULT_SETTINGS = {
     autoSync: true,
     soundVolume: 1.0,
     musicVolume: 0.7,
+    vocabLang: 'en',
 };
 
 export const GameState = {
@@ -173,6 +174,13 @@ export const GameState = {
                 this.state.settings.practiceSoundEnabled = (pse === 'true');
             }
         } catch { /* localStorage unavailable — keep merged value */ }
+
+        try {
+            const vocabLang = localStorage.getItem('vocabLang');
+            if (vocabLang === 'en' || vocabLang === 'zh') {
+                this.state.settings.vocabLang = vocabLang;
+            }
+        } catch { /* localStorage unavailable - keep merged value */ }
 
         this.state.user.lastLoginAt = Date.now();
 

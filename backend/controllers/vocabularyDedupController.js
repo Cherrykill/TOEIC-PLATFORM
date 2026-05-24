@@ -6,12 +6,17 @@
 // move; behaviour unchanged. routes/vocabulary.js imports these here now.
 
 const Vocabulary = require('../models/Vocabulary');
+const VocabularyZh = require('../models/VocabularyZh');
 const activityLogger = require('../utils/activityLogger');
+
+function getVocabModel(req) {
+    return req.query.lang === 'zh' ? VocabularyZh : Vocabulary;
+}
 
 // Normalized composite duplicate key: source + part + en (case-insensitive,
 // trimmed). This is THE definition of a duplicate across the app.
 const DUP_GROUP_KEY = {
-    en: { $toLower: { $trim: { input: { $ifNull: ['$en', ''] } } } },
+    en: { $toLower: { $trim: { input: { $ifNull: ['$en', { $ifNull: ['$zh', ''] }] } } } },
     part: { $toLower: { $trim: { input: { $ifNull: ['$part', ''] } } } },
     source: { $toLower: { $trim: { input: { $ifNull: ['$source', ''] } } } },
 };
@@ -28,7 +33,7 @@ exports.scanDuplicates = async (req, res, next) => {
         if (req.query.source) match.source = req.query.source;
         if (req.query.part) match.part = req.query.part;
 
-        const groups = await Vocabulary.aggregate([
+        const groups = await getVocabModel(req).aggregate([
             { $match: match },
             {
                 $group: {
@@ -79,7 +84,8 @@ exports.removeDuplicates = async (req, res, next) => {
 
         const matchStage = source ? { $match: { source } } : { $match: {} };
 
-        const duplicates = await Vocabulary.aggregate([
+        const Model = getVocabModel(req);
+        const duplicates = await Model.aggregate([
             matchStage,
             { $group: { _id: DUP_GROUP_KEY, count: { $sum: 1 }, ids: { $push: '$_id' } } },
             { $match: { count: { $gt: 1 } } }
@@ -88,7 +94,7 @@ exports.removeDuplicates = async (req, res, next) => {
         let removed = 0;
         for (const dup of duplicates) {
             const idsToRemove = dup.ids.slice(1);
-            await Vocabulary.deleteMany({ _id: { $in: idsToRemove } });
+            await Model.deleteMany({ _id: { $in: idsToRemove } });
             removed += idsToRemove.length;
         }
 
