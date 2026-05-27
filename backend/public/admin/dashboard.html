@@ -2333,10 +2333,7 @@
         <div id="word-json-panel" style="display: none">
           <p style="font-size: 12px; color: #888; margin-bottom: 8px">
             Dán vào 1 object hoặc array — các key hợp lệ:
-            <code
-              >en, vn, phonetic, part, type, level, synonyms, image, example,
-              source</code
-            >
+            <code id="json-keys-hint">en, vn, phonetic, part, type, level, synonyms, image, example, source</code>
           </p>
           <textarea
             id="word-json-input"
@@ -2416,11 +2413,18 @@
         </div>
 
         <form id="add-word-form">
-          <!-- AI Fill button at top -->
-          <button type="button" id="btn-ai-fill"
-            style="width:100%;padding:10px;border:none;background:linear-gradient(135deg,#e11d48,#f97316);color:#fff;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px">
-            <i class="fas fa-magic"></i> AI Tự điền
-          </button>
+          <!-- AI Fill + Copy Prompt row -->
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <button type="button" id="btn-ai-fill"
+              style="flex:1;padding:10px;border:none;background:linear-gradient(135deg,#e11d48,#f97316);color:#fff;border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;display:flex;align-items:center;justify-content:center;gap:6px">
+              <i class="fas fa-magic"></i> AI Tự điền
+            </button>
+            <button type="button" id="btn-copy-word-prompt"
+              title="Copy prompt để dán vào ChatGPT / Claude"
+              style="padding:10px 14px;border:1.5px solid var(--border-color);background:var(--bg-secondary);color:var(--text-primary);border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap">
+              <i class="fas fa-clipboard"></i> Copy Prompt
+            </button>
+          </div>
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <!-- EN + VN -->

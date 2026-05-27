@@ -135,9 +135,10 @@ export default function SettingsScreen({ active }) {
     };
 
     const handleTestVoice = () => {
-        // Use the same engine as real practice so the test reflects the
-        // actual selected voice (gtts server voices, __random__, or by name).
-        GameLogic.speakWord('vocabulary', 'en-US');
+        const isZhVoice = selectedVoice.startsWith('__gtts_zh');
+        const text = isZhVoice ? '你好，我正在学习汉语。' : 'vocabulary';
+        const lang = isZhVoice ? 'zh-CN' : 'en-US';
+        GameLogic.speakWord(text, lang);
     };
 
     const handleDifficulty = (value) => {

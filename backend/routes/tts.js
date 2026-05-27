@@ -13,10 +13,16 @@ const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 
 // TOEIC voice map - 4 accents with natural neural voices
 const VOICE_MAP = {
-    'en-us': 'en-US-AriaNeural',       // American female
-    'en-gb': 'en-GB-SoniaNeural',      // British female
-    'en-au': 'en-AU-NatashaNeural',    // Australian female
-    'en-ca': 'en-CA-ClaraNeural',      // Canadian female
+    'en-us': 'en-US-AriaNeural',           // American female
+    'en-gb': 'en-GB-SoniaNeural',          // British female
+    'en-au': 'en-AU-NatashaNeural',        // Australian female
+    'en-ca': 'en-CA-ClaraNeural',          // Canadian female
+    // Chinese (Mandarin) neural voices
+    'zh-cn-xiaoxiao': 'zh-CN-XiaoxiaoNeural',  // Mainland CN — warm female (most natural)
+    'zh-cn-yunxi':    'zh-CN-YunxiNeural',     // Mainland CN — male
+    'zh-cn-xiaoyi':   'zh-CN-XiaoyiNeural',    // Mainland CN — young female
+    'zh-cn-random':   null,                    // random between 3 CN voices
+    'zh-tw':          'zh-TW-HsiaoChenNeural', // Taiwan Mandarin — female
 };
 
 /**
@@ -29,7 +35,13 @@ router.get('/', async (req, res) => {
         if (!text) return res.status(400).json({ error: 'Missing text parameter' });
 
         const rate = Math.min(2, Math.max(0.5, parseFloat(rawRate) || 1));
-        const voiceName = VOICE_MAP[lang] || VOICE_MAP['en-us'];
+        let voiceName;
+        if (lang === 'zh-cn-random') {
+            const zhVoices = ['zh-CN-XiaoxiaoNeural', 'zh-CN-YunxiNeural', 'zh-CN-XiaoyiNeural'];
+            voiceName = zhVoices[Math.floor(Math.random() * zhVoices.length)];
+        } else {
+            voiceName = VOICE_MAP[lang] || VOICE_MAP['en-us'];
+        }
 
         const tts = new MsEdgeTTS();
         await tts.setMetadata(voiceName, OUTPUT_FORMAT.AUDIO_24KHZ_96KBITRATE_MONO_MP3);

@@ -252,19 +252,22 @@ const claimReward = async (req, res, next) => {
         const doc = await UserQuest.findOne({ userId, questType: type, periodKey });
         if (!doc) return res.status(404).json({ success: false, message: 'Quest period not found' });
 
-        // Re-evaluate trước khi check completed — bịt cả race (client báo
-        // xong nhưng server chưa biết) và cheating (client tự gọi claim
-        // dù chưa đạt). Authoritative theo UserStats.
-        const refreshed = await refreshDoc(doc);
-        if (refreshed) doc.markModified('quests');
-
         const q = doc.quests.find(q => q.code === code);
         if (!q) return res.status(404).json({ success: false, message: 'Quest not found' });
+
+        // Nếu quest chưa completed trong DB → thử re-evaluate từ UserStats một
+        // lần nữa (bắt race: GameState.save() có thể vào trước claim một chút).
+        // Nếu đã completed rồi → không cần re-evaluate, tránh UserStats stale
+        // làm un-complete quest.
         if (!q.completed) {
-            // Save progress fresh nếu vừa refresh nhưng chưa đạt target — tránh
-            // mất số đã tính ra khi return.
-            if (refreshed) await doc.save();
-            return res.status(400).json({ success: false, message: 'Quest not completed yet' });
+            const refreshed = await refreshDoc(doc);
+            if (refreshed) {
+                doc.markModified('quests');
+                await doc.save();
+            }
+            if (!q.completed) {
+                return res.status(400).json({ success: false, message: 'Quest not completed yet' });
+            }
         }
         if (q.claimedAt) return res.status(400).json({ success: false, message: 'Reward already claimed' });
 

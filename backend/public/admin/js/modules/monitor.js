@@ -469,6 +469,44 @@ function switchWordModalTab(tab) {
         Object.assign(tabManual.style, activeStyle);
         Object.assign(tabJson.style,   inactiveStyle);
     }
+
+    // Update keys hint + placeholder theo lang hiện tại
+    const lang = typeof vocabCurrentLang !== 'undefined' ? vocabCurrentLang : 'en';
+    const hint = document.getElementById('json-keys-hint');
+    const ta   = document.getElementById('word-json-input');
+    if (lang === 'zh') {
+        if (hint) hint.textContent = 'zh, vn, phonetic, part, type, level, synonyms, image, example, source';
+        if (ta && !ta.value) ta.placeholder = `[
+  {
+    "zh": "汉字",
+    "vn": "nghĩa tiếng việt",
+    "phonetic": "pīnyīn",
+    "part": "HSK1",
+    "type": "名词",
+    "level": "A1",
+    "synonyms": "同义词1, 同义词2",
+    "image": "images/pages/hsk1/tu.jpg",
+    "example": "Câu ví dụ bằng tiếng Trung.",
+    "source": "hsk1"
+  }
+]`;
+    } else {
+        if (hint) hint.textContent = 'en, vn, phonetic, part, type, level, synonyms, image, example, source';
+        if (ta && !ta.value) ta.placeholder = `[
+  {
+    "en": "arrange",
+    "vn": "sắp xếp",
+    "phonetic": "/əˈreɪndʒ/",
+    "part": "ETS24T01-LC",
+    "type": "verb",
+    "image": "images/pages/ETS24T01-LC/arrange.jpg",
+    "level": "B1",
+    "synonyms": "organize, set up",
+    "example": "Please arrange the chairs.",
+    "source": "ets2024"
+  }
+]`;
+    }
 }
 
 async function submitJsonImport() {

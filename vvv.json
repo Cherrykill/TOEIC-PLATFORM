@@ -1,14 +1,26 @@
 [
-    {
-        "zh": "赞助商",
-        "vn": "Nhà tài trợ",
-        "phonetic": "zàn zhù shāng",
-        "part": "大众媒体",
-        "synonyms": "资助者,捐助者,出资人",
-        "type": "名词",
-        "image": "images/pages/mass_media/zan-zhu-shang.jpg",
-        "example": "该活动由一位主要赞助商资助。",
-        "level": "B1",
-        "source": "对话"
-    }
+  {
+    "zh": "爱",
+    "vn": "yêu",
+    "phonetic": "ài",
+    "part": "FREFIX-A",
+    "synonyms": "喜爱, 热爱, 钟爱",
+    "type": "verb",
+    "image": "images/pages/FREFIX-A/ai.jpg",
+    "example": "我爱你。",
+    "level": "A1",
+    "source": "hsk1"
+  },
+  {
+    "zh": "爱好",
+    "vn": "sở thích",
+    "phonetic": "àihào",
+    "part": "FREFIX-A",
+    "synonyms": "喜好, 兴趣",
+    "type": "noun / verb",
+    "image": "images/pages/FREFIX-A/ai-hao.jpg",
+    "example": "我的爱好是听音乐。",
+    "level": "A1",
+    "source": "hsk1"
+  }
 ]

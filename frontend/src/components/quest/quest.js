@@ -188,9 +188,16 @@ export const Quest = {
         const token = this._getToken();
         if (!token) return null;
 
-        // Bảo đảm backend đã có progress mới nhất trước khi claim —
-        // tránh case progress local đã đạt target nhưng debounce 3s chưa
-        // sync xong → backend vẫn thấy progress cũ → trả 400.
+        // Bảo đảm backend đã có UserStats + quest progress mới nhất trước khi claim.
+        // GameState.save() có debounce 100ms — bypass bằng _performSave() trực tiếp
+        // để evaluator server đọc đúng số liệu khi refreshDoc chạy trong claimReward.
+        if (GameState._saveTimeout) {
+            clearTimeout(GameState._saveTimeout);
+            GameState._saveTimeout = null;
+        }
+        if (!GameState._isSaving && GameState._performSave) {
+            try { await GameState._performSave(); } catch (_) {}
+        }
         clearTimeout(this._syncTimeout);
         await this._flushSync();
 

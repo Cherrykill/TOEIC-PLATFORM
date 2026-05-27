@@ -352,13 +352,15 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("add-word-form").reset();
         delete modal.dataset.editMode;
         delete modal.dataset.originalEn;
-        modal.querySelector("h3").innerHTML = "+ Add New Word";
+        const lang = typeof vocabCurrentLang !== "undefined" ? vocabCurrentLang : "en";
+        const langBadge = lang === 'zh'
+          ? '<span style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:12px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;font-weight:700">🇨🇳 Chinese</span>'
+          : '<span style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:12px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-weight:700">🇬🇧 English</span>';
+        modal.querySelector("h3").innerHTML = "+ Add New Word " + langBadge;
         modal.querySelector('button[type="submit"]').textContent = "Add Word";
         if (typeof switchWordModalTab === "function")
           switchWordModalTab("manual");
 
-        // Cập nhật nhãn dựa trên ngôn ngữ hiện tại
-        const lang = typeof vocabCurrentLang !== "undefined" ? vocabCurrentLang : "en";
         const wordLabel = modal.querySelector('label[for="word-en"]');
         if (wordLabel) {
             wordLabel.innerHTML = lang === 'zh' ? 'Từ Tiếng Trung (ZH) <span style="color:#ef4444">*</span>' : 'English Word (EN) <span style="color:#ef4444">*</span>';
@@ -371,7 +373,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document
     .getElementById("btn-scan-duplicates")
-    ?.addEventListener("click", () => scanDuplicates());
+    ?.addEventListener("click", () => {
+      if (typeof openScanDuplicatesDialog === "function") openScanDuplicatesDialog();
+      else scanDuplicates();
+    });
   document
     .getElementById("btn-filter-delete-vocab")
     ?.addEventListener("click", () => {
@@ -478,6 +483,74 @@ document.addEventListener("DOMContentLoaded", () => {
         btn.innerHTML = originalText;
         btn.disabled = false;
       }
+    });
+
+  document
+    .getElementById("btn-copy-word-prompt")
+    ?.addEventListener("click", () => {
+      const lang = typeof vocabCurrentLang !== "undefined" ? vocabCurrentLang : "en";
+      const wordVal = document.getElementById("word-en")?.value.trim();
+      const partVal = document.getElementById("word-part")?.value.trim();
+      const sourceVal = document.getElementById("word-sources")?.value.trim();
+
+      let prompt;
+      if (lang === "zh") {
+        const hint = wordVal ? `Từ tiếng Trung: "${wordVal}". ` : "";
+        prompt = `${hint}Hãy tạo 5 object JSON từ vựng tiếng Trung theo định dạng sau (KHÔNG có key "en", key "vn" là nghĩa tiếng Việt):
+[
+  {
+    "zh": "汉字",
+    "vn": "nghĩa tiếng việt",
+    "phonetic": "pīnyīn",
+    "part": "${partVal || 'HSK1'}",
+    "type": "名词",
+    "level": "A1",
+    "synonyms": "từ đồng nghĩa 1, từ đồng nghĩa 2",
+    "image": "images/pages/hsk1/tu.jpg",
+    "example": "Câu ví dụ bằng tiếng Trung.",
+    "source": "${sourceVal || 'hsk1'}"
+  }
+]
+Chỉ trả về JSON array, không giải thích thêm.`;
+      } else {
+        const hint = wordVal ? `Word: "${wordVal}". ` : "";
+        prompt = `${hint}Hãy tạo 5 object JSON từ vựng tiếng Anh theo định dạng sau:
+[
+  {
+    "en": "word",
+    "vn": "nghĩa tiếng việt",
+    "phonetic": "/fəˈnɛtɪk/",
+    "part": "${partVal || 'ETS2026'}",
+    "type": "noun",
+    "level": "B1",
+    "synonyms": "synonym1, synonym2",
+    "image": "images/pages/part/word.jpg",
+    "example": "Example sentence using the word.",
+    "source": "${sourceVal || 'ets2026'}"
+  }
+]
+Chỉ trả về JSON array, không giải thích thêm.`;
+      }
+
+      navigator.clipboard.writeText(prompt).then(() => {
+        const copyBtn = document.getElementById("btn-copy-word-prompt");
+        if (copyBtn) {
+          const orig = copyBtn.innerHTML;
+          copyBtn.innerHTML = '<i class="fas fa-check"></i> Đã copy!';
+          copyBtn.style.background = "var(--success, #22c55e)";
+          copyBtn.style.color = "#fff";
+          copyBtn.style.borderColor = "transparent";
+          setTimeout(() => {
+            copyBtn.innerHTML = orig;
+            copyBtn.style.background = "";
+            copyBtn.style.color = "";
+            copyBtn.style.borderColor = "";
+          }, 2000);
+        }
+        showToast("Đã copy prompt! Dán vào ChatGPT hoặc Claude để lấy JSON.", "success");
+      }).catch(() => {
+        showToast("Không copy được, thử lại!", "error");
+      });
     });
 
   document

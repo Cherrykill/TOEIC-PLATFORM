@@ -300,7 +300,7 @@ export const GameLogic = {
 
         this._replayCallback = () => this.speakWord(text, lang);
 
-        if (lang !== 'zh-CN' && savedVoiceName.startsWith('__gtts_')) {
+        if (savedVoiceName.startsWith('__gtts_')) {
             this._speakGoogleTTS(text, savedVoiceName, onEnd);
             return;
         }
@@ -350,10 +350,15 @@ export const GameLogic = {
         this._replayCallback = () => this._speakGoogleTTS(text, voiceKey, null);
 
         const accentMap = {
-            '__gtts_us__': 'en-us',
-            '__gtts_uk__': 'en-gb',
-            '__gtts_au__': 'en-au',
-            '__gtts_ca__': 'en-ca',
+            '__gtts_us__':          'en-us',
+            '__gtts_uk__':          'en-gb',
+            '__gtts_au__':          'en-au',
+            '__gtts_ca__':          'en-ca',
+            '__gtts_zh_xiaoxiao__': 'zh-cn-xiaoxiao',
+            '__gtts_zh_yunxi__':    'zh-cn-yunxi',
+            '__gtts_zh_xiaoyi__':   'zh-cn-xiaoyi',
+            '__gtts_zh_random__':   'zh-cn-random',
+            '__gtts_zh_tw__':       'zh-tw',
         };
 
         let lang = 'en-us';

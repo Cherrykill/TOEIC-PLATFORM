@@ -1,5 +1,184 @@
 [
   {
+    "id": "1779856970698",
+    "timestamp": "2026-05-27T04:42:50.698Z",
+    "type": "vocabulary",
+    "action": "bulk-delete",
+    "admin": "Admin",
+    "data": {
+      "count": 3
+    }
+  },
+  {
+    "id": "1779856662882",
+    "timestamp": "2026-05-27T04:37:42.882Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk3"
+      },
+      "deleted": 295
+    }
+  },
+  {
+    "id": "1779856655325",
+    "timestamp": "2026-05-27T04:37:35.325Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk2"
+      },
+      "deleted": 149
+    }
+  },
+  {
+    "id": "1779856619153",
+    "timestamp": "2026-05-27T04:36:59.153Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk1"
+      },
+      "deleted": 149
+    }
+  },
+  {
+    "id": "1779856581756",
+    "timestamp": "2026-05-27T04:36:21.756Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk4"
+      },
+      "deleted": 494
+    }
+  },
+  {
+    "id": "1779849344669",
+    "timestamp": "2026-05-27T02:35:44.669Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk2"
+      },
+      "deleted": 355
+    }
+  },
+  {
+    "id": "1779848699163",
+    "timestamp": "2026-05-27T02:24:59.163Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "对话"
+      },
+      "deleted": 136
+    }
+  },
+  {
+    "id": "1779844795405",
+    "timestamp": "2026-05-27T01:19:55.405Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk1"
+      },
+      "deleted": 494
+    }
+  },
+  {
+    "id": "1779814480599",
+    "timestamp": "2026-05-26T16:54:40.599Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk1"
+      },
+      "deleted": 481
+    }
+  },
+  {
+    "id": "1779808121849",
+    "timestamp": "2026-05-26T15:08:41.849Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "hsk1"
+      },
+      "deleted": 137
+    }
+  },
+  {
+    "id": "1779795829232",
+    "timestamp": "2026-05-26T11:43:49.232Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "部首"
+      },
+      "deleted": 9
+    }
+  },
+  {
+    "id": "1779795767275",
+    "timestamp": "2026-05-26T11:42:47.275Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "部首"
+      },
+      "deleted": 30
+    }
+  },
+  {
+    "id": "1779795509332",
+    "timestamp": "2026-05-26T11:38:29.332Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "部首"
+      },
+      "deleted": 10
+    }
+  },
+  {
+    "id": "1779795085559",
+    "timestamp": "2026-05-26T11:31:25.559Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "source": "部首"
+      },
+      "deleted": 10
+    }
+  },
+  {
     "id": "1779619284297",
     "timestamp": "2026-05-24T10:41:24.297Z",
     "type": "vocabulary",

@@ -431,9 +431,83 @@ function findDuplicateVocabulary() {
 /**
  * Quét từ vựng trùng lặp TRÊN DATABASE.
  * Tiêu chí trùng = key (source + part + en), không phải dữ liệu local.
- * Tôn trọng bộ lọc source/part đang chọn.
+ * Tôn trọng bộ lọc source/part đang chọn (hoặc điều kiện nhập tay).
  */
-async function scanDuplicates() {
+function openScanDuplicatesDialog() {
+    const existing = document.getElementById('scan-dup-dialog');
+    if (existing) existing.remove();
+
+    const pk = (vocabCurrentLang || 'en') === 'zh' ? 'zh' : 'en';
+    const FIELDS = [
+        { value: 'source', label: 'Nguồn (source)' },
+        { value: 'part',   label: 'Part' },
+        { value: 'type',   label: 'Loại từ (type)' },
+        { value: 'level',  label: 'Cấp độ (level)' },
+    ];
+    const INPUT_STYLE = 'width:100%;padding:8px 10px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#e2e8f0;font-size:14px;box-sizing:border-box;';
+    const SEL_STYLE   = `${INPUT_STYLE}cursor:pointer;`;
+    const fieldOptions = FIELDS.map(f => `<option value="${f.value}">${f.label}</option>`).join('');
+
+    function makeRow(idx, defField = '', defVal = '') {
+        return `
+        <div class="sd-row" style="display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-bottom:10px;">
+            <select class="sd-field" data-idx="${idx}" style="${SEL_STYLE}">
+                <option value="">-- Trường --</option>
+                ${FIELDS.map(f => `<option value="${f.value}"${f.value===defField?' selected':''}>${f.label}</option>`).join('')}
+            </select>
+            <input class="sd-value" data-idx="${idx}" type="text" placeholder="Giá trị..." value="${defVal}" style="${INPUT_STYLE}">
+        </div>`;
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'scan-dup-dialog';
+    modal.innerHTML = `
+        <div style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;">
+            <div style="background:#1e1e2e;border-radius:12px;max-width:520px;width:95%;padding:28px;box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+                <h3 style="margin:0 0 6px;color:#fff;"><i class="fas fa-search"></i> Quét từ trùng lặp</h3>
+                <p style="color:#94a3b8;font-size:13px;margin:0 0 4px;">Tìm các từ trùng theo key <strong style="color:#60a5fa">source + part + ${pk}</strong>. Thỏa <strong>tất cả</strong> điều kiện (AND). Dòng trống bị bỏ qua.</p>
+                <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:10px;margin-bottom:6px;padding:4px 0;">
+                    <span style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Trường</span>
+                    <span style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Giá trị</span>
+                </div>
+                <div id="sd-rows">
+                    ${makeRow(0, 'source', vocabCurrentSource || '')}
+                    ${makeRow(1, 'part',   vocabCurrentPart   || '')}
+                    ${makeRow(2)}${makeRow(3)}
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+                    <button id="sd-cancel" style="padding:9px 18px;background:#334155;color:#e2e8f0;border:none;border-radius:6px;cursor:pointer;">Hủy</button>
+                    <button id="sd-ok" style="padding:9px 18px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold;">
+                        <i class="fas fa-search"></i> Quét ngay
+                    </button>
+                </div>
+            </div>
+        </div>`;
+    document.body.appendChild(modal);
+
+    const overlay = modal.querySelector('div');
+    document.getElementById('sd-cancel').addEventListener('click', () => modal.remove());
+    overlay.addEventListener('click', e => { if (e.target === overlay) modal.remove(); });
+
+    document.getElementById('sd-ok').addEventListener('click', () => {
+        const filters = {};
+        modal.querySelectorAll('.sd-row').forEach(row => {
+            const field = row.querySelector('.sd-field').value;
+            const val   = row.querySelector('.sd-value').value.trim();
+            if (field && val) filters[field] = val;
+        });
+        modal.remove();
+        // Nếu không nhập gì → fallback về filter đang active trên bảng
+        const src  = 'source' in filters ? filters.source : (vocabCurrentSource || '');
+        const part = 'part'   in filters ? filters.part   : (vocabCurrentPart   || '');
+        scanDuplicates(src, part, filters);
+    });
+}
+
+async function scanDuplicates(filterSource, filterPart, extraFilters) {
+    const src  = filterSource !== undefined ? filterSource : (vocabCurrentSource || '');
+    const part = filterPart  !== undefined ? filterPart  : (vocabCurrentPart  || '');
+
     const btn = document.getElementById('btn-scan-duplicates');
     const original = btn ? btn.innerHTML : '';
     if (btn) {
@@ -442,8 +516,13 @@ async function scanDuplicates() {
     }
     try {
         const params = new URLSearchParams();
-        if (vocabCurrentSource) params.set('source', vocabCurrentSource);
-        if (vocabCurrentPart) params.set('part', vocabCurrentPart);
+        if (src)  params.set('source', src);
+        if (part) params.set('part', part);
+        if (extraFilters) {
+            Object.entries(extraFilters).forEach(([k, v]) => {
+                if (k !== 'source' && k !== 'part' && v) params.set(k, v);
+            });
+        }
 
         params.set('lang', vocabCurrentLang || 'en');
         const res = await fetch(`${API_URL}/vocabulary/duplicates?${params.toString()}`);
@@ -456,14 +535,15 @@ async function scanDuplicates() {
 
         const groups = data.data || [];
         if (groups.length === 0) {
-            const scope = vocabCurrentSource || vocabCurrentPart
-                ? `(lọc: ${[vocabCurrentSource, vocabCurrentPart].filter(Boolean).join(' / ')})`
+            const scope = src || part
+                ? `(lọc: ${[src, part].filter(Boolean).join(' / ')})`
                 : '(toàn bộ database)';
-            alert(`✅ Không tìm thấy từ trùng lặp ${scope} theo key source + part + en!`);
+            const pk = (vocabCurrentLang||'en') === 'zh' ? 'zh' : 'en';
+            alert(`✅ Không tìm thấy từ trùng lặp ${scope} theo key source + part + ${pk}!`);
             return;
         }
 
-        showDbDuplicateModal(groups, data);
+        showDbDuplicateModal(groups, data, src, part);
     } catch (error) {
         console.error('Error scanning duplicates:', error);
         alert(`❌ Lỗi kết nối server khi quét trùng: ${error.message}`);
@@ -480,14 +560,16 @@ async function scanDuplicates() {
  * @param {Array} groups - [{ en, part, source, count, docs:[{_id,en,vn,part,source}] }]
  * @param {object} summary - { duplicateGroups, totalDuplicates }
  */
-function showDbDuplicateModal(groups, summary) {
+function showDbDuplicateModal(groups, summary, filterSrc, filterPart) {
     const existingModal = document.getElementById('duplicate-modal');
     if (existingModal) existingModal.remove();
 
-    const scopeLabel = vocabCurrentSource || vocabCurrentPart
-        ? [vocabCurrentSource, vocabCurrentPart].filter(Boolean).join(' / ')
+    const src  = filterSrc  || vocabCurrentSource || '';
+    const part = filterPart || vocabCurrentPart   || '';
+    const scopeLabel = src || part
+        ? [src, part].filter(Boolean).join(' / ')
         : 'Toàn bộ database';
-    const removeScope = vocabCurrentSource || 'all';
+    const removeScope = src || 'all';
 
     const rows = groups.map((g, i) => `
         <tr style="border-bottom: 1px solid #333;">
@@ -1137,8 +1219,10 @@ function openEditWordModal(wordData) {
     const submitBtn = modal.querySelector('button[type="submit"]');
     const currentLang = typeof vocabCurrentLang !== 'undefined' ? vocabCurrentLang : 'en';
 
-    // Thay đổi tiêu đề modal
-    modalTitle.innerHTML = '✏️ Edit Word';
+    const langBadge = currentLang === 'zh'
+        ? '<span style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:12px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;font-weight:700">🇨🇳 Chinese</span>'
+        : '<span style="margin-left:8px;font-size:11px;padding:2px 8px;border-radius:12px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;font-weight:700">🇬🇧 English</span>';
+    modalTitle.innerHTML = '✏️ Edit Word ' + langBadge;
     submitBtn.textContent = 'Update Word';
 
     // Cập nhật nhãn input chính
