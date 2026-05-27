@@ -1,5 +1,6 @@
 import { Config } from '@game/config.js';
 import { GameState } from '@game/state.js';
+import { Storage } from '@lib/storage.js';
 import { Utils } from '@lib/utils.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { GameLogic } from '@game/gameLogic.js';
@@ -62,9 +63,16 @@ export const PracticeManager = {
             this.cleanupMode(this.currentSession.mode);
         }
 
-        // Nếu đã chọn đề nhưng chưa chọn Part → buộc chọn Part trước.
-        // Bỏ qua khi retry từ sai (retryWords) hoặc chế độ review-mistakes.
-        if (TopicSelector.currentTopic && !PartSelector.selectedPart && !PartSelector.retryWords?.length && mode !== 'review-mistakes') {
+        // Chưa chọn đề → hiện popup chọn đề trước. Sau khi chọn đề xong,
+        // TopNav.handleTopicSelected sẽ mở popup Part, rồi PRACTICE_REQUESTED tự start lại.
+        if (!TopicSelector.currentTopic && mode !== 'review-mistakes') {
+            EventBus.emit(GameEvents.TOPIC_MODAL_REQUESTED, { pendingMode: mode });
+            return false;
+        }
+
+        // Đã chọn đề nhưng chưa chọn Part → buộc chọn Part trước.
+        // Bỏ qua khi: retry từ sai, review-mistakes, hoặc đang ở chế độ Ngẫu nhiên tất cả.
+        if (TopicSelector.currentTopic && !PartSelector.selectedPart && !PartSelector.retryWords?.length && mode !== 'review-mistakes' && PartSelector.practiceMode !== 'random-all') {
             PartSelector.pendingMode = mode;
             PartSelector.showPartSelectionModal();
             return false;
@@ -99,11 +107,21 @@ export const PracticeManager = {
                     `,
                     buttons: [
                         {
-                            text: 'Đổi bộ lọc',
+                            text: 'Đổi bộ lọc Part',
                             className: 'btn-secondary',
-                            onClick: () => {
+                            onClick: async () => {
                                 Modal.close();
-                                EventBus.emit(GameEvents.TOPIC_MODAL_REQUESTED);
+                                // Chuyển sang Ngẫu nhiên tất cả → không cần chọn Part
+                                PartSelector.practiceMode = 'random-all';
+                                PartSelector.selectedPart = null;
+                                GameState.state.settings.selectedPart = null;
+                                GameState.state.settings.randomQuestions = true;
+                                await Storage.set('practiceMode', 'random-all');
+                                await Storage.remove('selectedPart');
+                                PartSelector.updatePartBadge();
+                                await GameState.save();
+                                // Khởi động lại với mode hiện tại
+                                setTimeout(() => EventBus.emit(GameEvents.PRACTICE_REQUESTED, { mode }), 200);
                             }
                         },
                         {
@@ -1076,24 +1094,41 @@ export const PracticeManager = {
     setupKeyboardShortcuts() {
         this.cleanupKeyboardShortcuts();
 
-        let nonModifierPressed = false;
+        // Ghi nhận thời điểm Ctrl được nhấn xuống — chỉ phát âm khi:
+        // 1. Ctrl keydown không kèm phím khác (chord)
+        // 2. Ctrl keyup xảy ra trong vòng 600ms sau keydown
+        let ctrlDownAt = 0;
+        let ctrlChord  = false;
 
         this._kbKeydown = (e) => {
-            if (e.key === 'Control') {
-                nonModifierPressed = false;
-            } else if (e.ctrlKey && !e.repeat) {
-                nonModifierPressed = true;
+            if (e.key === 'Control' && !e.repeat) {
+                ctrlDownAt = Date.now();
+                ctrlChord  = false;
+            } else if (e.ctrlKey) {
+                // Phím khác được nhấn cùng Ctrl → đây là chord (Ctrl+C, Ctrl+V…)
+                ctrlChord = true;
             }
         };
 
         this._kbKeyup = (e) => {
-            if (e.key === 'Control' && !nonModifierPressed && !e.shiftKey && !e.altKey && !e.metaKey) {
-                GameLogic.replayLast();
+            if (e.key === 'Control') {
+                const held = Date.now() - ctrlDownAt;
+                if (!ctrlChord && held < 600) {
+                    // Nếu pronunciation mode đang ghi âm → abort trước khi replay
+                    // để onend không tính là lần thử thất bại
+                    if (PronunciationMode.isListening && PronunciationMode.recognition) {
+                        PronunciationMode._resultHandled = true;
+                        try { PronunciationMode.recognition.abort(); } catch (_) {}
+                    }
+                    GameLogic.replayLast();
+                }
+                ctrlDownAt = 0;
+                ctrlChord  = false;
             }
         };
 
         document.addEventListener('keydown', this._kbKeydown);
-        document.addEventListener('keyup', this._kbKeyup);
+        document.addEventListener('keyup',   this._kbKeyup);
     },
 
     cleanupKeyboardShortcuts() {

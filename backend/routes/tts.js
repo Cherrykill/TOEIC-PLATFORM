@@ -27,7 +27,8 @@ const VOICE_MAP = {
 
 /**
  * GET /api/tts?text=hello&lang=en-us&rate=1
- * STREAM audio/mpeg trực tiếp (KHÔNG cache disk).
+ * Collect toàn bộ audio rồi gửi với Content-Length — tránh ERR_REQUEST_RANGE_NOT_SATISFIABLE
+ * khi Audio element cố range-request trên blob URL từ chunked stream.
  */
 router.get('/', async (req, res) => {
     try {
@@ -48,18 +49,24 @@ router.get('/', async (req, res) => {
 
         const { audioStream } = tts.toStream(text, { rate });
 
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Cache-Control', 'no-store');
-
-        audioStream.on('error', (e) => {
-            logger.error('TTS stream error:', e);
-            if (!res.headersSent) res.status(500).json({ error: 'TTS stream failed' });
-            try { tts.close && tts.close(); } catch (_) {}
+        // Collect tất cả chunks trước khi gửi — đảm bảo Content-Length chính xác
+        // để browser không dùng range request khi phát từ blob URL.
+        const chunks = [];
+        await new Promise((resolve, reject) => {
+            audioStream.on('data', (chunk) => chunks.push(chunk));
+            audioStream.on('end', resolve);
+            audioStream.on('error', reject);
         });
-        audioStream.on('end', () => { try { tts.close && tts.close(); } catch (_) {} });
-        res.on('close', () => { try { tts.close && tts.close(); } catch (_) {} });
+        try { tts.close && tts.close(); } catch (_) {}
 
-        audioStream.pipe(res);
+        const buffer = Buffer.concat(chunks);
+        if (!buffer.length) return res.status(500).json({ error: 'TTS returned empty audio' });
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Length', buffer.length);
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Cache-Control', 'no-store');
+        res.end(buffer);
     } catch (err) {
         logger.error('TTS error:', err);
         if (!res.headersSent) res.status(500).json({ error: 'TTS generation failed' });

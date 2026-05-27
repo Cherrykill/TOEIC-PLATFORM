@@ -100,6 +100,7 @@ exports.startAttempt = async (req, res, next) => {
                 } else {
                     // Normal mode: Don't send correct answers
                     delete q.correctAnswer;
+                    // fields removed in new schema — kept for safety
                     delete q.questionKeyword;
                     delete q.answerKeyword;
                     delete q.audioKeyword;
@@ -393,7 +394,7 @@ exports.submitAttempt = async (req, res, next) => {
         // Batch fetch all questions in one query instead of N individual queries
         const questionIds = attempt.answers.map(a => a.questionId);
         const questionDocs = await ToeicQuestion.find({ _id: { $in: questionIds } })
-            .select('questionText imageUrl passage options explanation part')
+            .select('questionText imageUrls passages options explanation part audioUrl audioText groupId questionIndex')
             .lean();
         const questionMap = new Map(questionDocs.map(q => [q._id.toString(), q]));
 
@@ -406,10 +407,14 @@ exports.submitAttempt = async (req, res, next) => {
                 isCorrect: ans.isCorrect,
                 part: ans.partNumber,
                 questionText: q?.questionText || '',
-                imageUrl: q?.imageUrl || null,
-                passage: q?.passage || null,
+                imageUrls: q?.imageUrls || [],
+                passages: q?.passages || [],
+                audioUrl: q?.audioUrl || null,
+                audioText: q?.audioText || null,
+                groupId: q?.groupId || null,
+                questionIndex: q?.questionIndex || null,
                 options: q?.options?.map(o => ({ label: o.label, text: o.text })) || [],
-                explanation: q?.explanation || null,
+                explanation: q?.explanation || {},
             };
         });
 
@@ -466,15 +471,18 @@ exports.getAttemptReview = async (req, res, next) => {
                     part: question.part,
                     questionNumber: question.questionNumber,
                     questionText: question.questionText || '',
-                    passage: question.passage || '',
-                    imageUrl: question.imageUrl || '',
+                    passages: question.passages || [],
+                    imageUrls: question.imageUrls || [],
                     audioUrl: question.audioUrl || '',
+                    audioText: question.audioText || '',
+                    groupId: question.groupId || null,
+                    questionIndex: question.questionIndex || null,
                     options: question.options || [],
                     correctAnswer: answer.correctAnswer,
                     userAnswer: answer.userAnswer || '',
                     isCorrect: answer.isCorrect,
                     timeSpent: answer.timeSpent,
-                    explanation: question.explanation || '',
+                    explanation: question.explanation || {},
                 };
             })
             .filter(q => q !== null);

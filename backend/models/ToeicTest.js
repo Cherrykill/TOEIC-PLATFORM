@@ -50,6 +50,11 @@ const ToeicTestSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    source: {
+        type: String,
+        trim: true,
+        index: true,
+    },
     instructions: {
         type: String,
         trim: true,
@@ -346,10 +351,13 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
     let totalQuestions = 0;
     let totalTime = 0;
 
+    const sourceFilter = testData.source || null;
+
     // Check total available questions first
     const totalAvailable = await ToeicQuestion.countDocuments({
         isActive: true,
         isPublished: true,
+        ...(sourceFilter ? { source: sourceFilter } : {}),
     });
 
     if (totalAvailable === 0) {
@@ -380,6 +388,7 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
             isActive: true,
             isPublished: true,
         };
+        if (sourceFilter) query.source = sourceFilter;
 
         // If not allowing reuse, exclude already used questions
         if (testData.allowReuseQuestions === false && usedQuestionsByPart[config.partNumber]) {
@@ -426,6 +435,7 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
             part: config.partNumber,
             count: config.questionsCount,
             excludeIds,
+            source: sourceFilter,
         });
 
         parts.push({
@@ -443,6 +453,7 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
         testType: 'full-test',
         testName: testData.testName,
         description: testData.description,
+        source: testData.source || null,
         parts,
         totalQuestions,
         totalTime,

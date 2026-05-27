@@ -224,7 +224,8 @@ export const Quest = {
             // Khi một type hết period (timer về 0) → xoá cache và reload để
             // lấy doc mới từ server (progress reset về 0 cho period mới).
             for (const type of ['daily', 'weekly', 'monthly', 'special']) {
-                if (this._cache[type] && this.getTimeUntilReset(type) === 0) {
+                const nextReset = this.getNextReset(type);
+                if (nextReset && this._cache[type] && this.getTimeUntilReset(type) === 0) {
                     delete this._cache[type];
                     this.loadType(type);
                 }

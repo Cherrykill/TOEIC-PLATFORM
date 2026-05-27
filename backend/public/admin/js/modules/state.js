@@ -83,6 +83,7 @@ let userFilters = {
 let testFilters = {
     searchText: '',
     type: '',
+    level: '',
     sortBy: 'newest'
 };
 

@@ -73,7 +73,7 @@ function renderPagination(containerId, paginationState, onPageChange, itemName =
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap;">
             <div style="color: #666; font-size: 14px;">
-                Showing ${startItem} to ${endItem} of ${total} ${itemName}
+                Hiển thị ${startItem}–${endItem} / ${total} ${itemName}
             </div>
             <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
                 <button class="btn btn-sm btn-secondary pagination-first" ${currentPage === 1 ? 'disabled' : ''} title="First Page">
@@ -162,9 +162,10 @@ function renderQuestionsTable() {
 
     tbody.innerHTML = currentQuestions.map(q => {
         let imageDisplay = '-';
-        if (q.imageUrl) {
-            const imagePath = q.imageUrl.replace('/assets/images/', '');
-            imageDisplay = `<span style="color: #3498db; font-size: 0.85em; font-family: monospace;" title="${q.imageUrl}">${truncate(imagePath, 20)}</span>`;
+        const firstImage = q.imageUrls?.[0];
+        if (firstImage) {
+            const imagePath = firstImage.replace('/assets/images/', '');
+            imageDisplay = `<span style="color: #3498db; font-size: 0.85em; font-family: monospace;" title="${firstImage}">${truncate(imagePath, 20)}</span>`;
         }
 
         let audioDisplay = '-';
@@ -202,7 +203,7 @@ function renderQuestionsTable() {
                 <td title="${questionTextFull.replace(/"/g, '&quot;')}">${truncate(questionTextFull, 50)}</td>
                 <td style="text-align: center; font-weight: 600; color: #667eea;">${q.correctAnswer}</td>
                 <td style="text-align: center; font-size: 0.85em;" title="${keywordsTitle}">${keywordsDisplay}</td>
-                <td style="text-align: center;" title="${q.imageUrl || ''}">${imageDisplay}</td>
+                <td style="text-align: center;" title="${firstImage || ''}">${imageDisplay}</td>
                 <td style="text-align: center;" title="${q.audioUrl || ''}">${audioDisplay}</td>
                 <td style="text-align: center;">${q.timesUsed || 0}</td>
                 <td style="text-align: center; font-size: 0.85em; color: #666;">${q.createdAt ? new Date(q.createdAt).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
@@ -452,8 +453,18 @@ function updateUserFilterResults() {
 function initTestSearchAndFilters() {
     const searchInput = document.getElementById('test-search');
     const filterType = document.getElementById('filter-test-type');
+    const filterLevel = document.getElementById('filter-test-level');
     const sortBy = document.getElementById('test-sort-by');
     const clearFiltersBtn = document.getElementById('clear-test-filters');
+    const pageSizeSelect = document.getElementById('test-page-size');
+
+    if (pageSizeSelect) {
+        pageSizeSelect.addEventListener('change', (e) => {
+            testsPagination.limit = parseInt(e.target.value);
+            testsPagination.currentPage = 1;
+            applyTestFilters();
+        });
+    }
 
     let searchTimeout;
     if (searchInput) {
@@ -461,6 +472,7 @@ function initTestSearchAndFilters() {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => {
                 testFilters.searchText = e.target.value.toLowerCase();
+                testsPagination.currentPage = 1;
                 applyTestFilters();
             }, 300);
         });
@@ -469,6 +481,15 @@ function initTestSearchAndFilters() {
     if (filterType) {
         filterType.addEventListener('change', (e) => {
             testFilters.type = e.target.value;
+            testsPagination.currentPage = 1;
+            applyTestFilters();
+        });
+    }
+
+    if (filterLevel) {
+        filterLevel.addEventListener('change', (e) => {
+            testFilters.level = e.target.value;
+            testsPagination.currentPage = 1;
             applyTestFilters();
         });
     }
@@ -476,16 +497,23 @@ function initTestSearchAndFilters() {
     if (sortBy) {
         sortBy.addEventListener('change', (e) => {
             testFilters.sortBy = e.target.value;
+            testsPagination.currentPage = 1;
             applyTestFilters();
         });
     }
 
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', () => {
-            testFilters = { searchText: '', type: '', sortBy: 'newest' };
+            testFilters = { searchText: '', type: '', level: '', sortBy: 'newest' };
+            testsPagination.currentPage = 1;
             if (searchInput) searchInput.value = '';
             if (filterType) filterType.value = '';
+            if (filterLevel) filterLevel.value = '';
             if (sortBy) sortBy.value = 'newest';
+            if (pageSizeSelect) {
+                pageSizeSelect.value = '15';
+                testsPagination.limit = 15;
+            }
             applyTestFilters();
         });
     }
@@ -495,17 +523,28 @@ function applyTestFilters() {
     let filtered = [...allTests];
 
     if (testFilters.searchText) {
-        filtered = filtered.filter(t => t.testName && t.testName.toLowerCase().includes(testFilters.searchText));
+        filtered = filtered.filter(t =>
+            (t.testName && t.testName.toLowerCase().includes(testFilters.searchText)) ||
+            (t.source && t.source.toLowerCase().includes(testFilters.searchText))
+        );
     }
 
     if (testFilters.type) {
-        filtered = filtered.filter(t => t.type === testFilters.type);
+        if (testFilters.type === 'mini') {
+            filtered = filtered.filter(t => t.testType && t.testType.startsWith('mini-'));
+        } else {
+            filtered = filtered.filter(t => t.testType === testFilters.type);
+        }
+    }
+
+    if (testFilters.level) {
+        filtered = filtered.filter(t => t.level === testFilters.level);
     }
 
     switch (testFilters.sortBy) {
         case 'newest': filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); break;
         case 'oldest': filtered.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)); break;
-        case 'most-attempts': filtered.sort((a, b) => (b.attempts || 0) - (a.attempts || 0)); break;
+        case 'most-attempts': filtered.sort((a, b) => (b.timesAttempted || 0) - (a.timesAttempted || 0)); break;
         case 'highest-score': filtered.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0)); break;
         case 'lowest-score': filtered.sort((a, b) => (a.averageScore || 0) - (b.averageScore || 0)); break;
     }
@@ -533,8 +572,14 @@ function applyTestFilters() {
 function updateTestFilterResults() {
     const filteredCount = document.getElementById('test-filtered-count');
     const totalCount = document.getElementById('test-total-count');
-    if (filteredCount) filteredCount.textContent = currentTests.length;
+    const pageInfo = document.getElementById('test-page-info');
+    if (filteredCount) filteredCount.textContent = testsPagination.total;
     if (totalCount) totalCount.textContent = allTests.length;
+    if (pageInfo) {
+        pageInfo.textContent = testsPagination.totalPages > 1
+            ? `· trang ${testsPagination.currentPage}/${testsPagination.totalPages}`
+            : '';
+    }
 }
 
 async function loadTests() {
@@ -575,52 +620,60 @@ function renderTestsTable() {
         tbody.innerHTML = `
             <tr><td colspan="7" class="loading">
                 <i class="fas fa-inbox"></i>
-                <p>No tests found</p>
+                <p>Không tìm thấy đề thi nào</p>
             </td></tr>
         `;
         return;
     }
 
+    const levelLabel = { beginner: '🟢 Cơ bản', intermediate: '🟡 Trung cấp', advanced: '🔴 Nâng cao' };
+
     tbody.innerHTML = currentTests.map(t => {
         const isPublished = t.isPublished;
         const hasQuestions = t.totalQuestions > 0;
         const statusBadge = isPublished
-            ? '<span class="badge success">Published</span>'
-            : '<span class="badge" style="background: #ffc107; color: #000;">Draft</span>';
+            ? '<span class="badge success">Đã đăng</span>'
+            : '<span class="badge" style="background: #ffc107; color: #000;">Nháp</span>';
         const questionWarning = !hasQuestions
-            ? '<span style="color: #ff6b6b; font-size: 11px;"><i class="fas fa-exclamation-triangle"></i> No questions</span>'
+            ? '<span style="color: #ff6b6b; font-size: 11px;"><i class="fas fa-exclamation-triangle"></i> Chưa có câu hỏi</span>'
             : '';
+        const sourceTag = t.source
+            ? `<span style="font-size:11px;color:#6366f1;background:#ede9fe;padding:1px 6px;border-radius:4px;margin-left:4px;">${t.source}</span>`
+            : '';
+        const lvl = t.level ? `<span style="font-size:11px;color:#555;">${levelLabel[t.level] || t.level}</span>` : '';
 
         return `
         <tr>
             <td>
-                ${t.testName}
-                <br>${statusBadge} ${questionWarning}
+                <div style="font-weight:500">${t.testName}${sourceTag}</div>
+                <div style="margin-top:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                    ${statusBadge} ${lvl} ${questionWarning}
+                </div>
             </td>
             <td><span class="badge">${formatTestType(t.testType)}</span></td>
             <td style="text-align: center;">
                 <strong>${t.randomQuestionCount || t.totalQuestions}</strong>
-                ${hasQuestions ? '' : '<br><small style="color: #ff6b6b;">Empty</small>'}
+                ${hasQuestions ? '' : '<br><small style="color: #ff6b6b;">Trống</small>'}
             </td>
             <td style="text-align: center;">${Math.round(t.totalTime / 60)}</td>
-            <td style="text-align: center;">${t.attemptCount || 0}</td>
+            <td style="text-align: center;">${t.timesAttempted || 0}</td>
             <td style="text-align: center;">${t.averageScore ? Math.round(t.averageScore) : '-'}</td>
             <td>
-                <button class="btn btn-primary btn-sm btn-edit-test" data-test-id="${t._id}" title="Edit Test" style="margin-right: 5px;">
-                    <i class="fas fa-edit"></i> Edit
+                <button class="btn btn-primary btn-sm btn-edit-test" data-test-id="${t._id}" title="Chỉnh sửa" style="margin-right: 5px;">
+                    <i class="fas fa-edit"></i>
                 </button>
                 ${!isPublished && hasQuestions ? `
-                    <button class="btn btn-success btn-sm btn-publish-test" data-test-id="${t._id}" title="Publish Test" style="margin-right: 5px;">
-                        <i class="fas fa-check-circle"></i> Publish
+                    <button class="btn btn-success btn-sm btn-publish-test" data-test-id="${t._id}" title="Đăng" style="margin-right: 5px;">
+                        <i class="fas fa-check-circle"></i>
                     </button>
                 ` : ''}
                 ${isPublished ? `
-                    <button class="btn btn-warning btn-sm btn-unpublish-test" data-test-id="${t._id}" title="Unpublish Test" style="margin-right: 5px;">
-                        <i class="fas fa-eye-slash"></i> Unpublish
+                    <button class="btn btn-warning btn-sm btn-unpublish-test" data-test-id="${t._id}" title="Bỏ đăng" style="margin-right: 5px;">
+                        <i class="fas fa-eye-slash"></i>
                     </button>
                 ` : ''}
-                <button class="btn btn-danger btn-sm btn-delete-test" data-test-id="${t._id}" title="Delete Test">
-                    <i class="fas fa-trash-alt"></i> Delete
+                <button class="btn btn-danger btn-sm btn-delete-test" data-test-id="${t._id}" title="Xóa">
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </td>
         </tr>
@@ -700,18 +753,22 @@ function openQuestionModal(questionId = null) {
             document.getElementById('question-part').value = question.part;
             document.getElementById('question-text').value = question.questionText || '';
             document.getElementById('question-audio-text').value = question.audioText || '';
-            document.getElementById('question-passage').value = question.passage || '';
-            document.getElementById('question-image-url').value = question.imageUrl || '';
+            document.getElementById('question-passage').value = question.passages?.[0] || '';
+            document.getElementById('question-image-url').value = question.imageUrls?.[0] || '';
             document.getElementById('question-audio-url').value = question.audioUrl || '';
-            document.getElementById('question-explanation').value = question.explanation || '';
-            document.getElementById('question-keyword').value = question.questionKeyword || '';
-            document.getElementById('answer-keyword').value = question.answerKeyword || '';
+            const expVal = typeof question.explanation === 'object'
+                ? JSON.stringify(question.explanation, null, 2)
+                : (question.explanation || '');
+            document.getElementById('question-explanation').value = expVal;
+            document.getElementById('question-group-id').value = question.groupId || '';
+            document.getElementById('question-index').value = question.questionIndex || '';
+            document.getElementById('question-passage-count').value = question.passageCount || '';
+            document.getElementById('question-audio-translate').value = question.audioTranslate || '';
+            document.getElementById('question-text-translate').value = question.questionTranslate || '';
 
-            const audioKeywordInput = document.getElementById('audio-keyword');
-            if (audioKeywordInput) audioKeywordInput.value = question.audioKeyword || '';
-
-            if (question.imageUrl) {
-                previewImg.src = question.imageUrl;
+            const firstImg = question.imageUrls?.[0];
+            if (firstImg) {
+                previewImg.src = firstImg;
                 imagePreview.style.display = 'block';
             }
 
@@ -782,29 +839,102 @@ function switchQuestionModalTab(tab) {
 function copyQuestionPrompt() {
     const prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Hãy chuyển nội dung câu hỏi tôi cung cấp thành MẢNG JSON đúng schema dưới đây để tôi import vào hệ thống.
 
-Mỗi câu hỏi là 1 object:
+=== SCHEMA THỐNG NHẤT (áp dụng cho tất cả Part 1-7) ===
 {
-  "part": <số 1-7, bắt buộc>,
-  "questionText": "<nội dung câu hỏi> — bắt buộc với Part 2-7",
+  "part": <số 1-7, BẮT BUỘC>,
+  "source": "<tên nguồn đề, ví dụ: official_2024, economy_vol1 — tùy chọn>",
+
+  // Nhóm câu hỏi (Part 3, 4, 6, 7 có nhiều câu chung 1 audio/passage)
+  "groupId": "<chuỗi định danh nhóm, ví dụ: p3_grp_001 — bắt buộc nếu có nhóm>",
+  "questionIndex": <thứ tự trong nhóm bắt đầu từ 1 — bắt buộc nếu có nhóm>,
+
+  // Nội dung câu hỏi
+  "questionText": "<câu hỏi tiếng Anh — bắt buộc với Part 2-7, bỏ với Part 1>",
+  "questionTranslate": "<bản dịch tiếng Việt của câu hỏi — tùy chọn>",
+
+  // Nghe (Part 1-4)
+  "audioUrl": "<URL file mp3 — để trống, admin tự upload>",
+  "audioText": "<transcript lời thoại/bài nói — Part 2/3/4>",
+  "audioTranslate": "<bản dịch tiếng Việt của audio — tùy chọn>",
+
+  // Đọc (Part 6-7)
+  "passages": ["<đoạn văn 1>", "<đoạn văn 2 nếu double/triple>"],
+  "passageCount": <1 | 2 | 3 — chỉ Part 7>,
+
+  // Ảnh (Part 1)
+  "imageUrls": ["<URL ảnh — để trống, admin tự upload>"],
+
+  // Đáp án
   "options": [
     { "label": "A", "text": "<đáp án A>" },
     { "label": "B", "text": "<đáp án B>" },
     { "label": "C", "text": "<đáp án C>" },
-    { "label": "D", "text": "<đáp án D — tùy chọn>" }
+    { "label": "D", "text": "<đáp án D — tùy chọn với Part 2>" }
   ],
   "correctAnswer": "A | B | C | D",
-  "explanation": "<giải thích vì sao đúng — tùy chọn>",
-  "passage": "<đoạn văn — chỉ Part 6,7>",
-  "audioText": "<lời thoại — chỉ Part 2,3,4, tùy chọn>"
+
+  // Giải thích theo từng đáp án
+  "explanation": {
+    "A": "✅ Đúng: <lý do> — HOẶC — ❌ Sai: <lý do>",
+    "B": "❌ Sai: <lý do>",
+    "C": "❌ Sai: <lý do>",
+    "D": "❌ Sai: <lý do>"
+  }
 }
 
-QUY TẮC:
-- Trả về DUY NHẤT một mảng JSON hợp lệ (bắt đầu bằng [ và kết thúc bằng ]), KHÔNG kèm giải thích, KHÔNG markdown, KHÔNG \`\`\`.
-- "part" là số, không phải chuỗi.
-- Tối thiểu 3 đáp án (A, B, C); D có thể bỏ.
+=== QUY TẮC BẮT BUỘC ===
+- Trả về DUY NHẤT một mảng JSON hợp lệ [ ... ], KHÔNG kèm giải thích, KHÔNG markdown, KHÔNG \`\`\`.
+- "part" là số nguyên, KHÔNG phải chuỗi.
+- Tối thiểu 3 đáp án (A, B, C); D tùy chọn.
 - "correctAnswer" phải khớp đúng 1 label trong "options".
-- Part 1 thường chỉ có ảnh: bỏ "questionText", để imageUrl trống (tôi sẽ tự upload ảnh sau).
-- Giữ nguyên ngôn ngữ gốc của câu hỏi tiếng Anh; "explanation" viết tiếng Việt.
+- Part 1: bỏ "questionText", để "imageUrls": [] (admin upload sau).
+- Part 2: chỉ có A/B/C, không có D.
+- Part 3/4: nhiều câu hỏi cùng 1 audio → cùng "groupId", "questionIndex" tăng dần.
+- Part 6/7: nhiều câu hỏi cùng 1 passage → cùng "groupId", chỉ câu đầu tiên (questionIndex: 1) cần có "passages".
+- Giải thích trong "explanation" viết tiếng Việt; giữ nguyên tiếng Anh trong "questionText", "options", "audioText", "passages".
+- Bỏ qua các trường không liên quan đến part đó (ví dụ: Part 5 không cần audioText, passages).
+
+=== VÍ DỤ PART 5 ===
+[
+  {
+    "part": 5,
+    "questionText": "The new policy will _____ next month.",
+    "questionTranslate": "Chính sách mới sẽ _____ vào tháng tới.",
+    "options": [
+      { "label": "A", "text": "take effect" },
+      { "label": "B", "text": "took effect" },
+      { "label": "C", "text": "taking effect" },
+      { "label": "D", "text": "effected" }
+    ],
+    "correctAnswer": "A",
+    "explanation": {
+      "A": "✅ Đúng: take effect = có hiệu lực. Will + V nguyên thể (tương lai đơn).",
+      "B": "❌ Sai: took effect là quá khứ đơn, không dùng sau will.",
+      "C": "❌ Sai: taking không thể đứng sau will.",
+      "D": "❌ Sai: effected không đúng nghĩa ở đây."
+    }
+  }
+]
+
+=== VÍ DỤ PART 3 (nhóm 3 câu) ===
+[
+  {
+    "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
+    "audioText": "W: Have you finished the report yet? M: Almost, I just need to check the numbers. W: Great, the manager wants it by noon.",
+    "audioTranslate": "Nữ: Bạn đã xong báo cáo chưa? Nam: Gần xong, tôi chỉ cần kiểm tra số liệu. Nữ: Tốt, quản lý muốn có trước 12 giờ.",
+    "questionText": "What is the man doing?",
+    "options": [{ "label": "A", "text": "Finishing a report" }, { "label": "B", "text": "Checking some figures" }, { "label": "C", "text": "Sending an email" }, { "label": "D", "text": "Attending a meeting" }],
+    "correctAnswer": "B",
+    "explanation": { "A": "❌ Gần xong nhưng chưa hoàn thành.", "B": "✅ Đúng: he needs to check the numbers.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." }
+  },
+  {
+    "part": 3, "groupId": "p3_grp_001", "questionIndex": 2,
+    "questionText": "When does the manager want the report?",
+    "options": [{ "label": "A", "text": "By noon" }, { "label": "B", "text": "By 3 PM" }, { "label": "C", "text": "Tomorrow morning" }, { "label": "D", "text": "Next week" }],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: the manager wants it by noon.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." }
+  }
+]
 
 Nội dung câu hỏi của tôi:
 <<< DÁN NỘI DUNG CÂU HỎI CỦA BẠN VÀO ĐÂY >>>`;
@@ -868,13 +998,17 @@ async function submitQuestionJsonImport() {
             const payload = { part, correctAnswer: q.correctAnswer, options };
             if (q.questionText && part >= 2) payload.questionText = String(q.questionText).trim();
             if (q.audioText) payload.audioText = String(q.audioText).trim();
-            if (q.passage) payload.passage = String(q.passage).trim();
-            if (q.imageUrl) payload.imageUrl = String(q.imageUrl).trim();
+            if (q.passages) payload.passages = Array.isArray(q.passages) ? q.passages : [String(q.passages).trim()];
+            else if (q.passage) payload.passages = [String(q.passage).trim()];
+            if (q.imageUrls) payload.imageUrls = Array.isArray(q.imageUrls) ? q.imageUrls : [String(q.imageUrls).trim()];
+            else if (q.imageUrl) payload.imageUrls = [String(q.imageUrl).trim()];
             if (q.audioUrl) payload.audioUrl = String(q.audioUrl).trim();
-            if (q.explanation) payload.explanation = String(q.explanation).trim();
-            if (q.questionKeyword) payload.questionKeyword = String(q.questionKeyword).trim();
-            if (q.answerKeyword) payload.answerKeyword = String(q.answerKeyword).trim();
-            if (q.audioKeyword) payload.audioKeyword = String(q.audioKeyword).trim();
+            if (q.audioTranslate) payload.audioTranslate = String(q.audioTranslate).trim();
+            if (q.questionTranslate) payload.questionTranslate = String(q.questionTranslate).trim();
+            if (q.groupId) payload.groupId = String(q.groupId).trim();
+            if (q.questionIndex) payload.questionIndex = parseInt(q.questionIndex);
+            if (q.passageCount) payload.passageCount = parseInt(q.passageCount);
+            if (q.explanation) payload.explanation = typeof q.explanation === 'object' ? q.explanation : { note: String(q.explanation).trim() };
 
             const res = await fetch(`${TOEIC_API_BASE}/questions`, {
                 method: 'POST',
@@ -930,8 +1064,10 @@ function previewQuestion(questionId) {
             </h3>
     `;
 
-    if (question.part === 1 && question.imageUrl) {
-        html += `<img src="${question.imageUrl}" style="width: 100%; max-width: 500px; margin: 0 auto 20px; display: block; border-radius: 8px;">`;
+    if (question.imageUrls?.length > 0) {
+        question.imageUrls.forEach(url => {
+            html += `<img src="${url}" style="width: 100%; max-width: 500px; margin: 0 auto 10px; display: block; border-radius: 8px;">`;
+        });
     }
 
     if (question.part <= 4 && (question.audioUrl || question.audioText)) {
@@ -948,8 +1084,10 @@ function previewQuestion(questionId) {
         html += `<p style="font-size: 16px; margin-bottom: 20px;"><strong>Question:</strong> ${question.questionText}</p>`;
     }
 
-    if (question.passage) {
-        html += `<div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; white-space: pre-wrap;">${question.passage}</div>`;
+    if (question.passages?.length > 0) {
+        question.passages.forEach(p => {
+            html += `<div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; white-space: pre-wrap;">${p}</div>`;
+        });
     }
 
     html += `<div style="margin-bottom: 20px;">`;
@@ -964,11 +1102,14 @@ function previewQuestion(questionId) {
     });
     html += `</div>`;
 
-    if (question.explanation) {
+    if (question.explanation && Object.keys(question.explanation).length > 0) {
+        const expHtml = Object.entries(question.explanation)
+            .map(([k, v]) => `<div style="margin-bottom:6px;"><strong>${k}.</strong> ${v}</div>`)
+            .join('');
         html += `
             <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
                 <strong style="color: #f59e0b;"><i class="fas fa-lightbulb"></i> Explanation:</strong>
-                <p style="margin-top: 10px;">${question.explanation}</p>
+                <div style="margin-top: 10px;">${expHtml}</div>
             </div>
         `;
     }
@@ -1124,10 +1265,15 @@ async function handleQuestionSubmit(e) {
     const part = parseInt(document.getElementById('question-part').value);
     const questionText = document.getElementById('question-text').value.trim();
     const audioText = document.getElementById('question-audio-text').value.trim();
-    const passage = document.getElementById('question-passage').value.trim();
-    const imageUrl = document.getElementById('question-image-url').value.trim();
+    const passageRaw = document.getElementById('question-passage').value.trim();
+    const imageUrlRaw = document.getElementById('question-image-url').value.trim();
     const audioUrl = document.getElementById('question-audio-url').value.trim();
-    const explanation = document.getElementById('question-explanation').value.trim();
+    const explanationRaw = document.getElementById('question-explanation').value.trim();
+    const groupIdRaw = document.getElementById('question-group-id').value.trim();
+    const questionIndexRaw = document.getElementById('question-index').value.trim();
+    const passageCountRaw = document.getElementById('question-passage-count').value;
+    const audioTranslateRaw = document.getElementById('question-audio-translate').value.trim();
+    const questionTranslateRaw = document.getElementById('question-text-translate').value.trim();
 
     const correctAnswer = document.querySelector('input[name="correct-answer"]:checked')?.value;
     if (!correctAnswer) {
@@ -1145,7 +1291,7 @@ async function handleQuestionSubmit(e) {
         return;
     }
 
-    if (part === 1 && !imageUrl && !audioUrl) {
+    if (part === 1 && !imageUrlRaw && !audioUrl) {
         alert('Part 1 requires either an image or audio file! Please select a file (it will auto-upload).');
         return;
     }
@@ -1159,18 +1305,18 @@ async function handleQuestionSubmit(e) {
 
     if (questionText && part >= 2) questionData.questionText = questionText;
     if (audioText) questionData.audioText = audioText;
-    if (passage) questionData.passage = passage;
-    if (imageUrl) questionData.imageUrl = imageUrl;
+    if (passageRaw) questionData.passages = [passageRaw];
+    if (imageUrlRaw) questionData.imageUrls = [imageUrlRaw];
     if (audioUrl) questionData.audioUrl = audioUrl;
-    if (explanation) questionData.explanation = explanation;
-
-    const questionKeyword = document.getElementById('question-keyword')?.value.trim();
-    const answerKeyword = document.getElementById('answer-keyword')?.value.trim();
-    if (questionKeyword) questionData.questionKeyword = questionKeyword;
-    if (answerKeyword) questionData.answerKeyword = answerKeyword;
-
-    const audioKeyword = document.getElementById('audio-keyword')?.value.trim();
-    if (audioKeyword) questionData.audioKeyword = audioKeyword;
+    if (explanationRaw) {
+        try { questionData.explanation = JSON.parse(explanationRaw); }
+        catch { questionData.explanation = { note: explanationRaw }; }
+    }
+    if (groupIdRaw) questionData.groupId = groupIdRaw;
+    if (questionIndexRaw) questionData.questionIndex = parseInt(questionIndexRaw);
+    if (passageCountRaw) questionData.passageCount = parseInt(passageCountRaw);
+    if (audioTranslateRaw) questionData.audioTranslate = audioTranslateRaw;
+    if (questionTranslateRaw) questionData.questionTranslate = questionTranslateRaw;
 
     try {
         const url = questionId ? `${TOEIC_API_BASE}/questions/${questionId}` : `${TOEIC_API_BASE}/questions`;
@@ -1354,8 +1500,10 @@ function openTestModal(testId = null) {
     form.reset();
     document.getElementById('test-name').value = '';
     document.getElementById('test-type').value = 'full-test';
-    document.getElementById('test-duration').value = '';
+    document.getElementById('test-duration').value = '120';
     document.getElementById('test-description').value = '';
+    document.getElementById('test-source').value = '';
+    document.getElementById('test-level').value = 'intermediate';
     document.getElementById('random-question-count').value = '';
     const reuseCheckbox = document.getElementById('reuse-questions-checkbox');
     if (reuseCheckbox) reuseCheckbox.checked = false;
@@ -1364,11 +1512,11 @@ function openTestModal(testId = null) {
     modal.dataset.editMode = testId ? 'true' : 'false';
 
     if (testId) {
-        modalTitle.innerHTML = '<i class="fas fa-edit"></i> Edit Test';
-        submitBtn.textContent = 'Update Test';
+        modalTitle.innerHTML = '<i class="fas fa-edit"></i> Chỉnh sửa đề thi';
+        submitBtn.textContent = 'Cập nhật';
     } else {
-        modalTitle.innerHTML = '<i class="fas fa-file-alt"></i> Create New Test';
-        submitBtn.textContent = 'Create Test';
+        modalTitle.innerHTML = '<i class="fas fa-file-alt"></i> Tạo đề thi mới';
+        submitBtn.textContent = 'Tạo đề thi';
     }
 
     modal.style.display = 'flex';
@@ -1376,10 +1524,21 @@ function openTestModal(testId = null) {
     const testTypeSelect = document.getElementById('test-type');
     const randomQuestionsField = document.getElementById('random-questions-field');
 
-    testTypeSelect.addEventListener('change', function() {
+    const testTypeTimes = {
+        'full-test': 120, 'mini-part1': 4, 'mini-part2': 10,
+        'mini-part3': 17, 'mini-part4': 15, 'mini-part5': 12,
+        'mini-part6': 8, 'mini-part7': 34,
+    };
+
+    // Replace listener by cloning node to avoid stacking listeners on reopen
+    const freshSelect = testTypeSelect.cloneNode(true);
+    testTypeSelect.parentNode.replaceChild(freshSelect, testTypeSelect);
+    freshSelect.addEventListener('change', function () {
         const isFullTest = this.value === 'full-test';
         randomQuestionsField.style.display = isFullTest ? 'none' : 'block';
         if (isFullTest) document.getElementById('random-question-count').value = '';
+        const suggested = testTypeTimes[this.value];
+        if (suggested) document.getElementById('test-duration').value = suggested;
     });
 
     randomQuestionsField.style.display = 'none';
@@ -1395,6 +1554,8 @@ function closeTestModal() {
     document.getElementById('test-type').value = 'full-test';
     document.getElementById('test-duration').value = '';
     document.getElementById('test-description').value = '';
+    document.getElementById('test-source').value = '';
+    document.getElementById('test-level').value = 'intermediate';
     document.getElementById('random-question-count').value = '';
     const reuseCheckbox = document.getElementById('reuse-questions-checkbox');
     if (reuseCheckbox) reuseCheckbox.checked = false;
@@ -1428,6 +1589,8 @@ async function editTest(testId) {
         document.getElementById('test-name').value = test.testName || '';
         document.getElementById('test-type').value = test.testType || '';
         document.getElementById('test-description').value = test.description || '';
+        document.getElementById('test-source').value = test.source || '';
+        document.getElementById('test-level').value = test.level || 'intermediate';
         document.getElementById('test-duration').value = Math.round(test.totalTime / 60) || '';
 
         const randomQuestionsField = document.getElementById('random-questions-field');
@@ -1458,19 +1621,22 @@ async function handleTestSubmit(e) {
     const testName = document.getElementById('test-name').value.trim();
     const testType = document.getElementById('test-type').value;
     const description = document.getElementById('test-description').value.trim();
+    const source = document.getElementById('test-source').value.trim();
+    const level = document.getElementById('test-level').value;
     const duration = parseInt(document.getElementById('test-duration').value);
 
     if (!testName || !testType || !duration) {
-        alert('Please fill in all required fields!');
+        alert('Vui lòng điền đầy đủ: tên đề, loại đề và thời gian!');
         return;
     }
 
     if (duration < 1) {
-        alert('Duration must be at least 1 minute!');
+        alert('Thời gian phải ít nhất 1 phút!');
         return;
     }
 
-    const testData = { testName, testType, description, totalTime: duration * 60 };
+    const testData = { testName, testType, description, totalTime: duration * 60, level };
+    if (source) testData.source = source;
 
     const randomCount = parseInt(document.getElementById('random-question-count').value);
     if (!isNaN(randomCount) && randomCount > 0) testData.randomQuestionCount = randomCount;

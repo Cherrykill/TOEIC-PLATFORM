@@ -98,7 +98,7 @@ exports.getTest = async (req, res, next) => {
  */
 exports.createTest = async (req, res, next) => {
     try {
-        const { testName, testType, description, totalTime: customTotalTime, allowReuseQuestions } = req.body;
+        const { testName, testType, description, source, level, totalTime: customTotalTime, allowReuseQuestions } = req.body;
 
         // Validate required fields
         if (!testName || !testType) {
@@ -114,6 +114,7 @@ exports.createTest = async (req, res, next) => {
                 const test = await ToeicTest.createFullTest({
                     testName,
                     description,
+                    source: source || null,
                     createdBy: req.user.id,
                     isPublished: false,
                     allowReuseQuestions: allowReuseQuestions || false,
@@ -172,6 +173,7 @@ exports.createTest = async (req, res, next) => {
                 part: partNumber,
                 isActive: true,
                 isPublished: true,
+                ...(source ? { source } : {}),
             });
 
             if (availableCount < requiredCount) {
@@ -205,6 +207,7 @@ exports.createTest = async (req, res, next) => {
                 part: partNumber,
                 count: requiredCount,
                 excludeIds,
+                source: source || null,
             });
 
             if (questions.length < requiredCount) {
@@ -230,11 +233,13 @@ exports.createTest = async (req, res, next) => {
             testName,
             testType,
             description,
+            source: source || null,
+            level: level || 'intermediate',
             parts,
             totalQuestions,
             totalTime,
             createdBy: req.user.id,
-            isPublished: false, // Admin can review before publishing
+            isPublished: false,
             isActive: true,
             allowReuseQuestions: allowReuseQuestions || false,
         });
@@ -290,7 +295,7 @@ exports.generateFullTest = async (req, res, next) => {
  */
 exports.updateTest = async (req, res, next) => {
     try {
-        const { testName, testType, description, totalTime, randomQuestionCount, allowReuseQuestions, isPublished, isActive } = req.body;
+        const { testName, testType, description, source, level, totalTime, randomQuestionCount, allowReuseQuestions, isPublished, isActive } = req.body;
 
         const test = await ToeicTest.findById(req.params.id);
 
@@ -313,6 +318,8 @@ exports.updateTest = async (req, res, next) => {
         if (testName) test.testName = testName;
         if (testType) test.testType = testType;
         if (description !== undefined) test.description = description;
+        if (source !== undefined) test.source = source;
+        if (level !== undefined) test.level = level;
         if (totalTime !== undefined) test.totalTime = totalTime;
         if (randomQuestionCount !== undefined) test.randomQuestionCount = randomQuestionCount;
         if (allowReuseQuestions !== undefined) test.allowReuseQuestions = allowReuseQuestions;
@@ -381,9 +388,20 @@ exports.publishTest = async (req, res, next) => {
  */
 exports.deleteTest = async (req, res, next) => {
     try {
-        const test = await ToeicTest.findById(req.params.id);
+        const { id } = req.params;
+        console.log('[deleteTest] id:', id);
+
+        const mongoose = require('mongoose');
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: `Invalid test ID: ${id}` });
+        }
+
+        const test = await ToeicTest.findById(id);
+        console.log('[deleteTest] found:', test?._id || 'null');
 
         if (!test) {
+            const allTests = await ToeicTest.find({}).select('_id testName').lean();
+            console.log('[deleteTest] all tests in DB:', allTests.map(t => t._id.toString()));
             return res.status(404).json({
                 success: false,
                 message: 'Test not found',

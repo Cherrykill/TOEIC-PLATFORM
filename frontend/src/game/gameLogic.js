@@ -7,6 +7,16 @@ import { Config } from '@game/config.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 
+export function vocabLang() {
+    return GameState.state?.settings?.vocabLang || getVocabLang() || 'en';
+}
+export function wordPk(word) {
+    return vocabLang() === 'zh' ? (word?.zh || word?.en || '') : (word?.en || '');
+}
+export function ttsLang() {
+    return vocabLang() === 'zh' ? 'zh-CN' : 'en-US';
+}
+
 export const GameLogic = {
 
     vocabularyData: [],
@@ -301,7 +311,10 @@ export const GameLogic = {
         this._replayCallback = () => this.speakWord(text, lang);
 
         if (savedVoiceName.startsWith('__gtts_')) {
-            this._speakGoogleTTS(text, savedVoiceName, onEnd);
+            // Nếu text là tiếng Trung nhưng giọng đang chọn là EN → tự động dùng ZH random
+            const isZhVoice = savedVoiceName.startsWith('__gtts_zh');
+            const effectiveVoice = (isZhText && !isZhVoice) ? '__gtts_zh_random__' : savedVoiceName;
+            this._speakGoogleTTS(text, effectiveVoice, onEnd);
             return;
         }
 
@@ -347,6 +360,9 @@ export const GameLogic = {
         }
         window.speechSynthesis.cancel();
 
+        // Tăng speakId để cancel mọi request cũ đang chờ fetch
+        const myId = (this._gttsSpeak = (this._gttsSpeak || 0) + 1);
+
         this._replayCallback = () => this._speakGoogleTTS(text, voiceKey, null);
 
         const accentMap = {
@@ -375,23 +391,30 @@ export const GameLogic = {
         try {
             const data = await TtsAPI.synthesize(text, lang, rate);
 
+            // Nếu có request mới hơn được gọi trong lúc đang fetch → bỏ qua kết quả cũ
+            if (this._gttsSpeak !== myId) return;
+
             if (data.url) {
-                const audio = new Audio(data.url);
+                const audio = new Audio();
+                audio.preload = 'auto';
                 this._gttsAudio = audio;
-                // Backend giờ trả Object URL từ blob — phải revoke sau khi
-                // phát xong (hoặc lỗi) để khỏi rò rỉ bộ nhớ trình duyệt.
                 const revoke = () => { try { URL.revokeObjectURL(data.url); } catch (_) {} };
                 audio.onended = () => { revoke(); if (onEnd) onEnd(); };
                 audio.onerror = () => { revoke(); if (onEnd) onEnd(); };
+                audio.src = data.url;
+                audio.load();
                 await audio.play();
             } else if (data.urls) {
                 for (let i = 0; i < data.urls.length; i++) {
                     const isLast = i === data.urls.length - 1;
                     await new Promise((resolve) => {
-                        const audio = new Audio(data.urls[i]);
+                        const audio = new Audio();
+                        audio.preload = 'auto';
                         this._gttsAudio = audio;
                         audio.onended = () => { if (isLast && onEnd) onEnd(); resolve(); };
                         audio.onerror = () => { if (isLast && onEnd) onEnd(); resolve(); };
+                        audio.src = data.urls[i];
+                        audio.load();
                         audio.play().catch(() => { if (isLast && onEnd) onEnd(); resolve(); });
                     });
                 }
@@ -401,7 +424,8 @@ export const GameLogic = {
         } catch (err) {
             console.warn('Google TTS API failed, falling back to browser:', err);
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'en-US';
+            const isZhVoice = lang.startsWith('zh');
+            utterance.lang = isZhVoice ? 'zh-CN' : 'en-US';
             utterance.rate = rate;
             if (onEnd) {
                 utterance.onend = onEnd;

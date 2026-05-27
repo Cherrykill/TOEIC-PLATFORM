@@ -18,8 +18,9 @@ exports.getQuestions = async (req, res, next) => {
     try {
         const {
             part,
-            questionType,
             topic,
+            source,
+            groupId,
             page = 1,
             limit = 20,
         } = req.query;
@@ -27,8 +28,9 @@ exports.getQuestions = async (req, res, next) => {
         const query = {};
 
         if (part) query.part = parseInt(part);
-        if (questionType) query.questionType = questionType;
         if (topic) query.topic = topic;
+        if (source) query.source = source;
+        if (groupId) query.groupId = groupId;
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -94,20 +96,6 @@ exports.createQuestion = async (req, res, next) => {
                 .select('questionNumber');
 
             req.body.questionNumber = lastQuestion ? lastQuestion.questionNumber + 1 : 1;
-        }
-
-        // Auto-generate questionType based on part if not provided
-        if (!req.body.questionType) {
-            const questionTypeMap = {
-                1: 'photo-description',
-                2: 'question-response',
-                3: 'conversation',
-                4: 'talk',
-                5: 'incomplete-sentence',
-                6: 'text-completion',
-                7: 'single-passage',
-            };
-            req.body.questionType = questionTypeMap[req.body.part];
         }
 
         const question = await ToeicQuestion.create(req.body);
@@ -322,18 +310,6 @@ exports.generateQuestionsWithAI = async (req, res, next) => {
             for (let i = 0; i < generatedQuestions.length; i++) {
                 const qData = generatedQuestions[i];
 
-                // Map questionType to schema enum
-                let questionType;
-                if (part === 1) questionType = 'photo-description';
-                else if (part === 2) questionType = 'question-response';
-                else if (part === 3) questionType = 'conversation';
-                else if (part === 4) questionType = 'talk';
-                else if (part === 5) questionType = 'incomplete-sentence';
-                else if (part === 6) questionType = 'text-completion';
-                else if (part === 7) questionType = 'single-passage';
-
-                // Transform options from AI format to DB format
-                // Always assign A/B/C/D by index — AI sometimes returns word text as optionLetter
                 const LETTERS = ['A', 'B', 'C', 'D'];
                 const transformedOptions = qData.options.map((opt, idx) => ({
                     label: LETTERS[idx] || LETTERS[0],
@@ -341,26 +317,22 @@ exports.generateQuestionsWithAI = async (req, res, next) => {
                     isCorrect: opt.isCorrect,
                 }));
 
-                // correctAnswer = letter of the option where isCorrect === true
                 const correctIdx = qData.options.findIndex(opt => opt.isCorrect);
                 const correctAnswer = LETTERS[correctIdx >= 0 ? correctIdx : 0];
 
-                // Prepare question data for saving
                 const questionToSave = {
                     part: qData.part,
                     questionNumber: i + 1,
                     questionText: qData.questionText,
-                    questionType: questionType,
                     options: transformedOptions,
                     correctAnswer,
-                    explanation: qData.explanation,
-                    grammarPoint: qData.grammarPoint || null,
-                    topic: qData.grammarPoint || qData.passageType || 'general',
-                    audioScript: qData.audioTranscript || null,
-                    passage: qData.passage || null,
+                    explanation: qData.explanation || {},
+                    audioText: qData.audioTranscript || null,
+                    passages: qData.passage ? [qData.passage] : [],
                     passageType: qData.passageType || null,
+                    topic: qData.passageType || 'general',
                     tags: ['ai-generated'],
-                    isPublished: false, // Admin needs to review first
+                    isPublished: false,
                     isActive: true,
                     createdBy: req.user.id,
                 };

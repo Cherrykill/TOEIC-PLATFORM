@@ -1,4 +1,4 @@
-import { GameLogic } from '@game/gameLogic.js';
+import { GameLogic, wordPk, ttsLang, vocabLang } from '@game/gameLogic.js';
 import { GameState } from '@game/state.js';
 import { Config } from '@game/config.js';
 import { Utils } from '@lib/utils.js';
@@ -14,6 +14,14 @@ export const PronunciationMode = {
     isListening: false,
     currentWord: null,
     wordCompleted: false,
+
+    _isZh() {
+        return vocabLang() === 'zh';
+    },
+
+    _recogLang() {
+        return this._isZh() ? 'zh-CN' : 'en-US';
+    },
 
     async start(config) {
         this.config = config;
@@ -44,60 +52,83 @@ export const PronunciationMode = {
     },
 
     initSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        this.recognition = new SpeechRecognition();
+        this._SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this._resultHandled = false;
+        // Không tạo recognition ngay — tạo mới mỗi lần startListening()
+        // để đảm bảo lang luôn đúng và tránh state stale giữa các lần gọi.
+    },
 
-        this.recognition.lang = this.config.recognitionLang || 'en-US';
-        this.recognition.continuous = false;
-        this.recognition.interimResults = false;
-        this.recognition.maxAlternatives = 5;
+    _createRecognition() {
+        if (this.recognition) {
+            try { this.recognition.abort(); } catch (_) {}
+            this.recognition.onstart = null;
+            this.recognition.onresult = null;
+            this.recognition.onend = null;
+            this.recognition.onerror = null;
+        }
 
-        this.recognition.onstart = () => {
+        const rec = new this._SpeechRecognition();
+        rec.lang = this._recogLang();
+        rec.continuous = false;
+        rec.interimResults = false;
+        rec.maxAlternatives = 5;
+
+        rec.onstart = () => {
             this.isListening = true;
+            this._resultHandled = false;
             this.updateMicButton(true);
         };
 
-        this.recognition.onend = () => {
+        rec.onresult = (event) => {
+            if (this._resultHandled) return;
+
+            const result = event.results[0];
+            const transcript = result[0].transcript.trim();
+            const isFinal = result.isFinal;
+
+            if (isFinal) {
+                this._resultHandled = true;
+                const results = Array.from(result);
+                this.handleRecognitionResult(transcript, results);
+            }
+        };
+
+        rec.onend = () => {
             this.isListening = false;
             this.updateMicButton(false);
+            // Nếu onresult không fire → nói không rõ/ngôn ngữ sai → tính 1 lần thử thất bại
+            if (!this._resultHandled && !this.wordCompleted) {
+                this.handleRecognitionResult('', []);
+            }
         };
 
-        this.recognition.onresult = (event) => {
-            const results = Array.from(event.results[0]);
-            const transcript = event.results[0][0].transcript.toLowerCase().trim();
-            this.handleRecognitionResult(transcript, results);
-        };
-
-        this.recognition.onerror = (event) => {
+        rec.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
+            this._resultHandled = true;
             this.isListening = false;
             this.updateMicButton(false);
 
             if (event.error === 'no-speech') {
-                Notification.show({
-                    type: 'warning',
-                    title: 'Không nghe thấy',
-                    message: 'Vui lòng nói rõ hơn và thử lại',
-                    duration: 2000
-                });
+                // no-speech: user chưa nói gì → không tính lượt
+                this._resultHandled = false;
+                Notification.show({ type: 'warning', title: 'Không nghe thấy', message: 'Vui lòng nói rõ hơn và thử lại', duration: 2000 });
             } else if (event.error === 'not-allowed') {
-                Notification.show({
-                    type: 'error',
-                    title: 'Không có quyền truy cập',
-                    message: 'Vui lòng cho phép truy cập microphone',
-                    duration: 3000
-                });
+                Notification.show({ type: 'error', title: 'Không có quyền truy cập', message: 'Vui lòng cho phép truy cập microphone', duration: 3000 });
+            } else if (event.error === 'language-not-supported') {
+                Notification.show({ type: 'error', title: 'Ngôn ngữ không hỗ trợ', message: 'Trình duyệt không nhận dạng được ngôn ngữ này', duration: 3000 });
             }
         };
+
+        this.recognition = rec;
     },
 
     async generateQuestions() {
         const words = GameLogic.getRandomWords(this.config.questionsPerRound);
         this.questions = words.map(word => ({
-            word: word,
-            wordEn: word.en.toLowerCase().trim(),
-            wordVn: word.vn,
-            wordType: word.type || ''
+            word,
+            wordPk:   wordPk(word),
+            wordVn:   word.vn,
+            wordType: word.type || '',
         }));
     },
 
@@ -108,7 +139,7 @@ export const PronunciationMode = {
         }
 
         const question = this.questions[this.currentIndex];
-        this.currentWord = question.wordEn;
+        this.currentWord = question.wordPk;
         this.currentAttempts = 0;
         this.wordCompleted = false;
 
@@ -120,7 +151,7 @@ export const PronunciationMode = {
         this.render(question);
 
         setTimeout(() => {
-            GameLogic.speakWord(question.wordEn, this.config.recognitionLang);
+            GameLogic.speakWord(question.wordPk, ttsLang());
         }, 500);
     },
 
@@ -128,19 +159,24 @@ export const PronunciationMode = {
         const container = document.getElementById('practice-content');
         if (!container) return;
 
+        const isZh = this._isZh();
+        const langLabel = isZh ? 'tiếng Trung' : 'tiếng Anh';
+        const langFlag  = isZh ? '🇨🇳' : '🇬🇧';
+
         container.innerHTML = `
             <div class="question-container pronunciation-container">
                 <div class="question-prompt">
-                    <h3>🎤 Phát âm từ tiếng Anh</h3>
+                    <h3>🎤 Phát âm từ ${langLabel} ${langFlag}</h3>
                     <div class="instruction-box">
-                        <p><i class="fas fa-info-circle"></i> <strong>Cách chơi:</strong> Click vào mic và phát âm từ tiếng Anh. Bạn có tối đa ${this.config.maxAttempts} lần thử.</p>
+                        <p><i class="fas fa-info-circle"></i> <strong>Cách chơi:</strong> Click vào mic và phát âm từ ${langLabel}. Bạn có tối đa ${this.config.maxAttempts} lần thử.</p>
                     </div>
                 </div>
 
                 <div class="pronunciation-word-display">
                     <div class="word-to-pronounce">
                         <div class="word-label">Từ cần phát âm:</div>
-                        <div class="word-text" id="word-text-speak" title="Nhấn để nghe phát âm" style="cursor:pointer;">${question.wordEn} <i class="fas fa-volume-up" style="font-size:0.65em;opacity:0.5;margin-left:4px;"></i></div>
+                        <div class="word-text" id="word-text-speak" title="Nhấn để nghe phát âm" style="cursor:pointer;${isZh ? 'font-size:2em;letter-spacing:4px;' : ''}">${question.wordPk} <i class="fas fa-volume-up" style="font-size:0.45em;opacity:0.5;margin-left:4px;"></i></div>
+                        ${question.word.phonetic ? `<div style="color:var(--text-secondary);font-size:0.9em;">[${question.word.phonetic}]</div>` : ''}
                         <div class="word-meaning">
                             <span class="word-type-badge">${question.wordType}</span>
                             <span class="word-translation">${question.wordVn}</span>
@@ -190,7 +226,7 @@ export const PronunciationMode = {
         });
 
         document.getElementById('word-text-speak')?.addEventListener('click', () => {
-            GameLogic.speakWord(this.currentWord, this.config.recognitionLang);
+            GameLogic.speakWord(this.currentWord, ttsLang());
         });
 
         replayBtn?.addEventListener('click', () => {
@@ -204,7 +240,7 @@ export const PronunciationMode = {
 
     toggleListening() {
         if (this.isListening) {
-            this.recognition.stop();
+            try { this.recognition?.stop(); } catch (_) {}
         } else {
             if (this.currentAttempts >= this.config.maxAttempts) {
                 Notification.show({
@@ -221,10 +257,11 @@ export const PronunciationMode = {
 
     startListening() {
         try {
+            this._createRecognition(); // tạo mới mỗi lần — lang luôn đúng
             this.recognition.start();
             const micStatus = document.getElementById('mic-status');
             if (micStatus) {
-                micStatus.textContent = 'Đang nghe... Hãy nói!';
+                micStatus.textContent = `Đang nghe... Hãy nói ${this._isZh() ? 'tiếng Trung' : 'tiếng Anh'}!`;
                 micStatus.className = 'mic-status listening';
             }
         } catch (error) {
@@ -256,13 +293,17 @@ export const PronunciationMode = {
         this.currentAttempts++;
         this.updateAttemptsDisplay();
 
-        const normalizedTranscript = this.normalizeText(transcript);
-        const normalizedTarget = this.normalizeText(this.currentWord);
+        const isZh = this._isZh();
+        const normalize = (t) => isZh
+            ? t.replace(/[\s　　-〿＀-￯.,!?;:'"。！？，、：；""'']/g, '')
+            : t.toLowerCase().replace(/[.,!?;:'"]/g, '').replace(/\s+/g, ' ').trim();
+
+        const normalizedTranscript = normalize(transcript);
+        const normalizedTarget    = normalize(this.currentWord);
 
         const isCorrect = normalizedTranscript === normalizedTarget;
-
         const isAlternativeCorrect = alternatives.some(alt =>
-            this.normalizeText(alt.transcript.toLowerCase().trim()) === normalizedTarget
+            normalize(alt.transcript.trim()) === normalizedTarget
         );
 
         const finalCorrect = isCorrect || isAlternativeCorrect;
@@ -274,14 +315,6 @@ export const PronunciationMode = {
         } else {
             this.handleWrongAnswer(transcript);
         }
-    },
-
-    normalizeText(text) {
-        return text
-            .toLowerCase()
-            .replace(/[.,!?;:'"]/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
     },
 
     showRecognitionResult(transcript, isCorrect) {
@@ -336,7 +369,7 @@ export const PronunciationMode = {
         Notification.show({
             type: 'success',
             title: '🎉 Chính xác!',
-            message: `Phát âm của bạn rất tốt!`,
+            message: 'Phát âm của bạn rất tốt!',
             duration: 2000
         });
 
@@ -368,7 +401,7 @@ export const PronunciationMode = {
             });
 
             setTimeout(() => {
-                GameLogic.speakWord(this.currentWord, this.config.recognitionLang);
+                GameLogic.speakWord(this.currentWord, ttsLang());
             }, 500);
 
             setTimeout(() => {
@@ -392,7 +425,7 @@ export const PronunciationMode = {
     },
 
     replayWord() {
-        GameLogic.speakWord(this.currentWord, this.config.recognitionLang);
+        GameLogic.speakWord(this.currentWord, ttsLang());
 
         Notification.show({
             type: 'info',
@@ -415,7 +448,7 @@ export const PronunciationMode = {
         });
 
         setTimeout(() => {
-            GameLogic.speakWord(this.currentWord, this.config.recognitionLang);
+            GameLogic.speakWord(this.currentWord, ttsLang());
         }, 500);
 
         setTimeout(() => {
@@ -438,9 +471,7 @@ export const PronunciationMode = {
 
     cleanup() {
         if (this.recognition) {
-            if (this.isListening) {
-                this.recognition.stop();
-            }
+            try { this.recognition.abort(); } catch (_) {}
             this.recognition.onstart = null;
             this.recognition.onend = null;
             this.recognition.onresult = null;
@@ -453,6 +484,6 @@ export const PronunciationMode = {
         this.currentAttempts = 0;
         this.isListening = false;
         this.currentWord = null;
+        this._resultHandled = false;
     }
 };
-

@@ -30,7 +30,7 @@ function seededRng(seed) {
 
 async function generateQuests(userId, type, periodKey) {
     const defs = await QuestDefinition.find({ type, isActive: true }).lean();
-    if (!defs.length) return [];
+    if (!defs.length) return null;
 
     const count = QUEST_COUNT[type] || 3;
     // special dùng random per-user; daily/weekly/monthly dùng deterministic

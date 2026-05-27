@@ -214,7 +214,7 @@ export default function HomeScreen({ active }) {
                                     key={m.mode}
                                     className="game-mode-card"
                                     data-mode={m.mode}
-                                    style={m.special ? { border: '2px solid #8b5cf6' } : {}}
+                                    style={{}}
                                     onClick={() => handleModeClick(m.mode)}
                                 >
                                     <div className="mode-icon" style={{ background: `linear-gradient(135deg, ${m.color})` }}>

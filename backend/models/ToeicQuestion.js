@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const ToeicQuestionSchema = new mongoose.Schema({
     // ===================================
-    // BASIC INFO
+    // ĐỊNH DANH
     // ===================================
     part: {
         type: Number,
@@ -14,77 +14,78 @@ const ToeicQuestionSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    questionType: {
+
+    // Gom nhóm câu hỏi dùng chung audio/passage (Part 3/4/6/7)
+    groupId: {
         type: String,
-        required: true,
-        enum: [
-            // Part 1
-            'photo-description',
-            // Part 2
-            'question-response',
-            // Part 3
-            'conversation',
-            // Part 4
-            'talk',
-            // Part 5
-            'incomplete-sentence',
-            // Part 6
-            'text-completion',
-            // Part 7
-            'single-passage',
-            'double-passage',
-            'triple-passage',
-        ],
+        trim: true,
         index: true,
+    },
+    // Thứ tự câu trong nhóm: 1, 2, 3...
+    questionIndex: {
+        type: Number,
+        min: 1,
+    },
+    // Số đoạn văn — chỉ Part 7: 1=single, 2=double, 3=triple
+    passageCount: {
+        type: Number,
+        enum: [1, 2, 3],
     },
 
     // ===================================
-    // LISTENING (Part 1-4)
+    // HÌNH ẢNH
+    // ===================================
+    imageUrls: {
+        type: [String],
+        default: [],
+    },
+
+    // ===================================
+    // AUDIO — Part 1-4
     // ===================================
     audioUrl: {
         type: String,
         trim: true,
     },
     audioText: {
-        type: String, // Text for TTS generation
+        type: String, // Script / nội dung audio dạng văn bản
         trim: true,
     },
-    audioScript: {
-        type: String, // Full transcript for review
+    audioTranslate: {
+        type: String, // Dịch tiếng Việt của audioText
         trim: true,
-    },
-    speakers: {
-        type: Number, // Number of speakers (for Part 3, 4)
-        min: 1,
-        max: 3,
     },
 
     // ===================================
-    // QUESTION CONTENT
+    // PASSAGE — Part 6-7
+    // ===================================
+    passages: {
+        type: [String], // Mảng đoạn văn: 1 phần tử (P6/P7 single), 2-3 (P7 double/triple)
+        default: [],
+    },
+    passageTitle: {
+        type: String,
+        trim: true,
+    },
+    passageType: {
+        type: String, // email / memo / article / advertisement / notice / report / form / chart...
+        trim: true,
+    },
+
+    // ===================================
+    // CÂU HỎI — Part 3-7
     // ===================================
     questionText: {
         type: String,
         trim: true,
     },
-    imageUrl: {
-        type: String, // For Part 1 and Part 7
-        trim: true,
-    },
-    passage: {
-        type: String, // For Part 6, 7
-        trim: true,
-    },
-    passageTitle: {
-        type: String, // Title of the passage
-        trim: true,
-    },
-    passageType: {
-        type: String, // email, article, notice, advertisement, etc.
+    questionTranslate: {
+        type: String, // Dịch tiếng Việt của questionText
         trim: true,
     },
 
     // ===================================
-    // OPTIONS (A, B, C, D)
+    // ĐÁP ÁN
     // ===================================
     options: [{
         label: {
@@ -109,58 +110,13 @@ const ToeicQuestionSchema = new mongoose.Schema({
     },
 
     // ===================================
-    // EXPLANATION & LEARNING
+    // GIẢI THÍCH
     // ===================================
+    // Object với key A/B/C/D, giải thích tiếng Việt từng lựa chọn
+    // { "A": "✅ Đúng vì...", "B": "❌ Sai vì...", ... }
     explanation: {
-        type: String,
-        trim: true,
-    },
-    explanationVN: {
-        type: String, // Vietnamese explanation
-        trim: true,
-    },
-    translation: {
-        type: String, // Vietnamese translation of question/passage
-        trim: true,
-    },
-    grammarPoint: {
-        type: String, // Grammar rule tested
-        trim: true,
-    },
-    vocabularyFocus: [{
-        type: String, // Key vocabulary tested
-        trim: true,
-    }],
-    skillsTested: [{
-        type: String,
-        enum: [
-            'vocabulary',
-            'grammar',
-            'inference',
-            'main-idea',
-            'detail',
-            'purpose',
-            'synonym',
-            'paraphrase',
-            'location',
-            'reference',
-        ],
-    }],
-
-    // ===================================
-    // FILL-IN-BLANK KEYWORDS (Đục lỗ)
-    // ===================================
-    questionKeyword: {
-        type: String, // Part 1-2: Keyword to blank in question/audio display
-        trim: true,
-    },
-    answerKeyword: {
-        type: String, // Part 1-2: Keyword to blank in correct answer only
-        trim: true,
-    },
-    audioKeyword: {
-        type: String, // Part 3-4: Keyword to blank in audio text/transcript
-        trim: true,
+        type: mongoose.Schema.Types.Mixed,
+        default: {},
     },
 
     // ===================================
@@ -176,12 +132,13 @@ const ToeicQuestionSchema = new mongoose.Schema({
         trim: true,
     }],
     source: {
-        type: String, // Source of the question (e.g., "ETS Official Test 1")
+        type: String, // "ETS 2024", "Economy TOEIC", v.v.
         trim: true,
+        index: true,
     },
 
     // ===================================
-    // STATISTICS
+    // THỐNG KÊ
     // ===================================
     timesUsed: {
         type: Number,
@@ -201,7 +158,7 @@ const ToeicQuestionSchema = new mongoose.Schema({
     },
 
     // ===================================
-    // STATUS & ADMIN
+    // TRẠNG THÁI
     // ===================================
     isActive: {
         type: Boolean,
@@ -222,101 +179,66 @@ const ToeicQuestionSchema = new mongoose.Schema({
 });
 
 // ===================================
-// INDEXES — single-field indexes declared on schema fields via `index: true`;
-// only compound indexes go here.
+// INDEXES
 // ===================================
 ToeicQuestionSchema.index({ isActive: 1, isPublished: 1 });
+ToeicQuestionSchema.index({ part: 1, isActive: 1, isPublished: 1 });
+ToeicQuestionSchema.index({ groupId: 1, questionIndex: 1 });
+ToeicQuestionSchema.index({ source: 1, part: 1 });
 
 // ===================================
 // METHODS
 // ===================================
 
-/**
- * Get accuracy rate
- */
-ToeicQuestionSchema.methods.getAccuracy = function() {
+ToeicQuestionSchema.methods.getAccuracy = function () {
     const total = this.correctCount + this.wrongCount;
     if (total === 0) return 0;
     return Math.round((this.correctCount / total) * 100);
 };
 
-/**
- * Record answer
- */
-ToeicQuestionSchema.methods.recordAnswer = function(isCorrect, timeSpent) {
+ToeicQuestionSchema.methods.recordAnswer = function (isCorrect, timeSpent) {
     this.timesUsed += 1;
-
-    if (isCorrect) {
-        this.correctCount += 1;
-    } else {
-        this.wrongCount += 1;
-    }
-
-    // Update average time spent
+    if (isCorrect) this.correctCount += 1;
+    else this.wrongCount += 1;
     if (timeSpent) {
         const totalTime = this.averageTimeSpent * (this.timesUsed - 1) + timeSpent;
         this.averageTimeSpent = Math.round(totalTime / this.timesUsed);
     }
 };
 
-/**
- * Get question with options shuffled (for practice)
- */
-ToeicQuestionSchema.methods.getShuffledQuestion = function() {
+// Trả về câu hỏi đã shuffle options, ẩn correctAnswer và isCorrect (dùng khi làm bài)
+ToeicQuestionSchema.methods.getShuffledQuestion = function () {
     const question = this.toObject();
-
-    // Shuffle options
     const options = [...question.options];
     for (let i = options.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [options[i], options[j]] = [options[j], options[i]];
     }
-
     question.options = options;
-
-    // Remove correct answer and isCorrect flags for practice
     delete question.correctAnswer;
     question.options.forEach(opt => delete opt.isCorrect);
-
     return question;
 };
 
 // ===================================
-// STATIC METHODS
+// STATICS
 // ===================================
 
-/**
- * Get random questions by criteria
- */
-ToeicQuestionSchema.statics.getRandomQuestions = async function(criteria) {
-    const {
-        part,
-        count = 10,
-        excludeIds = [],
-    } = criteria;
+ToeicQuestionSchema.statics.getRandomQuestions = async function (criteria) {
+    const { part, count = 10, excludeIds = [], source } = criteria;
 
-    const query = {
-        isActive: true,
-        isPublished: true,
-    };
-
+    const query = { isActive: true, isPublished: true };
     if (part) query.part = part;
-    if (excludeIds.length > 0) {
-        query._id = { $nin: excludeIds };
-    }
+    if (source) query.source = source;
+    if (excludeIds.length > 0) query._id = { $nin: excludeIds };
 
-    const questions = await this.aggregate([
+    return await this.aggregate([
         { $match: query },
         { $sample: { size: count } },
     ]);
-
-    return questions;
 };
 
-/**
- * Get statistics by part
- */
-ToeicQuestionSchema.statics.getStatsByPart = async function() {
+ToeicQuestionSchema.statics.getStatsByPart = async function () {
     return await this.aggregate([
         { $match: { isActive: true, isPublished: true } },
         {
