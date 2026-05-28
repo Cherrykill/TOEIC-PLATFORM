@@ -2,15 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { Utils } from '@lib/utils.js';
 
 function computeSessionLabel() {
     const s = GameState.state?.settings || {};
-    const count = s.questionsPerSession === 'auto' ? 'Toàn bộ' : (s.questionsPerSession || 20);
     let mode;
     if (s.randomQuestions === false) mode = 'Tuần tự';
     else if (s.selectedPart) mode = 'Ngẫu nhiên Part';
     else mode = 'Ngẫu nhiên';
-    return `${count} câu • ${mode}`;
+    const count = s.questionsPerSession === 'auto' ? '' : `${s.questionsPerSession || 20} câu • `;
+    return `${count}${mode}`;
 }
 
 export default function StatusBar() {
@@ -57,7 +58,10 @@ export default function StatusBar() {
         window.location.reload();
     };
 
-    const xpPercent = user ? Math.min(100, Math.round((user.xp / (user.neededXp || 100)) * 100)) : 0;
+    const level = user?.level || 1;
+    const neededXp = Utils.getXpForLevel(level) || 100;
+    const currentXp = Math.min(user?.xp || 0, neededXp);
+    const xpPercent = Math.round((currentXp / neededXp) * 100);
 
     const handleQuestionsChange = (e) => {
         const val = e.target.value;
@@ -82,10 +86,6 @@ export default function StatusBar() {
                         <i className="fas fa-times"></i>
                     </button>
                 </div>
-                <div id="session-info-badge" className="session-info-badge">
-                    <i className="fas fa-list-ol"></i>
-                    <span id="session-info-text">{sessionLabel}</span>
-                </div>
                 <div className="status-bar-divider"></div>
                 <div className="resource energy-display">
                     <i className="fas fa-bolt"></i>
@@ -107,8 +107,8 @@ export default function StatusBar() {
                     <div id="xp-progress" className="xp-progress" style={{ width: `${xpPercent}%` }}></div>
                 </div>
                 <span className="xp-text-mini">
-                    <span id="current-xp">{user?.xp || 0}</span>/
-                    <span id="needed-xp">{user?.neededXp || 100}</span> XP
+                    <span id="current-xp">{currentXp}</span>/
+                    <span id="needed-xp">{neededXp}</span> XP
                 </span>
             </div>
 
@@ -132,7 +132,7 @@ export default function StatusBar() {
                 <button
                     onClick={handleToggleVocabLang}
                     title={vocabLang === 'en' ? 'Đang học Tiếng Anh — bấm để chuyển Tiếng Trung' : 'Đang học Tiếng Trung — bấm để chuyển Tiếng Anh'}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '6px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
                 >
                     <span>{vocabLang === 'en' ? '🇬🇧' : '🇨🇳'}</span>
                     <span>{vocabLang === 'en' ? 'Tiếng Anh' : 'Tiếng Trung'}</span>

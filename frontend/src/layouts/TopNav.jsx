@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { useMenuBadges } from './useMenuBadges.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import NotificationPanel from '@components/notifications/NotificationPanel.jsx';
 import FavoritesModal from '@components/favorites/FavoritesModal.jsx';
@@ -11,10 +12,12 @@ import SpinWheelModal from '@components/spin/SpinWheelModal.jsx';
 
 export default function TopNav() {
     const { user, setMenuOpen, showScreen, menuOpen, currentScreen } = useGame();
-    // Đang luyện tập (vocab session hoặc đề TOEIC) → khoá thanh tìm kiếm
-    // để khỏi vô tình mở search rồi gián đoạn bài.
     const isInPractice = currentScreen === 'practice-screen' || currentScreen === 'toeic-test-screen';
     const { isLoggedIn, setAuthModal } = useAuth();
+    const { badges: menuBadges } = useMenuBadges(isLoggedIn, { listenEvents: true });
+    // Number = unclaimed quest + achievement rewards; dot = other menu items have badges
+    const menuRewardCount = menuBadges.quest + menuBadges.achievement;
+    const menuHasDot = menuRewardCount === 0 && (menuBadges.online > 0 || menuBadges.shopDiscount > 0);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFocused, setSearchFocused] = useState(false);
     // readOnly cho tới khi user tương tác → chặn Edge autofill email lúc load trang
@@ -84,8 +87,14 @@ export default function TopNav() {
         <>
         <nav className={`top-nav${searchFocused ? ' search-active' : ''}`}>
             <div className="nav-left">
-                <button id="menu-btn" className="icon-btn" onClick={() => setMenuOpen(!menuOpen)}>
+                <button id="menu-btn" className="icon-btn" onClick={() => setMenuOpen(!menuOpen)} style={{ position: 'relative' }}>
                     <i className="fas fa-bars"></i>
+                    {menuRewardCount > 0
+                        ? <span className="notif-badge">{menuRewardCount > 99 ? '99+' : menuRewardCount}</span>
+                        : menuHasDot
+                        ? <span className="notif-badge notif-badge-dot" />
+                        : null
+                    }
                 </button>
                 <button id="home-btn" className="icon-btn nav-home-btn" title="Trang chủ" onClick={() => showScreen('home-screen')}>
                     <i className="fas fa-home"></i>

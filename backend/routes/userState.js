@@ -49,7 +49,7 @@ router.delete('/progress', async (req, res) => {
             totalSessions: 0, totalGamesPlayed: 0, totalQuestionsAnswered: 0,
             totalCorrectAnswers: 0, totalWrongAnswers: 0, perfectRounds: 0,
             highestScore: 0, totalPlayTime: 0,
-            modeStats: new Map(),
+            modeStats: {},
             practiceHistory: [],
             xpBoostActive: false, xpBoostMultiplier: 1, xpBoostExpiresAt: null,
             coinsBoostActive: false, coinsBoostMultiplier: 1, coinsBoostExpiresAt: null,

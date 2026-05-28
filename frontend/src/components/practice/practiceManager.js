@@ -3,7 +3,7 @@ import { GameState } from '@game/state.js';
 import { Storage } from '@lib/storage.js';
 import { Utils } from '@lib/utils.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
-import { GameLogic } from '@game/gameLogic.js';
+import { GameLogic, vocabLang } from '@game/gameLogic.js';
 import { Http } from '@api/http.js';
 import { Energy } from '@game/energy.js';
 import { Quest } from '@components/quest/quest.js';
@@ -266,7 +266,32 @@ export const PracticeManager = {
                 await SentenceBuilder.start(config);
                 break;
             case 'pronunciation':
-                await PronunciationMode.start(config);
+                if (vocabLang() === 'zh') {
+                    await new Promise((resolve) => {
+                        Modal.show({
+                            title: '⚠️ Tính năng đang phát triển',
+                            content: 'Chế độ phát âm tiếng Trung hiện đang trong giai đoạn phát triển, chưa hoàn thiện. Trong quá trình sử dụng có thể không được như ý. Bạn có chắc muốn tiếp tục?',
+                            buttons: [
+                                {
+                                    text: 'Quay lại',
+                                    className: 'btn-secondary',
+                                    onClick: () => { Modal.close(); resolve(false); }
+                                },
+                                {
+                                    text: 'Tiếp tục',
+                                    className: 'btn-primary',
+                                    onClick: () => { Modal.close(); resolve(true); }
+                                },
+                            ],
+                            onClose: () => resolve(false),
+                        });
+                    }).then(async (confirmed) => {
+                        if (confirmed) await PronunciationMode.start(config);
+                        else PracticeManager.exitPractice?.();
+                    });
+                } else {
+                    await PronunciationMode.start(config);
+                }
                 break;
             case 'context-learning':
                 await ContextLearning.start(config);
@@ -512,6 +537,7 @@ export const PracticeManager = {
     // null nếu không có session.
     async finalizeSession() {
         if (!this.currentSession) return null;
+        if (this.currentSession.completed) return null;
 
         this.stopTimer();
 
@@ -687,8 +713,12 @@ export const PracticeManager = {
                     text: 'Chơi lại',
                     className: 'btn-secondary',
                     onClick: () => {
+                        const mode = this.currentSession.mode;
+                        this.cleanupCurrentMode();
+                        this.cleanupKeyboardShortcuts();
+                        this.currentSession = null;
                         Modal.close();
-                        this.start(this.currentSession.mode);
+                        this.start(mode);
                     }
                 },
                 ...(wrongWordsInSession.length > 0 ? [{
@@ -697,6 +727,9 @@ export const PracticeManager = {
                     onClick: () => {
                         const mode = this.currentSession.mode;
                         PartSelector.retryWords = [...wrongWordsInSession];
+                        this.cleanupCurrentMode();
+                        this.cleanupKeyboardShortcuts();
+                        this.currentSession = null;
                         Modal.close();
                         this.start(mode);
                     }
@@ -706,6 +739,9 @@ export const PracticeManager = {
                     className: 'btn-primary',
                     onClick: () => {
                         Utils.stopAllSounds();
+                        this.cleanupCurrentMode();
+                        this.cleanupKeyboardShortcuts();
+                        this.currentSession = null;
                         Modal.close();
                         UI.showScreen('home-screen');
                     }
@@ -951,6 +987,7 @@ export const PracticeManager = {
             duration: 3000
         });
 
+        this.cleanupCurrentMode();
         this.complete();
     },
 

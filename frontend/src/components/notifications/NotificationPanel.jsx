@@ -32,11 +32,12 @@ function daysLeft(ts) {
 }
 
 export default function NotificationPanel({ isLoggedIn }) {
-    const { badge, items, tab, loading, unreadByTab, seenIds, fetchItems, changeTab, markAllRead, deleteAll, deleteOne, markRead, setBadge } = useNotifications(isLoggedIn);
+    const { badge, items, tab, loading, unreadByTab, seenIds, fetchItems, loadBadge, changeTab, markAllRead, deleteAll, deleteOne, markRead, setBadge } = useNotifications(isLoggedIn);
     const { syncFromState } = useGame();
     const [open, setOpen] = useState(false);
     const [selectedId, setSelectedId] = useState(null);
     const [claimingGift, setClaimingGift] = useState(false);
+    const [claimingAll, setClaimingAll] = useState(false);
 
     // ESC để đóng
     useEffect(() => {
@@ -62,11 +63,45 @@ export default function NotificationPanel({ isLoggedIn }) {
             const { coins = 0, gems = 0, xp = 0 } = res.reward || {};
             GameState.creditServerRewards({ coins, gems, xp });
             syncFromState();
+            window.Utils?.playSound?.(window.Config?.sounds?.reward || 'assets/sounds/achieve.mp3', 0.8);
             Toast.success(`Đã nhận: ${[coins && `+${coins} Coins`, gems && `+${gems} Gems`, xp && `+${xp} XP`].filter(Boolean).join(', ')}`);
-            await fetchItems(tab);
+            await loadBadge();
         } else {
             Toast.error(res.message || 'Không thể nhận quà');
         }
+    }
+
+    async function handleMarkAllRead() {
+        if (claimingAll) return;
+        setClaimingAll(true);
+
+        const unclaimed = items.filter(n => {
+            const g = n.gift;
+            return g && (g.coins || g.gems || g.xp) && !n.giftClaimed;
+        });
+
+        if (unclaimed.length > 0) {
+            const results = await Promise.allSettled(
+                unclaimed.map(n => NotificationsAPI.claimGift(n._id || n.id))
+            );
+            let totalCoins = 0, totalGems = 0, totalXp = 0;
+            for (const r of results) {
+                if (r.status === 'fulfilled' && r.value?.success) {
+                    const { coins = 0, gems = 0, xp = 0 } = r.value.reward || {};
+                    totalCoins += coins; totalGems += gems; totalXp += xp;
+                }
+            }
+            if (totalCoins || totalGems || totalXp) {
+                GameState.creditServerRewards({ coins: totalCoins, gems: totalGems, xp: totalXp });
+                syncFromState();
+                window.Utils?.playSound?.(window.Config?.sounds?.reward || 'assets/sounds/achieve.mp3', 0.8);
+                Toast.success(`Đã nhận tất cả: ${[totalCoins && `+${totalCoins} Coins`, totalGems && `+${totalGems} Gems`, totalXp && `+${totalXp} XP`].filter(Boolean).join(', ')}`);
+            }
+        }
+
+        await markAllRead();
+        await loadBadge();
+        setClaimingAll(false);
     }
 
     async function handleBellClick() {
@@ -84,11 +119,24 @@ export default function NotificationPanel({ isLoggedIn }) {
         [items, selectedId],
     );
 
+    const unclaimedGiftCount = useMemo(
+        () => items.filter(n => {
+            const g = n.gift;
+            return g && (g.coins || g.gems || g.xp) && !n.giftClaimed;
+        }).length,
+        [items],
+    );
+
     return (
         <>
             <button id="notif-btn" className="icon-btn" title="Thông báo" onClick={handleBellClick}>
                 <i className="fas fa-bell"></i>
-                {badge > 0 && <span id="notif-badge" className="notif-badge">{badge}</span>}
+                {unclaimedGiftCount > 0
+                    ? <span id="notif-badge" className="notif-badge">{unclaimedGiftCount}</span>
+                    : badge > 0
+                    ? <span id="notif-badge" className="notif-badge notif-badge-dot" />
+                    : null
+                }
             </button>
 
             {open && (
@@ -251,8 +299,11 @@ export default function NotificationPanel({ isLoggedIn }) {
                             >
                                 <i className="fas fa-trash"></i> Xoá tất cả
                             </button>
-                            <button className="btn btn-primary" onClick={markAllRead}>
-                                <i className="fas fa-check-double"></i> Đánh dấu đã đọc tất cả
+                            <button className="btn btn-primary" onClick={handleMarkAllRead} disabled={claimingAll}>
+                                {claimingAll
+                                    ? <><i className="fas fa-spinner fa-spin"></i> Đang nhận...</>
+                                    : <><i className="fas fa-check-double"></i> {unclaimedGiftCount > 0 ? `Nhận thưởng & đánh dấu đã đọc` : `Đánh dấu đã đọc tất cả`}</>
+                                }
                             </button>
                         </div>
                     </div>

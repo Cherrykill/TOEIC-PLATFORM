@@ -6173,6 +6173,10 @@ mark {
 }
 .spin-modal-wide {
     width: 660px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 .spin-close-btn {
     position: absolute; top: 14px; right: 14px;
@@ -6187,6 +6191,7 @@ mark {
 /* 2-column layout */
 .spin-layout {
     display: flex; gap: 20px; align-items: flex-start;
+    flex: 1; overflow: hidden;
 }
 .spin-col-left {
     display: flex; flex-direction: column; align-items: center;
@@ -6194,7 +6199,7 @@ mark {
 }
 .spin-col-right {
     flex: 1; display: flex; flex-direction: column; gap: 10px;
-    min-width: 0;
+    min-width: 0; overflow-y: auto;
 }
 
 .spin-title {
@@ -6261,6 +6266,37 @@ mark {
 }
 .spin-result-icon { font-size: 22px; }
 
+/* Quantity input */
+.spin-qty-row {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    margin-top: 4px; width: 100%;
+}
+.spin-qty-label {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+}
+.spin-qty-controls {
+    display: flex; align-items: center; gap: 6px;
+}
+.spin-qty-btn {
+    width: 28px; height: 28px; border-radius: 8px;
+    border: 1px solid var(--border-color); background: var(--bg-secondary);
+    color: var(--text-primary); font-size: 16px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+}
+.spin-qty-btn:hover:not(:disabled) { background: var(--bg-hover); }
+.spin-qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.spin-qty-input {
+    width: 56px; text-align: center;
+    padding: 4px 6px; border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card); color: var(--text-primary);
+    font-size: 14px; font-weight: 700;
+    -moz-appearance: textfield;
+}
+.spin-qty-input::-webkit-outer-spin-button,
+.spin-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
 /* Prize list */
 .spin-prizes-title {
     margin: 0; font-size: 14px; font-weight: 700;
@@ -6271,10 +6307,18 @@ mark {
 .spin-prize-row {
     display: flex; align-items: center; gap: 5px;
     font-size: 12px; padding: 4px 8px;
-    background: var(--bg-secondary, #f9fafb);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     border-radius: 6px;
     border-left: 3px solid #ccc;
 }
+
+/* Result summary (multi-spin) */
+.spin-result-summary {
+    background: linear-gradient(135deg, var(--primary-color, #667eea), #764ba2);
+    color: #fff;
+}
+.spin-result-summary .spin-result-text { color: #fff; }
 
 /* Spin button in TopNav */
 .spin-nav-btn {

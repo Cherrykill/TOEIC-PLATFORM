@@ -7,6 +7,7 @@ import { AchievementsAPI } from '@api/achievements.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { GameState } from '@game/state.js';
+import { EventBus, GameEvents } from '@game/eventBus.js';
 
 const CATEGORIES = [
     { key: 'all',      label: 'Tất cả',    icon: 'fa-star' },
@@ -154,6 +155,7 @@ export default function AchievementsScreen({ active }) {
             }
             Utils.playSound(Config.sounds.achievement, 0.6, { ignoreSettings: true });
             Notification.success('Nhận thưởng thành công!');
+            EventBus.emit(GameEvents.ACHIEVEMENT_UNLOCKED, { achievementId });
             syncFromState();
         } else {
             Notification.error(res.message || 'Không thể nhận thưởng');

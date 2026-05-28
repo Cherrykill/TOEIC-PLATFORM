@@ -392,24 +392,39 @@ export const Utils = {
     },
 
     /**
-     * Calculate XP needed for level
-     * Progressive formula: higher levels need exponentially more XP
-     * Level 1: 100 XP, Level 10: ~630 XP, Level 50: ~7,900 XP, Level 100: ~25,000 XP
+     * Get rank title for a given level.
+     * Titles unlock at milestones: 1, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100.
+     */
+    getLevelTitle(level) {
+        const tiers = [
+            { min: 100, icon: '🌈', title: 'TOEIC Master' },
+            { min: 90,  icon: '🔱', title: 'Siêu Việt Nhân' },
+            { min: 80,  icon: '⚡', title: 'Thần Tốc Tri Tuệ' },
+            { min: 70,  icon: '🌙', title: 'Huyền Thoại' },
+            { min: 60,  icon: '🏆', title: 'Cao Thủ Bách Chiến' },
+            { min: 50,  icon: '👑', title: 'Bá Chủ TOEIC' },
+            { min: 40,  icon: '💎', title: 'Kim Cương Tri Thức' },
+            { min: 30,  icon: '🌟', title: 'Tinh Anh' },
+            { min: 20,  icon: '🔥', title: 'Chiến Binh TOEIC' },
+            { min: 10,  icon: '🎯', title: 'Học Giả' },
+            { min: 5,   icon: '📚', title: 'Học Viên' },
+            { min: 1,   icon: '🌱', title: 'Tân Binh' },
+        ];
+        const tier = tiers.find(t => level >= t.min) || tiers[tiers.length - 1];
+        return { icon: tier.icon, title: tier.title, full: `${tier.icon} ${tier.title}` };
+    },
+
+    /**
+     * Calculate XP needed to advance from `level` to `level+1`.
+     * Formula: floor(100 × level^1.5) — smooth curve, early levels fast, endgame requires real grind.
+     * Examples: L1→100, L5→1118, L10→3162, L50→35355, L100→100000
      */
     getXpForLevel(level) {
         const maxLevel = Config?.game?.maxLevel || 100;
 
-        // If at max level, return 0 (no more XP needed)
-        if (level >= maxLevel) {
-            return 0;
-        }
+        if (level >= maxLevel) return 0;
 
-        // Progressive formula: XP = baseXP * level^1.6
-        // This creates a nice curve where early levels are achievable
-        // but higher levels require significantly more effort
-        const baseXP = 100;
-        const exponent = 1.6;
-        return Math.floor(baseXP * Math.pow(level, exponent));
+        return Math.floor(100 * Math.pow(level, 1.5));
     },
 
     /**

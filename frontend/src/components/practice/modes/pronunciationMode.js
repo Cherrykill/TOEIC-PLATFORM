@@ -164,52 +164,50 @@ export const PronunciationMode = {
         const langFlag  = isZh ? '🇨🇳' : '🇬🇧';
 
         container.innerHTML = `
-            <div class="question-container pronunciation-container">
-                <div class="question-prompt">
-                    <h3>🎤 Phát âm từ ${langLabel} ${langFlag}</h3>
-                    <div class="instruction-box">
-                        <p><i class="fas fa-info-circle"></i> <strong>Cách chơi:</strong> Click vào mic và phát âm từ ${langLabel}. Bạn có tối đa ${this.config.maxAttempts} lần thử.</p>
-                    </div>
-                </div>
+            <div class="question-container pronunciation-container" style="display:flex;flex-direction:column;gap:16px;padding:16px 12px;">
 
-                <div class="pronunciation-word-display">
-                    <div class="word-to-pronounce">
-                        <div class="word-label">Từ cần phát âm:</div>
-                        <div class="word-text" id="word-text-speak" title="Nhấn để nghe phát âm" style="cursor:pointer;${isZh ? 'font-size:2em;letter-spacing:4px;' : ''}">${question.wordPk} <i class="fas fa-volume-up" style="font-size:0.45em;opacity:0.5;margin-left:4px;"></i></div>
-                        ${question.word.phonetic ? `<div style="color:var(--text-secondary);font-size:0.9em;">[${question.word.phonetic}]</div>` : ''}
-                        <div class="word-meaning">
-                            <span class="word-type-badge">${question.wordType}</span>
-                            <span class="word-translation">${question.wordVn}</span>
+                <!-- Word card + mic side by side -->
+                <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+
+                    <!-- Word info -->
+                    <div class="pronunciation-word-display" style="flex:1;min-width:0;">
+                        <div class="word-to-pronounce" style="padding:16px 20px;">
+                            <div class="word-text" id="word-text-speak" title="Nhấn để nghe phát âm"
+                                style="cursor:pointer;${isZh ? 'font-size:2em;letter-spacing:4px;' : 'font-size:1.8em;'};margin-bottom:4px;">
+                                ${question.wordPk}
+                                <i class="fas fa-volume-up" style="font-size:0.4em;opacity:0.5;margin-left:6px;"></i>
+                            </div>
+                            ${question.word.phonetic ? `<div style="color:var(--text-secondary);font-size:0.85em;margin-bottom:6px;">[${question.word.phonetic}]</div>` : ''}
+                            <div class="word-meaning" style="margin-top:4px;">
+                                <span class="word-type-badge">${question.wordType}</span>
+                                <span class="word-translation">${question.wordVn}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="pronunciation-mic-container">
-                    <button class="mic-button" id="mic-btn" title="Click để bắt đầu phát âm">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <div class="mic-status" id="mic-status">Click vào mic để bắt đầu</div>
-                </div>
-
-                <div class="attempts-counter">
-                    <div class="attempts-label">Số lần thử:</div>
-                    <div class="attempts-dots" id="attempts-dots">
-                        ${Array(this.config.maxAttempts).fill(0).map((_, i) =>
-                            `<span class="attempt-dot ${i < this.currentAttempts ? 'used' : ''}"></span>`
-                        ).join('')}
+                    <!-- Mic + status + attempts + replay stacked -->
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex-shrink:0;">
+                        <button class="mic-button" id="mic-btn" title="Click để phát âm" style="width:72px;height:72px;font-size:1.6em;">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                        <div class="mic-status" id="mic-status" style="font-size:0.75em;text-align:center;max-width:120px;">
+                            Click mic để bắt đầu
+                        </div>
+                        <div id="attempts-dots" style="display:flex;gap:6px;align-items:center;">
+                            ${Array(this.config.maxAttempts).fill(0).map((_, i) =>
+                                `<span class="attempt-dot ${i < this.currentAttempts ? 'used' : ''}"></span>`
+                            ).join('')}
+                        </div>
+                        <button class="btn btn-secondary" id="replay-btn" style="font-size:0.85em;padding:6px 14px;margin-top:2px;">
+                            <i class="fas fa-volume-up"></i> Nghe lại
+                        </button>
+                        <span style="font-size:0.72em;color:var(--text-secondary);text-align:center;max-width:130px;">
+                            Phát âm ${langLabel} ${langFlag}<br>tối đa ${this.config.maxAttempts} lần thử
+                        </span>
                     </div>
                 </div>
 
-                <div class="pronunciation-actions">
-                    <button class="btn btn-secondary" id="replay-btn">
-                        <i class="fas fa-volume-up"></i> Nghe lại
-                    </button>
-                    <button class="btn btn-danger" id="skip-btn">
-                        <i class="fas fa-forward"></i> Bỏ qua
-                    </button>
-                </div>
-
-                <div class="recognition-result" id="recognition-result" style="display: none;"></div>
+                <div class="recognition-result" id="recognition-result" style="display:none;margin-top:4px;"></div>
             </div>
         `;
 
@@ -219,23 +217,16 @@ export const PronunciationMode = {
     attachListeners() {
         const micBtn = document.getElementById('mic-btn');
         const replayBtn = document.getElementById('replay-btn');
-        const skipBtn = document.getElementById('skip-btn');
+        const toolbarSkipBtn = document.getElementById('skip-btn');
 
-        micBtn?.addEventListener('click', () => {
-            this.toggleListening();
-        });
-
+        micBtn?.addEventListener('click', () => this.toggleListening());
+        replayBtn?.addEventListener('click', () => this.replayWord());
         document.getElementById('word-text-speak')?.addEventListener('click', () => {
             GameLogic.speakWord(this.currentWord, ttsLang());
         });
 
-        replayBtn?.addEventListener('click', () => {
-            this.replayWord();
-        });
-
-        skipBtn?.addEventListener('click', () => {
-            this.skipQuestion();
-        });
+        // Toolbar skip-btn → dùng PronunciationMode.skipQuestion thay vì PracticeManager.skipQuestion
+        if (toolbarSkipBtn) toolbarSkipBtn.onclick = () => this.skipQuestion();
     },
 
     toggleListening() {

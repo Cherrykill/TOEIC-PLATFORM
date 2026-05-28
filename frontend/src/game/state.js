@@ -137,6 +137,19 @@ export const GameState = {
             // Luôn reset về Toàn bộ mỗi lần load — không giữ số câu cũ.
             this.state.settings.questionsPerSession = 'auto';
 
+            // Normalize XP: server may store cumulative XP rather than
+            // current-level XP. Shed completed level(s) so user.xp is always
+            // < getXpForLevel(user.level) and the XP bar renders correctly.
+            {
+                const maxLv = Config.game?.maxLevel || 100;
+                let needed = Utils.getXpForLevel(this.state.user.level);
+                while (needed > 0 && this.state.user.xp >= needed && this.state.user.level < maxLv) {
+                    this.state.user.xp -= needed;
+                    this.state.user.level++;
+                    needed = Utils.getXpForLevel(this.state.user.level);
+                }
+            }
+
             if (cleanState.resources?.energy !== undefined) {
                 this.state.resources.lastEnergyUpdate = Date.now();
             }
@@ -514,6 +527,7 @@ export const GameState = {
             this.state.user.xp += xp;
             this.state.user.totalXp = (this.state.user.totalXp || 0) + xp;
             EventBus.emit(GameEvents.USER_XP_GAINED, { amount: xp, multiplier: 1 });
+            this.checkLevelUp().catch(() => {});
         }
     },
 
@@ -759,6 +773,22 @@ export const GameState = {
     },
 
     async reset() {
+        // Wipe in-memory progress so deepMerge in init() doesn't preserve
+        // stale keys (e.g. favoriteWords) that the server response omits.
+        Object.assign(this.state.progress, {
+            wordsLearned: [], wordsMastered: [], favoriteWords: [],
+            wrongWords: [], totalGamesPlayed: 0, totalCorrectAnswers: 0,
+            totalWrongAnswers: 0, perfectRounds: 0, highestScore: 0,
+            totalPlayTime: 0, modeStats: {},
+        });
+        this.state.resources = { energy: 100, maxEnergy: 100, coins: 0, gems: 0, hints: 0, shields: 0, timeFreezes: 0, lastEnergyUpdate: Date.now() };
+        this.state.streak = { current: 0, longest: 0, lastPlayDate: null, shieldsUsed: 0 };
+        this.state.achievements = [];
+        this.state.practiceHistory = [];
+        this.state.user.level = 1;
+        this.state.user.xp = 0;
+        this.state.user.totalXp = 0;
+
         await Storage.remove('gameState');
         await this.init();
         EventBus.emit(GameEvents.GAME_RESET);

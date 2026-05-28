@@ -4,6 +4,7 @@ import { useAuth } from '@components/auth/AuthContext.jsx';
 import { API } from '@api/http.js';
 import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
+import { Utils } from '@lib/utils.js';
 
 export default function ProfileScreen({ active }) {
     const { showScreen, user, resources, streak, syncFromState } = useGame();
@@ -88,8 +89,9 @@ export default function ProfileScreen({ active }) {
 
     const level = user?.level || 1;
     const xp = user?.xp || 0;
-    const neededXp = user?.neededXp || 100;
-    const xpPercent = neededXp > 0 ? Math.min(100, Math.round((xp / neededXp) * 100)) : 0;
+    const neededXp = Utils.getXpForLevel(level) || 100;
+    const xpPercent = neededXp > 0 ? Math.min(100, Math.round((xp / neededXp) * 100)) : 100;
+    const levelTitle = Utils.getLevelTitle(level);
     const userId = user?.id || user?._id || '—';
 
     const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -182,6 +184,9 @@ export default function ProfileScreen({ active }) {
                         <div className="profile-info-row">
                             <i className="fas fa-star" style={{ color: '#fbbf24' }}></i>
                             <span style={{ fontWeight: 600 }}>Level {level}</span>
+                            <span style={{ fontSize: '0.8em', background: 'rgba(255,255,255,0.15)', color: '#fff', padding: '2px 10px', borderRadius: 10, fontWeight: 600 }}>
+                                {levelTitle.full}
+                            </span>
                             {user?.role === 'admin' && (
                                 <span style={{ fontSize: '0.75em', background: '#ef4444', color: '#fff', padding: '1px 8px', borderRadius: 10, fontWeight: 600 }}>Admin</span>
                             )}

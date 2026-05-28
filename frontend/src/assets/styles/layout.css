@@ -165,29 +165,33 @@
 .coins-display i { color: var(--coins-color); }
 .gems-display i { color: var(--gems-color); }
 
-/* Compact resources inside status bar */
+/* Compact resources inside status bar — all pills share the same radius */
 .status-bar .resource {
     padding: 2px 8px;
     font-size: 12px;
     gap: 4px;
     background-color: var(--bg-secondary);
+    border-radius: 20px;
 }
 
 .status-bar .part-badge {
     margin-left: 0;
     padding: 3px 8px;
     font-size: 12px;
+    border-radius: 20px;
 }
 
 .status-bar .session-info-badge {
     margin-left: 0;
     padding: 3px 8px;
     font-size: 11px;
+    border-radius: 20px;
 }
 
 .status-bar .quick-difficulty-selector select {
     padding: 2px 6px;
     font-size: 12px;
+    border-radius: 20px;
 }
 
 .resource-max {
@@ -454,6 +458,15 @@
     justify-content: center;
     pointer-events: none;
     line-height: 1;
+}
+.notif-badge-dot {
+    min-width: 8px;
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    top: 5px;
+    right: 5px;
+    border-radius: 50%;
 }
 
 .notif-panel {

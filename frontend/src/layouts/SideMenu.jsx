@@ -1,12 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
-import { Quest } from '@components/quest/quest.js';
-import { calculateProgress } from '@components/achievements/AchievementsScreen.jsx';
-import { authHeaders } from '@/auth/token.js';
-import { CheckinAPI } from '@api/checkin.js';
+import { useMenuBadges } from './useMenuBadges.js';
 
-const menuItems = [
+const MENU_ITEMS = [
     { label: 'Hồ sơ',          icon: 'fa-user',             screen: 'profile-screen' },
     { label: 'Nhiệm vụ',       icon: 'fa-tasks',            screen: 'quest-screen',        badgeKey: 'quest' },
     { label: 'Bảng xếp hạng',  icon: 'fa-trophy',           screen: 'leaderboard-screen',  badgeKey: 'online',       badgeStyle: 'info' },
@@ -17,76 +14,13 @@ const menuItems = [
     { label: 'Cài đặt',        icon: 'fa-cog',              screen: 'settings-screen' },
 ];
 
-// Đếm quest đã hoàn thành nhưng chưa claim trên tất cả 4 loại quest hiện cache.
-function countUnclaimedQuests() {
-    let n = 0;
-    for (const type of ['daily', 'weekly', 'monthly', 'special']) {
-        const list = Quest.getQuests?.(type) || [];
-        for (const q of list) if (q.completed && !q.claimedAt && !q.claimed) n++;
-    }
-    return n;
-}
-
-// Đếm thành tích claimable: chưa unlock + đã đạt target (theo evaluator FE).
-function countClaimableAchievements() {
-    const all = window.GameState?.state?.achievements || [];
-    let n = 0;
-    for (const ach of all) {
-        if (ach.unlocked) continue;
-        const { current } = calculateProgress(ach);
-        if (current >= (ach.conditionValue || 1)) n++;
-    }
-    return n;
-}
-
 export default function SideMenu() {
     const { menuOpen, setMenuOpen, showScreen, currentScreen } = useGame();
     const { isLoggedIn, setAuthModal, logout } = useAuth();
-    const [badges, setBadges] = useState({ quest: 0, achievement: 0, online: 0, shopDiscount: 0 });
+    const { badges, refresh } = useMenuBadges(isLoggedIn);
 
-    // Mỗi lần mở menu (hoặc login state đổi): tính lại badge. Local data
-    // (quest/achievement) lấy ngay từ cache; số online + shop discount gọi
-    // API nhẹ. Đóng menu thì không fetch.
-    useEffect(() => {
-        if (!menuOpen) return;
-        let cancelled = false;
-
-        const unclaimedQuests = countUnclaimedQuests();
-        setBadges(b => ({
-            ...b,
-            quest: unclaimedQuests,
-            achievement: countClaimableAchievements(),
-        }));
-
-        if (!isLoggedIn) return;
-
-        // Checkin due today?
-        CheckinAPI.get().then(res => {
-            if (cancelled || !res.success) return;
-            const { currentDay, claimedDays } = res.data || {};
-            const due = currentDay > 0 && !(claimedDays || []).includes(currentDay);
-            if (due) setBadges(b => ({ ...b, quest: b.quest + 1 }));
-        }).catch(() => {});
-
-        // Online users
-        fetch('/api/leaderboard/online-count', { headers: authHeaders() })
-            .then(r => r.json())
-            .then(res => { if (!cancelled && res?.success) setBadges(b => ({ ...b, online: res.count || 0 })); })
-            .catch(() => {});
-
-        // Shop discounted item count
-        fetch('/api/shop/items', { headers: authHeaders() })
-            .then(r => r.json())
-            .then(res => {
-                if (cancelled) return;
-                const items = res?.items || res?.data || [];
-                const n = items.filter(it => (it.discountPercent || 0) > 0).length;
-                setBadges(b => ({ ...b, shopDiscount: n }));
-            })
-            .catch(() => {});
-
-        return () => { cancelled = true; };
-    }, [menuOpen, isLoggedIn]);
+    // Refresh badges each time the menu opens
+    useEffect(() => { if (menuOpen) refresh(); }, [menuOpen, refresh]);
 
     const handleNav = (screen) => {
         showScreen(screen);
@@ -114,7 +48,7 @@ export default function SideMenu() {
 
                 {/* Nav — matches .menu-nav in CSS */}
                 <nav className="menu-nav">
-                    {menuItems.map(item => {
+                    {MENU_ITEMS.map(item => {
                         const n = item.badgeKey ? badges[item.badgeKey] : 0;
                         return (
                             <button
