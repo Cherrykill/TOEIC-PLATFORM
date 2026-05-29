@@ -116,6 +116,7 @@ export const GameEvents = {
     // User events
     USER_LOGIN: 'user:login',
     USER_LOGOUT: 'user:logout',
+    AUTH_EXPIRED: 'auth:expired',
     USER_LEVEL_UP: 'user:levelUp',
     USER_XP_GAINED: 'user:xpGained',
     

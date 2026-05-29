@@ -65,6 +65,12 @@ export const Http = {
                 data = await response.text();
             }
 
+            if (response.status === 401) {
+                // Chỉ emit nếu request có token (đang đăng nhập nhưng token hết hạn)
+                if (Http._getToken()) EventBus.emit('auth:expired');
+                return { success: false, error: data.message || 'Token expired', code: 'UNAUTHORIZED' };
+            }
+
             if (response.status === 423) {
                 const lockType = data.lockType || 'unknown';
                 EventBus.emit('account:locked', { lockType, message: data.message });

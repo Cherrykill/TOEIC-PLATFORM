@@ -8,16 +8,32 @@ import { Config } from '@game/config.js';
 
 const DAY_LABELS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
 
+const FALLBACK_REWARDS = [
+    { day: 1, icon: '🪙', label: '+100 Coins' },
+    { day: 2, icon: '⭐', label: '+50 XP' },
+    { day: 3, icon: '💎', label: '+5 Gems' },
+    { day: 4, icon: '🪙', label: '+250 Coins' },
+    { day: 5, icon: '⭐', label: '+150 XP' },
+    { day: 6, icon: '💎', label: '+10 Gems' },
+    { day: 7, icon: '🎁', label: 'COMBO +500/300/20' },
+];
+
 export default function CheckinModal({ open, onClose }) {
     const { syncFromState } = useGame();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [loadFailed, setLoadFailed] = useState(false);
     const [busy, setBusy] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
+        setLoadFailed(false);
         const res = await CheckinAPI.get();
-        if (res.success) setData(res.data);
+        if (res.success) {
+            setData(res.data);
+        } else {
+            setLoadFailed(true);
+        }
         setLoading(false);
     }, []);
 
@@ -36,7 +52,7 @@ export default function CheckinModal({ open, onClose }) {
 
     const claimed = new Set(data?.claimedDays || []);
     const today = data?.currentDay || 0;
-    const rewards = data?.rewards || [];
+    const rewards = data?.rewards?.length ? data.rewards : FALLBACK_REWARDS;
 
     async function handleClaim() {
         if (busy) return;
@@ -72,7 +88,14 @@ export default function CheckinModal({ open, onClose }) {
                     <div className="checkin-loading"><i className="fas fa-spinner fa-spin"></i> Đang tải...</div>
                 ) : (
                     <>
-                        <div className="checkin-grid">
+                        {loadFailed && (
+                            <div className="checkin-error-banner">
+                                <i className="fas fa-exclamation-circle"></i> Không thể tải dữ liệu.{' '}
+                                <button className="checkin-retry-btn" onClick={load}>Thử lại</button>
+                            </div>
+                        )}
+
+                        <div className={`checkin-grid${loadFailed ? ' checkin-grid--faded' : ''}`}>
                             {rewards.map(r => {
                                 const isClaimed = claimed.has(r.day);
                                 const isToday = r.day === today;
@@ -101,13 +124,15 @@ export default function CheckinModal({ open, onClose }) {
                             <button
                                 className="checkin-claim-btn"
                                 onClick={handleClaim}
-                                disabled={!canClaimToday || busy}
+                                disabled={!canClaimToday || busy || loadFailed}
                             >
-                                {canClaimToday
-                                    ? <><i className="fas fa-gift"></i> Nhận thưởng hôm nay</>
-                                    : claimed.has(today)
-                                        ? <><i className="fas fa-check"></i> Đã điểm danh hôm nay</>
-                                        : 'Chưa đến ngày'}
+                                {loadFailed
+                                    ? <><i className="fas fa-wifi"></i> Lỗi kết nối</>
+                                    : canClaimToday
+                                        ? <><i className="fas fa-gift"></i> Nhận thưởng hôm nay</>
+                                        : claimed.has(today)
+                                            ? <><i className="fas fa-check"></i> Đã điểm danh hôm nay</>
+                                            : 'Chưa đến ngày'}
                             </button>
                         </div>
                     </>

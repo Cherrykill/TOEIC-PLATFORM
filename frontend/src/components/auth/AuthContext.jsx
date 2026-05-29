@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { API } from '@api/http.js';
 import { ServerStorage } from '@lib/serverStorage.js';
 import { Storage } from '@lib/storage.js';
@@ -109,6 +109,20 @@ export function AuthProvider({ children }) {
         setIsServerSynced(true);
         return res.success;
     }, [getToken, setUser, logout]);
+
+    // Auto-logout khi bất kỳ API nào trả 401 (token expired)
+    const logoutHandledRef = useRef(false);
+    const isLoggedInRef = useRef(isLoggedIn);
+    useEffect(() => { isLoggedInRef.current = isLoggedIn; }, [isLoggedIn]);
+    useEffect(() => {
+        const handler = () => {
+            if (logoutHandledRef.current || !isLoggedInRef.current) return;
+            logoutHandledRef.current = true;
+            logout();
+        };
+        EventBus.on(GameEvents.AUTH_EXPIRED, handler);
+        return () => EventBus.off(GameEvents.AUTH_EXPIRED, handler);
+    }, [logout]);
 
     const value = {
         isLoggedIn,
