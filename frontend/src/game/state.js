@@ -561,6 +561,15 @@ export const GameState = {
         const daysDiff = Math.floor((today - lastPlayDay) / 86400000);
 
         if (daysDiff === 0) {
+            // Đã chơi hôm nay rồi. Nhưng nếu current = 0 (data cũ bị lỗi),
+            // thì việc chơi hôm nay nghĩa là streak phải >= 1 → sửa lại.
+            if (this.state.streak.current < 1) {
+                this.state.streak.current = 1;
+                if (this.state.streak.current > this.state.streak.longest) {
+                    this.state.streak.longest = this.state.streak.current;
+                }
+                EventBus.emit(GameEvents.STREAK_UPDATED, this.state.streak);
+            }
             return;
         } else if (daysDiff === 1) {
             this.state.streak.current++;

@@ -17,6 +17,9 @@ export default function PracticeScreen({ active }) {
     const [freezeCount, setFreezeCount] = useState(0);
     const [engineLoaded, setEngineLoaded] = useState(false);
     const [engineLoading, setEngineLoading] = useState(false);
+    const [timerVisible, setTimerVisible] = useState(
+        () => GameState.state?.settings?.timeLimitEnabled !== false
+    );
 
     // Expose React state setters to window so vanilla JS can update practice header
     useEffect(() => {
@@ -35,12 +38,14 @@ export default function PracticeScreen({ active }) {
             if (total !== undefined) setTotalQuestions(total);
         };
         window._reactSetFreezeCount = (n) => setFreezeCount(n);
+        window._reactSetTimerVisible = (v) => setTimerVisible(v);
         return () => {
             delete window._reactSetPracticeHeader;
             delete window._reactSetPracticeScore;
             delete window._reactSetPracticeTimer;
             delete window._reactSetPracticeProgress;
             delete window._reactSetFreezeCount;
+            delete window._reactSetTimerVisible;
         };
     }, []);
 
@@ -95,10 +100,12 @@ export default function PracticeScreen({ active }) {
                     </div>
                 </div>
                 <FavoriteButton />
-                <div className="practice-timer">
-                    <i className="fas fa-clock"></i>
-                    <span id="practice-timer">{timer}</span>
-                </div>
+                {timerVisible && (
+                    <div className="practice-timer">
+                        <i className="fas fa-clock"></i>
+                        <span id="practice-timer">{timer}</span>
+                    </div>
+                )}
             </div>
 
             <div className="practice-score-bar">

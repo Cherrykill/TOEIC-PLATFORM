@@ -596,6 +596,8 @@ export const PracticeManager = {
             });
         }
 
+        // Cập nhật streak local ngay (không phụ thuộc vào backend response)
+        await GameState.updateStreak();
         await GameState.save();
 
         Http.post('/practice/submit', {
@@ -629,8 +631,6 @@ export const PracticeManager = {
         Quest.updateProgress('complete-games', 1);
         Quest.updateProgress('play-mode', 1, mode);
         Quest.updateProgress('earn-xp', xpReward);
-
-        Leaderboard.submitScore(scoreData.totalScore);
 
         GameState.checkAchievements();
         } catch (err) {
@@ -960,21 +960,10 @@ export const PracticeManager = {
     },
 
     updateTimerDisplay(seconds, hide = false) {
+        window._reactSetTimerVisible?.(!hide);
+        if (hide) return;
+
         const timerEl = document.getElementById('practice-timer');
-        if (!timerEl) return;
-
-        const timerContainer = timerEl.parentElement;
-
-        if (hide) {
-            if (timerContainer) {
-                timerContainer.style.display = 'none';
-            }
-            return;
-        } else {
-            if (timerContainer) {
-                timerContainer.style.display = 'flex';
-            }
-        }
 
         const minutes = Math.floor(seconds / 60);
         const secs = seconds % 60;

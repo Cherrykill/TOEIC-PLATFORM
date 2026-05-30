@@ -82,6 +82,11 @@ exports.submitSession = async (req, res, next) => {
                     }
                     stats.streakLastPlayDate = new Date();
                     await stats.save();
+                } else if (stats.streakCurrent < 1) {
+                    // Đã chơi hôm nay nhưng streak = 0 (data cũ bị lỗi) → sửa lên 1
+                    stats.streakCurrent = 1;
+                    if (stats.streakCurrent > stats.streakLongest) stats.streakLongest = stats.streakCurrent;
+                    await stats.save();
                 }
 
                 return res.status(201).json({
