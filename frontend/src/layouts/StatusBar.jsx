@@ -115,16 +115,20 @@ export default function StatusBar() {
             <div className="status-bar-right">
                 <div className="quick-difficulty-selector" title="Số câu hỏi mỗi lượt">
                     <select id="quick-questions-select" value={questionsPerSession} onChange={handleQuestionsChange}>
-                        {[5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200].map(n => (
-                            <option key={n} value={n}>{n} câu</option>
-                        ))}
+                        <option value={5}>5 — Khởi động</option>
+                        <option value={10}>10 — Dễ</option>
+                        <option value={20}>20 — Bình thường</option>
+                        <option value={30}>30 — Tập trung</option>
+                        <option value={50}>50 — Khó</option>
+                        <option value={100}>100 — Rất khó</option>
+                        <option value={200}>200 — Thử thách</option>
                         <option value="auto">Toàn bộ</option>
                     </select>
                 </div>
                 <div className="quick-difficulty-selector" title="Độ khó câu hỏi">
                     <select id="quick-difficulty-select" value={difficulty} onChange={handleDifficultyChange}>
                         <option value="easy">Dễ (A1-A2)</option>
-                        <option value="medium">TB (B1-B2)</option>
+                        <option value="medium">Trung bình (B1-B2)</option>
                         <option value="hard">Khó (C1-C2)</option>
                         <option value="adaptive">Toàn bộ</option>
                     </select>

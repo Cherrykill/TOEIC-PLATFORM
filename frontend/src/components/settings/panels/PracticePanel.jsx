@@ -8,8 +8,14 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
             <div className="setting-item">
                 <label>Số câu mỗi lượt</label>
                 <select value={s.questionsPerSession ?? 'auto'} onChange={e => handleQPS(e.target.value)}>
-                    {[5, 10, 15, 20, 25, 30, 50, 100].map(n => <option key={n} value={n}>{n} câu</option>)}
-                    <option value="auto">Toàn bộ (auto)</option>
+                    <option value={5}>5 — Khởi động</option>
+                    <option value={10}>10 — Dễ</option>
+                    <option value={20}>20 — Bình thường</option>
+                    <option value={30}>30 — Tập trung</option>
+                    <option value={50}>50 — Khó</option>
+                    <option value={100}>100 — Rất khó</option>
+                    <option value={200}>200 — Thử thách</option>
+                    <option value="auto">Toàn bộ</option>
                 </select>
             </div>
             <div className="setting-item">

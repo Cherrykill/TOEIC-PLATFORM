@@ -145,9 +145,6 @@ export default function TopNav() {
             </div>
 
             <div className="nav-right">
-                <button id="nav-favorite-btn" className="icon-btn" title="Danh sách từ yêu thích" onClick={() => setFavOpen(true)}>
-                    <i className="fas fa-star"></i>
-                </button>
                 <button id="topic-selector-btn" className="icon-btn" title="Chọn chủ đề từ vựng" onClick={() => setTopicOpen(true)}>
                     <i className="fas fa-book"></i>
                 </button>
@@ -156,6 +153,9 @@ export default function TopNav() {
                 </button>
                 <button id="upload-btn" className="icon-btn" title="Tải lên từ vựng" onClick={openUploadModal}>
                     <i className="fas fa-cloud-upload-alt"></i>
+                </button>
+                <button id="nav-favorite-btn" className="icon-btn" title="Danh sách từ yêu thích" onClick={() => setFavOpen(true)}>
+                    <i className="fas fa-star"></i>
                 </button>
                 <button
                     id="theme-toggle-btn"

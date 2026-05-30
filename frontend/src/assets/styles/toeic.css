@@ -843,6 +843,11 @@
   padding: var(--spacing-lg);
   background-color: var(--bg-secondary);
   border-radius: var(--border-radius-large);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .analytics-card {
+  background-color: var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .analytics-value {
@@ -1207,6 +1212,11 @@
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
   box-shadow: var(--shadow-light);
+  border: 1px solid var(--border-color);
+}
+[data-theme="light"] .analytics-chart-card {
+  background-color: var(--bg-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .analytics-chart-card.full-width {

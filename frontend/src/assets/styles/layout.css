@@ -80,7 +80,7 @@
     cursor: pointer;
     outline: none;
     transition: border-color 0.2s ease;
-    min-width: 80px;
+    width: 130px;
 }
 
 .quick-difficulty-selector select:hover {
