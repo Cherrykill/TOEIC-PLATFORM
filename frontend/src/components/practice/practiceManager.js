@@ -13,6 +13,7 @@ import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { SessionService } from './sessionService.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
+import { ReviewOverlay } from './ReviewOverlay.js';
 import { Flashcard } from './modes/flashcard.js';
 import { MultipleChoice } from './modes/multipleChoice.js';
 import { Matching } from './modes/matching.js';
@@ -158,7 +159,8 @@ export const PracticeManager = {
             wrongAnswers: 0,
             score: 0,
             completed: false,
-            wrongWordsInSession: []
+            wrongWordsInSession: [],
+            answerHistory: [],
         };
 
         UI.showScreen('practice-screen');
@@ -460,8 +462,17 @@ export const PracticeManager = {
         return messages[Math.floor(Math.random() * messages.length)];
     },
 
-    recordAnswer(isCorrect, word) {
+    recordAnswer(isCorrect, word, meta = {}) {
         if (!this.currentSession) return;
+
+        this.currentSession.answerHistory.push({
+            word,
+            isCorrect,
+            userAnswer: meta.userAnswer ?? null,
+            correctAnswer: meta.correctAnswer ?? (word?.vn || word?.vi || null),
+            questionText: meta.questionText ?? null,
+            options: meta.options ?? null,
+        });
 
         if (isCorrect) {
             this.currentSession.correctAnswers++;
@@ -641,6 +652,7 @@ export const PracticeManager = {
 
     showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus = 0) {
         const wrongWordsInSession = this.currentSession?.wrongWordsInSession || [];
+        const answerHistory = this.currentSession?.answerHistory || [];
         const performance = GameLogic.getPerformanceRating(
             this.currentSession.correctAnswers,
             this.currentSession.correctAnswers + this.currentSession.wrongAnswers
@@ -733,6 +745,12 @@ export const PracticeManager = {
                         Modal.close();
                         this.start(mode);
                     }
+                }] : []),
+                ...(answerHistory.length > 0 ? [{
+                    text: 'Xem lại câu sai',
+                    className: 'btn-info',
+                    closeOnClick: false,
+                    onClick: () => ReviewOverlay.show(answerHistory),
                 }] : []),
                 {
                     text: 'Về trang chủ',

@@ -178,7 +178,7 @@ export default function SpinWheelModal({ open, onClose }) {
         const prizeIndex = lastResult.prizeIndex;
         const nextAt = lastResult.nextSpinAt ? new Date(lastResult.nextSpinAt) : null;
 
-        spinSoundRef.current = playSound('spin.mp3', { loop: false, volume: 0.7 });
+        spinSoundRef.current = playSound('spin.mp3', { loop: true, volume: 0.7 });
 
         const segCenter = prizeIndex * SEG + SEG / 2;
         const jitter = (Math.random() - 0.5) * 20;

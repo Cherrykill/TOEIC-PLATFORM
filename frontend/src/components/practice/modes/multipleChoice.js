@@ -151,10 +151,16 @@ export const MultipleChoice = {
         choices.forEach(btn => btn.disabled = true);
 
         const isCorrect = index === question.correctIndex;
+        const meta = {
+            userAnswer: question.options[index],
+            correctAnswer: question.correctAnswer,
+            questionText: question.question,
+            options: question.options,
+        };
 
         if (isCorrect) {
             choices[index].classList.add('correct');
-            PracticeManager.recordAnswer(true, question.word);
+            PracticeManager.recordAnswer(true, question.word, meta);
 
             if (GameState.state.settings.soundEnabled) {
                 Utils.playSound(Config.sounds.correct, 0.5);
@@ -162,7 +168,7 @@ export const MultipleChoice = {
         } else {
             choices[index].classList.add('wrong');
             choices[question.correctIndex].classList.add('correct');
-            PracticeManager.recordAnswer(false, question.word);
+            PracticeManager.recordAnswer(false, question.word, meta);
 
             if (GameState.state.settings.soundEnabled) {
                 Utils.playSound(Config.sounds.wrong, 0.5);

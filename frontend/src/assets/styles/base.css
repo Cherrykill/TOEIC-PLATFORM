@@ -221,6 +221,13 @@ button {
     color: var(--text-white);
 }
 
+.btn-info {
+    background-color: #0ea5e9;
+    color: #fff;
+    font-weight: 600;
+}
+.btn-info:hover { background-color: #0284c7; }
+
 .btn-disabled,
 .btn:disabled {
     opacity: 0.5;

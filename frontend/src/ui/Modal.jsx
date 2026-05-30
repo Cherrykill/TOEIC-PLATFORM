@@ -39,7 +39,7 @@ export default function ModalContainer() {
 
     return (
         <div id="modal-container" className="active">
-            <div className="modal-backdrop" onClick={close}></div>
+            <div className="modal-backdrop" onClick={modal.closeOnBackdrop !== false ? close : undefined}></div>
             <div className={`modal${modal.wide ? ' modal--wide' : ''}`}>
                 <div className="modal-header">
                     <h3>{modal.title || 'Thông báo'}</h3>
