@@ -3457,6 +3457,14 @@ mark {
   width: 200px;
   margin: 0 var(--spacing-md);
 }
+.voice-inactive-badge {
+    display: inline-block; margin-left: 8px;
+    padding: 1px 7px; border-radius: 20px;
+    font-size: 10px; font-weight: 600;
+    background: rgba(255,255,255,0.08); color: var(--text-secondary);
+    vertical-align: middle;
+}
+.voice-select-inactive { opacity: 0.55; }
 
 .setting-action-btn {
   width: 100%;

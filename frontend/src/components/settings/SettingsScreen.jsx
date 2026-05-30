@@ -34,7 +34,13 @@ export default function SettingsScreen({ active }) {
     const [s, setS] = useState({});
 
     const [voices, setVoices] = useState([]);
-    const [selectedVoice, setSelectedVoice] = useState(() => localStorage.getItem('toeic_voice') || '');
+    // Giọng EN và ZH lưu riêng — backward compat: nếu chưa có key mới thì đọc key cũ
+    const [selectedVoiceEn, setSelectedVoiceEn] = useState(() =>
+        localStorage.getItem('toeic_voice_en') || localStorage.getItem('toeic_voice') || '__gtts_random__'
+    );
+    const [selectedVoiceZh, setSelectedVoiceZh] = useState(() =>
+        localStorage.getItem('toeic_voice_zh') || '__gtts_zh_random__'
+    );
     const [speechRate, setSpeechRate] = useState(() => parseInt(localStorage.getItem('toeic_speech_rate') || '80'));
     const voicesLoaded = useRef(false);
 
@@ -124,9 +130,14 @@ export default function SettingsScreen({ active }) {
         Notification.success(val ? 'Chế độ VN → EN đã bật' : 'Chế độ EN → VN đã bật');
     };
 
-    const handleVoiceChange = (name) => {
-        setSelectedVoice(name);
-        localStorage.setItem('toeic_voice', name);
+    const handleVoiceChangeEn = (name) => {
+        setSelectedVoiceEn(name);
+        localStorage.setItem('toeic_voice_en', name);
+    };
+
+    const handleVoiceChangeZh = (name) => {
+        setSelectedVoiceZh(name);
+        localStorage.setItem('toeic_voice_zh', name);
     };
 
     const handleSpeechRate = (val) => {
@@ -134,12 +145,8 @@ export default function SettingsScreen({ active }) {
         localStorage.setItem('toeic_speech_rate', String(val));
     };
 
-    const handleTestVoice = () => {
-        const isZhVoice = selectedVoice.startsWith('__gtts_zh');
-        const text = isZhVoice ? '你好，我正在学习汉语。' : 'vocabulary';
-        const lang = isZhVoice ? 'zh-CN' : 'en-US';
-        GameLogic.speakWord(text, lang);
-    };
+    const handleTestVoiceEn = () => GameLogic.speakWord('vocabulary', 'en-US');
+    const handleTestVoiceZh = () => GameLogic.speakWord('你好，我正在学习汉语。', 'zh-CN');
 
     const handleDifficulty = (value) => {
         const levelMap = { easy: ['A1', 'A2'], medium: ['B1', 'B2'], hard: ['C1', 'C2'], adaptive: null };
@@ -303,12 +310,16 @@ export default function SettingsScreen({ active }) {
                         <SoundPanel
                             s={s}
                             updateSetting={updateSetting}
-                            selectedVoice={selectedVoice}
-                            handleVoiceChange={handleVoiceChange}
+                            selectedVoiceEn={selectedVoiceEn}
+                            selectedVoiceZh={selectedVoiceZh}
+                            handleVoiceChangeEn={handleVoiceChangeEn}
+                            handleVoiceChangeZh={handleVoiceChangeZh}
                             voices={voices}
-                            handleTestVoice={handleTestVoice}
+                            handleTestVoiceEn={handleTestVoiceEn}
+                            handleTestVoiceZh={handleTestVoiceZh}
                             speechRate={speechRate}
                             handleSpeechRate={handleSpeechRate}
+                            vocabLang={s.vocabLang || 'en'}
                         />
                     </div>
 

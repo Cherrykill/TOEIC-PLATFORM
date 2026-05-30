@@ -46,16 +46,59 @@ exports.submitSession = async (req, res, next) => {
             return res.status(400).json({ success: false, message: 'Missing required fields' });
         }
 
-        // skipStats: just log the session record, stats already handled by saveState
+        // skipStats: log session + cập nhật streak, nhưng bỏ qua XP/coins/stats
+        // (XP/coins đã được saveState xử lý phía client)
         if (skipStats) {
-            const newSession = await PracticeSession.create({
-                user: req.user.id,
-                mode, questionsCount, correctAnswers: correctAnswers || 0,
-                wrongAnswers: wrongAnswers || 0, score: score || 0,
-                duration: duration || 0, isPerfect: (wrongAnswers || 0) === 0,
-                xpEarned: xpEarned || 0, coinsEarned: coinsEarned || 0,
-                wordsLearned, answers,
-            });
+            const [newSession, stats] = await Promise.all([
+                PracticeSession.create({
+                    user: req.user.id,
+                    mode, questionsCount, correctAnswers: correctAnswers || 0,
+                    wrongAnswers: wrongAnswers || 0, score: score || 0,
+                    duration: duration || 0, isPerfect: (wrongAnswers || 0) === 0,
+                    xpEarned: xpEarned || 0, coinsEarned: coinsEarned || 0,
+                    wordsLearned, answers,
+                }),
+                UserStats.findOne({ userId: req.user.id }),
+            ]);
+
+            if (stats) {
+                const today = new Date().setHours(0, 0, 0, 0);
+                const lastPlay = stats.streakLastPlayDate
+                    ? new Date(stats.streakLastPlayDate).setHours(0, 0, 0, 0)
+                    : null;
+
+                if (!lastPlay || today > lastPlay) {
+                    const daysDiff = lastPlay ? Math.floor((today - lastPlay) / 86400000) : null;
+                    if (!lastPlay || daysDiff === 1) {
+                        stats.streakCurrent += 1;
+                        if (stats.streakCurrent > stats.streakLongest) stats.streakLongest = stats.streakCurrent;
+                    } else if (daysDiff > 1 && (stats.shields || 0) >= daysDiff - 1) {
+                        stats.shields -= daysDiff - 1;
+                        stats.streakShieldsUsed = (stats.streakShieldsUsed || 0) + daysDiff - 1;
+                        stats.streakCurrent += 1;
+                        if (stats.streakCurrent > stats.streakLongest) stats.streakLongest = stats.streakCurrent;
+                    } else {
+                        stats.streakCurrent = 1;
+                    }
+                    stats.streakLastPlayDate = new Date();
+                    await stats.save();
+                }
+
+                return res.status(201).json({
+                    success: true,
+                    session: { id: newSession._id },
+                    user: {
+                        streak: {
+                            current: stats.streakCurrent,
+                            longest: stats.streakLongest,
+                            lastPlayDate: stats.streakLastPlayDate,
+                            shieldsUsed: stats.streakShieldsUsed,
+                        },
+                        resources: { shields: stats.shields },
+                    },
+                });
+            }
+
             return res.status(201).json({ success: true, session: { id: newSession._id } });
         }
 

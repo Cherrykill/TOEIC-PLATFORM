@@ -11,18 +11,33 @@ const logger = require('../utils/logger');
 const router = express.Router();
 const { MsEdgeTTS, OUTPUT_FORMAT } = require('msedge-tts');
 
-// TOEIC voice map - 4 accents with natural neural voices
+// TOEIC voice map - neural voices (female + male)
 const VOICE_MAP = {
-    'en-us': 'en-US-AriaNeural',           // American female
-    'en-gb': 'en-GB-SoniaNeural',          // British female
-    'en-au': 'en-AU-NatashaNeural',        // Australian female
-    'en-ca': 'en-CA-ClaraNeural',          // Canadian female
-    // Chinese (Mandarin) neural voices
-    'zh-cn-xiaoxiao': 'zh-CN-XiaoxiaoNeural',  // Mainland CN — warm female (most natural)
-    'zh-cn-yunxi':    'zh-CN-YunxiNeural',     // Mainland CN — male
-    'zh-cn-xiaoyi':   'zh-CN-XiaoyiNeural',    // Mainland CN — young female
-    'zh-cn-random':   null,                    // random between 3 CN voices
-    'zh-tw':          'zh-TW-HsiaoChenNeural', // Taiwan Mandarin — female
+    // English — Female
+    'en-us-f':  'en-US-AriaNeural',           // American female
+    'en-gb-f':  'en-GB-SoniaNeural',          // British female
+    'en-au-f':  'en-AU-NatashaNeural',        // Australian female
+    'en-ca-f':  'en-CA-ClaraNeural',          // Canadian female
+    // English — Male
+    'en-us-m':  'en-US-GuyNeural',            // American male
+    'en-gb-m':  'en-GB-RyanNeural',           // British male
+    'en-au-m':  'en-AU-WilliamNeural',        // Australian male
+    'en-ca-m':  'en-CA-LiamNeural',           // Canadian male
+    // English — backward compat aliases (random = mix nam+nữ)
+    'en-us': 'en-US-AriaNeural',
+    'en-gb': 'en-GB-SoniaNeural',
+    'en-au': 'en-AU-NatashaNeural',
+    'en-ca': 'en-CA-ClaraNeural',
+    // Chinese — Female
+    'zh-cn-xiaoxiao': 'zh-CN-XiaoxiaoNeural',
+    'zh-cn-xiaoyi':   'zh-CN-XiaoyiNeural',
+    'zh-tw':          'zh-TW-HsiaoChenNeural',
+    // Chinese — Male
+    'zh-cn-yunxi':    'zh-CN-YunxiNeural',
+    'zh-cn-yunyang':  'zh-CN-YunyangNeural',
+    'zh-tw-m':        'zh-TW-YunJheNeural',
+    // Chinese — Random
+    'zh-cn-random':   null,
 };
 
 /**
@@ -38,8 +53,16 @@ router.get('/', async (req, res) => {
         const rate = Math.min(2, Math.max(0.5, parseFloat(rawRate) || 1));
         let voiceName;
         if (lang === 'zh-cn-random') {
-            const zhVoices = ['zh-CN-XiaoxiaoNeural', 'zh-CN-YunxiNeural', 'zh-CN-XiaoyiNeural'];
+            const zhVoices = ['zh-CN-XiaoxiaoNeural', 'zh-CN-XiaoyiNeural', 'zh-CN-YunxiNeural', 'zh-CN-YunyangNeural'];
             voiceName = zhVoices[Math.floor(Math.random() * zhVoices.length)];
+        } else if (lang === 'en-random') {
+            const enVoices = [
+                'en-US-AriaNeural', 'en-US-GuyNeural',
+                'en-GB-SoniaNeural', 'en-GB-RyanNeural',
+                'en-AU-NatashaNeural', 'en-AU-WilliamNeural',
+                'en-CA-ClaraNeural',
+            ];
+            voiceName = enVoices[Math.floor(Math.random() * enVoices.length)];
         } else {
             voiceName = VOICE_MAP[lang] || VOICE_MAP['en-us'];
         }

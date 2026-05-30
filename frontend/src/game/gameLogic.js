@@ -306,7 +306,11 @@ export const GameLogic = {
         if (getVocabLang() === 'zh' && isZhText) {
             lang = 'zh-CN';
         }
-        const savedVoiceName = localStorage.getItem('toeic_voice') || '';
+        const isZhMode = getVocabLang() === 'zh';
+        const voiceKey = isZhMode ? 'toeic_voice_zh' : 'toeic_voice_en';
+        const savedVoiceName = localStorage.getItem(voiceKey)
+            || localStorage.getItem('toeic_voice')  // backward compat
+            || (isZhMode ? '__gtts_zh_random__' : '__gtts_random__');
 
         this._replayCallback = () => this.speakWord(text, lang);
 
@@ -366,21 +370,31 @@ export const GameLogic = {
         this._replayCallback = () => this._speakGoogleTTS(text, voiceKey, null);
 
         const accentMap = {
-            '__gtts_us__':          'en-us',
-            '__gtts_uk__':          'en-gb',
-            '__gtts_au__':          'en-au',
-            '__gtts_ca__':          'en-ca',
+            // English female
+            '__gtts_us__':      'en-us-f',
+            '__gtts_uk__':      'en-gb-f',
+            '__gtts_au__':      'en-au-f',
+            '__gtts_ca__':      'en-ca-f',
+            // English male
+            '__gtts_us_m__':    'en-us-m',
+            '__gtts_uk_m__':    'en-gb-m',
+            '__gtts_au_m__':    'en-au-m',
+            '__gtts_ca_m__':    'en-ca-m',
+            // Chinese female
             '__gtts_zh_xiaoxiao__': 'zh-cn-xiaoxiao',
-            '__gtts_zh_yunxi__':    'zh-cn-yunxi',
             '__gtts_zh_xiaoyi__':   'zh-cn-xiaoyi',
-            '__gtts_zh_random__':   'zh-cn-random',
             '__gtts_zh_tw__':       'zh-tw',
+            // Chinese male
+            '__gtts_zh_yunxi__':    'zh-cn-yunxi',
+            '__gtts_zh_yunyang__':  'zh-cn-yunyang',
+            '__gtts_zh_tw_m__':     'zh-tw-m',
+            // Chinese random
+            '__gtts_zh_random__':   'zh-cn-random',
         };
 
         let lang = 'en-us';
         if (voiceKey === '__gtts_random__') {
-            const accents = ['en-us', 'en-gb', 'en-au', 'en-ca'];
-            lang = accents[Math.floor(Math.random() * accents.length)];
+            lang = 'en-random';
         } else {
             lang = accentMap[voiceKey] || 'en-us';
         }

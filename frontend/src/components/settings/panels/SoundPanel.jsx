@@ -1,17 +1,21 @@
 // "Sound" panel. Presentational — state/handlers passed from SettingsScreen.
-// JSX moved verbatim (including the practiceSoundEnabled localStorage write).
 import Toggle from './Toggle.jsx';
 
 export default function SoundPanel({
     s,
     updateSetting,
-    selectedVoice,
-    handleVoiceChange,
-    voices,
-    handleTestVoice,
+    selectedVoiceEn,
+    selectedVoiceZh,
+    handleVoiceChangeEn,
+    handleVoiceChangeZh,
+    handleTestVoiceEn,
+    handleTestVoiceZh,
     speechRate,
     handleSpeechRate,
+    vocabLang,
 }) {
+    const isZh = vocabLang === 'zh';
+
     return (
         <>
             <div className="settings-section">
@@ -35,31 +39,74 @@ export default function SoundPanel({
 
             <div className="settings-section">
                 <h3>Giọng đọc</h3>
-                <div className="setting-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-                    <div className="setting-info"><h4>Giọng phát âm</h4><p>Chọn giọng đọc tiếng Anh</p></div>
+
+                {/* Tiếng Anh */}
+                <div className={`setting-item voice-select-row${isZh ? ' voice-select-inactive' : ''}`}
+                    style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+                    <div className="setting-info">
+                        <h4>🇬🇧 Giọng Tiếng Anh {isZh && <span className="voice-inactive-badge">Không dùng</span>}</h4>
+                        <p>Áp dụng khi đang học chế độ Tiếng Anh</p>
+                    </div>
                     <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-                        <select value={selectedVoice} onChange={e => handleVoiceChange(e.target.value)} style={{ flex: 1 }}>
-                            <optgroup label="🇬🇧 Giọng Neural TOEIC (Tiếng Anh)">
-                                <option value="__gtts_random__">TOEIC Tự động — Random 4 giọng</option>
-                                <option value="__gtts_us__">Aria — American (US)</option>
-                                <option value="__gtts_uk__">Sonia — British (UK)</option>
-                                <option value="__gtts_au__">Natasha — Australian (AU)</option>
-                                <option value="__gtts_ca__">Clara — Canadian (CA)</option>
+                        <select
+                            value={selectedVoiceEn}
+                            onChange={e => handleVoiceChangeEn(e.target.value)}
+                            disabled={isZh}
+                            style={{ flex: 1, opacity: isZh ? 0.45 : 1 }}
+                        >
+                            <optgroup label="Nữ">
+                                <option value="__gtts_random__">Tự động — Random nam+nữ</option>
+                                <option value="__gtts_us__">Aria — Mỹ (US) 👩</option>
+                                <option value="__gtts_uk__">Sonia — Anh (UK) 👩</option>
+                                <option value="__gtts_au__">Natasha — Úc (AU) 👩</option>
+                                <option value="__gtts_ca__">Clara — Canada (CA) 👩</option>
                             </optgroup>
-                            <optgroup label="🇨🇳 Giọng Neural Tiếng Trung">
-                                <option value="__gtts_zh_random__">Tự động — Random 3 giọng TQ</option>
-                                <option value="__gtts_zh_xiaoxiao__">Xiaoxiao — Nữ tự nhiên (CN)</option>
-                                <option value="__gtts_zh_yunxi__">Yunxi — Nam trẻ (CN)</option>
-                                <option value="__gtts_zh_xiaoyi__">Xiaoyi — Nữ trẻ (CN)</option>
-                                <option value="__gtts_zh_tw__">Hsiao-Chen — Đài Loan (TW)</option>
+                            <optgroup label="Nam">
+                                <option value="__gtts_us_m__">Guy — Mỹ (US) 👨</option>
+                                <option value="__gtts_uk_m__">Ryan — Anh (UK) 👨</option>
+                                <option value="__gtts_au_m__">William — Úc (AU) 👨</option>
+                                <option value="__gtts_ca_m__">Liam — Canada (CA) 👨</option>
                             </optgroup>
                         </select>
-                        <button className="btn btn-secondary btn-sm" onClick={handleTestVoice}>
+                        <button className="btn btn-secondary btn-sm" onClick={handleTestVoiceEn} disabled={isZh}>
                             <i className="fas fa-volume-up"></i> Thử
                         </button>
                     </div>
                 </div>
-                <div className="setting-item">
+
+                {/* Tiếng Trung */}
+                <div className={`setting-item voice-select-row${!isZh ? ' voice-select-inactive' : ''}`}
+                    style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginTop: 12 }}>
+                    <div className="setting-info">
+                        <h4>🇨🇳 Giọng Tiếng Trung {!isZh && <span className="voice-inactive-badge">Không dùng</span>}</h4>
+                        <p>Áp dụng khi đang học chế độ Tiếng Trung</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+                        <select
+                            value={selectedVoiceZh}
+                            onChange={e => handleVoiceChangeZh(e.target.value)}
+                            disabled={!isZh}
+                            style={{ flex: 1, opacity: !isZh ? 0.45 : 1 }}
+                        >
+                            <optgroup label="Nữ">
+                                <option value="__gtts_zh_random__">Tự động — Random nam+nữ</option>
+                                <option value="__gtts_zh_xiaoxiao__">Xiaoxiao — Tự nhiên (CN) 👩</option>
+                                <option value="__gtts_zh_xiaoyi__">Xiaoyi — Trẻ (CN) 👩</option>
+                                <option value="__gtts_zh_tw__">Hsiao-Chen — Đài Loan (TW) 👩</option>
+                            </optgroup>
+                            <optgroup label="Nam">
+                                <option value="__gtts_zh_yunxi__">Yunxi — Trẻ (CN) 👨</option>
+                                <option value="__gtts_zh_yunyang__">Yunyang — Trưởng thành (CN) 👨</option>
+                                <option value="__gtts_zh_tw_m__">Yun Jhe — Đài Loan (TW) 👨</option>
+                            </optgroup>
+                        </select>
+                        <button className="btn btn-secondary btn-sm" onClick={handleTestVoiceZh} disabled={!isZh}>
+                            <i className="fas fa-volume-up"></i> Thử
+                        </button>
+                    </div>
+                </div>
+
+                <div className="setting-item" style={{ marginTop: 12 }}>
                     <div className="setting-info"><h4>Tốc độ phát âm</h4><p>{(speechRate / 100).toFixed(1)}x</p></div>
                     <input type="range" min="50" max="150" step="10" value={speechRate}
                         onChange={e => handleSpeechRate(parseInt(e.target.value))}
