@@ -30,12 +30,30 @@ const gameModes = [
         { mode: 'phonetic-quiz', icon: 'fa-spell-check', label: 'Đọc phiên âm', desc: 'Nhìn ký hiệu IPA, tìm từ tiếng Anh tương ứng', cost: 12, color: '#f59e0b, #d97706' },
     ]},
     { group: 'Nâng cao & Thử thách', icon: 'fa-brain', modes: [
-        { mode: 'context-learning', icon: 'fa-book-reader', label: 'Hiểu qua câu', desc: 'Đọc câu ví dụ, suy luận nghĩa tiếng Việt', cost: 10, color: '#8b5cf6, #7c3aed' },
-        { mode: 'synonym-check', icon: 'fa-equals', label: 'Từ đồng nghĩa', desc: 'Tìm từ đồng nghĩa với từ cho sẵn', cost: 10, color: '#8b5cf6, #7c3aed' },
-        { mode: 'speed-quiz', icon: 'fa-clock', label: 'Tốc độ', desc: 'Trả lời nhanh nhất trong giới hạn thời gian', cost: 20, color: '#8b5cf6, #7c3aed' },
-        { mode: 'review-mistakes', icon: 'fa-repeat', label: 'Ôn lại từ sai', desc: 'Luyện lại các từ đã làm sai', cost: 10, color: '#8b5cf6, #7c3aed', special: true },
+        { mode: 'context-learning', icon: 'fa-book-reader', label: 'Hiểu qua câu', desc: 'Đọc câu ví dụ, suy luận nghĩa tiếng Việt', cost: 10, color: '#8b5cf6, #7c3aed', weekendOnly: true },
+        { mode: 'synonym-check', icon: 'fa-equals', label: 'Từ đồng nghĩa', desc: 'Tìm từ đồng nghĩa với từ cho sẵn', cost: 10, color: '#8b5cf6, #7c3aed', weekendOnly: true },
+        { mode: 'speed-quiz', icon: 'fa-clock', label: 'Tốc độ', desc: 'Trả lời nhanh nhất trong giới hạn thời gian', cost: 20, color: '#8b5cf6, #7c3aed', weekendOnly: true },
+        { mode: 'review-mistakes', icon: 'fa-repeat', label: 'Ôn lại từ sai', desc: 'Luyện lại các từ đã làm sai', cost: 10, color: '#8b5cf6, #7c3aed', special: true, weekendOnly: true },
     ]},
 ];
+
+const isWeekend = () => { const d = new Date().getDay(); return d === 0 || d === 6; };
+
+function getTimeUntilWeekend() {
+    const now = new Date();
+    const day = now.getDay();
+    if (day === 0 || day === 6) return null;
+    const daysUntilSat = 6 - day;
+    const nextSat = new Date(now);
+    nextSat.setDate(now.getDate() + daysUntilSat);
+    nextSat.setHours(0, 0, 0, 0);
+    const diff = nextSat - now;
+    const d2 = Math.floor(diff / 86400000);
+    const h = String(Math.floor((diff % 86400000) / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    return d2 > 0 ? `${d2} ngày ${h}:${m}:${s}` : `${h}:${m}:${s}`;
+}
 
 function getTimeUntilMidnight() {
     const now = new Date();
@@ -52,6 +70,7 @@ export default function HomeScreen({ active }) {
     const { showScreen, streak, syncFromState } = useGame();
     const [quests, setQuests] = useState([]);
     const [timer, setTimer] = useState(getTimeUntilMidnight());
+    const [weekendTimer, setWeekendTimer] = useState(getTimeUntilWeekend());
     const [stats, setStats] = useState({});
     const [wrongWordsCount, setWrongWordsCount] = useState(0);
     const [userRank, setUserRank] = useState(null);
@@ -88,12 +107,20 @@ export default function HomeScreen({ active }) {
     useEffect(() => {
         if (!active) return;
         setTimer(getTimeUntilMidnight());
-        const id = setInterval(() => setTimer(getTimeUntilMidnight()), 1000);
+        setWeekendTimer(getTimeUntilWeekend());
+        const id = setInterval(() => {
+            setTimer(getTimeUntilMidnight());
+            setWeekendTimer(getTimeUntilWeekend());
+        }, 1000);
         return () => clearInterval(id);
     }, [active]);
 
     const handleModeClick = (mode) => {
-        // Chưa chọn đề → mở popup chọn đề, nhớ mode để tự start sau khi chọn
+        const modeConfig = gameModes.flatMap(g => g.modes).find(m => m.mode === mode);
+        if (modeConfig?.weekendOnly && !isWeekend()) {
+            Notification.show({ type: 'warning', title: '🔒 Chế độ cuối tuần', message: 'Chế độ này chỉ mở vào Thứ 7 & Chủ Nhật. Hãy quay lại vào cuối tuần!', duration: 3500 });
+            return;
+        }
         if (!TopicSelector.getCurrentTopic()) {
             EventBus.emit(GameEvents.TOPIC_MODAL_REQUESTED, { pendingMode: mode });
             return;
@@ -209,29 +236,35 @@ export default function HomeScreen({ active }) {
                             <div className="mode-group-label">
                                 <i className={`fas ${group.icon}`}></i> {group.group}
                             </div>
-                            {group.modes.map(m => (
+                            {group.modes.map(m => {
+                                const locked = m.weekendOnly && !isWeekend();
+                                return (
                                 <div
                                     key={m.mode}
-                                    className="game-mode-card"
+                                    className={`game-mode-card${locked ? ' game-mode-card--locked' : ''}`}
                                     data-mode={m.mode}
-                                    style={{}}
                                     onClick={() => handleModeClick(m.mode)}
                                 >
                                     <div className="mode-icon" style={{ background: `linear-gradient(135deg, ${m.color})` }}>
-                                        <i className={`fas ${m.icon}`}></i>
+                                        <i className={`fas ${locked ? 'fa-lock' : m.icon}`}></i>
                                     </div>
                                     <h3>{m.label}</h3>
                                     <p>{m.desc}</p>
-                                    <div className="mode-cost">
-                                        <i className="fas fa-bolt"></i> {m.cost}
-                                    </div>
-                                    {m.mode === 'review-mistakes' && (
+                                    {locked ? (
+                                        <div className="mode-weekend-badge">
+                                            <i className="fas fa-lock"></i> Mở sau: <span className="mode-weekend-countdown">{weekendTimer}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="mode-cost"><i className="fas fa-bolt"></i> {m.cost}</div>
+                                    )}
+                                    {!locked && m.mode === 'review-mistakes' && (
                                         <div className="wrong-words-count" style={{ marginTop: 8, color: '#a855f7', fontWeight: 'bold', fontSize: '0.9em' }}>
                                             <i className="fas fa-exclamation-circle"></i> <span>{wrongWordsCount}</span> từ cần ôn
                                         </div>
                                     )}
                                 </div>
-                            ))}
+                                );
+                            })}
                         </Fragment>
                     ))}
                 </div>
