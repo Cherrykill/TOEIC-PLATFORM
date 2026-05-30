@@ -369,8 +369,8 @@
 }
 
 [data-theme="dark"] .xp-progress {
-    background: linear-gradient(90deg, #3b82f6, #2563eb);
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(90deg, var(--secondary-color, #F97316), var(--primary-color, #E11D48));
+    box-shadow: 0 0 10px rgba(var(--primary-rgb, 225,29,72), 0.35);
 }
 
 [data-theme="dark"] .xp-text {
