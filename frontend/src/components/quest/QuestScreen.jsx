@@ -67,6 +67,7 @@ export default function QuestScreen({ active }) {
     const [claimedCodes, setClaimedCodes] = useState(new Set());
     const [checkinOpen, setCheckinOpen] = useState(false);
     const [checkinDue, setCheckinDue] = useState(false);
+    const [claimingAll, setClaimingAll] = useState(false);
 
     const readFromQuestModule = useCallback((type) => {
         const data = Quest?.getQuests?.(type);
@@ -154,6 +155,62 @@ export default function QuestScreen({ active }) {
         }
     }
 
+    // Danh sách quest đã hoàn thành nhưng chưa nhận — gom MỌI loại (ngày/tuần/
+    // tháng/đặc biệt). KHÔNG bao gồm điểm danh (check-in tách riêng).
+    function collectClaimableQuests() {
+        const out = [];
+        for (const tab of TABS) {
+            const list = Quest.getQuests?.(tab.type) || [];
+            for (const q of list) {
+                const code = q.code || q.id;
+                if (q.completed && !q.claimedAt && !q.claimed && !claimedCodes.has(code)) {
+                    out.push({ type: tab.type, code });
+                }
+            }
+        }
+        return out;
+    }
+
+    async function handleClaimAll() {
+        if (claimingAll) return;
+        const toClaim = collectClaimableQuests();
+        if (toClaim.length === 0) return;
+
+        setClaimingAll(true);
+        const claimed = new Set();
+        for (const { type, code } of toClaim) {
+            let ok = false;
+            if (Quest?.claimReward) {
+                const rewards = await Quest.claimReward(type, code);
+                if (rewards !== null && rewards !== undefined) {
+                    GameState.creditServerRewards(rewards);
+                    ok = true;
+                }
+            }
+            if (!ok) {
+                const res = await QuestsAPI.claim({ type, code });
+                if (res.success) {
+                    GameState.creditServerRewards(res.rewards || {});
+                    ok = true;
+                }
+            }
+            if (ok) claimed.add(code);
+        }
+
+        if (claimed.size > 0) {
+            setClaimedCodes(prev => new Set([...prev, ...claimed]));
+            Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
+            Notification.success(`Đã nhận thưởng ${claimed.size} nhiệm vụ!`);
+            loadQuests(activeTab);
+            syncFromState();
+        } else {
+            Notification.error('Không thể nhận thưởng');
+        }
+        setClaimingAll(false);
+    }
+
+    const claimableCount = collectClaimableQuests().length;
+
     return (
         <div id="quest-screen" className={`screen ${active ? 'active' : ''}`}>
             <div className="screen-header">
@@ -161,9 +218,20 @@ export default function QuestScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-tasks"></i> Nhiệm vụ</h2>
+                {claimableCount > 0 && (
+                    <button
+                        className="btn btn-primary btn-sm"
+                        style={{ marginLeft: 'auto', whiteSpace: 'nowrap' }}
+                        disabled={claimingAll}
+                        onClick={handleClaimAll}
+                        title="Nhận thưởng tất cả nhiệm vụ đã hoàn thành (không gồm điểm danh)"
+                    >
+                        <i className={`fas ${claimingAll ? 'fa-spinner fa-spin' : 'fa-gift'}`}></i> Nhận tất cả ({claimableCount})
+                    </button>
+                )}
                 <button
                     className="checkin-trigger-btn"
-                    style={{ marginLeft: 'auto' }}
+                    style={{ marginLeft: claimableCount > 0 ? 8 : 'auto' }}
                     onClick={() => setCheckinOpen(true)}
                     title="Điểm danh hằng tuần"
                 >

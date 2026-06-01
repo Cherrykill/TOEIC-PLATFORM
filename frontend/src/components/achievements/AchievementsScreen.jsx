@@ -106,6 +106,7 @@ export default function AchievementsScreen({ active }) {
     const [achievements, setAchievements] = useState([]);
     const [category, setCategory] = useState('all');
     const [loading, setLoading] = useState(false);
+    const [claimingAll, setClaimingAll] = useState(false);
 
     const loadAchievements = useCallback(async () => {
         setLoading(true);
@@ -162,6 +163,48 @@ export default function AchievementsScreen({ active }) {
         }
     }
 
+    // Nhận thưởng TẤT CẢ thành tích đã đủ điều kiện (mọi tab). Lặp qua API
+    // claim đơn lẻ rồi gộp cập nhật UI 1 lần để tránh re-render/âm thanh dồn dập.
+    async function handleClaimAll() {
+        const toClaim = achievements.filter(a => {
+            if (a.unlocked) return false;
+            const { current } = calculateProgress(a);
+            return current >= (a.conditionValue || a.target || 1);
+        });
+        if (toClaim.length === 0 || claimingAll) return;
+
+        setClaimingAll(true);
+        const claimedIds = new Set();
+        for (const a of toClaim) {
+            const id = a.id || a._id;
+            const res = await AchievementsAPI.claim(id);
+            if (res.success) {
+                claimedIds.add(id);
+                GameState.creditServerRewards(res.data?.rewards || {});
+            }
+        }
+
+        if (claimedIds.size > 0) {
+            const now = new Date().toISOString();
+            setAchievements(prev => prev.map(a =>
+                claimedIds.has(a.id || a._id) ? { ...a, unlocked: true, unlockedAt: now } : a
+            ));
+            const gs = window.GameState?.state?.achievements;
+            if (Array.isArray(gs)) {
+                gs.forEach((a, i) => {
+                    if (claimedIds.has(a.id || a._id)) gs[i] = { ...a, unlocked: true, unlockedAt: now };
+                });
+            }
+            Utils.playSound(Config.sounds.achievement, 0.6, { ignoreSettings: true });
+            EventBus.emit(GameEvents.ACHIEVEMENT_UNLOCKED, { bulk: true });
+            syncFromState();
+            Notification.success(`Đã nhận thưởng ${claimedIds.size} thành tích!`);
+        } else {
+            Notification.error('Không thể nhận thưởng');
+        }
+        setClaimingAll(false);
+    }
+
     // Gom các category gốc (learning/practice/streak/skill/speed/social) về
     // 4 tab hiển thị. Mọi category lạ rơi vào "Đặc biệt" để không "tịt".
     const CATEGORY_BUCKETS = {
@@ -176,6 +219,11 @@ export default function AchievementsScreen({ active }) {
         : achievements.filter(a => bucketOf(a.category) === category);
     const unlocked = achievements.filter(a => a.unlocked).length;
     const progressPct = achievements.length > 0 ? Math.round((unlocked / achievements.length) * 100) : 0;
+    const claimableCount = achievements.reduce((n, a) => {
+        if (a.unlocked) return n;
+        const { current } = calculateProgress(a);
+        return current >= (a.conditionValue || a.target || 1) ? n + 1 : n;
+    }, 0);
 
     return (
         <div id="achievements-screen" className={`screen ${active ? 'active' : ''}`}>
@@ -189,6 +237,17 @@ export default function AchievementsScreen({ active }) {
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', display: 'inline-block', boxShadow: '0 0 6px #f59e0b' }} />
                         <span><strong style={{ color: '#f59e0b' }}>{unlocked}</strong> / {achievements.length} đã mở</span>
                     </span>
+                )}
+                {claimableCount > 0 && (
+                    <button
+                        className="btn btn-primary btn-sm"
+                        style={{ marginLeft: achievements.length > 0 ? 12 : 'auto', whiteSpace: 'nowrap' }}
+                        disabled={claimingAll}
+                        onClick={handleClaimAll}
+                        title="Nhận thưởng tất cả thành tích đã đạt"
+                    >
+                        <i className={`fas ${claimingAll ? 'fa-spinner fa-spin' : 'fa-gift'}`}></i> Nhận tất cả ({claimableCount})
+                    </button>
                 )}
                 <button className="icon-btn" title="Làm mới" onClick={loadAchievements}>
                     <i className="fas fa-rotate-right"></i>

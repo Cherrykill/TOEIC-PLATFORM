@@ -303,6 +303,17 @@ export const GameLogic = {
         if (this._replayCallback) this._replayCallback();
     },
 
+    // Gắn mục tiêu phát âm cho phím Ctrl theo ĐÚNG từ hiện tại. Dùng wordPk()
+    // (zh khi học Tiếng Trung, ngược lại là en) + ttsLang() nên luôn đúng ngôn
+    // ngữ và không phụ thuộc chiều hiển thị (đảo ngược). Mỗi câu mới gọi lại để
+    // tránh replay bị trễ sang từ của câu trước. Các chế độ đọc cả câu ví dụ
+    // (chính tả, ngữ cảnh…) sẽ tự ghi đè _replayCallback sau khi speakWord(câu).
+    setReplayWord(word) {
+        const text = wordPk(word);
+        if (!text) return;
+        this._replayCallback = () => this.speakWord(text, ttsLang());
+    },
+
     speakWord(text, lang = 'en-US', onEnd = null) {
         const isZhText = /[\u3400-\u9fff]/.test(String(text || ''));
         if (getVocabLang() === 'zh' && isZhText) {

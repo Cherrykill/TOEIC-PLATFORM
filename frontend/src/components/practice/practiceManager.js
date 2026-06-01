@@ -370,6 +370,9 @@ export const PracticeManager = {
 
     setCurrentWord(word) {
         if (this.currentSession) this.currentSession.currentWord = word || null;
+        // Cập nhật mục tiêu phát âm của phím Ctrl ngay khi đổi câu, để replay
+        // không bị trễ sang từ của câu trước (kể cả khi tự phát âm đang tắt).
+        if (word) GameLogic.setReplayWord(word);
         EventBus.emit(GameEvents.QUESTION_RENDERED, { word: word || null });
     },
 
