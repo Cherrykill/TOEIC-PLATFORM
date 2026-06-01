@@ -195,6 +195,16 @@ export const GameState = {
             }
         } catch { /* localStorage unavailable - keep merged value */ }
 
+        // Các setting "critical" (timeLimitEnabled, timePerQuestion, difficulty,
+        // levelFilter, questionsPerSession) được SettingsScreen lưu riêng vào
+        // localStorage 'userSettings'. Một số bị backend settingsSchema strip
+        // → restore từ đây để GameState (nguồn mà practice engine đọc) khớp với
+        // UI Settings, tránh trường hợp tắt timer nhưng F5 lại bật.
+        try {
+            const userSettings = JSON.parse(localStorage.getItem('userSettings') || '{}');
+            Object.assign(this.state.settings, userSettings);
+        } catch { /* localStorage unavailable - keep merged value */ }
+
         this.state.user.lastLoginAt = Date.now();
 
         const oldEnergy = this.state.resources.energy;

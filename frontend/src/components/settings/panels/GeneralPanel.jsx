@@ -41,7 +41,7 @@ export default function GeneralPanel({
                 <div className="setting-item">
                     <div className="setting-info">
                         <h4>Đảo chiều luyện tập</h4>
-                        <p>Chuyển từ EN→VN sang VN→EN</p>
+                        <p>Chuyển EN→VN ⇄ VN→EN. Áp dụng cho: Trắc nghiệm, Điền từ, Nghe &amp; chọn, Thẻ từ vựng, Tốc độ, Ôn lại từ sai.</p>
                     </div>
                     <Toggle checked={reverseMode} onChange={handleReverseMode} />
                 </div>

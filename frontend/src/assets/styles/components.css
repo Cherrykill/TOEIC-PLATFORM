@@ -4312,6 +4312,14 @@ mark {
     flex-direction: column;
   }
 
+  /* Stage is now a column: `flex:1` would make flex-basis:0 the *height*
+     base and collapse the card to 0 (the absolute front then overflows and
+     the actions row overlaps it). Reset to auto so `height` below applies. */
+  .flashcard-stage .flashcard {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
   .flashcard-actions {
     flex-direction: row;
     flex-wrap: wrap;

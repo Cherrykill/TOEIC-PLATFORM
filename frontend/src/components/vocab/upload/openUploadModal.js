@@ -305,8 +305,8 @@ Danh sách từ vựng cần chuyển:
                 const res = await UploadVocabAPI.myTopics();
                 if (!res.success) throw new Error(res.message);
                 if (!res.data.length) {
-                    container.innerHTML = `<div style="text-align:center;padding:24px 0;color:var(--text-secondary);font-size:13px">
-                        <i class="fas fa-inbox" style="font-size:32px;margin-bottom:8px;display:block;opacity:0.4"></i>
+                    container.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 0;color:var(--text-secondary);font-size:13px">
+                        <i class="fas fa-inbox" style="font-size:32px;margin-bottom:8px;opacity:0.4"></i>
                         Bạn chưa có từ vựng nào.<br>
                         <button id="switch-to-add-btn" class="btn btn-primary" style="margin-top:12px;font-size:12px"><i class="fas fa-plus"></i> Thêm từ mới</button>
                     </div>`;

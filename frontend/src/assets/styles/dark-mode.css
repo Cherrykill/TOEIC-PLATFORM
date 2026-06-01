@@ -571,7 +571,9 @@
 
 /* TOEIC Intro */
 [data-theme="dark"] .toeic-intro {
-    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    /* Sync with the theme color picked in Settings instead of a hardcoded
+       blue→purple (which ignored the chosen accent in dark mode). */
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
 }
 
 /* TOEIC Tabs */

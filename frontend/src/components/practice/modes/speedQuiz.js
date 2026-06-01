@@ -131,8 +131,9 @@ export const SpeedQuiz = {
         const speakBtn = document.getElementById('speak-word-btn');
         if (speakBtn) {
             speakBtn.addEventListener('click', () => {
-                if (question && question.question) {
-                    GameLogic.speakWord(question.question, 'en-US');
+                // Luôn đọc từ tiếng Anh (kể cả khi đảo chiều prompt đang là tiếng Việt).
+                if (question?.word?.en) {
+                    GameLogic.speakWord(question.word.en, 'en-US');
                 }
             });
         }

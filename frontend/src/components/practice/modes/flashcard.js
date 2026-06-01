@@ -97,7 +97,28 @@ export const Flashcard = {
         const container = document.getElementById('practice-content');
         if (!container) return;
 
-        const hasChinese = false;
+        // reversed = VN→EN: mặt trước hiện nghĩa tiếng Việt, mặt sau hiện từ
+        // tiếng Anh + phiên âm. Ảnh giữ nguyên ở mặt trước (không phụ thuộc ngôn ngữ).
+        const reversed = GameLogic.isReversed();
+        const meaning = word.vi || word.vn || '';
+        const frontMain = reversed ? meaning : word.en;
+        const frontBadge = reversed ? 'VI' : 'EN';
+        const backBadge = reversed ? 'EN' : 'VI';
+
+        const extrasHtml = `
+                                ${word.example ? `
+                                    <div class="card-example">
+                                        <strong>Ví dụ:</strong>
+                                        <p>${word.example}</p>
+                                    </div>
+                                ` : ''}
+
+                                ${word.synonyms ? `
+                                    <div class="card-synonyms">
+                                        <strong>Từ đồng nghĩa:</strong>
+                                        <p>${word.synonyms}</p>
+                                    </div>
+                                ` : ''}`;
 
         container.innerHTML = `
             <div class="flashcard-container">
@@ -121,7 +142,7 @@ export const Flashcard = {
                 <div class="flashcard" id="flashcard">
                     <div class="flashcard-inner" id="flashcard-inner">
                         <div class="flashcard-front">
-                            <div class="card-corner-badge">EN</div>
+                            <div class="card-corner-badge">${frontBadge}</div>
                             <div class="card-content card-content--split">
                                 ${word.image ? `
                                     <div class="card-image-col">
@@ -130,8 +151,8 @@ export const Flashcard = {
                                     </div>
                                 ` : ''}
                                 <div class="card-text-col">
-                                    <h2 class="card-word">${word.en}</h2>
-                                    <p class="card-phonetic">${word.phonetic || ''}</p>
+                                    <h2 class="card-word">${frontMain}</h2>
+                                    ${!reversed ? `<p class="card-phonetic">${word.phonetic || ''}</p>` : ''}
                                     <div class="card-type-row">
                                         <span class="card-type">${word.type || ''}</span>
                                         <button class="card-fav-btn${this._isFavorite(word.en) ? ' active' : ''}" id="fav-btn" title="${this._isFavorite(word.en) ? 'Bỏ yêu thích' : 'Thêm yêu thích'}">
@@ -146,33 +167,15 @@ export const Flashcard = {
                         </div>
 
                         <div class="flashcard-back">
-                            <div class="card-corner-badge">VI</div>
+                            <div class="card-corner-badge">${backBadge}</div>
                             <div class="card-content">
-                                <h2 class="card-meaning">${word.vi || word.vn}</h2>
-
-                                ${hasChinese ? `
-                                    <div class="card-chinese-section">
-                                        <div class="chinese-lang-badge">
-                                            <span class="flag">CN</span> Tiếng Trung
-                                        </div>
-                                        <h3 class="card-chinese">${word.zh}</h3>
-                                        <p class="card-pinyin">${word.pinyin}</p>
-                                    </div>
-                                ` : ''}
-
-                                ${word.example ? `
-                                    <div class="card-example">
-                                        <strong>Ví dụ:</strong>
-                                        <p>${word.example}</p>
-                                    </div>
-                                ` : ''}
-
-                                ${word.synonyms ? `
-                                    <div class="card-synonyms">
-                                        <strong>Từ đồng nghĩa:</strong>
-                                        <p>${word.synonyms}</p>
-                                    </div>
-                                ` : ''}
+                                ${reversed ? `
+                                    <h2 class="card-meaning">${word.en}</h2>
+                                    ${word.phonetic ? `<p class="card-phonetic">${word.phonetic}</p>` : ''}
+                                ` : `
+                                    <h2 class="card-meaning">${meaning}</h2>
+                                `}
+                                ${extrasHtml}
                             </div>
                         </div>
                     </div>
@@ -204,7 +207,8 @@ export const Flashcard = {
             setTimeout(() => this.pronounce(word.en), 300);
         }
 
-        if (!this.isFlipped && GameState.state.settings.autoPronunciation) {
+        // Khi đảo chiều, mặt trước là tiếng Việt → không tự phát âm từ tiếng Anh ở đây.
+        if (!this.isFlipped && GameState.state.settings.autoPronunciation && !reversed) {
             setTimeout(() => this.pronounce(word.en), 500);
         }
     },

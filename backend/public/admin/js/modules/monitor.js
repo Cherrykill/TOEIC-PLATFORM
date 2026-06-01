@@ -562,6 +562,9 @@ async function submitJsonImport() {
     resultDiv.style.display = 'block';
     resultDiv.style.background = errors.length === total ? '#fef2f2' : ok === total ? '#f0fdf4' : '#fffbeb';
     resultDiv.style.border = `1px solid ${errors.length === total ? '#fca5a5' : ok === total ? '#86efac' : '#fcd34d'}`;
+    // Background is always light → pin dark text so the summary line stays
+    // readable in dark mode (it inherits near-white text otherwise → invisible).
+    resultDiv.style.color = '#1f2937';
     resultDiv.innerHTML = `
         <b>${total} từ</b> — ✅ ${inserted} thêm mới · 🔄 ${updated} cập nhật · ❌ ${errors.length} lỗi
         ${errors.length ? '<ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>' : ''}

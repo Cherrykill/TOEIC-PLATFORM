@@ -216,24 +216,26 @@ export const GameLogic = {
 
     generateFillBlank(word) {
         const reversed = this.isReversed();
+        // Convention (giống generateMultipleChoice): reversed = VN→EN — hiện
+        // nghĩa tiếng Việt, người dùng gõ từ tiếng Anh. Mặc định = EN→VN.
         if (reversed) {
             return {
                 word,
-                displayWord: word.en,
-                prompt: `Nghĩa tiếng Việt của từ trên là:`,
-                placeholder: 'Nhập nghĩa tiếng Việt',
-                correctAnswer: word.vn,
-                acceptableAnswers: [word.vn.toLowerCase()],
+                displayWord: word.vn,
+                prompt: `Từ tiếng Anh của từ trên là:`,
+                placeholder: 'Nhập từ tiếng Anh',
+                correctAnswer: word.en,
+                acceptableAnswers: [word.en.toLowerCase()],
                 reversed: true
             };
         }
         return {
             word,
-            displayWord: word.vn,
-            prompt: `Từ tiếng Anh của từ trên là:`,
-            placeholder: 'Nhập từ tiếng Anh',
-            correctAnswer: word.en,
-            acceptableAnswers: [word.en.toLowerCase()],
+            displayWord: word.en,
+            prompt: `Nghĩa tiếng Việt của từ trên là:`,
+            placeholder: 'Nhập nghĩa tiếng Việt',
+            correctAnswer: word.vn,
+            acceptableAnswers: [word.vn.toLowerCase()],
             reversed: false
         };
     },
@@ -501,24 +503,30 @@ export const GameLogic = {
 
     generateSpeedQuiz(word, optionsCount = 2) {
         const isCorrect = Math.random() > 0.5;
+        const reversed = this.isReversed();
+        // reversed = VN→EN: hiện nghĩa tiếng Việt, đánh giá từ tiếng Anh.
+        const ask = reversed ? word.vn : word.en;
+        const right = reversed ? word.en : word.vn;
 
         if (isCorrect) {
             return {
                 word,
-                question: word.en,
-                shownAnswer: word.vn,
+                question: ask,
+                shownAnswer: right,
                 isCorrect: true,
-                correctAnswer: word.vn
+                correctAnswer: right,
+                reversed
             };
         } else {
             const otherWords = this.vocabularyData.filter(w => w.en !== word.en);
             const wrongWord = Utils.randomElement(otherWords);
             return {
                 word,
-                question: word.en,
-                shownAnswer: wrongWord.vn,
+                question: ask,
+                shownAnswer: reversed ? wrongWord.en : wrongWord.vn,
                 isCorrect: false,
-                correctAnswer: word.vn
+                correctAnswer: right,
+                reversed
             };
         }
     },
