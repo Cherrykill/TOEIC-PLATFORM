@@ -49,12 +49,18 @@ export const Dictation = {
 
     _hasValidExample(word) {
         if (!word.example) return false;
+        // Tiếng Trung: chỉ cần có ký tự Hán (không đếm từ a-z hay theo space).
+        if (/[㐀-鿿]/.test(word.example)) return word.example.length >= 2;
         if (!/[a-zA-Z]{3,}/.test(word.example)) return false;
         const wordCount = (word.example.match(/\b[a-zA-Z]+\b/g) || []).length;
         return wordCount >= 4;
     },
 
     createBlanks(sentence, keyWord) {
+        // Tiếng Trung: tìm trực tiếp từ khoá (chuỗi Hán) trong câu để khoét chỗ
+        // trống — \b và [a-zA-Z] chỉ hợp tiếng Anh.
+        if (/[㐀-鿿]/.test(sentence)) return this._createBlanksZh(sentence, keyWord);
+
         const blanks = [];
 
         const escaped = keyWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -114,6 +120,19 @@ export const Dictation = {
             display,
             blanks,
             answers: blanks.map(b => b.word.toLowerCase())
+        };
+    },
+
+    _createBlanksZh(sentence, keyWord) {
+        const idx = keyWord ? sentence.indexOf(keyWord) : -1;
+        if (idx === -1) return null;
+        const display = this._escapeHtml(sentence.substring(0, idx))
+            + `<span class="dictation-blank-slot" data-index="0">[1]</span>`
+            + this._escapeHtml(sentence.substring(idx + keyWord.length));
+        return {
+            display,
+            blanks: [{ start: idx, end: idx + keyWord.length, word: keyWord }],
+            answers: [keyWord.toLowerCase()],
         };
     },
 
@@ -221,9 +240,14 @@ export const Dictation = {
     },
 
     playAudio(text) {
-        const savedVoice = localStorage.getItem('toeic_voice') || '';
-        const voiceKey = savedVoice.startsWith('__gtts_') ? savedVoice : '__gtts_us__';
-        GameLogic._speakGoogleTTS(text, voiceKey, null);
+        // Tiếng Trung: đọc bằng giọng zh (speakWord tự chọn voice zh + zh-CN).
+        if (/[㐀-鿿]/.test(text)) {
+            GameLogic.speakWord(text, 'zh-CN');
+        } else {
+            const savedVoice = localStorage.getItem('toeic_voice') || '';
+            const voiceKey = savedVoice.startsWith('__gtts_') ? savedVoice : '__gtts_us__';
+            GameLogic._speakGoogleTTS(text, voiceKey, null);
+        }
 
         const btn = document.getElementById('dictation-play-btn');
         if (btn) {
@@ -272,10 +296,10 @@ export const Dictation = {
             if (input) input.classList.add(r.isCorrect ? 'dictation-correct' : 'dictation-wrong');
         });
 
+        // showResult() đã tự dịch câu + lên lịch nextQuestion. Trước đây ở đây
+        // còn gọi _translateExample(word.example) lần nữa nhưng `word` không tồn
+        // tại trong scope này (chỉ có `question`) → ném lỗi. Bỏ hẳn cho gọn.
         this.showResult(question, results, allCorrect);
-
-        const readDelay = allCorrect ? 2500 : 3200;
-        this._translateExample(word.example, readDelay);
     },
 
     showResult(question, results, allCorrect) {

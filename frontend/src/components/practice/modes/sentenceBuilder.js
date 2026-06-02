@@ -56,6 +56,11 @@ export const SentenceBuilder = {
     },
 
     splitIntoPhrases(sentence) {
+        // Tiếng Trung: không có khoảng trắng → tách theo từng ký tự Hán (bỏ dấu
+        // câu) để người học sắp lại đúng thứ tự câu.
+        if (/[㐀-鿿]/.test(sentence)) {
+            return sentence.split('').filter(ch => /[㐀-鿿々A-Za-z0-9]/.test(ch));
+        }
         const cleanSentence = sentence.replace(/[.,!?;:]$/, '');
         const words = cleanSentence.split(' ');
 
@@ -289,19 +294,25 @@ export const SentenceBuilder = {
         checkBtn.disabled = this.selectedWords.length !== question.correctPhrases.length;
     },
 
-    normalizeSentence(sentence) {
-        return sentence
-            .trim()
+    normalizeSentence(sentence, isZh = false) {
+        const s = sentence.trim();
+        if (isZh) {
+            // Bỏ mọi khoảng trắng và dấu câu — chỉ so phần ký tự Hán.
+            return s.replace(/[\s，。！？、；：""''「」『』（）()]/g, '');
+        }
+        return s
             .replace(/\s+/g, ' ')
             .replace(/[.,!?;:]+$/g, '')
             .toLowerCase();
     },
 
     checkAnswer() {
-        const userSentence = this.selectedWords.join(' ');
+        // Tiếng Trung ghép không khoảng trắng; tiếng Anh ghép bằng dấu cách.
+        const isZh = /[㐀-鿿]/.test(this.correctSentence);
+        const userSentence = this.selectedWords.join(isZh ? '' : ' ');
 
-        const normalizedUserSentence = this.normalizeSentence(userSentence);
-        const normalizedCorrectSentence = this.normalizeSentence(this.correctSentence);
+        const normalizedUserSentence = this.normalizeSentence(userSentence, isZh);
+        const normalizedCorrectSentence = this.normalizeSentence(this.correctSentence, isZh);
         const isCorrect = normalizedUserSentence === normalizedCorrectSentence;
 
         const question = this.questions[this.currentIndex];

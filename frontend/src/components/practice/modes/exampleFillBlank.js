@@ -68,24 +68,29 @@ export const ExampleFillBlank = {
         const example = word.example;
         const targetWord = word.en;
 
-        const regex = new RegExp(`\\b${targetWord}\\b`, 'gi');
-        const match = example.match(regex);
-
-        if (!match) {
-            return null;
+        // Tiếng Trung: câu ví dụ không có ranh giới từ (\b) hay khoảng trắng →
+        // khoét chỗ trống bằng cách so khớp trực tiếp chuỗi ký tự Hán.
+        const isZh = /[㐀-鿿]/.test(example);
+        let blankedSentence;
+        if (isZh) {
+            if (!targetWord || !example.includes(targetWord)) return null;
+            blankedSentence = example.split(targetWord).join('______');
+        } else {
+            const esc = targetWord.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`\\b${esc}\\b`, 'gi');
+            if (!regex.test(example)) return null;
+            blankedSentence = example.replace(new RegExp(`\\b${esc}\\b`, 'gi'), '______');
         }
-
-        const blankedSentence = example.replace(regex, '______');
 
         const allWords = GameLogic.getVocabulary();
         const otherWords = allWords.filter(w =>
-            w.en !== word.en &&
+            (w.en || w.zh) !== targetWord &&
             w.type === word.type
         );
 
         const wrongAnswers = Utils.shuffleArray(otherWords)
             .slice(0, 3)
-            .map(w => w.en);
+            .map(w => w.en || w.zh);
 
         const allOptions = Utils.shuffleArray([targetWord, ...wrongAnswers]);
 

@@ -503,12 +503,9 @@ const syncProgress = async (req, res, next) => {
             if (progress.modeStats) stats.modeStats = new Map(Object.entries(progress.modeStats));
         }
 
-        if (streak) {
-            if (streak.current !== undefined) stats.streakCurrent = streak.current;
-            if (streak.longest !== undefined) stats.streakLongest = streak.longest;
-            if (streak.lastPlayDate) stats.streakLastPlayDate = new Date(streak.lastPlayDate);
-            if (streak.shieldsUsed !== undefined) stats.streakShieldsUsed = streak.shieldsUsed;
-        }
+        // Streak KHÔNG ghi từ client (xem userStateController.saveState). Nguồn
+        // sự thật duy nhất là /practice/submit để tránh client cũ reset streak.
+        void streak;
 
         if (settings) {
             Object.assign(profile.settings, settings);

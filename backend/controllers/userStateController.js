@@ -121,13 +121,11 @@ exports.saveState = async (req, res, next) => {
             if (state.progress.modeStats) stats.modeStats = new Map(Object.entries(state.progress.modeStats));
         }
 
-        // Streak
-        if (state.streak) {
-            if (state.streak.current !== undefined) stats.streakCurrent = state.streak.current;
-            if (state.streak.longest !== undefined) stats.streakLongest = state.streak.longest;
-            if (state.streak.lastPlayDate) stats.streakLastPlayDate = new Date(state.streak.lastPlayDate);
-            if (state.streak.shieldsUsed !== undefined) stats.streakShieldsUsed = state.streak.shieldsUsed;
-        }
+        // Streak: KHÔNG ghi từ blob client ở đây. Streak do /practice/submit
+        // tính độc quyền (nguồn sự thật duy nhất). Trước đây saveState chạy ở
+        // rất nhiều hành động (settings, mua đồ, save nền…) và ghi đè streak +
+        // lastPlayDate bằng giá trị client có thể bị cũ → đẩy lastPlayDate lùi
+        // lại → lần chơi sau daysDiff > 1 → streak bị reset về 1.
 
         // Quests — upsert today's UserDailyQuest
         if (state.quests?.daily && Array.isArray(state.quests.daily)) {
