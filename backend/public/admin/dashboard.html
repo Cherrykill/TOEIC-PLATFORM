@@ -276,8 +276,9 @@
         <div class="sidebar-brand">
           <i class="fas fa-chart-line"></i>
           <span>TOEIC Admin</span>
-          <button class="sidebar-toggle-btn" id="sidebar-toggle-brand" title="Ẩn/hiện menu" onclick="document.getElementById('sidebar-toggle').click()">
-            <i class="fas fa-bars"></i>
+          <button class="sidebar-close-btn" id="sidebar-close-brand" title="Đóng menu"
+            onclick="window.collapseSidebar && window.collapseSidebar()">
+            <i class="fas fa-xmark"></i>
           </button>
         </div>
         <nav class="sidebar-nav">
@@ -1912,13 +1913,20 @@
                 <div class="db-col-sidebar-header">
                   <span><i class="fas fa-database"></i> Collections</span>
                   <div style="display:flex;gap:4px">
-                    <button class="btn btn-ghost btn-sm" id="db-export-all-btn" title="Xuất toàn bộ collections thành JSON">
+                    <button class="btn btn-ghost btn-sm" id="db-backup-btn" title="Sao lưu toàn bộ DB (1 file, phục hồi được)">
+                      <i class="fas fa-cloud-arrow-down"></i>
+                    </button>
+                    <button class="btn btn-ghost btn-sm" id="db-restore-btn" title="Phục hồi DB từ file sao lưu">
+                      <i class="fas fa-cloud-arrow-up"></i>
+                    </button>
+                    <button class="btn btn-ghost btn-sm" id="db-export-all-btn" title="Xuất từng collection thành file JSON riêng">
                       <i class="fas fa-file-export"></i>
                     </button>
                     <button class="btn btn-ghost btn-sm" id="db-refresh-btn" title="Làm mới">
                       <i class="fas fa-sync-alt"></i>
                     </button>
                   </div>
+                  <input type="file" id="db-restore-input" accept="application/json,.json" style="display:none" />
                 </div>
                 <div id="db-col-list" class="db-col-list">
                   <div class="db-col-empty"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>

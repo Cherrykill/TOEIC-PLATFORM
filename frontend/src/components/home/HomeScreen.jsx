@@ -39,6 +39,47 @@ const gameModes = [
 
 const isWeekend = () => { const d = new Date().getDay(); return d === 0 || d === 6; };
 
+// Châm ngôn động lực — mỗi ngày hiển thị 1 câu, ĐỔI theo ngày và ổn định
+// trong suốt ngày đó (chỉ số tính theo ngày địa phương).
+const DAILY_QUOTES = [
+    'Học một ngôn ngữ là có thêm một cửa sổ nhìn ra thế giới.',
+    'Mỗi từ mới hôm nay là một viên gạch cho tương lai bạn.',
+    'Kiên trì mỗi ngày một chút, hơn cố gắng một lần rồi bỏ.',
+    'Không phải vì khó mà ta ngại, mà vì ta ngại nên nó mới khó.',
+    'Tiến bộ nhỏ vẫn là tiến bộ. Cứ đi rồi sẽ tới.',
+    'Người giỏi nhất cũng từng là người mới bắt đầu.',
+    'Giới hạn của ngôn ngữ là giới hạn của thế giới bạn.',
+    'Hôm nay khó, ngày mai khó hơn, nhưng ngày kia sẽ tươi đẹp.',
+    'Thành công là tổng của những nỗ lực nhỏ lặp lại mỗi ngày.',
+    'Đừng đếm số ngày, hãy làm cho mỗi ngày đáng giá.',
+    'Một hành trình ngàn dặm bắt đầu từ một bước chân.',
+    'Bạn không cần phải giỏi để bắt đầu, nhưng phải bắt đầu để giỏi.',
+    'Bộ não như cơ bắp — càng luyện càng mạnh.',
+    'Sai lầm là bằng chứng rằng bạn đang cố gắng.',
+    'Chậm cũng được, miễn là đừng dừng lại.',
+    'Đầu tư vào tri thức luôn trả lãi cao nhất.',
+    'Kỷ luật là cây cầu giữa mục tiêu và thành quả.',
+    'Học khi người khác ngủ, bạn sẽ sống điều người khác mơ.',
+    'Mỗi ngày một từ, một năm là ba trăm sáu lăm cơ hội mới.',
+    'Hãy tự hào vì bạn đã không bỏ cuộc hôm nay.',
+    'Nỗ lực không phản bội. Hôm nay bạn gieo, mai bạn gặt.',
+    'Việc khó làm hôm nay, ngày mai sẽ thành chuyện dễ.',
+    'Thói quen tốt được xây bằng những ngày bình thường.',
+    'Đừng so với người khác, hãy hơn chính bạn hôm qua.',
+    'Ngôn ngữ mở ra những cánh cửa mà tiền bạc không mua được.',
+    'Bền bỉ đánh bại tài năng khi tài năng lười biếng.',
+    'Một chút mỗi ngày tạo nên khác biệt lớn theo thời gian.',
+    'Hôm nay bạn học vì ngày mai bạn không phải hối tiếc.',
+    'Giữ ngọn lửa cháy — streak của bạn là minh chứng cho ý chí.',
+    'Cố lên! Phiên bản tốt hơn của bạn đang chờ phía trước.',
+];
+const quoteOfTheDay = () => {
+    // Số ngày kể từ epoch theo giờ địa phương → cùng 1 ngày luôn ra cùng câu.
+    const ms = Date.now() - new Date().getTimezoneOffset() * 60000;
+    const dayIndex = Math.floor(ms / 86400000);
+    return DAILY_QUOTES[((dayIndex % DAILY_QUOTES.length) + DAILY_QUOTES.length) % DAILY_QUOTES.length];
+};
+
 function getTimeUntilWeekend() {
     const now = new Date();
     const day = now.getDay();
@@ -166,6 +207,9 @@ export default function HomeScreen({ active }) {
                 <div className="streak-info">
                     <h3><span id="streak-count">{streak.current}</span> ngày liên tục</h3>
                     <p>Học mỗi ngày để giữ streak!</p>
+                    <p className="streak-quote">
+                        <i className="fas fa-quote-left"></i> {quoteOfTheDay()}
+                    </p>
                 </div>
             </div>
 

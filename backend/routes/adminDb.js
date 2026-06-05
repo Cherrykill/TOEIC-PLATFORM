@@ -1,9 +1,89 @@
 const express = require('express');
 const router  = express.Router();
 const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const { EJSON } = require('bson');
 const { protect, authorize } = require('../middleware/auth');
 
 const admin = [protect, authorize('admin')];
+
+// ── SAO LƯU TOÀN BỘ DB → 1 file Extended JSON ─────────────────
+// EJSON (canonical) giữ nguyên kiểu: ObjectId → {$oid}, Date → {$date}…
+// nên import lại không bị mất kiểu/đứt liên kết như JSON thường.
+router.get('/export', admin, async (req, res) => {
+    try {
+        const db = mongoose.connection.db;
+        const cols = await db.listCollections().toArray();
+        const collections = {};
+        for (const c of cols) {
+            if (c.name.startsWith('system.')) continue;
+            collections[c.name] = await db.collection(c.name).find({}).toArray();
+        }
+        const body = EJSON.stringify(
+            { _meta: { exportedAt: new Date(), db: db.databaseName, version: 1 }, collections },
+            { relaxed: false }
+        );
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="backup-${stamp}.json"`);
+        res.send(body);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// ── PHỤC HỒI TỪ FILE SAO LƯU ──────────────────────────────────
+// Nhận body text thô (file gửi dạng text/plain) — dùng parser riêng giới
+// hạn lớn để không vướng limit 2mb của express.json toàn cục.
+// ?mode=replace (mặc định: xoá sạch rồi nạp lại) | merge (upsert theo _id).
+router.post('/import', admin, bodyParser.text({ limit: '200mb', type: () => true }), async (req, res) => {
+    try {
+        const raw = typeof req.body === 'string' ? req.body : '';
+        if (!raw.trim()) return res.status(400).json({ success: false, message: 'File sao lưu trống' });
+
+        let parsed;
+        try { parsed = EJSON.parse(raw, { relaxed: false }); }
+        catch (e) { return res.status(400).json({ success: false, message: 'File không phải JSON hợp lệ: ' + e.message }); }
+
+        // Chấp nhận cả {collections:{...}} (bản full) lẫn {coll:[...]} trực tiếp.
+        const collections = (parsed && parsed.collections && typeof parsed.collections === 'object')
+            ? parsed.collections
+            : parsed;
+        if (!collections || typeof collections !== 'object' || Array.isArray(collections))
+            return res.status(400).json({ success: false, message: 'Định dạng backup không đúng' });
+
+        const mode = req.query.mode === 'merge' ? 'merge' : 'replace';
+        const db = mongoose.connection.db;
+        const report = [];
+
+        for (const [name, docs] of Object.entries(collections)) {
+            if (name.startsWith('system.') || !Array.isArray(docs)) continue;
+            const col = db.collection(name);
+            let cleared = 0, written = 0;
+
+            if (mode === 'replace') {
+                cleared = (await col.deleteMany({})).deletedCount;
+            }
+            if (docs.length) {
+                if (mode === 'merge') {
+                    const ops = docs.map(d => ({
+                        replaceOne: { filter: { _id: d._id }, replacement: d, upsert: true },
+                    }));
+                    const r = await col.bulkWrite(ops, { ordered: false });
+                    written = (r.upsertedCount || 0) + (r.modifiedCount || 0);
+                } else {
+                    const r = await col.insertMany(docs, { ordered: false });
+                    written = r.insertedCount;
+                }
+            }
+            report.push({ collection: name, cleared, written, total: docs.length });
+        }
+
+        res.json({ success: true, mode, report });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
 
 // ── Danh sách collections + doc count ─────────────────────────
 router.get('/collections', admin, async (req, res) => {

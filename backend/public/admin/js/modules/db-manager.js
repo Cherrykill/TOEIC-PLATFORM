@@ -32,6 +32,15 @@ function initDbManager() {
 
     document.getElementById('db-refresh-btn')?.addEventListener('click', loadDbCollections);
     document.getElementById('db-export-all-btn')?.addEventListener('click', exportAllCollections);
+    document.getElementById('db-backup-btn')?.addEventListener('click', backupDatabase);
+    document.getElementById('db-restore-btn')?.addEventListener('click', () => {
+        document.getElementById('db-restore-input')?.click();
+    });
+    document.getElementById('db-restore-input')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        e.target.value = ''; // reset để chọn lại cùng file vẫn kích hoạt
+        if (file) restoreDatabase(file);
+    });
 
     // Event delegation cho collection list (tránh inline onclick)
     document.getElementById('db-col-list')?.addEventListener('click', (e) => {
@@ -128,6 +137,81 @@ async function exportAllCollections() {
         showToast(`Đã xuất ${done} / ${collections.length} collections`, 'success');
     } catch (err) {
         showToast('Lỗi xuất dữ liệu: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// ── Sao lưu toàn bộ DB → 1 file (Extended JSON, phục hồi được) ─
+async function backupDatabase() {
+    const btn = document.getElementById('db-backup-btn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const res = await dbFetch('/api/admin/db/export');
+        if (!res.ok) {
+            let msg = `HTTP ${res.status}`;
+            try { msg = (await res.json()).message || msg; } catch {}
+            throw new Error(msg);
+        }
+        const text = await res.text();
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        a.href = url;
+        a.download = `backup-${stamp}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Đã tải file sao lưu toàn bộ DB', 'success');
+    } catch (err) {
+        showToast('Lỗi sao lưu: ' + err.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// ── Phục hồi DB từ file sao lưu ───────────────────────────────
+async function restoreDatabase(file) {
+    const merge = confirm(
+        `Phục hồi từ "${file.name}"?\n\n` +
+        `• OK  = GỘP (giữ dữ liệu hiện có, ghi đè theo _id trùng)\n` +
+        `• Cancel = sẽ hỏi tiếp chế độ THAY THẾ (xoá sạch rồi nạp lại)`
+    );
+    let mode = 'merge';
+    if (!merge) {
+        const replace = confirm(
+            '⚠️ Chế độ THAY THẾ sẽ XOÁ SẠCH mọi collection có trong file rồi nạp lại ' +
+            '(kể cả tài khoản người dùng). Bạn có thể bị đăng xuất nếu file từ DB khác.\n\n' +
+            'OK = THAY THẾ · Cancel = huỷ phục hồi'
+        );
+        if (!replace) { showToast('Đã huỷ phục hồi', 'info'); return; }
+        mode = 'replace';
+    }
+
+    const btn = document.getElementById('db-restore-btn');
+    const origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const text = await file.text();
+        const res = await dbFetch(`/api/admin/db/import?mode=${mode}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' }, // tránh limit 2mb của express.json
+            body: text,
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.message);
+
+        const totalDocs = (json.report || []).reduce((n, r) => n + (r.written || 0), 0);
+        showToast(`Phục hồi xong (${mode}): ${json.report.length} collection, ${totalDocs} bản ghi`, 'success');
+        loadDbCollections();
+        if (_db.currentCollection) loadDbDocuments(1);
+    } catch (err) {
+        showToast('Lỗi phục hồi: ' + err.message, 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = origHtml;

@@ -29,6 +29,21 @@
   opacity: 0.9;
 }
 
+/* Châm ngôn động lực mỗi ngày dưới dòng nhắc streak */
+.streak-info .streak-quote {
+  margin-top: 6px;
+  font-style: italic;
+  opacity: 0.85;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  max-width: 640px;
+}
+
+.streak-info .streak-quote i {
+  margin-right: 6px;
+  opacity: 0.6;
+}
+
 /* ===================================
    QUESTS SECTION
    =================================== */

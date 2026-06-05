@@ -146,6 +146,34 @@ body {
   border-color: rgba(255,255,255,0.3);
 }
 
+/* Nút đóng menu trong sidebar — chỉ hiện ở responsive (≤900px), nơi nút
+   ẩn/hiện ở topbar bị thanh bên che mất khi đang mở. */
+.sidebar-brand .sidebar-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  flex-shrink: 0;
+  cursor: pointer;
+  color: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.sidebar-brand .sidebar-close-btn:hover {
+  background: rgba(255,255,255,0.18);
+  color: white;
+  border-color: rgba(255,255,255,0.3);
+}
+
+@media (max-width: 900px) {
+  .sidebar-brand .sidebar-close-btn { display: inline-flex; }
+}
+
 .sidebar-nav {
   flex: 1;
   padding: 10px 0 14px;
