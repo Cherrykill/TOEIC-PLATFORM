@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Notification } from '@ui/Toaster.jsx';
@@ -126,33 +126,42 @@ export default function QuestScreen({ active }) {
         return () => clearInterval(id);
     }, [active, activeTab]);
 
-    async function handleClaim(type, questCode) {
-        setClaimedCodes(prev => new Set([...prev, questCode]));
+    const claimingRef = useRef(new Set());
+    async function handleClaim(type, quest) {
+        const code = quest.code || quest.id;
+        // Chặn double-click đồng bộ (state React chưa commit kịp giữa 2 click).
+        if (!code || claimedCodes.has(code) || claimingRef.current.has(code)) return;
+        claimingRef.current.add(code);
 
-        if (Quest?.claimReward) {
-            const rewards = await Quest.claimReward(type, questCode);
-            if (rewards !== null && rewards !== undefined) {
-                // Cộng thưởng cục bộ để header coins/xp/gems đổi ngay,
-                // khỏi phải F5 mới thấy số mới.
-                GameState.creditServerRewards(rewards);
-                Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
-                Notification.success('Nhận thưởng thành công!');
-                loadQuests(type);
-                syncFromState();
-                return;
-            }
+        const reward = {
+            coins: quest.rewardCoins || quest.reward?.coins || 0,
+            xp:    quest.rewardXp    || quest.reward?.xp    || 0,
+            gems:  quest.rewardGems  || quest.reward?.gems  || 0,
+        };
+
+        // OPTIMISTIC: phản hồi NGAY (nút "Đã nhận" + thưởng + âm thanh + thông
+        // báo), không đợi 3 round-trip mạng (save → flush → claim) → hết delay.
+        setClaimedCodes(prev => new Set([...prev, code]));
+        GameState.creditServerRewards(reward);
+        Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
+        Notification.success('Nhận thưởng thành công!');
+        syncFromState();
+
+        // Đồng bộ server chạy nền; nếu thất bại thì HOÀN TÁC.
+        let ok = false;
+        try {
+            if (Quest?.claimReward) ok = (await Quest.claimReward(type, code)) != null;
+            else ok = !!(await QuestsAPI.claim({ type, code })).success;
+        } catch { ok = false; }
+
+        if (!ok) {
+            GameState.creditServerRewards({ coins: -reward.coins, xp: -reward.xp, gems: -reward.gems });
+            setClaimedCodes(prev => { const s = new Set(prev); s.delete(code); return s; });
+            Notification.error('Không thể nhận thưởng, vui lòng thử lại');
         }
-        const res = await QuestsAPI.claim({ type, code: questCode });
-        if (res.success) {
-            GameState.creditServerRewards(res.rewards || {});
-            Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
-            Notification.success('Nhận thưởng thành công!');
-            loadQuests(type);
-            syncFromState();
-        } else {
-            setClaimedCodes(prev => { const s = new Set(prev); s.delete(questCode); return s; });
-            Notification.error(res.message || 'Không thể nhận thưởng');
-        }
+        claimingRef.current.delete(code);
+        loadQuests(type);
+        syncFromState();
     }
 
     // Danh sách quest đã hoàn thành nhưng chưa nhận — gom MỌI loại (ngày/tuần/
@@ -306,7 +315,7 @@ export default function QuestScreen({ active }) {
                                 {quest.completed
                                     ? (isClaimed
                                         ? <div className="quest-claimed-badge"><i className="fas fa-check-circle"></i> Đã nhận thưởng</div>
-                                        : <button className="quest-claim-btn btn btn-primary btn-sm" onClick={() => handleClaim(activeTab, quest.code || quest.id)}>Nhận thưởng</button>)
+                                        : <button className="quest-claim-btn btn btn-primary btn-sm" onClick={() => handleClaim(activeTab, quest)}>Nhận thưởng</button>)
                                     : <div className="quest-pending-badge"><i className="fas fa-hourglass-half"></i> Chưa đạt</div>
                                 }
                             </div>

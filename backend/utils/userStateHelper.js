@@ -88,6 +88,7 @@ async function buildFullState(userId) {
         user: {
             id: user._id,
             username: profile.username,
+            usernameChangedAt: profile.usernameChangedAt || null,
             email: user.email,
             role: user.role,
             avatar: profile.avatar,

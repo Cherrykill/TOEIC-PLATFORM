@@ -15,6 +15,9 @@ export default function TopNav() {
     // Khiên bảo vệ streak: đổi màu theo số lượng (≥3 xanh dương, 2 vàng, 1 đỏ).
     const shields = resources?.shields || 0;
     const shieldColor = shields >= 3 ? '#3b82f6' : shields === 2 ? '#eab308' : '#ef4444';
+    // Xếp hạng bảng xếp hạng (all-time): top 1/2/3 = vàng/bạc/đồng, còn lại tím.
+    const [rank, setRank] = useState(null);
+    const rankColor = rank === 1 ? '#fbbf24' : rank === 2 ? '#cbd5e1' : rank === 3 ? '#d97706' : '#a78bfa';
     const isInPractice = currentScreen === 'practice-screen' || currentScreen === 'toeic-test-screen';
     const { isLoggedIn, setAuthModal } = useAuth();
     const { badges: menuBadges } = useMenuBadges(isLoggedIn, { listenEvents: true });
@@ -40,6 +43,22 @@ export default function TopNav() {
         });
         return unsub;
     }, []);
+
+    // Lấy xếp hạng all-time của user (cạnh khiên); refresh sau mỗi lượt luyện tập.
+    useEffect(() => {
+        const uid = user?.id || user?._id;
+        if (!uid) { setRank(null); return; }
+        let cancelled = false;
+        const fetchRank = () => {
+            fetch(`/api/leaderboard/rank/${uid}/all-time`)
+                .then(r => r.json())
+                .then(j => { if (!cancelled && j.success) setRank(j.data?.rank ?? null); })
+                .catch(() => {});
+        };
+        fetchRank();
+        const unsub = EventBus.on(GameEvents.PRACTICE_COMPLETED, fetchRank);
+        return () => { cancelled = true; unsub?.(); };
+    }, [user?.id, user?._id]);
 
     const handleTopicSelected = useCallback(() => {
         const mode = pendingModeRef.current;
@@ -126,6 +145,16 @@ export default function TopNav() {
                                 >
                                     <i className="fas fa-shield-alt"></i>
                                     <span className="shield-count">{shields}</span>
+                                </span>
+                            )}
+                            {rank != null && (
+                                <span
+                                    className="rank-badge"
+                                    style={{ color: rankColor }}
+                                    title={`Xếp hạng #${rank} toàn hệ thống`}
+                                >
+                                    <i className="fas fa-trophy"></i>
+                                    <span className="rank-count">#{rank}</span>
                                 </span>
                             )}
                         </div>

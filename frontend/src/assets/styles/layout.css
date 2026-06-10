@@ -157,6 +157,19 @@
     line-height: 1;
 }
 
+/* Xếp hạng all-time cạnh khiên — màu đặt inline (top 1/2/3 = vàng/bạc/đồng). */
+.rank-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 6px;
+    font-weight: 700;
+}
+
+.rank-badge .rank-count {
+    line-height: 1;
+}
+
 /* Resources Display */
 .resource-display {
     display: flex;

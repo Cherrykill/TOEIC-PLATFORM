@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useCallback } from 'react';
+import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
@@ -195,33 +195,41 @@ export default function HomeScreen({ active }) {
         PracticeManager.start(mode);
     };
 
+    const claimingRef = useRef(new Set());
     const handleClaimQuest = async (quest) => {
         const code = quest.code || quest.id;
         if (!code || !quest.completed || quest.claimedAt || quest.claimed) return;
+        if (claimingRef.current.has(code)) return; // chặn double-click
+        claimingRef.current.add(code);
 
-        // Backend expect { type, code } — bug cũ gửi { questId } → 400.
-        // Đi qua Quest.claimReward để có optimistic claimedAt + flush sync
-        // (khớp với QuestScreen).
-        let rewards = null;
-        if (Quest?.claimReward) {
-            rewards = await Quest.claimReward('daily', code);
-            if (rewards != null) {
-                GameState.creditServerRewards(rewards);
-                Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
-                Notification.success('Nhận thưởng thành công!');
-                loadLocalData();
-                syncFromState();
-                return;
-            }
+        const reward = {
+            coins: quest.rewardCoins || quest.reward?.coins || 0,
+            xp:    quest.rewardXp    || quest.reward?.xp    || 0,
+            gems:  quest.rewardGems  || quest.reward?.gems  || 0,
+        };
+
+        // OPTIMISTIC: thưởng + âm thanh + thông báo + nút "Đã nhận" NGAY;
+        // đồng bộ server (save → flush → claim) chạy nền để hết delay.
+        setQuests(prev => prev.map(q => (q.code || q.id) === code ? { ...q, claimedAt: new Date().toISOString() } : q));
+        GameState.creditServerRewards(reward);
+        Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
+        Notification.success('Nhận thưởng thành công!');
+        syncFromState();
+
+        let ok = false;
+        try {
+            if (Quest?.claimReward) ok = (await Quest.claimReward('daily', code)) != null;
+            else ok = !!(await QuestsAPI.claim({ type: 'daily', code })).success;
+        } catch { ok = false; }
+
+        if (!ok) {
+            GameState.creditServerRewards({ coins: -reward.coins, xp: -reward.xp, gems: -reward.gems });
+            setQuests(prev => prev.map(q => (q.code || q.id) === code ? { ...q, claimedAt: null } : q));
+            Notification.error('Không thể nhận thưởng, vui lòng thử lại');
         }
-        const res = await QuestsAPI.claim({ type: 'daily', code });
-        if (res.success) {
-            GameState.creditServerRewards(res.rewards || {});
-            Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
-            Notification.success('Nhận thưởng thành công!');
-            loadLocalData();
-            syncFromState();
-        }
+        claimingRef.current.delete(code);
+        loadLocalData();
+        syncFromState();
     };
 
     return (

@@ -118,10 +118,9 @@ export const PhoneticQuiz = {
                            <div class="pq-ipa-side">
                                <div class="pq-ipa-label"><i class="fas fa-language"></i> Phiên âm IPA</div>
                                <div class="pq-ipa-hint-area">
-                                   <button class="pq-play-btn" id="pq-play-btn" title="Nghe gợi ý (${2} lượt)">
+                                   <button class="pq-play-btn" id="pq-play-btn" title="Nghe phát âm">
                                        <i class="fas fa-volume-up"></i>
                                    </button>
-                                   <span class="pq-audio-left" id="pq-audio-left">×2 gợi ý</span>
                                </div>
                            </div>`
                         : `<div class="pq-word">${question.word.en}</div>
@@ -157,16 +156,6 @@ export const PhoneticQuiz = {
     attachListeners(question) {
         const playBtn = document.getElementById('pq-play-btn');
         playBtn?.addEventListener('click', () => {
-            if (question.mode === 'ipa-to-word') {
-                if (this.audioUsed >= 2) {
-                    Notification.show({ type: 'warning', title: 'Hết lượt nghe', message: 'Bạn đã dùng hết 2 lượt nghe gợi ý.', duration: 1500 });
-                    return;
-                }
-                this.audioUsed++;
-                const leftEl = document.getElementById('pq-audio-left');
-                if (leftEl) leftEl.textContent = `×${2 - this.audioUsed} gợi ý`;
-                if (this.audioUsed >= 2 && leftEl) leftEl.style.opacity = '0.4';
-            }
             this.playAudio(question.word.en);
         });
 

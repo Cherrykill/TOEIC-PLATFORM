@@ -11,6 +11,17 @@ const { sendOtpEmail } = require('../utils/emailService');
 
 const QUEUE_TIMEOUT_MS = 2000;
 
+// Nghiêm cấm đặt tên mạo danh admin/quản trị. Chuẩn hoá: bỏ dấu tiếng Việt,
+// bỏ ký tự không phải chữ-số (chặn mẹo chèn dấu cách/ký tự lạ kiểu "a.d.m.i.n").
+function isReservedUsername(name) {
+    const normalized = (name || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '') // bỏ dấu: "quản" -> "quan"
+        .replace(/đ/g, 'd')
+        .replace(/[^a-z0-9]/g, '');
+    return /admin|administrator|quantri|quanly|moderator/.test(normalized);
+}
+
 async function dispatchEmail(to, code, type, jobId) {
     try {
         const addJob = emailQueue.add('send-otp', { to, code, type }, { jobId });
@@ -164,10 +175,32 @@ const updateProfile = async (req, res, next) => {
         const profile = await UserProfile.findOne({ userId: req.user.id });
         if (!profile) return res.status(404).json({ success: false, message: 'User not found' });
 
-        if (username && username !== profile.username) {
-            const existing = await UserProfile.findOne({ username, userId: { $ne: req.user.id } });
-            if (existing) return res.status(400).json({ success: false, message: 'Username already taken' });
-            profile.username = username;
+        if (username && username.trim() !== profile.username) {
+            const nextName = username.trim();
+            if (nextName.length < 3 || nextName.length > 20) {
+                return res.status(400).json({ success: false, message: 'Tên phải từ 3 đến 20 ký tự' });
+            }
+            if (isReservedUsername(nextName)) {
+                return res.status(400).json({ success: false, message: 'Tên không được chứa từ liên quan đến admin/quản trị' });
+            }
+
+            // Giới hạn đổi tên: 1 lần / 30 ngày.
+            const COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+            if (profile.usernameChangedAt) {
+                const elapsed = Date.now() - new Date(profile.usernameChangedAt).getTime();
+                if (elapsed < COOLDOWN_MS) {
+                    const daysLeft = Math.ceil((COOLDOWN_MS - elapsed) / (24 * 60 * 60 * 1000));
+                    return res.status(429).json({
+                        success: false,
+                        message: `Bạn chỉ có thể đổi tên 1 lần mỗi 30 ngày. Vui lòng thử lại sau ${daysLeft} ngày.`,
+                    });
+                }
+            }
+
+            const existing = await UserProfile.findOne({ username: nextName, userId: { $ne: req.user.id } });
+            if (existing) return res.status(400).json({ success: false, message: 'Tên này đã được sử dụng' });
+            profile.username = nextName;
+            profile.usernameChangedAt = new Date();
         }
 
         if (avatar) profile.avatar = avatar;
@@ -325,6 +358,7 @@ const sendRegisterOtp = async (req, res, next) => {
         if (!username || !email || !password) return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin' });
         if (password.length < 6) return res.status(400).json({ success: false, message: 'Mật khẩu phải ít nhất 6 ký tự' });
         if (username.trim().length < 3 || username.length > 20) return res.status(400).json({ success: false, message: 'Username phải 3-20 ký tự' });
+        if (isReservedUsername(username)) return res.status(400).json({ success: false, message: 'Tên không được chứa từ liên quan đến admin/quản trị' });
 
         const normalEmail = email.toLowerCase().trim();
         const normalUsername = username.trim();
@@ -422,6 +456,9 @@ const register = async (req, res, next) => {
         }
         if (password.length < 6) {
             return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+        }
+        if (isReservedUsername(username)) {
+            return res.status(400).json({ success: false, message: 'Tên không được chứa từ liên quan đến admin/quản trị' });
         }
 
         const normalEmail = email.toLowerCase().trim();

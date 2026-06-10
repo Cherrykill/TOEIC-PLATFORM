@@ -42,6 +42,8 @@ const userProfileSchema = new mongoose.Schema(
             maxlength: 20,
         },
         displayName: { type: String, trim: true, default: '' },
+        // Lần đổi tên gần nhất — giới hạn 1 lần / 30 ngày. null = chưa từng đổi.
+        usernameChangedAt: { type: Date, default: null },
         avatar: {
             type: String,
             default: function () {

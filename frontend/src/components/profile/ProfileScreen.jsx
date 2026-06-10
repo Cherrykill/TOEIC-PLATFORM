@@ -24,9 +24,37 @@ export default function ProfileScreen({ active }) {
         }
     }, [active]);
 
+    // Giới hạn đổi tên: 1 lần / 30 ngày (đồng bộ với backend). null = đang được phép đổi.
+    const USERNAME_MAX = 20;
+    const USERNAME_MIN = 3;
+    const usernameCooldown = (() => {
+        if (!user?.usernameChangedAt) return null;
+        const COOLDOWN_MS = 30 * 24 * 60 * 60 * 1000;
+        const elapsed = Date.now() - new Date(user.usernameChangedAt).getTime();
+        const remain = COOLDOWN_MS - elapsed;
+        if (remain <= 0) return null;
+        return {
+            daysLeft: Math.ceil(remain / (24 * 60 * 60 * 1000)),
+            nextDate: new Date(new Date(user.usernameChangedAt).getTime() + COOLDOWN_MS),
+        };
+    })();
+
     async function handleSaveUsername() {
-        if (!newUsername.trim()) return;
-        const res = await API.auth.updateProfile({ username: newUsername });
+        const name = newUsername.trim();
+        if (name.length < USERNAME_MIN || name.length > USERNAME_MAX) {
+            Notification.error(`Tên phải từ ${USERNAME_MIN} đến ${USERNAME_MAX} ký tự`);
+            return;
+        }
+        // Nghiêm cấm tên mạo danh admin/quản trị (đồng bộ backend).
+        const reserved = name.toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd')
+            .replace(/[^a-z0-9]/g, '');
+        if (/admin|administrator|quantri|quanly|moderator/.test(reserved)) {
+            Notification.error('Tên không được chứa từ liên quan đến admin/quản trị');
+            return;
+        }
+        if (name === user?.username) { setEditing(false); return; }
+        const res = await API.auth.updateProfile({ username: name });
         if (res.success) {
             Notification.success('Cập nhật tên thành công!');
             setEditing(false);
@@ -89,6 +117,7 @@ export default function ProfileScreen({ active }) {
 
     const level = user?.level || 1;
     const xp = user?.xp || 0;
+    const totalXp = user?.totalXp ?? xp;
     const neededXp = Utils.getXpForLevel(level) || 100;
     const xpPercent = neededXp > 0 ? Math.min(100, Math.round((xp / neededXp) * 100)) : 100;
     const levelTitle = Utils.getLevelTitle(level);
@@ -156,9 +185,15 @@ export default function ProfileScreen({ active }) {
 
                     <div className="profile-details">
                         {editing ? (
-                            <div className="edit-username" style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
-                                <input value={newUsername} onChange={e => setNewUsername(e.target.value)} placeholder="Tên mới..."
-                                    style={{ flex: 1, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '4px 10px', color: '#fff', outline: 'none' }} />
+                            <div className="edit-username" style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                                <div style={{ flex: 1, minWidth: 140, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                                    <input value={newUsername} onChange={e => setNewUsername(e.target.value.slice(0, USERNAME_MAX))}
+                                        maxLength={USERNAME_MAX} placeholder="Tên mới..."
+                                        style={{ flex: 1, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.4)', borderRadius: 8, padding: '4px 44px 4px 10px', color: '#fff', outline: 'none', width: '100%' }} />
+                                    <span style={{ position: 'absolute', right: 8, fontSize: '0.7em', color: newUsername.trim().length < USERNAME_MIN ? '#fecaca' : 'rgba(255,255,255,0.7)', pointerEvents: 'none' }}>
+                                        {newUsername.length}/{USERNAME_MAX}
+                                    </span>
+                                </div>
                                 <button className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.25)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', padding: '4px 12px' }} onClick={handleSaveUsername}>Lưu</button>
                                 <button className="btn btn-sm" style={{ background: 'rgba(0,0,0,0.2)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', padding: '4px 12px' }} onClick={() => setEditing(false)}>Hủy</button>
                             </div>
@@ -187,14 +222,26 @@ export default function ProfileScreen({ active }) {
                             <span style={{ fontSize: '0.8em', background: 'rgba(255,255,255,0.15)', color: '#fff', padding: '2px 10px', borderRadius: 10, fontWeight: 600 }}>
                                 {levelTitle.full}
                             </span>
+                            <span style={{ fontSize: '0.8em', background: 'rgba(255,255,255,0.15)', color: '#fff', padding: '2px 10px', borderRadius: 10, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }} title="Tổng XP đã tích lũy">
+                                <i className="fas fa-bolt" style={{ color: '#fde047' }}></i>
+                                {totalXp.toLocaleString('vi-VN')} XP
+                            </span>
                             {user?.role === 'admin' && (
                                 <span style={{ fontSize: '0.75em', background: '#ef4444', color: '#fff', padding: '1px 8px', borderRadius: 10, fontWeight: 600 }}>Admin</span>
                             )}
                             {!editing && (
-                                <button className="btn-copy-id" onClick={() => { setEditing(true); setNewUsername(user?.username || ''); }}
-                                    title="Đổi tên" style={{ marginLeft: 'auto' }}>
-                                    <i className="fas fa-edit"></i> Đổi tên
-                                </button>
+                                usernameCooldown ? (
+                                    <button className="btn-copy-id" disabled
+                                        title={`Có thể đổi tên lại sau ${usernameCooldown.daysLeft} ngày (ngày ${usernameCooldown.nextDate.toLocaleDateString('vi-VN')})`}
+                                        style={{ marginLeft: 'auto', opacity: 0.5, cursor: 'not-allowed' }}>
+                                        <i className="fas fa-lock"></i> Đổi sau {usernameCooldown.daysLeft} ngày
+                                    </button>
+                                ) : (
+                                    <button className="btn-copy-id" onClick={() => { setEditing(true); setNewUsername(user?.username || ''); }}
+                                        title="Đổi tên (mỗi 30 ngày 1 lần)" style={{ marginLeft: 'auto' }}>
+                                        <i className="fas fa-edit"></i> Đổi tên
+                                    </button>
+                                )
                             )}
                         </div>
 
