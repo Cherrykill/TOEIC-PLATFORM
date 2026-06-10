@@ -144,6 +144,19 @@
     font-size: var(--font-size-xs);
 }
 
+/* Khiên bảo vệ streak cạnh Level — màu đặt inline theo số lượng (3/2/1). */
+.shield-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin-left: 4px;
+    font-weight: 700;
+}
+
+.shield-badge .shield-count {
+    line-height: 1;
+}
+
 /* Resources Display */
 .resource-display {
     display: flex;

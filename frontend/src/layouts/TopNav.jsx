@@ -11,7 +11,10 @@ import { openUploadModal } from '@components/vocab/upload/openUploadModal.js';
 import SpinWheelModal from '@components/spin/SpinWheelModal.jsx';
 
 export default function TopNav() {
-    const { user, setMenuOpen, showScreen, menuOpen, currentScreen } = useGame();
+    const { user, resources, setMenuOpen, showScreen, menuOpen, currentScreen } = useGame();
+    // Khiên bảo vệ streak: đổi màu theo số lượng (≥3 xanh dương, 2 vàng, 1 đỏ).
+    const shields = resources?.shields || 0;
+    const shieldColor = shields >= 3 ? '#3b82f6' : shields === 2 ? '#eab308' : '#ef4444';
     const isInPractice = currentScreen === 'practice-screen' || currentScreen === 'toeic-test-screen';
     const { isLoggedIn, setAuthModal } = useAuth();
     const { badges: menuBadges } = useMenuBadges(isLoggedIn, { listenEvents: true });
@@ -115,6 +118,16 @@ export default function TopNav() {
                             <i className="fas fa-star"></i>
                             <span>Level </span>
                             <span id="user-level">{user?.level || 1}</span>
+                            {shields > 0 && (
+                                <span
+                                    className="shield-badge"
+                                    style={{ color: shieldColor }}
+                                    title={`${shields} khiên bảo vệ streak`}
+                                >
+                                    <i className="fas fa-shield-alt"></i>
+                                    <span className="shield-count">{shields}</span>
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>

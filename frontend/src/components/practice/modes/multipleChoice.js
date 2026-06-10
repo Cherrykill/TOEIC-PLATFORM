@@ -113,6 +113,8 @@ export const MultipleChoice = {
                         </button>
                     `).join('')}
                 </div>
+
+                ${this.exampleHtml(question)}
             </div>
         `;
 
@@ -139,6 +141,14 @@ export const MultipleChoice = {
             speakBtn.addEventListener('click', () => {
                 const q = this.questions[this.currentIndex];
                 if (q && q.word) GameLogic.speakWord(q.word.en, 'en-US');
+            });
+        }
+
+        const speakExBtn = document.getElementById('speak-example-btn');
+        if (speakExBtn) {
+            speakExBtn.addEventListener('click', () => {
+                const q = this.questions[this.currentIndex];
+                if (q?.word?.example) GameLogic.speakWord(q.word.example, 'en-US');
             });
         }
     },
@@ -175,43 +185,54 @@ export const MultipleChoice = {
             }
         }
 
-        this.showWordInfo(question.word);
+        // Câu ví dụ đã hiển thị sẵn từ đầu (xem exampleHtml). Ở chế độ đảo chiều
+        // (VN→EN) nó bị che để khỏi lộ đáp án — trả lời xong thì hiện đủ.
+        if (question.reversed && question.word.example) {
+            const exEl = document.getElementById('mc-example-text');
+            if (exEl) exEl.textContent = question.word.example;
+            const exPanel = document.getElementById('mc-example-panel');
+            if (exPanel && !document.getElementById('speak-example-btn')) {
+                const btn = document.createElement('button');
+                btn.className = 'btn-speak-mini';
+                btn.id = 'speak-example-btn';
+                btn.title = 'Nghe phát âm câu ví dụ';
+                btn.innerHTML = '<i class="fas fa-volume-up"></i>';
+                btn.addEventListener('click', () => GameLogic.speakWord(question.word.example, 'en-US'));
+                exPanel.querySelector('.word-info-example')?.appendChild(btn);
+            }
+        }
 
+        // Ví dụ đã đọc được trong lúc chọn → rút ngắn thời gian chờ sang câu sau.
+        const delay = question.word.example ? 1200 : 800;
         setTimeout(() => {
             this.nextQuestion();
-        }, 2000);
+        }, delay);
     },
 
-    showWordInfo(word) {
-        if (!word.example) return;
+    // Mask từ khoá tiếng Anh trong câu ví dụ (dùng cho chế độ đảo chiều để
+    // câu ví dụ hiện sẵn mà không lộ đáp án).
+    maskTarget(sentence, target) {
+        if (!target) return sentence;
+        const esc = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return sentence.replace(new RegExp(`\\b${esc}\\b`, 'gi'), '_____');
+    },
 
-        const container = document.querySelector('.question-container');
-        if (!container) return;
-
-        const infoPanel = document.createElement('div');
-        infoPanel.className = 'word-info-panel';
-        infoPanel.innerHTML = `
-            <div class="word-info-example">
-                <i class="fas fa-quote-left" style="color: var(--primary-color); margin-right: 6px;"></i>
-                <span>${word.example}</span>
-                <button class="btn-speak-mini" id="speak-example-btn" title="Nghe phát âm câu ví dụ">
-                    <i class="fas fa-volume-up"></i>
-                </button>
-            </div>
-        `;
-        const prompt = container.querySelector('.question-prompt');
-        if (prompt) {
-            container.insertBefore(infoPanel, prompt);
-        } else {
-            container.appendChild(infoPanel);
-        }
-
-        const speakBtn = document.getElementById('speak-example-btn');
-        if (speakBtn) {
-            speakBtn.addEventListener('click', () => {
-                GameLogic.speakWord(word.example, 'en-US');
-            });
-        }
+    // Câu ví dụ hiển thị NGAY từ đầu câu hỏi (không đợi chọn xong). Chế độ
+    // thường (EN→VN) hiện đủ + nút nghe; chế độ đảo chiều che từ đáp án, ẩn
+    // nút nghe (đọc sẽ lộ từ) — sẽ mở đủ sau khi trả lời.
+    exampleHtml(question) {
+        const word = question.word;
+        if (!word.example) return '';
+        const reversed = question.reversed;
+        const text = reversed ? this.maskTarget(word.example, word.en) : word.example;
+        return `
+            <div class="word-info-panel" id="mc-example-panel">
+                <div class="word-info-example">
+                    <i class="fas fa-quote-left" style="color: var(--primary-color); margin-right: 6px;"></i>
+                    <span id="mc-example-text">${text}</span>
+                    ${reversed ? '' : `<button class="btn-speak-mini" id="speak-example-btn" title="Nghe phát âm câu ví dụ"><i class="fas fa-volume-up"></i></button>`}
+                </div>
+            </div>`;
     },
 
     nextQuestion() {

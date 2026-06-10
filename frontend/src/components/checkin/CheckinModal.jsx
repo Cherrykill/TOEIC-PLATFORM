@@ -5,6 +5,7 @@ import { useGame } from '@game/GameContext.jsx';
 import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
+import { EventBus, GameEvents } from '@game/eventBus.js';
 
 const DAY_LABELS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
 
@@ -63,6 +64,9 @@ export default function CheckinModal({ open, onClose }) {
             GameState.creditServerRewards(res.data?.reward || {});
             Notification.success(`Điểm danh thành công! ${res.data?.reward?.label || ''}`);
             syncFromState();
+            // Báo cho badge hamburger (useMenuBadges) tính lại — điểm danh hôm
+            // nay đã nhận nên +1 "đến hạn điểm danh" phải biến mất.
+            EventBus.emit(GameEvents.QUEST_UPDATED, { source: 'checkin' });
             await load();
         } else {
             Notification.error(res.message || 'Không thể điểm danh');

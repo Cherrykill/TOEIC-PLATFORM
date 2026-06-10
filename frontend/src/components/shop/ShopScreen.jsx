@@ -67,13 +67,20 @@ export default function ShopScreen({ active }) {
                             const body = res.data;
                             const nb = body?.newBalance || body?.data?.newBalance;
                             if (nb && GameState.state?.resources) {
-                                if (typeof nb.coins === 'number') GameState.state.resources.coins = nb.coins;
-                                if (typeof nb.gems === 'number') GameState.state.resources.gems = nb.gems;
+                                // Đồng bộ MỌI tài nguyên server trả về (gồm cả
+                                // shields/hints/timeFreezes/energy) để local không
+                                // bị lệch → save() sau không ghi đè mất đồ vừa mua.
+                                for (const k of ['coins', 'gems', 'energy', 'hints', 'shields', 'timeFreezes']) {
+                                    if (typeof nb[k] === 'number') GameState.state.resources[k] = nb[k];
+                                }
                             }
                             Notification.success(`Mua ${item.name} thành công!`);
                             syncFromState();
+                            // Tải lại danh sách để nút vào trạng thái cooldown ngay.
+                            loadItems();
                         } else {
-                            Notification.error(res.error || 'Mua thất bại');
+                            // Hiện đúng thông báo từ server (vd giới hạn mua theo tuần).
+                            Notification.error(res.message || res.data?.message || res.error || 'Mua thất bại');
                         }
                     },
                 },
@@ -125,6 +132,12 @@ export default function ShopScreen({ active }) {
                         ? item.discountPercent
                         : (legacyOriginal ? Math.round((1 - item.price / item.originalPrice) * 100) : 0);
                     const currIcon = item.currency === 'gems' ? '💎' : '🪙';
+                    // Cooldown theo chu kỳ (vd khiên 7 ngày/lần): server trả
+                    // nextAvailableAt nếu còn trong thời gian chờ.
+                    const cdMs = item.nextAvailableAt ? new Date(item.nextAvailableAt).getTime() - Date.now() : 0;
+                    const onCooldown = cdMs > 0;
+                    const cdDaysLeft = onCooldown ? Math.ceil(cdMs / 86400000) : 0;
+                    const disabled = onCooldown || !canAfford(item);
                     return (
                         <div key={item.id} className={`shop-item${onSale ? ' on-sale' : ''}`}>
                             {onSale && <div className="sale-ribbon">SALE</div>}
@@ -145,11 +158,12 @@ export default function ShopScreen({ active }) {
                                 )}
                             </div>
                             <button
-                                className={`buy-btn${!canAfford(item) ? ' disabled' : ''}`}
-                                disabled={!canAfford(item)}
+                                className={`buy-btn${disabled ? ' disabled' : ''}`}
+                                disabled={disabled}
                                 onClick={() => handleBuy(item)}
+                                title={onCooldown ? `Có thể mua lại sau ${cdDaysLeft} ngày` : undefined}
                             >
-                                Mua ngay
+                                {onCooldown ? `Chờ ${cdDaysLeft} ngày` : 'Mua ngay'}
                             </button>
                         </div>
                     );

@@ -60,6 +60,14 @@ const userStatsSchema = new mongoose.Schema(
             default: () => new Map(),
         },
 
+        // Lần mua gần nhất theo itemId — dùng cho vật phẩm giới hạn theo chu kỳ
+        // (vd Gói Khiên Bảo Vệ: 1 lần / tuần).
+        shopCooldowns: {
+            type: Map,
+            of: Date,
+            default: () => new Map(),
+        },
+
         // Active boosts
         xpBoostActive: { type: Boolean, default: false },
         xpBoostMultiplier: { type: Number, default: 1 },

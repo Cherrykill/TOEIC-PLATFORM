@@ -80,6 +80,27 @@ const quoteOfTheDay = () => {
     return DAILY_QUOTES[((dayIndex % DAILY_QUOTES.length) + DAILY_QUOTES.length) % DAILY_QUOTES.length];
 };
 
+// Chuỗi YYYY-MM-DD theo giờ ĐỊA PHƯƠNG (khớp với khóa ngày practiceHistory).
+const toDateKey = (y, m, d) =>
+    `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+// Dựng lưới lịch 1 tháng: mảng ô (null = đệm đầu tuần) + cờ đã-học/hôm-nay.
+const buildCalendar = (monthDate, studiedSet, todayKey) => {
+    const year = monthDate.getFullYear();
+    const month = monthDate.getMonth();
+    const startDow = new Date(year, month, 1).getDay(); // 0 = Chủ nhật
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < startDow; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+        const key = toDateKey(year, month, d);
+        cells.push({ day: d, studied: studiedSet.has(key), isToday: key === todayKey });
+    }
+    return cells;
+};
+
+const CAL_WEEKDAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
 function getTimeUntilWeekend() {
     const now = new Date();
     const day = now.getDay();
@@ -115,6 +136,11 @@ export default function HomeScreen({ active }) {
     const [stats, setStats] = useState({});
     const [wrongWordsCount, setWrongWordsCount] = useState(0);
     const [userRank, setUserRank] = useState(null);
+    // Tháng đang xem trên lịch streak (mặc định = tháng hiện tại).
+    const [calMonth, setCalMonth] = useState(() => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+    });
 
     const loadLocalData = useCallback(() => {
         const s = GameState.state;
@@ -211,6 +237,39 @@ export default function HomeScreen({ active }) {
                         <i className="fas fa-quote-left"></i> {quoteOfTheDay()}
                     </p>
                 </div>
+                {(() => {
+                    const now = new Date();
+                    const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+                    const studiedSet = new Set((GameState.state.practiceHistory || []).map(e => e.date));
+                    const cells = buildCalendar(calMonth, studiedSet, todayKey);
+                    return (
+                        <div className="streak-calendar">
+                            <div className="cal-header">
+                                <button className="cal-nav" title="Tháng trước"
+                                    onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}>
+                                    <i className="fas fa-chevron-left"></i>
+                                </button>
+                                <span className="cal-title">Tháng {calMonth.getMonth() + 1}, {calMonth.getFullYear()}</span>
+                                <button className="cal-nav" title="Tháng sau"
+                                    onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}>
+                                    <i className="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <div className="cal-weekdays">
+                                {CAL_WEEKDAYS.map(w => <span key={w}>{w}</span>)}
+                            </div>
+                            <div className="cal-grid">
+                                {cells.map((c, i) => c === null
+                                    ? <span key={`e${i}`} className="cal-cell empty"></span>
+                                    : <span key={`d${c.day}`}
+                                        className={`cal-cell${c.studied ? ' studied' : ''}${c.isToday ? ' today' : ''}`}>
+                                        {c.day}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             <section className="quests-section">
