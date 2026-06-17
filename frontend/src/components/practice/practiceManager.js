@@ -603,6 +603,11 @@ export const PracticeManager = {
         await GameState.updateStreak();
         await GameState.save();
 
+        // SERVER-AUTHORITATIVE: skipStats=false → server tự tính XP/coins (có cap
+        // mỗi câu), level-up, streak và LÀ NGUỒN SỰ THẬT. Client gửi số liệu thô
+        // (xpEarned/coinsEarned pre-boost) chỉ để server tham chiếu + cap. Phần
+        // cộng local ở applyResultsToState() chỉ là optimistic cho popup —
+        // bên dưới ta ghi đè bằng giá trị server trả về.
         Http.post('/practice/submit', {
             mode: this.currentSession.mode,
             questionsCount: totalQuestions,
@@ -612,13 +617,11 @@ export const PracticeManager = {
             duration: Math.round(duration),
             xpEarned: xpReward,
             coinsEarned: coinsReward,
-            skipStats: true,
+            skipStats: false,
         }).then(res => {
-            // Server vừa chốt streak (có shield mới được áp dụng). Đồng bộ
-            // số streak + shields về state cục bộ để header cập nhật ngay,
-            // khỏi phải F5. Http wrap body dưới res.data.
             const u = res?.data?.user || res?.user;
             if (!u) return;
+            // Streak (server đã áp shield nếu có)
             if (u.streak) {
                 GameState.state.streak.current = u.streak.current;
                 GameState.state.streak.longest = u.streak.longest;
@@ -626,9 +629,18 @@ export const PracticeManager = {
                 GameState.state.streak.shieldsUsed = u.streak.shieldsUsed;
                 EventBus.emit(GameEvents.STREAK_UPDATED, GameState.state.streak);
             }
-            if (u.resources && typeof u.resources.shields === 'number') {
-                GameState.state.resources.shields = u.resources.shields;
+            // Mirror tiền tệ + level/xp theo SỰ THẬT từ server (ghi đè optimistic).
+            if (typeof u.level === 'number') GameState.state.user.level = u.level;
+            if (typeof u.xp === 'number') GameState.state.user.xp = u.xp;
+            const r = u.resources;
+            if (r) {
+                for (const k of ['coins', 'gems', 'energy', 'hints', 'shields', 'timeFreezes']) {
+                    if (typeof r[k] === 'number') GameState.state.resources[k] = r[k];
+                }
+                EventBus.emit(GameEvents.COINS_CHANGED, { total: GameState.state.resources.coins });
+                EventBus.emit(GameEvents.GEMS_CHANGED, { total: GameState.state.resources.gems });
             }
+            EventBus.emit(GameEvents.STATE_CHANGED);
         }).catch(() => {});
 
         Quest.updateProgress('complete-games', 1);

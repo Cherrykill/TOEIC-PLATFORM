@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { GameProvider, useGame } from '@game/GameContext.jsx';
 import { AuthProvider, useAuth } from '@components/auth/AuthContext.jsx';
 import { applyUiTheme, applySavedColorTheme } from '@/services/theme.js';
@@ -15,16 +15,41 @@ import SearchResults from '@components/search/SearchResults.jsx';
 import AuthModal from '@components/auth/AuthModal.jsx';
 import ExpiryNotice from '@components/vocab/upload/ExpiryNotice.jsx';
 
+// Eager: Home (mặc định) + Practice (engine vanilla inject vào #practice-content,
+// phải mount thường trực — không được unmount giữa chừng).
 import HomeScreen from '@components/home/HomeScreen.jsx';
 import PracticeScreen from '@components/practice/PracticeScreen.jsx';
-import ShopScreen from '@components/shop/ShopScreen.jsx';
-import QuestScreen from '@components/quest/QuestScreen.jsx';
-import LeaderboardScreen from '@components/leaderboard/LeaderboardScreen.jsx';
-import ProfileScreen from '@components/profile/ProfileScreen.jsx';
-import AchievementsScreen from '@components/achievements/AchievementsScreen.jsx';
-import StatisticsScreen from '@components/statistics/StatisticsScreen.jsx';
-import SettingsScreen from '@components/settings/SettingsScreen.jsx';
-import ToeicScreen from '@components/toeic/ToeicScreen.jsx';
+
+// Lazy: các màn còn lại tách chunk riêng, chỉ tải khi mở. Chúng tự nạp lại dữ
+// liệu khi mount (useEffect theo `active`) nên unmount khi rời màn là an toàn.
+const ShopScreen         = lazy(() => import('@components/shop/ShopScreen.jsx'));
+const QuestScreen        = lazy(() => import('@components/quest/QuestScreen.jsx'));
+const LeaderboardScreen  = lazy(() => import('@components/leaderboard/LeaderboardScreen.jsx'));
+const ProfileScreen      = lazy(() => import('@components/profile/ProfileScreen.jsx'));
+const AchievementsScreen = lazy(() => import('@components/achievements/AchievementsScreen.jsx'));
+const StatisticsScreen   = lazy(() => import('@components/statistics/StatisticsScreen.jsx'));
+const SettingsScreen     = lazy(() => import('@components/settings/SettingsScreen.jsx'));
+const ToeicScreen        = lazy(() => import('@components/toeic/ToeicScreen.jsx'));
+
+// Bản đồ màn lazy → render có điều kiện (chỉ mount màn đang mở).
+const LAZY_SCREENS = {
+    'shop-screen': ShopScreen,
+    'quest-screen': QuestScreen,
+    'leaderboard-screen': LeaderboardScreen,
+    'profile-screen': ProfileScreen,
+    'achievements-screen': AchievementsScreen,
+    'statistics-screen': StatisticsScreen,
+    'settings-screen': SettingsScreen,
+    'toeic-screen': ToeicScreen,
+};
+
+function ScreenFallback() {
+    return (
+        <div className="loading-state" style={{ textAlign: 'center', padding: 60 }}>
+            <i className="fas fa-spinner fa-spin fa-2x"></i>
+        </div>
+    );
+}
 
 function AppInner() {
     const { initialized, currentScreen } = useGame();
@@ -55,16 +80,18 @@ function AppInner() {
             <StatusBar />
 
             <main id="main-content" className="main-content">
+                {/* Luôn mount: Home + Practice */}
                 <HomeScreen active={currentScreen === 'home-screen'} />
                 <PracticeScreen active={currentScreen === 'practice-screen'} />
-                <ShopScreen active={currentScreen === 'shop-screen'} />
-                <QuestScreen active={currentScreen === 'quest-screen'} />
-                <LeaderboardScreen active={currentScreen === 'leaderboard-screen'} />
-                <ProfileScreen active={currentScreen === 'profile-screen'} />
-                <AchievementsScreen active={currentScreen === 'achievements-screen'} />
-                <StatisticsScreen active={currentScreen === 'statistics-screen'} />
-                <SettingsScreen active={currentScreen === 'settings-screen'} />
-                <ToeicScreen active={currentScreen === 'toeic-screen'} />
+                {/* Lazy: chỉ mount màn đang mở */}
+                {LAZY_SCREENS[currentScreen] && (
+                    <Suspense fallback={<ScreenFallback />}>
+                        {(() => {
+                            const ActiveScreen = LAZY_SCREENS[currentScreen];
+                            return <ActiveScreen active={true} />;
+                        })()}
+                    </Suspense>
+                )}
             </main>
 
             <SideMenu />

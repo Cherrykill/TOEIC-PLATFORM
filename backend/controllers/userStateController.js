@@ -88,37 +88,31 @@ exports.saveState = async (req, res, next) => {
             }
         }
 
-        // User / profile fields
-        // avatar intentionally excluded — only POST /api/auth/avatar may change it
-        if (state.user) {
-            if (state.user.level !== undefined) profile.level = state.user.level;
-            if (state.user.xp !== undefined) stats.xp = state.user.xp;
-            if (state.user.totalXp !== undefined) stats.totalXp = state.user.totalXp;
-        }
+        // ⚠️ SERVER-AUTHORITATIVE ECONOMY: KHÔNG tin client về tiền tệ.
+        // level/xp/totalXp/coins/gems/hints/shields/timeFreezes và các counter
+        // tổng (games/correct/wrong/perfect/score/playTime/modeStats) CHỈ được
+        // ghi bởi các endpoint server đã xác thực (/practice/submit, /shop/purchase,
+        // quest claim, achievement, checkin, toeic submit...). saveState bỏ qua
+        // hết — nếu không client có thể tự bơm coins/XP/level/khiên.
+        // Các field KHÔNG phải tiền tệ vẫn nhận từ client bên dưới.
 
-        // Resources
+        // User / profile fields — avatar đổi qua POST /api/auth/avatar; level do server.
+        // (state.user.level/xp/totalXp: bỏ qua — server-authoritative)
+
+        // Resources — chỉ energy (giới hạn lượt chơi) còn nhận từ client.
+        // Tiền tệ (coins/gems/hints/shields/timeFreezes): bỏ qua — server-authoritative.
         if (state.resources) {
             if (state.resources.energy !== undefined) stats.energy = state.resources.energy;
             if (state.resources.maxEnergy !== undefined) stats.maxEnergy = state.resources.maxEnergy;
-            if (state.resources.coins !== undefined) stats.coins = state.resources.coins;
-            if (state.resources.gems !== undefined) stats.gems = state.resources.gems;
-            if (state.resources.hints !== undefined) stats.hints = state.resources.hints;
-            if (state.resources.shields !== undefined) stats.shields = state.resources.shields;
-            if (state.resources.timeFreezes !== undefined) stats.timeFreezes = state.resources.timeFreezes;
             if (state.resources.lastEnergyUpdate) stats.lastEnergyUpdate = new Date(state.resources.lastEnergyUpdate);
         }
 
-        // Progress
+        // Progress — chỉ danh sách từ (không phải tiền tệ). Các counter tổng
+        // và modeStats do /practice/submit cập nhật → bỏ qua ở đây để khỏi
+        // double-count / bị client ghi đè.
         if (state.progress) {
             if (state.progress.wordsLearned) stats.wordsLearned = state.progress.wordsLearned;
             if (state.progress.wordsMastered) stats.wordsMastered = state.progress.wordsMastered;
-            if (state.progress.totalGamesPlayed !== undefined) stats.totalGamesPlayed = state.progress.totalGamesPlayed;
-            if (state.progress.totalCorrectAnswers !== undefined) stats.totalCorrectAnswers = state.progress.totalCorrectAnswers;
-            if (state.progress.totalWrongAnswers !== undefined) stats.totalWrongAnswers = state.progress.totalWrongAnswers;
-            if (state.progress.perfectRounds !== undefined) stats.perfectRounds = state.progress.perfectRounds;
-            if (state.progress.highestScore !== undefined) stats.highestScore = state.progress.highestScore;
-            if (state.progress.totalPlayTime !== undefined) stats.totalPlayTime = state.progress.totalPlayTime;
-            if (state.progress.modeStats) stats.modeStats = new Map(Object.entries(state.progress.modeStats));
         }
 
         // Streak: KHÔNG ghi từ blob client ở đây. Streak do /practice/submit
@@ -174,19 +168,9 @@ exports.saveState = async (req, res, next) => {
             }
         }
 
-        // Boosts
-        if (state.boosts) {
-            if (state.boosts.xp) {
-                stats.xpBoostActive = state.boosts.xp.active || false;
-                stats.xpBoostMultiplier = state.boosts.xp.multiplier || 1;
-                stats.xpBoostExpiresAt = state.boosts.xp.expiresAt || null;
-            }
-            if (state.boosts.coins) {
-                stats.coinsBoostActive = state.boosts.coins.active || false;
-                stats.coinsBoostMultiplier = state.boosts.coins.multiplier || 1;
-                stats.coinsBoostExpiresAt = state.boosts.coins.expiresAt || null;
-            }
-        }
+        // Boosts: KHÔNG ghi từ client — boost chỉ kích hoạt khi mua ở shop
+        // (applyShopEffect case 'boost', server-side) và tự hết hạn (expireBoosts).
+        // Nếu nhận từ client → ai cũng tự bật x2 XP/coins vĩnh viễn miễn phí.
 
         // Settings
         if (state.settings) {
@@ -209,106 +193,33 @@ exports.saveState = async (req, res, next) => {
     }
 };
 
-exports.updateResources = async (req, res, next) => {
-    try {
-        const { energy, coins, gems, hints, shields, timeFreezes, lastEnergyUpdate } = req.body;
-
-        const stats = await UserStats.findOne({ userId: req.user.id });
-        if (!stats) return res.status(404).json({ success: false, message: 'User not found' });
-
-        if (energy !== undefined) stats.energy = energy;
-        if (coins !== undefined) stats.coins = coins;
-        if (gems !== undefined) stats.gems = gems;
-        if (hints !== undefined) stats.hints = hints;
-        if (shields !== undefined) stats.shields = shields;
-        if (timeFreezes !== undefined) stats.timeFreezes = timeFreezes;
-        if (lastEnergyUpdate) stats.lastEnergyUpdate = new Date(lastEnergyUpdate);
-
-        await stats.save();
-
-        res.json({
-            success: true,
-            message: 'Resources updated successfully',
-            data: {
-                energy: stats.energy, maxEnergy: stats.maxEnergy, coins: stats.coins,
-                gems: stats.gems, hints: stats.hints, shields: stats.shields,
-                timeFreezes: stats.timeFreezes, lastEnergyUpdate: stats.lastEnergyUpdate,
-            },
-        });
-    } catch (error) {
-        logger.error('Error in updateResources:', error);
-        next(error);
-    }
+// ⛔ DEPRECATED & KHÓA: endpoint này từng cho client set thẳng tiền tệ → lỗ cheat.
+// Tài nguyên giờ server-authoritative (cấp qua /practice/submit, /shop/purchase,
+// quest/achievement/checkin claim...). Không client nào còn gọi route này.
+exports.updateResources = async (req, res) => {
+    return res.status(403).json({
+        success: false,
+        message: 'Endpoint đã bị khóa: tài nguyên do server quản lý (server-authoritative).',
+    });
 };
 
-exports.updateProgress = async (req, res, next) => {
-    try {
-        const progress = req.body;
-        const stats = await UserStats.findOne({ userId: req.user.id });
-        if (!stats) return res.status(404).json({ success: false, message: 'User not found' });
-
-        if (progress.wordsLearned) stats.wordsLearned = progress.wordsLearned;
-        if (progress.wordsMastered) stats.wordsMastered = progress.wordsMastered;
-        if (progress.totalGamesPlayed !== undefined) stats.totalGamesPlayed = progress.totalGamesPlayed;
-        if (progress.totalCorrectAnswers !== undefined) stats.totalCorrectAnswers = progress.totalCorrectAnswers;
-        if (progress.totalWrongAnswers !== undefined) stats.totalWrongAnswers = progress.totalWrongAnswers;
-        if (progress.perfectRounds !== undefined) stats.perfectRounds = progress.perfectRounds;
-        if (progress.highestScore !== undefined) stats.highestScore = progress.highestScore;
-        if (progress.totalPlayTime !== undefined) stats.totalPlayTime = progress.totalPlayTime;
-        if (progress.modeStats) stats.modeStats = new Map(Object.entries(progress.modeStats));
-
-        await stats.save();
-
-        res.json({ success: true, message: 'Progress updated successfully', data: progress });
-    } catch (error) {
-        logger.error('Error in updateProgress:', error);
-        next(error);
-    }
+// ⛔ DEPRECATED & KHÓA: client set counter tổng (correct/games...) → cheat tiến độ
+// nhiệm vụ (quest đọc các counter này để cấp thưởng). Counter giờ do server cập
+// nhật qua /practice/submit. Riêng wordsLearned/wordsMastered đi qua POST /state.
+exports.updateProgress = async (req, res) => {
+    return res.status(403).json({
+        success: false,
+        message: 'Endpoint đã bị khóa: tiến độ do server cập nhật (server-authoritative).',
+    });
 };
 
-exports.addXp = async (req, res, next) => {
-    try {
-        const { amount } = req.body;
-        if (!amount || amount <= 0) return res.status(400).json({ success: false, message: 'Invalid XP amount' });
-
-        const [profile, stats] = await Promise.all([
-            UserProfile.findOne({ userId: req.user.id }),
-            UserStats.findOne({ userId: req.user.id }),
-        ]);
-        if (!profile || !stats) return res.status(404).json({ success: false, message: 'User not found' });
-
-        // Apply XP boost
-        let finalAmount = amount;
-        if (stats.xpBoostActive && stats.xpBoostMultiplier > 1) {
-            finalAmount = Math.floor(amount * stats.xpBoostMultiplier);
-        }
-
-        stats.xp += finalAmount;
-        stats.totalXp += finalAmount;
-
-        const levelUpResult = applyLevelUp(profile, stats);
-        if (levelUpResult.leveledUp) {
-            stats.coins += levelUpResult.coinsReward;
-        }
-
-        await Promise.all([profile.save(), stats.save()]);
-
-        res.json({
-            success: true,
-            message: levelUpResult.leveledUp ? 'Level up!' : 'XP added successfully',
-            data: {
-                xpAdded: finalAmount,
-                leveledUp: levelUpResult.leveledUp,
-                newLevel: profile.level,
-                newXp: stats.xp,
-                totalXp: stats.totalXp,
-                coinsReward: levelUpResult.coinsReward,
-            },
-        });
-    } catch (error) {
-        logger.error('Error in addXp:', error);
-        next(error);
-    }
+// ⛔ DEPRECATED & KHÓA: cho client tự cộng XP tùy ý → lỗ cheat. XP giờ chỉ được
+// cấp bởi /practice/submit (có cap mỗi câu) và các luồng thưởng server khác.
+exports.addXp = async (req, res) => {
+    return res.status(403).json({
+        success: false,
+        message: 'Endpoint đã bị khóa: XP do server cấp (server-authoritative).',
+    });
 };
 
 exports.unlockAchievement = async (req, res, next) => {

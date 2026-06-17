@@ -518,26 +518,17 @@ const syncProgress = async (req, res, next) => {
 
         applyEnergyRegen(stats);
 
+        // ⚠️ SERVER-AUTHORITATIVE: giống saveState — KHÔNG tin client về tiền tệ
+        // và counter tổng. Chỉ nhận energy (giới hạn lượt) + danh sách từ.
+        // Tiền tệ/level/counter do các endpoint server cấp (/practice/submit...).
         if (resources) {
             if (resources.energy !== undefined) stats.energy = resources.energy;
             if (resources.maxEnergy !== undefined) stats.maxEnergy = resources.maxEnergy;
-            if (resources.coins !== undefined) stats.coins = resources.coins;
-            if (resources.gems !== undefined) stats.gems = resources.gems;
-            if (resources.hints !== undefined) stats.hints = resources.hints;
-            if (resources.shields !== undefined) stats.shields = resources.shields;
-            if (resources.timeFreezes !== undefined) stats.timeFreezes = resources.timeFreezes;
         }
 
         if (progress) {
             if (progress.wordsLearned) stats.wordsLearned = progress.wordsLearned;
             if (progress.wordsMastered) stats.wordsMastered = progress.wordsMastered;
-            if (progress.totalGamesPlayed !== undefined) stats.totalGamesPlayed = progress.totalGamesPlayed;
-            if (progress.totalCorrectAnswers !== undefined) stats.totalCorrectAnswers = progress.totalCorrectAnswers;
-            if (progress.totalWrongAnswers !== undefined) stats.totalWrongAnswers = progress.totalWrongAnswers;
-            if (progress.perfectRounds !== undefined) stats.perfectRounds = progress.perfectRounds;
-            if (progress.highestScore !== undefined) stats.highestScore = progress.highestScore;
-            if (progress.totalPlayTime !== undefined) stats.totalPlayTime = progress.totalPlayTime;
-            if (progress.modeStats) stats.modeStats = new Map(Object.entries(progress.modeStats));
         }
 
         // Streak KHÔNG ghi từ client (xem userStateController.saveState). Nguồn
