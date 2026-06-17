@@ -119,7 +119,12 @@ exports.getAllVocabulary = async (req, res, next) => {
         }
 
         const total = await Model.countDocuments(query.getFilter());
-        const vocabulary = await query.sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean().exec();
+        // Chỉ trả các field client thực sự dùng — cắt metadata (owner/scope/
+        // timestamps/TTL...) để giảm payload list (init tải tới ~12k từ). Client
+        // dùng: en/vn/zh/phonetic/part/synonyms/type/image/example/level/source.
+        const vocabulary = await query
+            .select('-ownerId -ownerEmail -uploadBatchId -expiresAt -createdBy -scope -createdAt -updatedAt -__v')
+            .sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean().exec();
 
         res.json({
             success: true,
