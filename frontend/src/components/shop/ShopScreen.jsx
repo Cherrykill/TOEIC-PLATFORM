@@ -7,10 +7,20 @@ import { Config } from '@game/config.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
 
+// Gộp 6 category trong DB thành 5 tab cho gọn. `cats` = các category map vào tab.
+const SHOP_TABS = [
+    { key: 'all',      label: 'Tất cả',   icon: 'fa-store' },
+    { key: 'items',    label: 'Vật phẩm', icon: 'fa-box',  cats: ['energy', 'resource'] },
+    { key: 'boost',    label: 'Tăng tốc', icon: 'fa-bolt', cats: ['boost'] },
+    { key: 'exchange', label: 'Quy đổi',  icon: 'fa-gem',  cats: ['exchange'] },
+    { key: 'premium',  label: 'Gói & VIP',icon: 'fa-crown',cats: ['bundle', 'vip'] },
+];
+
 export default function ShopScreen({ active }) {
     const { showScreen, resources, syncFromState } = useGame();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('all');
 
     useEffect(() => {
         if (active) loadItems();
@@ -94,6 +104,12 @@ export default function ShopScreen({ active }) {
         return resources.coins >= p;
     };
 
+    // Lọc theo tab đang chọn (client-side, dùng field category từ API).
+    const activeTabDef = SHOP_TABS.find(t => t.key === activeTab);
+    const visibleItems = (!activeTabDef || activeTab === 'all')
+        ? items
+        : items.filter(it => activeTabDef.cats?.includes(it.category));
+
     return (
         <div id="shop-screen" className={`screen ${active ? 'active' : ''}`}>
             <div className="screen-header">
@@ -113,10 +129,28 @@ export default function ShopScreen({ active }) {
                     <i className="fas fa-rotate-right"></i>
                 </button>
             </div>
+
+            <div className="shop-tabs">
+                {SHOP_TABS.map(tab => (
+                    <button
+                        key={tab.key}
+                        className={`shop-tab ${activeTab === tab.key ? 'active' : ''}`}
+                        onClick={() => setActiveTab(tab.key)}
+                    >
+                        <i className={`fas ${tab.icon}`}></i> {tab.label}
+                    </button>
+                ))}
+            </div>
+
             <div id="shop-content" className="shop-content">
                 {loading ? (
                     <div className="loading-state"><i className="fas fa-spinner fa-spin"></i> Đang tải...</div>
-                ) : items.map(item => {
+                ) : visibleItems.length === 0 ? (
+                    <div className="empty-state" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 32 }}>
+                        <i className="fas fa-store-slash" style={{ fontSize: 36, opacity: 0.3 }}></i>
+                        <p style={{ marginTop: 8 }}>Chưa có vật phẩm trong nhóm này</p>
+                    </div>
+                ) : visibleItems.map(item => {
                     // 2 nguồn discount: (1) admin set discountPercent trong DB
                     // → giá hiển thị bị gạch = item.price; giá sale = price*(1-%).
                     // (2) Legacy Config.shopItems set originalPrice + price

@@ -71,6 +71,15 @@ export const SessionService = {
 
     recordHistory(session, xpReward, coinsReward, duration) {
         const today = new Date().toISOString().split('T')[0];
+
+        // Ghi ngày học vào studiedDays (nguồn bền cho lịch streak, không bị
+        // xoá khi reset thống kê hàng tháng).
+        const prog = GameState.state.progress;
+        if (prog) {
+            if (!Array.isArray(prog.studiedDays)) prog.studiedDays = [];
+            if (!prog.studiedDays.includes(today)) prog.studiedDays.push(today);
+        }
+
         let entry = GameState.state.practiceHistory?.find(e => e.date === today);
 
         if (!entry) {

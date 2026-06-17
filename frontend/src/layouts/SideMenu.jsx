@@ -8,7 +8,7 @@ const MENU_ITEMS = [
     { label: 'Nhiệm vụ',       icon: 'fa-tasks',            screen: 'quest-screen',        badgeKey: 'quest' },
     { label: 'Bảng xếp hạng',  icon: 'fa-trophy',           screen: 'leaderboard-screen',  badgeKey: 'online',       badgeStyle: 'info' },
     { label: 'Thành tích',     icon: 'fa-medal',            screen: 'achievements-screen', badgeKey: 'achievement' },
-    { label: 'Thống kê',       icon: 'fa-chart-bar',        screen: 'statistics-screen' },
+    { label: 'Thống kê',       icon: 'fa-chart-bar',        screen: 'statistics-screen',   badgeKey: 'statsExport',  badgeStyle: 'dot' },
     { label: 'Cửa hàng',       icon: 'fa-shopping-cart',    screen: 'shop-screen',         badgeKey: 'shopDiscount', badgeStyle: 'sale' },
     { label: 'Luyện tập TOEIC',icon: 'fa-graduation-cap',   screen: 'toeic-screen' },
     { label: 'Cài đặt',        icon: 'fa-cog',              screen: 'settings-screen' },
@@ -60,9 +60,11 @@ export default function SideMenu() {
                                 <i className={`fas ${item.icon}`}></i>
                                 <span>{item.label}</span>
                                 {n > 0 && (
-                                    <span className={`menu-item-badge ${item.badgeStyle || 'reward'}`}>
-                                        {n > 99 ? '99+' : n}
-                                    </span>
+                                    item.badgeStyle === 'dot'
+                                        ? <span className="menu-item-badge dot" title="Nên xuất báo cáo trước khi sang tháng mới" />
+                                        : <span className={`menu-item-badge ${item.badgeStyle || 'reward'}`}>
+                                            {n > 99 ? '99+' : n}
+                                          </span>
                                 )}
                             </button>
                         );

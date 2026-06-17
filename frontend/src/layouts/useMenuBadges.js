@@ -4,6 +4,7 @@ import { calculateProgress } from '@components/achievements/AchievementsScreen.j
 import { authHeaders } from '@/auth/token.js';
 import { CheckinAPI } from '@api/checkin.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { shouldExportStats } from '@components/statistics/statsExportSignal.js';
 
 export function countUnclaimedQuests() {
     let n = 0;
@@ -32,11 +33,16 @@ export function countClaimableAchievements() {
  *   Used by TopNav so the hamburger badge stays current without opening the menu.
  */
 export function useMenuBadges(isLoggedIn, { listenEvents = false } = {}) {
-    const [badges, setBadges] = useState({ quest: 0, achievement: 0, online: 0, shopDiscount: 0 });
+    const [badges, setBadges] = useState({ quest: 0, achievement: 0, online: 0, shopDiscount: 0, statsExport: 0 });
 
     const refresh = useCallback(async (signal) => {
         const unclaimedQuests = countUnclaimedQuests();
-        setBadges(b => ({ ...b, quest: unclaimedQuests, achievement: countClaimableAchievements() }));
+        setBadges(b => ({
+            ...b,
+            quest: unclaimedQuests,
+            achievement: countClaimableAchievements(),
+            statsExport: shouldExportStats() ? 1 : 0,
+        }));
 
         if (!isLoggedIn) return;
 

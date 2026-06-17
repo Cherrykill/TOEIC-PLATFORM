@@ -63,6 +63,9 @@ export const GameState = {
             wordsLearned: [],
             wordsMastered: [],
             wrongWords: [],
+            // Ngày đã học (YYYY-MM-DD) — nguồn nhẹ cho lịch streak ở trang chủ.
+            // Giữ lại qua các lần reset thống kê hàng tháng (chỉ ~10 byte/ngày).
+            studiedDays: [],
             totalGamesPlayed: 0,
             totalCorrectAnswers: 0,
             totalWrongAnswers: 0,
@@ -216,6 +219,7 @@ export const GameState = {
         this.regenerateEnergy();
         this.updateBoosts();
         this.checkDailyQuestsReset();
+        if (this._monthlyStatsMaintenance()) needsSave = true;
 
         if (this.state.achievements.length === 0 && !navigator.onLine) {
             console.log('📡 Offline: initializing achievements from config...');
@@ -241,6 +245,35 @@ export const GameState = {
 
         EventBus.emit(GameEvents.GAME_INITIALIZED, this.state);
         console.log('✅ GameState initialized successfully');
+    },
+
+    /**
+     * Reset thống kê theo tháng: lúc sang tháng mới (0h ngày mùng 1), dữ liệu
+     * practiceHistory của các tháng trước bị xoá để giữ blob nhẹ. Trước khi xoá,
+     * các ngày đã học được lưu vào progress.studiedDays (siêu nhẹ) để lịch streak
+     * vẫn hiển thị được lịch sử. Chạy mỗi lần init → tự reset khi mở app sang tháng.
+     * @returns {boolean} true nếu có thay đổi (caller nên save).
+     */
+    _monthlyStatsMaintenance() {
+        const p = this.state.progress;
+        if (!p) return false;
+        if (!Array.isArray(p.studiedDays)) p.studiedDays = [];
+        const hist = Array.isArray(this.state.practiceHistory) ? this.state.practiceHistory : [];
+
+        // Backfill: gộp mọi ngày trong practiceHistory vào studiedDays (dedup).
+        const studied = new Set(p.studiedDays);
+        const before = studied.size;
+        for (const e of hist) { if (e?.date) studied.add(e.date); }
+
+        // Prune: chỉ giữ entry của tháng hiện tại (YYYY-MM theo giờ địa phương).
+        const now = new Date();
+        const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const kept = hist.filter(e => (e?.date || '').startsWith(monthKey));
+
+        let changed = false;
+        if (studied.size !== before) { p.studiedDays = Array.from(studied).sort(); changed = true; }
+        if (kept.length !== hist.length) { this.state.practiceHistory = kept; changed = true; }
+        return changed;
     },
 
     initializeNewUser() {

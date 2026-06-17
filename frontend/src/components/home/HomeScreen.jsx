@@ -248,7 +248,13 @@ export default function HomeScreen({ active }) {
                 {(() => {
                     const now = new Date();
                     const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
-                    const studiedSet = new Set((GameState.state.practiceHistory || []).map(e => e.date));
+                    // studiedDays là nguồn bền (không bị xoá khi reset thống kê
+                    // hàng tháng); gộp thêm practiceHistory tháng hiện tại cho chắc.
+                    const prog = GameState.state.progress || {};
+                    const studiedSet = new Set([
+                        ...(prog.studiedDays || []),
+                        ...((GameState.state.practiceHistory || []).map(e => e.date)),
+                    ]);
                     const cells = buildCalendar(calMonth, studiedSet, todayKey);
                     return (
                         <div className="streak-calendar">

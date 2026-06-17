@@ -420,6 +420,12 @@
 }
 .menu-item-badge.info { background: #3b82f6; }
 .menu-item-badge.sale { background: #f59e0b; }
+/* Chấm đỏ (không số) — nhắc xuất báo cáo trước khi sang tháng mới */
+.menu-item-badge.dot {
+    min-width: 10px; width: 10px; height: 10px;
+    padding: 0; border-radius: 50%;
+    background: var(--error-color, #ef4444);
+}
 .menu-item.active .menu-item-badge { box-shadow: 0 0 0 2px rgba(255,255,255,0.25); }
 
 .menu-item:hover {
