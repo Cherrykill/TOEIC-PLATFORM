@@ -76,6 +76,14 @@ const userStatsSchema = new mongoose.Schema(
         coinsBoostMultiplier: { type: Number, default: 1 },
         coinsBoostExpiresAt: { type: Date, default: null },
 
+        // VIP: hết hạn = null/đã qua. Khi còn hạn → năng lượng không trừ + x2 XP/Coins.
+        vipExpiresAt: { type: Date, default: null },
+
+        // Lịch sử CHI TIÊU (chỉ mua shop/đổi gems/VIP) — mảng giới hạn 50 mục
+        // gần nhất (newest first) để giữ nhẹ. Mỗi mục: { at, itemId, name,
+        // amount, currency, balanceAfter }.
+        transactions: { type: [mongoose.Schema.Types.Mixed], default: [] },
+
         // Daily practice history (last 90 days)
         practiceHistory: [{
             date: { type: String, required: true },

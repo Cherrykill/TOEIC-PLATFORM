@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import { ToeicAPI } from '@api/toeic.js';
-import { Http } from '@api/http.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Quest } from '@components/quest/quest.js';
 
@@ -56,21 +55,21 @@ export function useToeicAttempt() {
     }, []);
 
     const resumeAttempt = useCallback(async (attemptId, attemptData) => {
-        const reviewRes = await Http.get(`/api/toeic/attempts/${attemptId}/review`);
-        const reviewData = reviewRes?.data || reviewRes;
-        if (!reviewData?.success || !reviewData.data) {
+        // Resume giờ trả về ĐỦ câu hỏi của đề + map đáp án đã lưu (server dựng lại).
+        const res = await ToeicAPI.resumeAttempt(attemptId);
+        const apiData = res?.data || res;
+        if (!apiData?.success || !apiData.data) {
             throw new Error('Không thể tiếp tục bài thi');
         }
-        await ToeicAPI.resumeAttempt(attemptId);
         startTimeRef.current = Date.now();
         shownTransitionsRef.current = new Set();
         setState({
             attemptId,
-            test: reviewData.data.test || attemptData.testId,
-            questions: reviewData.data.questions || [],
+            test: apiData.data.test || attemptData.testId,
+            questions: apiData.data.questions || [],
             currentIndex: 0,
-            answers: attemptData.answers || {},
-            markedQuestions: new Set(attemptData.markedQuestions || []),
+            answers: apiData.data.answers || {},
+            markedQuestions: new Set(apiData.data.markedQuestions || []),
             customTimeLimit: undefined,
             fillInBlankMode: false,
             keywordAnswers: {},

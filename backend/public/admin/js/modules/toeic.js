@@ -763,6 +763,8 @@ function openQuestionModal(questionId = null) {
             document.getElementById('question-group-id').value = question.groupId || '';
             document.getElementById('question-index').value = question.questionIndex || '';
             document.getElementById('question-passage-count').value = question.passageCount || '';
+            const srcEl = document.getElementById('question-source');
+            if (srcEl) srcEl.value = question.source || '';
             document.getElementById('question-audio-translate').value = question.audioTranslate || '';
             document.getElementById('question-text-translate').value = question.questionTranslate || '';
 
@@ -836,13 +838,213 @@ function switchQuestionModalTab(tab) {
     }
 }
 
+// Quy tắc chung + chỗ dán, nối vào cuối mỗi prompt riêng của từng Part.
+const _Q_FOOTER = `
+
+=== QUY TẮC CHUNG ===
+- Trả về DUY NHẤT một mảng JSON hợp lệ [ ... ], KHÔNG markdown, KHÔNG bọc trong khối code, KHÔNG giải thích thừa.
+- "part" là số nguyên. "correctAnswer" phải khớp đúng 1 "label" trong "options".
+- "source" = MÃ ĐỀ/BỘ ĐỀ (vd: official_2024) — RẤT QUAN TRỌNG: hệ thống gom câu hỏi thành đề thi THEO "source". TẤT CẢ câu hỏi cùng một đề PHẢI dùng CÙNG một "source".
+- "explanation" viết tiếng Việt; giữ nguyên tiếng Anh ở questionText/options/audioText/passages.
+
+Nội dung câu hỏi của tôi:
+<<< DÁN NỘI DUNG CÂU HỎI CỦA BẠN VÀO ĐÂY >>>`;
+
+// Prompt RIÊNG, GỌN cho từng Part — chỉ trường + quy tắc + ví dụ của part đó.
+const PART_PROMPTS = {
+    '1': `Bạn là trợ lý tạo câu hỏi TOEIC PART 1 (Mô tả tranh). Chuyển nội dung của tôi thành MẢNG JSON đúng schema:
+{
+  "part": 1,
+  "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "imageUrls": [],
+  "audioText": "<4 câu mô tả nối lại>",
+  "options": [
+    { "label": "A", "text": "<mô tả A>" },
+    { "label": "B", "text": "<mô tả B>" },
+    { "label": "C", "text": "<mô tả C>" },
+    { "label": "D", "text": "<mô tả D>" }
+  ],
+  "correctAnswer": "A|B|C|D",
+  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
+}
+=== LƯU Ý PART 1 ===
+- KHÔNG có "questionText". "imageUrls": [] (admin tự upload ảnh).
+- 4 đáp án là 4 câu mô tả tranh; "audioText" = 4 câu đó nối lại.
+=== VÍ DỤ ===
+[
+  { "part": 1, "imageUrls": [], "audioText": "(A) The man is reading a newspaper. (B) The man is typing on a laptop. (C) The man is talking on the phone. (D) The man is drinking coffee.",
+    "options": [ {"label":"A","text":"The man is reading a newspaper."}, {"label":"B","text":"The man is typing on a laptop."}, {"label":"C","text":"The man is talking on the phone."}, {"label":"D","text":"The man is drinking coffee."} ],
+    "correctAnswer": "B",
+    "explanation": { "A": "❌ Không cầm báo.", "B": "✅ Đúng: đang gõ laptop.", "C": "❌ Không gọi điện.", "D": "❌ Không uống cà phê." } }
+]` + _Q_FOOTER,
+
+    '2': `Bạn là trợ lý tạo câu hỏi TOEIC PART 2 (Hỏi & đáp). Chuyển nội dung của tôi thành MẢNG JSON đúng schema:
+{
+  "part": 2,
+  "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "audioText": "<câu nói/câu hỏi + 3 phương án trả lời>",
+  "questionText": "<câu được nói (câu hỏi gốc)>",
+  "options": [
+    { "label": "A", "text": "..." },
+    { "label": "B", "text": "..." },
+    { "label": "C", "text": "..." }
+  ],
+  "correctAnswer": "A|B|C",
+  "explanation": { "A": "...", "B": "...", "C": "..." }
+}
+=== LƯU Ý PART 2 ===
+- CHỈ 3 đáp án A/B/C — KHÔNG có D. Không ảnh, không passage.
+=== VÍ DỤ ===
+[
+  { "part": 2, "audioText": "Where can I find the meeting room? (A) It's on the third floor. (B) The meeting was great. (C) At 10 a.m.",
+    "questionText": "Where can I find the meeting room?",
+    "options": [ {"label":"A","text":"It's on the third floor."}, {"label":"B","text":"The meeting was great."}, {"label":"C","text":"At 10 a.m."} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: trả lời nơi chốn.", "B": "❌ Lạc đề.", "C": "❌ Trả lời thời gian, không phải nơi chốn." } }
+]` + _Q_FOOTER,
+
+    '3': `Bạn là trợ lý tạo câu hỏi TOEIC PART 3 (Hội thoại — nhiều câu chung 1 đoạn hội thoại). Schema:
+{
+  "part": 3, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "groupId": "<vd p3_grp_001 — chung cho các câu cùng đoạn>",
+  "questionIndex": "<1, 2, 3...>",
+  "audioText": "<lời thoại 2-3 người — CHỈ ở câu questionIndex 1>",
+  "audioTranslate": "<dịch — tùy chọn, ở câu 1>",
+  "questionText": "<câu hỏi>",
+  "options": [ {"label":"A","text":"..."}, {"label":"B","text":"..."}, {"label":"C","text":"..."}, {"label":"D","text":"..."} ],
+  "correctAnswer": "A|B|C|D",
+  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
+}
+=== LƯU Ý PART 3 ===
+- Các câu cùng đoạn dùng CHUNG "groupId"; "questionIndex" tăng dần (thường 3 câu).
+- Chỉ câu ĐẦU (questionIndex 1) chứa "audioText".
+=== VÍ DỤ (nhóm 2 câu) ===
+[
+  { "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
+    "audioText": "W: Have you finished the report yet? M: Almost, I just need to check the numbers. W: Great, the manager wants it by noon.",
+    "questionText": "What is the man doing?",
+    "options": [ {"label":"A","text":"Finishing a report"}, {"label":"B","text":"Checking some figures"}, {"label":"C","text":"Sending an email"}, {"label":"D","text":"Attending a meeting"} ],
+    "correctAnswer": "B",
+    "explanation": { "A": "❌ Gần xong nhưng chưa hoàn thành.", "B": "✅ Đúng: cần kiểm tra số liệu.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } },
+  { "part": 3, "groupId": "p3_grp_001", "questionIndex": 2,
+    "questionText": "When does the manager want the report?",
+    "options": [ {"label":"A","text":"By noon"}, {"label":"B","text":"By 3 PM"}, {"label":"C","text":"Tomorrow"}, {"label":"D","text":"Next week"} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: wants it by noon.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } }
+]` + _Q_FOOTER,
+
+    '4': `Bạn là trợ lý tạo câu hỏi TOEIC PART 4 (Bài nói — nhiều câu chung 1 đoạn độc thoại 1 người). Schema:
+{
+  "part": 4, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "groupId": "<vd p4_grp_001>",
+  "questionIndex": "<1, 2, 3...>",
+  "audioText": "<đoạn độc thoại 1 người (thông báo/bài giảng) — CHỈ ở câu 1>",
+  "questionText": "<câu hỏi>",
+  "options": [ 4 đáp án A-D ],
+  "correctAnswer": "A|B|C|D",
+  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
+}
+=== LƯU Ý PART 4 ===
+- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioText".
+=== VÍ DỤ (nhóm 2 câu) ===
+[
+  { "part": 4, "groupId": "p4_grp_001", "questionIndex": 1,
+    "audioText": "Attention shoppers. The store will close in 15 minutes. Please bring your items to the checkout counter now.",
+    "questionText": "What is the announcement about?",
+    "options": [ {"label":"A","text":"A store closing soon"}, {"label":"B","text":"A sale event"}, {"label":"C","text":"A lost item"}, {"label":"D","text":"A new product"} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: cửa hàng sắp đóng cửa.", "B": "❌ Không nói khuyến mãi.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } },
+  { "part": 4, "groupId": "p4_grp_001", "questionIndex": 2,
+    "questionText": "What are listeners asked to do?",
+    "options": [ {"label":"A","text":"Go to the checkout"}, {"label":"B","text":"Leave immediately"}, {"label":"C","text":"Call a manager"}, {"label":"D","text":"Wait outside"} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: bring items to the checkout.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } }
+]` + _Q_FOOTER,
+
+    '5': `Bạn là trợ lý tạo câu hỏi TOEIC PART 5 (Hoàn thành câu — ngữ pháp/từ vựng). Schema:
+{
+  "part": 5,
+  "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "questionText": "<câu có chỗ trống _____>",
+  "questionTranslate": "<dịch tiếng Việt — tùy chọn>",
+  "options": [ {"label":"A","text":"..."}, {"label":"B","text":"..."}, {"label":"C","text":"..."}, {"label":"D","text":"..."} ],
+  "correctAnswer": "A|B|C|D",
+  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
+}
+=== LƯU Ý PART 5 ===
+- 1 câu có chỗ trống, 4 đáp án A-D. KHÔNG cần audio/passage/group.
+=== VÍ DỤ ===
+[
+  { "part": 5,
+    "questionText": "The new policy will _____ next month.",
+    "questionTranslate": "Chính sách mới sẽ _____ vào tháng tới.",
+    "options": [ {"label":"A","text":"take effect"}, {"label":"B","text":"took effect"}, {"label":"C","text":"taking effect"}, {"label":"D","text":"effected"} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: take effect = có hiệu lực. Will + V nguyên thể.", "B": "❌ took effect là quá khứ, không dùng sau will.", "C": "❌ taking không đứng sau will.", "D": "❌ effected sai nghĩa." } }
+]` + _Q_FOOTER,
+
+    '6': `Bạn là trợ lý tạo câu hỏi TOEIC PART 6 (Hoàn thành đoạn — 1 đoạn nhiều chỗ trống). Schema:
+{
+  "part": 6, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "groupId": "<vd p6_grp_001>",
+  "questionIndex": "<1, 2, 3...>",
+  "passages": ["<đoạn văn có các chỗ trống đánh số (1)(2)... — CHỈ ở câu 1>"],
+  "questionText": "<số chỗ trống tương ứng, vd: (1)>",
+  "options": [ 4 đáp án A-D ],
+  "correctAnswer": "A|B|C|D",
+  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
+}
+=== LƯU Ý PART 6 ===
+- Chung "groupId"; mỗi câu ứng 1 chỗ trống. Chỉ câu ĐẦU chứa "passages".
+=== VÍ DỤ (nhóm 2 câu) ===
+[
+  { "part": 6, "groupId": "p6_grp_001", "questionIndex": 1,
+    "passages": ["Thank you for your order. Your package will _____(1)_____ within 3 days. If you have questions, please _____(2)_____ our support team."],
+    "questionText": "(1)",
+    "options": [ {"label":"A","text":"arrive"}, {"label":"B","text":"arrives"}, {"label":"C","text":"arrived"}, {"label":"D","text":"arriving"} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: will + V nguyên thể.", "B": "❌ Sai chia.", "C": "❌ Quá khứ.", "D": "❌ V-ing." } },
+  { "part": 6, "groupId": "p6_grp_001", "questionIndex": 2,
+    "questionText": "(2)",
+    "options": [ {"label":"A","text":"contact"}, {"label":"B","text":"contacts"}, {"label":"C","text":"contacted"}, {"label":"D","text":"contacting"} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: please + V nguyên thể.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } }
+]` + _Q_FOOTER,
+
+    '7': `Bạn là trợ lý tạo câu hỏi TOEIC PART 7 (Đọc hiểu — 1-3 đoạn đọc, nhiều câu). Schema:
+{
+  "part": 7, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "groupId": "<vd p7_grp_001>",
+  "questionIndex": "<1, 2, 3...>",
+  "passageCount": "<1 | 2 | 3>",
+  "passages": ["<đoạn đọc — CHỈ ở câu 1; nếu double/triple thì nhiều phần tử>"],
+  "questionText": "<câu hỏi>",
+  "options": [ 4 đáp án A-D ],
+  "correctAnswer": "A|B|C|D",
+  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
+}
+=== LƯU Ý PART 7 ===
+- Chung "groupId" + "passageCount". Chỉ câu ĐẦU chứa "passages".
+=== VÍ DỤ ===
+[
+  { "part": 7, "groupId": "p7_grp_001", "questionIndex": 1, "passageCount": 1,
+    "passages": ["NOTICE: The library will be closed on Monday, July 4th for the national holiday. Normal opening hours will resume on Tuesday."],
+    "questionText": "Why will the library be closed?",
+    "options": [ {"label":"A","text":"For a holiday"}, {"label":"B","text":"For repairs"}, {"label":"C","text":"For an event"}, {"label":"D","text":"For cleaning"} ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: closed for the national holiday.", "B": "❌ Không đề cập.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } }
+]` + _Q_FOOTER,
+};
+
 function copyQuestionPrompt() {
-    const prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Hãy chuyển nội dung câu hỏi tôi cung cấp thành MẢNG JSON đúng schema dưới đây để tôi import vào hệ thống.
+    const partSel = document.getElementById('q-prompt-part');
+    const part = partSel ? partSel.value : 'all';
+    let prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Hãy chuyển nội dung câu hỏi tôi cung cấp thành MẢNG JSON đúng schema dưới đây để tôi import vào hệ thống.
 
 === SCHEMA THỐNG NHẤT (áp dụng cho tất cả Part 1-7) ===
 {
   "part": <số 1-7, BẮT BUỘC>,
-  "source": "<tên nguồn đề, ví dụ: official_2024, economy_vol1 — tùy chọn>",
+  "source": "<MÃ ĐỀ, vd official_2024 — BẮT BUỘC: hệ thống gom câu hỏi thành đề theo source; câu cùng đề phải CÙNG source>",
 
   // Nhóm câu hỏi (Part 3, 4, 6, 7 có nhiều câu chung 1 audio/passage)
   "groupId": "<chuỗi định danh nhóm, ví dụ: p3_grp_001 — bắt buộc nếu có nhóm>",
@@ -885,6 +1087,7 @@ function copyQuestionPrompt() {
 === QUY TẮC BẮT BUỘC ===
 - Trả về DUY NHẤT một mảng JSON hợp lệ [ ... ], KHÔNG kèm giải thích, KHÔNG markdown, KHÔNG \`\`\`.
 - "part" là số nguyên, KHÔNG phải chuỗi.
+- "source" = MÃ ĐỀ/BỘ ĐỀ (vd: official_2024) — RẤT QUAN TRỌNG: hệ thống gom câu hỏi thành đề thi THEO "source". Câu cùng một đề PHẢI dùng CÙNG một "source".
 - Tối thiểu 3 đáp án (A, B, C); D tùy chọn.
 - "correctAnswer" phải khớp đúng 1 label trong "options".
 - Part 1: bỏ "questionText", để "imageUrls": [] (admin upload sau).
@@ -938,6 +1141,9 @@ function copyQuestionPrompt() {
 
 Nội dung câu hỏi của tôi:
 <<< DÁN NỘI DUNG CÂU HỎI CỦA BẠN VÀO ĐÂY >>>`;
+
+    // Chọn 1 Part cụ thể → dùng prompt RIÊNG, gọn (không gộp chung 7 part).
+    if (part !== 'all' && PART_PROMPTS[part]) prompt = PART_PROMPTS[part];
 
     const done = () => showToast('Đã copy prompt — dán vào ChatGPT/AI rồi lấy JSON về', 'success');
     const fail = () => showToast('Không copy được, hãy chọn và copy thủ công', 'error');
@@ -1008,6 +1214,7 @@ async function submitQuestionJsonImport() {
             if (q.groupId) payload.groupId = String(q.groupId).trim();
             if (q.questionIndex) payload.questionIndex = parseInt(q.questionIndex);
             if (q.passageCount) payload.passageCount = parseInt(q.passageCount);
+            if (q.source) payload.source = String(q.source).trim(); // mã đề — gom câu thành đề thi
             if (q.explanation) payload.explanation = typeof q.explanation === 'object' ? q.explanation : { note: String(q.explanation).trim() };
 
             const res = await fetch(`${TOEIC_API_BASE}/questions`, {
@@ -1041,6 +1248,12 @@ async function submitQuestionJsonImport() {
     `;
 
     if (ok > 0 && typeof loadQuestions === 'function') loadQuestions();
+
+    // Import sạch (không lỗi) → xóa luôn JSON cũ trong ô nhập để lần sau khỏi dính.
+    if (ok > 0 && errors.length === 0) {
+        const ta = document.getElementById('question-json-input');
+        if (ta) ta.value = '';
+    }
 }
 
 function previewQuestion(questionId) {
@@ -1276,6 +1489,7 @@ async function handleQuestionSubmit(e) {
     const passageCountRaw = document.getElementById('question-passage-count').value;
     const audioTranslateRaw = document.getElementById('question-audio-translate').value.trim();
     const questionTranslateRaw = document.getElementById('question-text-translate').value.trim();
+    const sourceRaw = document.getElementById('question-source')?.value.trim() || '';
 
     const correctAnswer = document.querySelector('input[name="correct-answer"]:checked')?.value;
     if (!correctAnswer) {
@@ -1319,6 +1533,7 @@ async function handleQuestionSubmit(e) {
     if (passageCountRaw) questionData.passageCount = parseInt(passageCountRaw);
     if (audioTranslateRaw) questionData.audioTranslate = audioTranslateRaw;
     if (questionTranslateRaw) questionData.questionTranslate = questionTranslateRaw;
+    if (sourceRaw) questionData.source = sourceRaw;
 
     try {
         const url = questionId ? `${TOEIC_API_BASE}/questions/${questionId}` : `${TOEIC_API_BASE}/questions`;

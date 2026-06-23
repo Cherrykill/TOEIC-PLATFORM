@@ -107,7 +107,7 @@ export const Listening = {
                         ` : `<div class="synonyms-prompt">${isReversed ? 'Chọn từ tiếng Anh tương ứng:' : 'Chọn nghĩa đúng của từ bạn vừa nghe:'}</div>`}
                         ${question.word.example ? `
                             <div class="word-info-example" style="margin-top:10px">
-                                <i class="fas fa-quote-left" style="opacity:.5;margin-right:6px"></i>${this.maskTarget(question.word.example, question.word.en)}
+                                <i class="fas fa-quote-left" style="opacity:.5;margin-right:6px"></i>${question.word.example}
                             </div>
                         ` : ''}
                     </div>
@@ -130,14 +130,6 @@ export const Listening = {
         `;
 
         this.attachListeners(question);
-    },
-
-    // Hide the target word in the example so showing it upfront doesn't
-    // give away the listening answer (case-insensitive, whole-word).
-    maskTarget(text, word) {
-        if (!text || !word) return text || '';
-        const esc = String(word).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return String(text).replace(new RegExp(`\\b${esc}\\b`, 'gi'), '______');
     },
 
     attachListeners(question) {
@@ -192,48 +184,12 @@ export const Listening = {
             }
         }
 
-        this.showWordInfo(question.word);
-
-        const delay = question.word.example ? 3500 : 1500;
+        // Không hiện panel reveal đáp án ở dưới nữa (trùng với câu ví dụ đã
+        // hiển thị sẵn ở phần câu hỏi). Chỉ cần highlight đúng/sai rồi qua câu.
+        const delay = 1200;
         setTimeout(() => {
             this.nextQuestion();
         }, delay);
-    },
-
-    showWordInfo(word) {
-        const container = document.querySelector('.listening-container');
-        if (!container) return;
-
-        const infoPanel = document.createElement('div');
-        infoPanel.className = 'word-info-panel';
-        infoPanel.innerHTML = `
-            <div class="word-info-reveal">
-                <strong>${word.en}</strong> - ${word.vn}
-                <span class="word-info-phonetic">${word.phonetic || ''}</span>
-            </div>
-            ${word.example ? `
-                <div class="word-info-example">
-                    <i class="fas fa-quote-left" style="color: var(--primary-color); margin-right: 6px;"></i>
-                    <span>${word.example}</span>
-                    <button class="btn-speak-mini" id="speak-example-btn" title="Nghe phát âm câu ví dụ">
-                        <i class="fas fa-volume-up"></i>
-                    </button>
-                </div>
-            ` : ''}
-        `;
-        const questionPrompt = container.querySelector('.question-prompt');
-        if (questionPrompt) {
-            container.insertBefore(infoPanel, questionPrompt);
-        } else {
-            container.appendChild(infoPanel);
-        }
-
-        const speakBtn = document.getElementById('speak-example-btn');
-        if (speakBtn) {
-            speakBtn.addEventListener('click', () => {
-                GameLogic.speakWord(word.example, 'en-US');
-            });
-        }
     },
 
     nextQuestion() {

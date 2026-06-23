@@ -468,6 +468,7 @@ export const Config = {
     sounds: {
         making: 'assets/sounds/makingtask.mp3',
         complete: 'assets/sounds/complete.mp3',
+        buyItem: 'assets/sounds/buyitem.mp3',
         correct: 'assets/sounds/correct.mp3',
         wrong: 'assets/sounds/wrong.mp3',
         levelUp: 'assets/sounds/level-up.mp3',

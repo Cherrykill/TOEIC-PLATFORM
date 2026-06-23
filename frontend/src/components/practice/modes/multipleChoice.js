@@ -92,11 +92,12 @@ export const MultipleChoice = {
                         <div class="word-type">${question.word.type}</div>
                     </div>
                     <div class="question-synonyms-col">
-                        ${isReversed ? `<div class="synonyms-prompt">Từ tiếng Anh tương ứng là gì?</div>` : question.word.synonyms ? `
+                        ${question.word.synonyms ? `
                             <div class="synonyms-label">Đồng nghĩa</div>
                             <div class="synonyms-list">${question.word.synonyms}</div>
                             ${question.word.synonyms_vn ? `<div class="synonyms-list-vn">${question.word.synonyms_vn}</div>` : ''}
                         ` : ''}
+                        ${this.exampleHtml(question)}
                     </div>
                     ${question.word.image ? `
                         <div class="question-image-col">
@@ -113,8 +114,6 @@ export const MultipleChoice = {
                         </button>
                     `).join('')}
                 </div>
-
-                ${this.exampleHtml(question)}
             </div>
         `;
 
@@ -209,12 +208,41 @@ export const MultipleChoice = {
         }, delay);
     },
 
-    // Mask từ khoá tiếng Anh trong câu ví dụ (dùng cho chế độ đảo chiều để
-    // câu ví dụ hiện sẵn mà không lộ đáp án).
+    // Che từ khoá trong câu ví dụ (chế độ đảo chiều để khỏi lộ đáp án).
+    // THÔNG MINH: che được cả dạng biến đổi (chia thì/số nhiều, phrasal verb)
+    // và tiếng Trung. Câu nào KHÔNG che nổi (bất quy tắc / không tìm thấy từ)
+    // → trả về CẢ CÂU (chấp nhận, hơn là hiện ô trống sai/nửa vời).
     maskTarget(sentence, target) {
-        if (!target) return sentence;
-        const esc = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        return sentence.replace(new RegExp(`\\b${esc}\\b`, 'gi'), '_____');
+        if (!sentence || !target) return sentence || '';
+        const BLANK = '______';
+
+        // Tiếng Trung / ký tự ngoài ASCII: không chia thì → che chuỗi con chính xác.
+        if (/[^\x00-\x7F]/.test(target)) {
+            return sentence.includes(target) ? sentence.split(target).join(BLANK) : sentence;
+        }
+
+        // Tiếng Anh: dựng biến thể đuôi cho 1 từ (số nhiều/chia thì + xử lý -e, -y).
+        const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const variantsOf = (w) => {
+            const v = new Set([w, w + 's', w + 'es', w + 'ed', w + 'd', w + 'ing']);
+            if (w.endsWith('e')) { const s = w.slice(0, -1); v.add(s + 'ed'); v.add(s + 'ing'); }
+            if (w.endsWith('y')) { const s = w.slice(0, -1); v.add(s + 'ies'); v.add(s + 'ied'); }
+            return [...v].sort((a, b) => b.length - a.length).map(esc); // dài trước → khớp tham lam
+        };
+
+        const words = target.trim().split(/\s+/);
+        let pattern;
+        if (words.length === 1) {
+            pattern = `\\b(?:${variantsOf(words[0]).join('|')})\\b`;
+        } else {
+            // Phrasal verb: từ đầu (động từ) biến đổi, các từ sau giữ nguyên.
+            const first = `(?:${variantsOf(words[0]).join('|')})`;
+            const rest = words.slice(1).map(esc).join('\\s+');
+            pattern = `\\b${first}\\s+${rest}\\b`;
+        }
+
+        const re = new RegExp(pattern, 'gi');
+        return re.test(sentence) ? sentence.replace(new RegExp(pattern, 'gi'), BLANK) : sentence;
     },
 
     // Câu ví dụ hiển thị NGAY từ đầu câu hỏi (không đợi chọn xong). Chế độ

@@ -31,6 +31,15 @@ import { SynonymCheck } from './modes/synonymCheck.js';
 import { SpeedQuiz } from './modes/speedQuiz.js';
 import { ReviewMistakes } from './modes/reviewMistakes.js';
 
+// Các chế độ thực sự xử lý gợi ý (lắng nghe GameEvents.HINT_USED). Ngoài danh
+// sách này (flashcard, matching, pronunciation, dictation, speed-quiz) thì nút
+// Gợi ý bị vô hiệu hóa để KHÔNG trừ lượt/coins mà chẳng nhận được gì.
+const HINT_SUPPORTED_MODES = new Set([
+    'multiple-choice', 'fill-blank', 'listening', 'word-type-check',
+    'sentence-listening', 'example-fill-blank', 'sentence-builder',
+    'phonetic-quiz', 'context-learning', 'synonym-check', 'review-mistakes',
+]);
+
 export const PracticeManager = {
 
     currentSession: null,
@@ -1014,6 +1023,18 @@ export const PracticeManager = {
     },
 
     useHint() {
+        // Chặn TRƯỚC khi trừ tài nguyên: chế độ không hỗ trợ gợi ý thì báo và thoát.
+        const mode = this.currentSession?.mode;
+        if (mode && !HINT_SUPPORTED_MODES.has(mode)) {
+            Notification.show({
+                type: 'info',
+                title: '💡 Gợi ý',
+                message: 'Chế độ này không có gợi ý.',
+                duration: 2000,
+            });
+            return false;
+        }
+
         const resources = GameState.getResources();
         const hintCost = 50;
 
@@ -1105,6 +1126,17 @@ export const PracticeManager = {
 
         const resources = GameState.getResources();
         const costSpan = hintBtn.querySelector('.cost');
+
+        // Chế độ không hỗ trợ gợi ý → vô hiệu hóa nút (không cho bấm phí tài nguyên).
+        const mode = this.currentSession?.mode;
+        if (mode && !HINT_SUPPORTED_MODES.has(mode)) {
+            hintBtn.disabled = true;
+            hintBtn.classList.add('disabled');
+            hintBtn.title = 'Chế độ này không có gợi ý';
+            if (costSpan) costSpan.innerHTML = '—';
+            return;
+        }
+        hintBtn.title = '';
 
         if (resources.hints > 0) {
             if (costSpan) {

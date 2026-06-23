@@ -5,6 +5,13 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
     const statusClass = isCorrect ? 'correct' : 'wrong';
     const statusIcon = isCorrect ? 'fa-check-circle' : 'fa-times-circle';
 
+    // explanation có thể là OBJECT {A,B,C,D} (theo từng đáp án) hoặc string.
+    // Render thẳng object sẽ crash React → phải tách ra.
+    const explObj = (q.explanation && typeof q.explanation === 'object') ? q.explanation : null;
+    const explString = typeof q.explanation === 'string' ? q.explanation : (explObj?.note || '');
+    const imageUrl = q.imageUrls?.[0] || q.imageUrl || '';
+    const passageList = q.passages?.length ? q.passages : (q.passage ? [q.passage] : []);
+
     return (
         <div className={`review-question-item ${statusClass}`}>
             <div className="review-question-header" onClick={onToggle} style={{ cursor: 'pointer' }}>
@@ -25,34 +32,37 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
             </div>
             {expanded && (
                 <div className="review-question-detail" style={{ display: 'block' }}>
-                    {q.imageUrl && (
-                        <img src={q.imageUrl} alt="Question" style={{ maxWidth: 300, margin: '10px 0' }} />
+                    {imageUrl && (
+                        <img src={imageUrl} alt="Question" style={{ maxWidth: 300, margin: '10px 0' }} />
                     )}
+                    {passageList.map((p, pi) => (
+                        <div key={pi} className="question-passage">
+                            <span dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }} />
+                        </div>
+                    ))}
                     {q.questionText && (
                         <p className="question-text"><strong>Câu hỏi:</strong> <span dangerouslySetInnerHTML={{ __html: q.questionText }} /></p>
-                    )}
-                    {q.passage && (
-                        <div className="question-passage">
-                            <strong>Đoạn văn:</strong><br />
-                            <span dangerouslySetInnerHTML={{ __html: q.passage.replace(/\n/g, '<br>') }} />
-                        </div>
                     )}
                     <div className="question-options">
                         {q.options?.map(opt => {
                             let cls = '';
                             if (opt.label === q.correctAnswer) cls = 'option-correct';
                             if (opt.label === q.userAnswer && !isCorrect) cls = 'option-wrong';
+                            const optExpl = explObj?.[opt.label];
                             return (
                                 <div key={opt.label} className={`option-item ${cls}`}>
                                     <span className="option-label">{opt.label}.</span>
-                                    <span className="option-text">{opt.text}</span>
+                                    <span className="option-text">
+                                        {opt.text}
+                                        {optExpl ? <em style={{ display: 'block', opacity: 0.8, fontSize: '0.9em', marginTop: 2 }}>{optExpl}</em> : null}
+                                    </span>
                                 </div>
                             );
                         })}
                     </div>
-                    {q.explanation && (
+                    {explString && (
                         <div className="question-explanation">
-                            <strong>Giải thích:</strong> {q.explanation}
+                            <strong>Giải thích:</strong> {explString}
                         </div>
                     )}
                 </div>

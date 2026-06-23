@@ -173,7 +173,15 @@ export default function QuestScreen({ active }) {
             for (const q of list) {
                 const code = q.code || q.id;
                 if (q.completed && !q.claimedAt && !q.claimed && !claimedCodes.has(code)) {
-                    out.push({ type: tab.type, code });
+                    out.push({
+                        type: tab.type,
+                        code,
+                        reward: {
+                            coins: q.rewardCoins || q.reward?.coins || 0,
+                            xp:    q.rewardXp    || q.reward?.xp    || 0,
+                            gems:  q.rewardGems  || q.reward?.gems  || 0,
+                        },
+                    });
                 }
             }
         }
@@ -186,35 +194,47 @@ export default function QuestScreen({ active }) {
         if (toClaim.length === 0) return;
 
         setClaimingAll(true);
-        const claimed = new Set();
-        for (const { type, code } of toClaim) {
+
+        // GOM TỔNG thưởng + đánh dấu TẤT CẢ đã nhận → cập nhật giao diện CHỈ 1 LẦN
+        // (thay vì credit + render mỗi quest → hết delay nhảy số nhiều lần).
+        const total = toClaim.reduce((s, q) => ({
+            coins: s.coins + q.reward.coins,
+            xp:    s.xp    + q.reward.xp,
+            gems:  s.gems  + q.reward.gems,
+        }), { coins: 0, xp: 0, gems: 0 });
+        const codes = toClaim.map(q => q.code);
+
+        setClaimedCodes(prev => new Set([...prev, ...codes]));
+        GameState.creditServerRewards(total);
+        Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
+        Notification.success(`Đã nhận thưởng ${toClaim.length} nhiệm vụ!`);
+        syncFromState();
+
+        // Đồng bộ server chạy NỀN (tuần tự để tránh đụng save/flush). Quest nào
+        // lỗi → hoàn tác phần thưởng + bỏ đánh dấu của riêng nó.
+        const failed = [];
+        for (const { type, code, reward } of toClaim) {
             let ok = false;
-            if (Quest?.claimReward) {
-                const rewards = await Quest.claimReward(type, code);
-                if (rewards !== null && rewards !== undefined) {
-                    GameState.creditServerRewards(rewards);
-                    ok = true;
-                }
-            }
-            if (!ok) {
-                const res = await QuestsAPI.claim({ type, code });
-                if (res.success) {
-                    GameState.creditServerRewards(res.rewards || {});
-                    ok = true;
-                }
-            }
-            if (ok) claimed.add(code);
+            try {
+                if (Quest?.claimReward) ok = (await Quest.claimReward(type, code)) != null;
+                else ok = !!(await QuestsAPI.claim({ type, code })).success;
+            } catch { ok = false; }
+            if (!ok) failed.push({ code, reward });
         }
 
-        if (claimed.size > 0) {
-            setClaimedCodes(prev => new Set([...prev, ...claimed]));
-            Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
-            Notification.success(`Đã nhận thưởng ${claimed.size} nhiệm vụ!`);
-            loadQuests(activeTab);
-            syncFromState();
-        } else {
-            Notification.error('Không thể nhận thưởng');
+        if (failed.length > 0) {
+            const back = failed.reduce((s, f) => ({
+                coins: s.coins - f.reward.coins,
+                xp:    s.xp    - f.reward.xp,
+                gems:  s.gems  - f.reward.gems,
+            }), { coins: 0, xp: 0, gems: 0 });
+            GameState.creditServerRewards(back);
+            setClaimedCodes(prev => { const s = new Set(prev); failed.forEach(f => s.delete(f.code)); return s; });
+            Notification.error(`${failed.length} nhiệm vụ nhận thất bại, đã hoàn lại`);
         }
+
+        loadQuests(activeTab);
+        syncFromState();
         setClaimingAll(false);
     }
 

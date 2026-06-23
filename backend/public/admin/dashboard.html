@@ -2995,23 +2995,48 @@
               Dán 1 object hoặc array câu hỏi. Bí thì bấm
               <b>Copy prompt</b> rồi đưa cho AI (ChatGPT…) để nó chuyển hộ.
             </p>
-            <button
-              type="button"
-              id="btn-copy-q-prompt"
-              style="
-                padding: 7px 14px;
-                border: 1.5px solid var(--primary);
-                background: transparent;
-                color: var(--primary);
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 12px;
-                white-space: nowrap;
-              "
-            >
-              📋 Copy prompt cho AI
-            </button>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <select
+                id="q-prompt-part"
+                title="Chọn Part để lấy prompt phù hợp"
+                style="
+                  padding: 7px 10px;
+                  border: 1.5px solid var(--border-color, #334155);
+                  background: var(--bg-secondary, #1e293b);
+                  color: var(--text-primary, #e2e8f0);
+                  border-radius: 8px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  cursor: pointer;
+                "
+              >
+                <option value="all">Tất cả Part</option>
+                <option value="1">Part 1 — Mô tả tranh</option>
+                <option value="2">Part 2 — Hỏi & đáp</option>
+                <option value="3">Part 3 — Hội thoại</option>
+                <option value="4">Part 4 — Bài nói</option>
+                <option value="5" selected>Part 5 — Hoàn thành câu</option>
+                <option value="6">Part 6 — Hoàn thành đoạn</option>
+                <option value="7">Part 7 — Đọc hiểu</option>
+              </select>
+              <button
+                type="button"
+                id="btn-copy-q-prompt"
+                style="
+                  padding: 7px 14px;
+                  border: 1.5px solid var(--primary);
+                  background: transparent;
+                  color: var(--primary);
+                  border-radius: 8px;
+                  cursor: pointer;
+                  font-weight: 600;
+                  font-size: 12px;
+                  white-space: nowrap;
+                "
+              >
+                📋 Copy prompt cho AI
+              </button>
+            </div>
           </div>
           <textarea
             id="question-json-input"
@@ -3148,6 +3173,23 @@
                 <option value="6">Part 6 - Text Completion</option>
                 <option value="7">Part 7 - Reading Comprehension</option>
               </select>
+            </div>
+
+            <div>
+              <label style="display: block; margin-bottom: 5px; font-weight: 500"
+                >Source (mã đề)</label
+              >
+              <input
+                type="text"
+                id="question-source"
+                placeholder="VD: official_2024 — gom câu thành đề thi"
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 2px solid #e0e0e0;
+                  border-radius: 8px;
+                "
+              />
             </div>
 
             <div class="full-width" id="audio-text-field" style="display: none">

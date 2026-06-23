@@ -22,6 +22,10 @@ export const GameLogic = {
     vocabularyData: [],
 
     async init() {
+        // Nạp sẵn toàn bộ hiệu ứng âm thanh vào cache để phát tức thì — tránh
+        // độ trễ fetch/decode (đặc biệt tiếng "complete" chỉ phát 1 lần cuối
+        // session nên hay bị vang chậm hơn popup).
+        try { Utils.preloadSounds(Object.values(Config.sounds)); } catch { /* ignore */ }
         await this.loadVocabulary();
     },
 

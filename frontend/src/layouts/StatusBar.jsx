@@ -3,6 +3,7 @@ import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Utils } from '@lib/utils.js';
+import FlagIcon from '@ui/FlagIcon.jsx';
 
 function computeSessionLabel() {
     const s = GameState.state?.settings || {};
@@ -138,7 +139,7 @@ export default function StatusBar() {
                     title={vocabLang === 'en' ? 'Đang học Tiếng Anh — bấm để chuyển Tiếng Trung' : 'Đang học Tiếng Trung — bấm để chuyển Tiếng Anh'}
                     style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
                 >
-                    <span>{vocabLang === 'en' ? '🇬🇧' : '🇨🇳'}</span>
+                    <FlagIcon lang={vocabLang} size={18} />
                     <span>{vocabLang === 'en' ? 'Tiếng Anh' : 'Tiếng Trung'}</span>
                 </button>
             </div>

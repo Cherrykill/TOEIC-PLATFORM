@@ -1,5 +1,6 @@
 // "Sound" panel. Presentational — state/handlers passed from SettingsScreen.
 import Toggle from './Toggle.jsx';
+import FlagIcon from '@ui/FlagIcon.jsx';
 
 export default function SoundPanel({
     s,
@@ -44,7 +45,7 @@ export default function SoundPanel({
                 <div className={`setting-item voice-select-row${isZh ? ' voice-select-inactive' : ''}`}
                     style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
                     <div className="setting-info">
-                        <h4>🇬🇧 Giọng Tiếng Anh {isZh && <span className="voice-inactive-badge">Không dùng</span>}</h4>
+                        <h4><FlagIcon lang="en" size={18} style={{ marginRight: 6 }} />Giọng Tiếng Anh {isZh && <span className="voice-inactive-badge">Không dùng</span>}</h4>
                         <p>Áp dụng khi đang học chế độ Tiếng Anh</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8, width: '100%' }}>
@@ -78,7 +79,7 @@ export default function SoundPanel({
                 <div className={`setting-item voice-select-row${!isZh ? ' voice-select-inactive' : ''}`}
                     style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 8, marginTop: 12 }}>
                     <div className="setting-info">
-                        <h4>🇨🇳 Giọng Tiếng Trung {!isZh && <span className="voice-inactive-badge">Không dùng</span>}</h4>
+                        <h4><FlagIcon lang="zh" size={18} style={{ marginRight: 6 }} />Giọng Tiếng Trung {!isZh && <span className="voice-inactive-badge">Không dùng</span>}</h4>
                         <p>Áp dụng khi đang học chế độ Tiếng Trung</p>
                     </div>
                     <div style={{ display: 'flex', gap: 8, width: '100%' }}>

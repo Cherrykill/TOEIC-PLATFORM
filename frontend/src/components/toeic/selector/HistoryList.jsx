@@ -3,8 +3,11 @@ import HistoryItem from './HistoryItem.jsx';
 import Pagination from './Pagination.jsx';
 import { useToeicHistory } from '../hooks/useToeicHistory.js';
 
-export default function HistoryList({ active, onView }) {
+export default function HistoryList({ active, onView, partFilter = 'all' }) {
     const { items, page, totalPages, loading, error, goToPage } = useToeicHistory({ enabled: active });
+    const shown = partFilter === 'all'
+        ? items
+        : items.filter(a => a.testType === `mini-part${partFilter}`);
 
     if (loading && items.length === 0) {
         return (
@@ -27,10 +30,14 @@ export default function HistoryList({ active, onView }) {
         );
     }
 
+    if (shown.length === 0) {
+        return <EmptyState title="Không có kết quả" text={`Chưa có lượt thi nào cho Part ${partFilter} ở trang này`} />;
+    }
+
     return (
         <>
             <div className="toeic-history-list">
-                {items.map(attempt => (
+                {shown.map(attempt => (
                     <HistoryItem key={attempt._id} attempt={attempt} onView={onView} />
                 ))}
             </div>

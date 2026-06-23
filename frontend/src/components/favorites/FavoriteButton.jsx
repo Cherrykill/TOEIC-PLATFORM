@@ -31,7 +31,10 @@ export default function FavoriteButton() {
         const container = document.getElementById('practice-content');
         if (!word?.en || !container) { removeInline(); return; }
 
-        const anchor = container.querySelector('.word-phonetic')
+        // Ưu tiên gắn sao CẠNH badge loại từ (.word-type) → "bên phải của type".
+        // Fallback: phonetic rồi tới word display (mode không có word-type).
+        const anchor = container.querySelector('.word-type')
+            || container.querySelector('.word-phonetic')
             || container.querySelector('.word-display');
         if (!anchor) return;
 
@@ -52,12 +55,19 @@ export default function FavoriteButton() {
                 btn.classList.toggle('fav-star-active', nowActive);
                 btn.title = nowActive ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích';
             });
-            if (anchor.classList.contains('word-phonetic')) {
-                anchor.style.display = 'inline-flex';
-                anchor.style.alignItems = 'center';
-                anchor.style.gap = '6px';
+            if (anchor.classList.contains('word-type')) {
+                // Đặt sao làm anh em LIỀN SAU badge (không nhét vào trong pill).
+                btn.style.marginLeft = '8px';
+                btn.style.verticalAlign = 'middle';
+                anchor.insertAdjacentElement('afterend', btn);
+            } else {
+                if (anchor.classList.contains('word-phonetic')) {
+                    anchor.style.display = 'inline-flex';
+                    anchor.style.alignItems = 'center';
+                    anchor.style.gap = '6px';
+                }
+                anchor.appendChild(btn);
             }
-            anchor.appendChild(btn);
         }
 
         const active = isFavRef.current(word.en);

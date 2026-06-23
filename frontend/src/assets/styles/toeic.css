@@ -9,9 +9,8 @@
 /* TOEIC Intro */
 .toeic-intro {
   text-align: center;
-  margin-bottom: var(--spacing-xl);
-  padding: 48px var(--spacing-xl);
-  min-height: 200px;
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -23,14 +22,14 @@
 }
 
 .toeic-intro h3 {
-  font-size: 1.8rem;
-  margin-bottom: var(--spacing-sm);
+  font-size: 1.25rem;
+  margin-bottom: 2px;
   font-weight: 700;
   color: #fff;
 }
 
 .toeic-intro p {
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.85);
   max-width: 600px;
   margin: 0 auto;
@@ -39,6 +38,58 @@
 /* Tab content area */
 #toeic-tab-content {
   min-height: 60vh;
+}
+
+/* Bộ lọc theo Part (Tất cả / Part 1-7) — kết hợp với tab để lọc kết quả */
+.toeic-part-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--spacing-lg);
+}
+/* Khi đặt trên thanh header (cạnh tiêu đề) thay vì dưới tabs */
+.toeic-part-filters.in-header {
+  margin: 0 0 0 16px;
+}
+.toeic-part-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.toeic-part-btn:hover { border-color: var(--primary-color); }
+.toeic-part-btn.active {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+/* Nút "Lịch sử" / "Phân tích" trên header (thay cho tab) — nền gradient */
+.toeic-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease, box-shadow 0.15s ease;
+}
+.toeic-header-btn:hover { filter: brightness(1.07); }
+/* Đang xem mục đó → viền trắng bên trong để biết nút đang active */
+.toeic-header-btn.active {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.85);
 }
 
 /* TOEIC Tabs */
@@ -337,6 +388,10 @@
    ================================== */
 
 .toeic-test-header-bar {
+  /* Dính trên cùng khi cuộn → đồng hồ + nút Nộp bài luôn nhìn thấy */
+  position: sticky;
+  top: 0;
+  z-index: 30;
   background-color: var(--bg-primary);
   padding: var(--spacing-md);
   border-radius: var(--border-radius-large);
@@ -347,6 +402,37 @@
   flex-wrap: wrap;
   gap: var(--spacing-md);
   box-shadow: var(--shadow-small);
+}
+
+/* 3 vùng header: trái (back + tên) · giữa (nav câu + đồng hồ) · phải (nút) */
+.toeic-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.toeic-header-center {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Hàng đầu trong câu hỏi: badge "Câu X" trái — nút Câu hỏi + đồng hồ căn phải */
+.toeic-q-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+.toeic-q-row-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .toeic-back-btn {
@@ -438,6 +524,13 @@
   border-color: var(--primary-color);
 }
 
+/* Nút "Đánh dấu" khi câu hiện tại đang được đánh dấu → đổi màu cam rõ ràng */
+.toeic-action-btn.active {
+  background: var(--warning-color, #f59e0b);
+  color: #fff;
+  border-color: var(--warning-color, #f59e0b);
+}
+
 /* Question Container */
 .toeic-question-container {
   background-color: var(--bg-primary);
@@ -445,6 +538,39 @@
   padding: var(--spacing-xl);
   margin-bottom: var(--spacing-lg);
   box-shadow: var(--shadow-medium);
+}
+
+/* Nút mũi tên Câu trước / Câu sau — nằm trong header (cạnh "Câu X/N") */
+.toeic-progress-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.toeic-qnav-arrow {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.toeic-qnav-arrow:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+.toeic-qnav-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.toeic-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .toeic-question-number {
@@ -581,7 +707,7 @@
 
 .toeic-nav-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  grid-template-columns: repeat(5, 1fr); /* tối đa 5 câu mỗi dòng */
   gap: var(--spacing-xs);
 }
 
@@ -764,7 +890,7 @@
 
 .history-left h4 {
   font-size: 1.1rem;
-  margin-bottom: var(--spacing-xs);
+  margin: 0;
 }
 
 .history-left p {
@@ -772,33 +898,65 @@
   color: var(--text-secondary);
 }
 
+.history-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.history-type-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-color);
+  color: #fff;
+  white-space: nowrap;
+}
+.history-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.history-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.history-meta i { opacity: 0.7; }
+
 .history-right {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 10px;
 }
 
+/* Hai ô % và điểm: CÙNG kích thước, căn giữa, bo góc đồng nhất → hài hòa */
+.history-percent,
 .history-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 82px;
+  height: 56px;
+  padding: 0 12px;
+  border-radius: 12px;
   text-align: center;
-  padding: var(--spacing-md);
-  border-radius: var(--border-radius-large);
-  min-width: 100px;
+  line-height: 1.1;
 }
-
-.history-score.success {
-  background-color: #e8f5e9;
-  color: #2e7d32;
+.history-score {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
-
-.history-score.warning {
-  background-color: #fff3e0;
-  color: #f57c00;
-}
-
-.history-score.error {
-  background-color: #ffebee;
-  color: #c62828;
-}
+.history-percent.success { background-color: #e8f5e9; color: #2e7d32; }
+.history-percent.warning { background-color: #fff3e0; color: #f57c00; }
+.history-percent.error   { background-color: #ffebee; color: #c62828; }
+.percent-value { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+.percent-label { font-size: 0.68rem; opacity: 0.75; margin-top: 3px; }
 
 .score-value {
   font-size: 1.8rem;
@@ -808,6 +966,17 @@
 .score-label {
   font-size: 0.8rem;
   opacity: 0.7;
+}
+
+.history-score .score-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.history-score .score-value small {
+  font-size: 0.72rem;
+  font-weight: 600;
+  opacity: 0.6;
 }
 
 /* Analytics */
@@ -1471,19 +1640,47 @@
   background: rgba(0,0,0,.35);
   z-index: 950;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
+  align-items: stretch;
+  justify-content: flex-start; /* panel trượt sang TRÁI */
 }
 
 .toeic-nav-popup-inner {
   background: var(--bg-primary, #fff);
-  border-radius: 16px;
+  border-radius: 0 16px 16px 0;
   padding: 20px;
-  width: min(420px, 92vw);
-  max-height: 70vh;
+  width: min(380px, 92vw);
+  height: 100%;
   overflow-y: auto;
-  box-shadow: 0 8px 40px rgba(0,0,0,.25);
+  box-shadow: 4px 0 28px rgba(0,0,0,.22);
+}
+
+/* Preview câu hỏi + đáp án trong panel điều hướng */
+.toeic-nav-preview {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+.toeic-nav-preview-title {
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+}
+.toeic-nav-preview-q { font-size: 0.92rem; margin-bottom: 10px; line-height: 1.45; }
+.toeic-nav-preview-muted { color: var(--text-secondary); font-style: italic; }
+.toeic-nav-preview-opts { display: flex; flex-direction: column; gap: 5px; }
+.toeic-nav-preview-opt {
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+.toeic-nav-preview-opt.chosen {
+  background: var(--success-color);
+  color: #fff;
+  border-color: var(--success-color);
 }
 
 .toeic-nav-popup-header {

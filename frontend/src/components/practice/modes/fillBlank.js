@@ -186,44 +186,12 @@ export const FillBlank = {
             }
         }
 
-        this.showWordInfo(question.word);
-
-        const delay = question.word.example ? 2000 : 1000;
+        // Không hiện panel ví dụ (lộ đáp án trong câu) sau khi trả lời nữa —
+        // toast đã báo "Đáp án đúng: ..." rồi.
+        const delay = 1200;
         setTimeout(() => {
             this.nextQuestion();
         }, delay);
-    },
-
-    showWordInfo(word) {
-        if (!word.example) return;
-
-        const container = document.querySelector('.fill-blank-container');
-        if (!container) return;
-
-        const infoPanel = document.createElement('div');
-        infoPanel.className = 'word-info-panel';
-        infoPanel.innerHTML = `
-            <div class="word-info-example">
-                <i class="fas fa-quote-left" style="color: var(--primary-color); margin-right: 6px;"></i>
-                <span>${word.example}</span>
-                <button class="btn-speak-mini" id="speak-example-btn" title="Nghe phát âm câu ví dụ">
-                    <i class="fas fa-volume-up"></i>
-                </button>
-            </div>
-        `;
-        const sentenceDisplay = container.querySelector('.sentence-display');
-        if (sentenceDisplay) {
-            container.insertBefore(infoPanel, sentenceDisplay);
-        } else {
-            container.appendChild(infoPanel);
-        }
-
-        const speakBtn = document.getElementById('speak-example-btn');
-        if (speakBtn) {
-            speakBtn.addEventListener('click', () => {
-                GameLogic.speakWord(word.example, 'en-US');
-            });
-        }
     },
 
     nextQuestion() {

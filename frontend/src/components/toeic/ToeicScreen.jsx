@@ -17,14 +17,22 @@ const TABS = [
     { key: 'full-test',  icon: 'fa-clipboard-list', label: 'Full Test (200 câu)' },
     { key: 'mini-test',  icon: 'fa-tasks',           label: 'Mini Test (theo Part)' },
     { key: 'fill-blank', icon: 'fa-pen-square',      label: 'Đục lỗ' },
-    { key: 'my-history', icon: 'fa-history',         label: 'Lịch sử thi' },
-    { key: 'analytics',  icon: 'fa-chart-line',      label: 'Phân tích' },
 ];
+
+// Bộ lọc theo Part — chỉ hiện ở các tab có ý nghĩa theo part.
+const PART_FILTERS = [
+    { key: 'all', label: 'All' },
+    ...[1, 2, 3, 4, 5, 6, 7].map(n => ({ key: n, label: `Part ${n}` })),
+];
+const PART_FILTER_TABS = ['mini-test', 'fill-blank', 'my-history'];
 
 export default function ToeicScreen({ active }) {
     const { showScreen } = useGame();
     const [activeTab, setActiveTab] = useState('full-test');
-    const { tests, loading: testsLoading } = useToeicTests();
+    const { tests, loading: testsLoading, reload: reloadTests } = useToeicTests();
+    // Bump để remount History/Analytics (chúng tự fetch khi mount) → tải lại dữ liệu.
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [partFilter, setPartFilter] = useState('all'); // 'all' | 1..7
 
     const [mode, setMode] = useState('selector');       // selector | runner
     const [runnerConfig, setRunnerConfig] = useState(null);
@@ -45,6 +53,12 @@ export default function ToeicScreen({ active }) {
                 if (localStorage.getItem(dismissKey)) return;
 
                 const answered = Object.keys(attemptData.answers || {}).length;
+                // Bài "bấm Bắt đầu rồi thoát" (chưa trả lời câu nào) → không mời tiếp
+                // tục (resume bài rỗng vô nghĩa + endpoint review không có câu để tải).
+                if (answered === 0) {
+                    localStorage.setItem(dismissKey, '1');
+                    return;
+                }
                 const totalQ = attemptData.testId?.totalQuestions || '?';
                 Modal.show({
                     title: '📋 Bạn có bài luyện tập đang dở',
@@ -88,6 +102,11 @@ export default function ToeicScreen({ active }) {
         setRunnerConfig(null);
     }, []);
 
+    const handleRefresh = useCallback(() => {
+        reloadTests();
+        setRefreshKey(k => k + 1);
+    }, [reloadTests]);
+
     const handleViewResults = useCallback(async (attemptId) => {
         Modal.show({
             title: 'Đang tải...',
@@ -125,6 +144,37 @@ export default function ToeicScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-graduation-cap"></i> Luyện tập TOEIC</h2>
+                {PART_FILTER_TABS.includes(activeTab) && (
+                    <div className="toeic-part-filters in-header">
+                        {PART_FILTERS.map(f => (
+                            <button
+                                key={f.key}
+                                className={`toeic-part-btn${partFilter === f.key ? ' active' : ''}`}
+                                onClick={() => setPartFilter(f.key)}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
+                <button
+                    className={`toeic-header-btn${activeTab === 'my-history' ? ' active' : ''}`}
+                    style={{ marginLeft: 'auto' }}
+                    title="Lịch sử thi"
+                    onClick={() => setActiveTab('my-history')}
+                >
+                    <i className="fas fa-history"></i> Lịch sử
+                </button>
+                <button
+                    className={`toeic-header-btn${activeTab === 'analytics' ? ' active' : ''}`}
+                    title="Phân tích"
+                    onClick={() => setActiveTab('analytics')}
+                >
+                    <i className="fas fa-chart-line"></i> Phân tích
+                </button>
+                <button className="icon-btn" title="Tải lại dữ liệu" onClick={handleRefresh}>
+                    <i className="fas fa-rotate-right"></i>
+                </button>
             </div>
             <div className="screen-content">
                 <div id="toeic-selector" className="toeic-container">
@@ -146,10 +196,10 @@ export default function ToeicScreen({ active }) {
                     </div>
                     <div id="toeic-tab-content">
                         {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} onStart={(id) => openStartModal(id, true)} />}
-                        {activeTab === 'my-history' && <HistoryList active={active && activeTab === 'my-history'} onView={handleViewResults} />}
-                        {activeTab === 'analytics'  && <AnalyticsView active={active && activeTab === 'analytics'} />}
+                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} onStart={(id) => openStartModal(id, false)} />}
+                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} onStart={(id) => openStartModal(id, true)} />}
+                        {activeTab === 'my-history' && <HistoryList key={`history-${refreshKey}`} active={active && activeTab === 'my-history'} partFilter={partFilter} onView={handleViewResults} />}
+                        {activeTab === 'analytics'  && <AnalyticsView key={`analytics-${refreshKey}`} active={active && activeTab === 'analytics'} />}
                     </div>
                 </div>
             </div>

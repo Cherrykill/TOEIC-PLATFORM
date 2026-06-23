@@ -218,11 +218,17 @@ export default function TestRunner({ config, onExit }) {
                 onToggleMark={attempt.toggleMark}
                 onPause={handlePause}
                 onSubmit={handleConfirmSubmit}
+                onPrev={attempt.prevQuestion}
+                onNext={attempt.nextQuestion}
+                canPrev={attempt.currentIndex > 0}
+                canNext={attempt.currentIndex < attempt.questions.length - 1}
             />
 
             <div className="toeic-question-container">
                 <QuestionView
                     question={q}
+                    timer={timer}
+                    onToggleNav={() => setNavOpen(o => !o)}
                     currentIndex={attempt.currentIndex}
                     fillInBlankMode={attempt.fillInBlankMode}
                     selectedAnswer={attempt.answers[attempt.currentIndex]}

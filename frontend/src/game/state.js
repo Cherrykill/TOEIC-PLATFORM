@@ -103,6 +103,13 @@ export const GameState = {
             coins: { active: false, multiplier: 1, expiresAt: null }
         },
 
+        // VIP (server-authoritative): active + mốc hết hạn (ms). Khi active →
+        // năng lượng không trừ + x2 XP/Coins.
+        vip: { active: false, expiresAt: 0 },
+
+        // Lịch sử chi tiêu (cap 50, newest first) — server-authoritative.
+        transactions: [],
+
         settings: { ...DEFAULT_SETTINGS },
 
 
@@ -468,6 +475,11 @@ export const GameState = {
     },
 
     async useEnergy(amount) {
+        // VIP còn hạn → năng lượng KHÔNG bị trừ (đúng mô tả "Unlimited energy").
+        if (this.isVipActive()) {
+            return true;
+        }
+
         if (this.state.resources.energy < amount) {
             EventBus.emit(GameEvents.ENERGY_DEPLETED);
             return false;
@@ -482,6 +494,11 @@ export const GameState = {
         });
 
         return true;
+    },
+
+    isVipActive() {
+        const vip = this.state.vip;
+        return !!(vip?.active && vip.expiresAt && Date.now() < vip.expiresAt);
     },
 
     async regenerateEnergy() {

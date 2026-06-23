@@ -152,7 +152,15 @@ export default function ProfileScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-user"></i> Hồ sơ</h2>
-                <button className="icon-btn" style={{ marginLeft: 'auto' }} title="Làm mới" onClick={() => { setStats(GameState.getStatistics()); setAchievements(GameState.state.achievements || []); syncFromState(); }}>
+                <button
+                    className="profile-leaderboard-btn"
+                    style={{ marginLeft: 'auto' }}
+                    title="Xem bảng xếp hạng"
+                    onClick={() => showScreen('leaderboard-screen')}
+                >
+                    <i className="fas fa-trophy"></i> Bảng xếp hạng
+                </button>
+                <button className="icon-btn" title="Làm mới" onClick={() => { setStats(GameState.getStatistics()); setAchievements(GameState.state.achievements || []); syncFromState(); }}>
                     <i className="fas fa-rotate-right"></i>
                 </button>
             </div>

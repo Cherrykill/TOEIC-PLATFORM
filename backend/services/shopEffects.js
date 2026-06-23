@@ -40,6 +40,22 @@ function applyShopEffect(stats, effect) {
             }
             break;
         }
+        case 'vip': {
+            // VIP = năng lượng không trừ (xử lý ở client useEnergy) + x2 XP & x2
+            // Coins suốt thời gian VIP. Cộng dồn nếu đang còn VIP.
+            const base = stats.vipExpiresAt && new Date(stats.vipExpiresAt) > new Date()
+                ? new Date(stats.vipExpiresAt).getTime()
+                : Date.now();
+            const until = new Date(base + effect.duration * 1000);
+            stats.vipExpiresAt = until;
+            stats.xpBoostActive = true;
+            stats.xpBoostMultiplier = 2;
+            stats.xpBoostExpiresAt = until;
+            stats.coinsBoostActive = true;
+            stats.coinsBoostMultiplier = 2;
+            stats.coinsBoostExpiresAt = until;
+            break;
+        }
         case 'combo':
             for (const sub of effect.items) applyShopEffect(stats, sub);
             break;

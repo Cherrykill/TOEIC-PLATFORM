@@ -174,33 +174,55 @@ export default function AchievementsScreen({ active }) {
         if (toClaim.length === 0 || claimingAll) return;
 
         setClaimingAll(true);
-        const claimedIds = new Set();
-        for (const a of toClaim) {
-            const id = a.id || a._id;
-            const res = await AchievementsAPI.claim(id);
-            if (res.success) {
-                claimedIds.add(id);
-                GameState.creditServerRewards(res.data?.rewards || {});
-            }
-        }
 
-        if (claimedIds.size > 0) {
-            const now = new Date().toISOString();
+        // GOM TỔNG thưởng + đánh dấu TẤT CẢ mở khóa → cập nhật giao diện 1 LẦN
+        // (thay vì credit + render mỗi thành tích → hết delay nhảy số dồn dập).
+        const rewardOf = (a) => ({
+            coins: a.rewardCoins || a.reward?.coins || 0,
+            xp:    a.rewardXp    || a.reward?.xp    || 0,
+            gems:  a.rewardGems  || a.reward?.gems  || 0,
+        });
+        const total = toClaim.reduce((s, a) => {
+            const r = rewardOf(a);
+            return { coins: s.coins + r.coins, xp: s.xp + r.xp, gems: s.gems + r.gems };
+        }, { coins: 0, xp: 0, gems: 0 });
+        const ids = new Set(toClaim.map(a => a.id || a._id));
+        const now = new Date().toISOString();
+
+        const markUnlocked = (idSet, unlock) => {
             setAchievements(prev => prev.map(a =>
-                claimedIds.has(a.id || a._id) ? { ...a, unlocked: true, unlockedAt: now } : a
+                idSet.has(a.id || a._id) ? { ...a, unlocked: unlock, unlockedAt: unlock ? now : null } : a
             ));
             const gs = window.GameState?.state?.achievements;
-            if (Array.isArray(gs)) {
-                gs.forEach((a, i) => {
-                    if (claimedIds.has(a.id || a._id)) gs[i] = { ...a, unlocked: true, unlockedAt: now };
-                });
-            }
-            Utils.playSound(Config.sounds.achievement, 0.6, { ignoreSettings: true });
-            EventBus.emit(GameEvents.ACHIEVEMENT_UNLOCKED, { bulk: true });
+            if (Array.isArray(gs)) gs.forEach((a, i) => {
+                if (idSet.has(a.id || a._id)) gs[i] = { ...a, unlocked: unlock, unlockedAt: unlock ? now : null };
+            });
+        };
+
+        markUnlocked(ids, true);
+        GameState.creditServerRewards(total);
+        Utils.playSound(Config.sounds.achievement, 0.6, { ignoreSettings: true });
+        EventBus.emit(GameEvents.ACHIEVEMENT_UNLOCKED, { bulk: true });
+        Notification.success(`Đã nhận thưởng ${toClaim.length} thành tích!`);
+        syncFromState();
+
+        // Server chạy NỀN (tuần tự); cái nào lỗi → hoàn tác phần thưởng + khóa lại.
+        const failed = [];
+        for (const a of toClaim) {
+            let ok = false;
+            try { ok = !!(await AchievementsAPI.claim(a.id || a._id)).success; } catch { ok = false; }
+            if (!ok) failed.push(a);
+        }
+
+        if (failed.length > 0) {
+            const back = failed.reduce((s, a) => {
+                const r = rewardOf(a);
+                return { coins: s.coins - r.coins, xp: s.xp - r.xp, gems: s.gems - r.gems };
+            }, { coins: 0, xp: 0, gems: 0 });
+            GameState.creditServerRewards(back);
+            markUnlocked(new Set(failed.map(a => a.id || a._id)), false);
+            Notification.error(`${failed.length} thành tích nhận thất bại, đã hoàn lại`);
             syncFromState();
-            Notification.success(`Đã nhận thưởng ${claimedIds.size} thành tích!`);
-        } else {
-            Notification.error('Không thể nhận thưởng');
         }
         setClaimingAll(false);
     }

@@ -42,15 +42,15 @@ exports.startAttempt = async (req, res, next) => {
             });
         }
 
-        // Deduct coins if not free
+        // Deduct coins if not free. stats lấy bằng .lean() (không có .save()) →
+        // dùng cập nhật atomic (cũng hợp economy server-authoritative).
         if (!test.isFree && test.requiredCoins > 0) {
-            stats.coins -= test.requiredCoins;
-            await stats.save();
+            await UserStats.updateOne({ userId: req.user.id }, { $inc: { coins: -test.requiredCoins } });
         }
 
         // Create attempt
         const attempt = await ToeicAttempt.create({
-            userId: user._id,
+            userId: req.user.id,
             testId: test._id,
             testType: test.testType,
             testName: test.testName,
@@ -283,9 +283,49 @@ exports.resumeAttempt = async (req, res, next) => {
         attempt.resumeTest();
         await attempt.save();
 
+        // Tải lại ĐỦ câu hỏi của đề (không chỉ câu đã trả lời) + map đáp án đã lưu
+        // → client hiển thị tiếp đúng trạng thái.
+        const test = await ToeicTest.findById(attempt.testId).populate('parts.questions');
+        const partRanges = { 1: { start: 1 }, 2: { start: 7 }, 3: { start: 32 }, 4: { start: 71 }, 5: { start: 101 }, 6: { start: 131 }, 7: { start: 147 } };
+        const questions = [];
+        let globalQuestionNumber = 0;
+        if (test) {
+            for (const part of test.parts) {
+                let partQuestionIndex = 0;
+                for (const question of part.questions) {
+                    if (test.testType === 'full-test') globalQuestionNumber = (partRanges[part.partNumber]?.start || 1) + partQuestionIndex;
+                    else globalQuestionNumber++;
+                    const q = question.toObject();
+                    delete q.correctAnswer;
+                    delete q.questionKeyword;
+                    delete q.answerKeyword;
+                    delete q.audioKeyword;
+                    q.options = (q.options || []).map(opt => ({ label: opt.label, text: opt.text }));
+                    q.globalQuestionNumber = globalQuestionNumber;
+                    q.section = part.partNumber <= 4 ? 'listening' : 'reading';
+                    questions.push(q);
+                    partQuestionIndex++;
+                }
+            }
+        }
+
+        const answerByQid = new Map((attempt.answers || []).map(a => [a.questionId?.toString(), a.userAnswer]));
+        const answers = {};
+        questions.forEach((q, i) => {
+            const ua = answerByQid.get(q._id?.toString());
+            if (ua) answers[i] = ua;
+        });
+
         res.json({
             success: true,
             message: 'Test resumed',
+            data: {
+                attemptId: attempt._id,
+                test: test ? { id: test._id, testName: test.testName, testType: test.testType, totalQuestions: test.totalQuestions } : null,
+                questions,
+                answers,
+                markedQuestions: attempt.markedQuestions || [],
+            },
         });
     } catch (error) {
         next(error);
@@ -354,10 +394,10 @@ exports.submitAttempt = async (req, res, next) => {
             await test.save();
         }
 
-        // Award rewards (XP, coins)
+        // Award rewards (XP, coins). KHÔNG .lean() — bên dưới có mutate + .save().
         const [toeicProfile, toeicStats] = await Promise.all([
-            UserProfile.findOne({ userId: req.user.id }).lean(),
-            UserStats.findOne({ userId: req.user.id }).lean(),
+            UserProfile.findOne({ userId: req.user.id }),
+            UserStats.findOne({ userId: req.user.id }),
         ]);
 
         // Calculate rewards based on performance

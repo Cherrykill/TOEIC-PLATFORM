@@ -147,6 +147,11 @@ async function buildFullState(userId) {
                 expiresAt: stats.coinsBoostExpiresAt,
             },
         },
+        vip: {
+            active: !!(stats.vipExpiresAt && new Date(stats.vipExpiresAt) > new Date()),
+            expiresAt: stats.vipExpiresAt ? new Date(stats.vipExpiresAt).getTime() : 0,
+        },
+        transactions: stats.transactions || [],
         settings: profile.settings,
         practiceHistory: stats.practiceHistory || [],
     };
