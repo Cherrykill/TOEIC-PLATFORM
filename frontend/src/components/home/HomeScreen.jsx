@@ -136,6 +136,8 @@ export default function HomeScreen({ active }) {
     const [stats, setStats] = useState({});
     const [wrongWordsCount, setWrongWordsCount] = useState(0);
     const [userRank, setUserRank] = useState(null);
+    // Nhắc luyện tập: ẩn trong phiên nếu user tự đóng (mỗi phiên reset lại).
+    const [reminderDismissed, setReminderDismissed] = useState(false);
     // Tháng đang xem trên lịch streak (mặc định = tháng hiện tại).
     const [calMonth, setCalMonth] = useState(() => {
         const d = new Date();
@@ -232,8 +234,74 @@ export default function HomeScreen({ active }) {
         syncFromState();
     };
 
+    // Nhắc luyện tập (lớp nhẹ, không đụng DB): hiện banner nếu HÔM NAY chưa học.
+    const _now = new Date();
+    const _todayKey = toDateKey(_now.getFullYear(), _now.getMonth(), _now.getDate());
+    const practicedToday = (GameState.state.progress?.studiedDays || []).includes(_todayKey)
+        || (GameState.state.practiceHistory || []).some(e => e.date === _todayKey);
+    const showReminder = !practicedToday && !reminderDismissed;
+    const reminderText = streak.current > 0
+        ? `Giữ chuỗi ${streak.current} ngày — học hôm nay kẻo mất streak!`
+        : 'Học một chút hôm nay để bắt đầu chuỗi streak nào!';
+
+    // ── 3 vòng tiến độ (conic-gradient, màu đổi theo %) ──
+    // Màu: <40% đỏ, 40–69% vàng, ≥70% xanh — để dễ phân biệt mức.
+    const ringColor = (pct) => (pct >= 70 ? '#4ade80' : pct >= 40 ? '#fde047' : '#f87171');
+
+    // 1) Mục tiêu giờ học: tổng thời gian các lượt hôm nay vs mục tiêu.
+    const _todayEntry = (GameState.state.practiceHistory || []).find(e => e.date === _todayKey);
+    const studiedSecToday = _todayEntry?.timeSpent || 0;
+    const goalMin = GameState.state.settings?.dailyStudyGoalMin ?? 15;
+    const studyPct = goalMin > 0 ? Math.min(100, Math.round((studiedSecToday / (goalMin * 60)) * 100)) : 0;
+    const studiedMinToday = Math.floor(studiedSecToday / 60);
+
+    // 2) Độ chính xác tổng: câu đúng / tổng câu đã trả lời.
+    const _prog = GameState.state.progress || {};
+    const _correctTotal = _prog.totalCorrectAnswers || 0;
+    const _answeredTotal = _correctTotal + (_prog.totalWrongAnswers || 0);
+    const accPct = _answeredTotal > 0 ? Math.round((_correctTotal / _answeredTotal) * 100) : 0;
+
+    // 3) Chuyên cần tháng này: số ngày đã học / tổng số ngày trong tháng.
+    const _monthPrefix = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, '0')}`;
+    const _daysInMonth = new Date(_now.getFullYear(), _now.getMonth() + 1, 0).getDate();
+    const _studiedAll = new Set([
+        ...(GameState.state.progress?.studiedDays || []),
+        ...((GameState.state.practiceHistory || []).map(e => e.date)),
+    ]);
+    const studiedDaysThisMonth = [..._studiedAll].filter(d => (d || '').startsWith(_monthPrefix)).length;
+    const monthPct = _daysInMonth > 0 ? Math.round((studiedDaysThisMonth / _daysInMonth) * 100) : 0;
+
+    // Helper render 1 vòng.
+    const Ring = ({ pct, sub, caption }) => (
+        <div className="study-goal-ring" title={`${caption}: ${pct}%`}>
+            <div className="study-goal-circle"
+                style={{ background: `conic-gradient(${ringColor(pct)} ${pct * 3.6}deg, rgba(255,255,255,0.28) 0deg)` }}>
+                <div className="study-goal-inner">
+                    <span className="study-goal-pct" style={{ color: ringColor(pct) }}>{pct}%</span>
+                    <span className="study-goal-sub">{sub}</span>
+                </div>
+            </div>
+            <span className="study-goal-caption">{caption}</span>
+        </div>
+    );
+
     return (
         <div id="home-screen" className={`screen ${active ? 'active' : ''}`}>
+            {showReminder && (
+                <div className="practice-reminder">
+                    <i className="fas fa-bell practice-reminder-icon"></i>
+                    <div className="practice-reminder-text">
+                        <strong>Nhắc ôn tập</strong>
+                        <span>{reminderText}{wrongWordsCount > 0 ? ` Có ${wrongWordsCount} từ sai đang chờ ôn.` : ''}</span>
+                    </div>
+                    <button className="practice-reminder-cta" onClick={() => handleModeClick('multiple-choice')}>
+                        <i className="fas fa-play"></i> Luyện tập ngay
+                    </button>
+                    <button className="practice-reminder-close" title="Đóng" onClick={() => setReminderDismissed(true)}>
+                        <i className="fas fa-times"></i>
+                    </button>
+                </div>
+            )}
             <div className="streak-card">
                 <div className="streak-flame">
                     <i className="fas fa-fire"></i>
@@ -244,6 +312,15 @@ export default function HomeScreen({ active }) {
                     <p className="streak-quote">
                         <i className="fas fa-quote-left"></i> {quoteOfTheDay()}
                     </p>
+                    <button className="streak-cta-btn" onClick={() => handleModeClick('multiple-choice')}>
+                        <i className="fas fa-play"></i> Luyện tập ngay
+                    </button>
+                </div>
+
+                <div className="study-rings">
+                    <Ring pct={studyPct} sub={`${studiedMinToday}/${goalMin}′`} caption="Giờ học" />
+                    <Ring pct={accPct} sub={`${_correctTotal}/${_answeredTotal}`} caption="Chính xác" />
+                    <Ring pct={monthPct} sub={`${studiedDaysThisMonth}/${_daysInMonth}`} caption="Chuyên cần" />
                 </div>
                 {(() => {
                     const now = new Date();

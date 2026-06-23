@@ -1526,6 +1526,32 @@
     font-size: var(--font-size-xs);
 }
 
+/* Hàng meta: type + part bên trái, source đẩy sang phải */
+.search-result-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Nguồn (file/bộ từ) — chip phụ, màu trầm; đẩy về sát mép phải */
+.search-result-source {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: var(--font-size-xs);
+    background: var(--bg-tertiary, rgba(128, 128, 128, 0.18));
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+.badge.badge-source {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .search-result-actions {
     position: absolute;
     right: 10px;

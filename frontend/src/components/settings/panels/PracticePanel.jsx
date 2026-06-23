@@ -29,6 +29,15 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                 </select>
             </div>
             <div className="setting-item">
+                <label>Mục tiêu thời gian học mỗi ngày</label>
+                <select value={s.dailyStudyGoalMin ?? 15} onChange={e => updateSetting('dailyStudyGoalMin', parseInt(e.target.value))}>
+                    <option value={10}>10 phút — Nhẹ nhàng</option>
+                    <option value={15}>15 phút — Khuyên dùng ⭐</option>
+                    <option value={30}>30 phút — Chăm chỉ</option>
+                    <option value={60}>60 phút — Cường độ cao</option>
+                </select>
+            </div>
+            <div className="setting-item">
                 <label>Độ khó</label>
                 <select value={s.difficulty || 'adaptive'} onChange={e => handleDifficulty(e.target.value)}>
                     <option value="easy">Dễ (A1-A2)</option>

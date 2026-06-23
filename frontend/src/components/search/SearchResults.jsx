@@ -113,6 +113,7 @@ export default function SearchResults() {
                     <div class="word-detail-type">
                         ${word.type ? `<span class="badge">${escapeHtml(word.type)}</span>` : ''}
                         ${word.part ? `<span class="badge">${escapeHtml(word.part)}</span>` : ''}
+                        ${word.source ? `<span class="badge badge-source"><i class="fas fa-folder"></i> ${escapeHtml(word.source)}</span>` : ''}
                     </div>
 
                     <div class="word-detail-meaning">
@@ -166,6 +167,7 @@ export default function SearchResults() {
                         <div className="search-result-meta">
                             {word.type && <span className="search-result-type">{word.type}</span>}
                             {word.part && <span className="search-result-part">{word.part}</span>}
+                            {word.source && <span className="search-result-source"><i className="fas fa-folder"></i> {word.source}</span>}
                         </div>
                         <div className="search-result-actions">
                             <button
