@@ -1,4 +1,5 @@
 import Timer from './Timer.jsx';
+import AudioPlayer from './AudioPlayer.jsx';
 import ListeningQuestion from './ListeningQuestion.jsx';
 import ReadingQuestion from './ReadingQuestion.jsx';
 import OptionList from './OptionList.jsx';
@@ -14,6 +15,7 @@ export default function QuestionView({
 
     const isTwoCols = question.part <= 4;
     const hasKeywords = question.questionKeyword || question.answerKeyword || question.audioKeyword;
+    const hasAudio = question.audioText || question.audioUrl;
 
     // Hàng đầu: badge "Câu X" bên trái; nút "Câu hỏi" + đồng hồ căn phải.
     const qHeader = (
@@ -75,6 +77,9 @@ export default function QuestionView({
                 </div>
                 <div className="toeic-right-panel">
                     <div className="toeic-right-header">Chọn đáp án</div>
+                    {hasAudio && (
+                        <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
+                    )}
                     {optionsBlock}
                 </div>
             </div>

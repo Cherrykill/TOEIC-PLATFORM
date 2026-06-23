@@ -15,9 +15,9 @@ export default function AudioPlayer({ part, playing, onPlay }) {
                 <i className={`fas ${playing ? 'fa-volume-up' : 'fa-play'}`}></i>{' '}
                 {playing ? 'Đang phát...' : 'Phát audio'}
             </button>
-            <p style={{ marginTop: '1rem', color: 'var(--text-secondary)' }}>
+            <span className="toeic-audio-hint">
                 <i className="fas fa-info-circle"></i> {hint}
-            </p>
+            </span>
         </div>
     );
 }

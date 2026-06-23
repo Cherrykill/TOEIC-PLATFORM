@@ -1,19 +1,22 @@
 export default function ReadingQuestion({ question }) {
-    const showImage = (question.part === 6 || question.part === 7) && question.imageUrl;
-
     return (
         <>
-            {showImage && (
+            {question.imageUrls?.length > 0 && question.imageUrls.map((url, i) => (
                 <img
-                    src={question.imageUrl}
+                    key={i}
+                    src={url}
                     className="toeic-question-image"
                     alt="Question"
                     style={{ maxWidth: '100%', marginBottom: '1rem' }}
                 />
-            )}
-            {question.passage && (
-                <div className="toeic-passage" dangerouslySetInnerHTML={{ __html: question.passage }} />
-            )}
+            ))}
+            {question.passages?.length > 0 && question.passages.map((p, i) => (
+                <div
+                    key={i}
+                    className="toeic-passage"
+                    dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }}
+                />
+            ))}
             {question.questionText && (
                 <div className="toeic-question-text" dangerouslySetInnerHTML={{ __html: question.questionText }} />
             )}

@@ -3044,7 +3044,7 @@
             placeholder='[
   {
     "part": 5,
-    "source": "official_2024",
+    "source": "ets2026",
     "questionText": "The new policy will _____ next month.",
     "questionTranslate": "Chính sách mới sẽ _____ vào tháng tới.",
     "options": [
@@ -3062,9 +3062,26 @@
     }
   },
   {
+    "part": 1,
+    "source": "ets2026",
+    "imageUrls": ["/assets/images/ets26t1/ets26t1-01.jpg"],
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3",
+    "audioText": "(A) The man is reading. (B) The man is typing. (C) The man is calling. (D) The man is eating.",
+    "options": [
+      { "label": "A", "text": "The man is reading." },
+      { "label": "B", "text": "The man is typing." },
+      { "label": "C", "text": "The man is calling." },
+      { "label": "D", "text": "The man is eating." }
+    ],
+    "correctAnswer": "B",
+    "explanation": { "A": "❌", "B": "✅ Đúng: đang gõ máy.", "C": "❌", "D": "❌" }
+  },
+  {
     "part": 3,
+    "source": "ets2026",
     "groupId": "p3_grp_001",
     "questionIndex": 1,
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-32.mp3",
     "audioText": "W: Have you finished the report? M: Almost, I need to check the numbers.",
     "audioTranslate": "Nữ: Bạn xong báo cáo chưa? Nam: Gần xong, tôi cần kiểm tra số liệu.",
     "questionText": "What is the man doing?",
@@ -3082,9 +3099,26 @@
       "C": "❌ Không đề cập.",
       "D": "❌ Không đề cập."
     }
+  },
+  {
+    "part": 7,
+    "source": "ets2026",
+    "groupId": "p7_grp_001",
+    "questionIndex": 1,
+    "passageCount": 1,
+    "passages": ["NOTICE: The library will be closed on Monday for the holiday."],
+    "questionText": "Why will the library be closed?",
+    "options": [
+      { "label": "A", "text": "For a holiday" },
+      { "label": "B", "text": "For repairs" },
+      { "label": "C", "text": "For an event" },
+      { "label": "D", "text": "For cleaning" }
+    ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: closed for the holiday.", "B": "❌", "C": "❌", "D": "❌" }
   }
 ]
-// Bí thì bấm "Copy prompt cho AI" để ChatGPT chuyển hộ!'
+// Mọi câu cùng 1 đề phải CÙNG "source". Part 1-4 có "audioUrl" (/assets/audio/...). Bí thì bấm "Copy prompt cho AI".'
             style="
               width: 100%;
               padding: 12px;

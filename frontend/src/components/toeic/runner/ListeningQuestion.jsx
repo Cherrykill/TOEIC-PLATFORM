@@ -1,4 +1,3 @@
-import AudioPlayer from './AudioPlayer.jsx';
 import KeywordBlankText from './KeywordBlankText.jsx';
 
 export default function ListeningQuestion({
@@ -6,8 +5,6 @@ export default function ListeningQuestion({
     audioPlaying, onPlayAudio,
     keywordAnswers, keywordStatus, onKeywordChange, onCheck,
 }) {
-    const hasAudio = question.audioText || question.audioUrl;
-
     // Fill-blank: Part 2 question text with blank
     const part2Source = question.questionText || question.audioText || '';
     const showPart2Blank = fillInBlankMode && question.part === 2 && part2Source;
@@ -17,13 +14,16 @@ export default function ListeningQuestion({
 
     return (
         <>
-            {question.part === 1 && question.imageUrl && (
-                <img src={question.imageUrl} className="toeic-question-image" alt="Question" />
-            )}
-
-            {hasAudio && (
-                <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
-            )}
+            {question.imageUrls?.length > 0
+                ? question.imageUrls.map((url, i) => (
+                    <img key={i} src={url} className="toeic-question-image" alt="Question" />
+                ))
+                : question.part === 1 && (
+                    <div className="toeic-image-placeholder">
+                        <i className="fas fa-image"></i>
+                        <span>Chưa có ảnh cho câu này</span>
+                    </div>
+                )}
 
             {showPart2Blank && (
                 <div
@@ -85,13 +85,6 @@ export default function ListeningQuestion({
                 <div className="toeic-question-text" dangerouslySetInnerHTML={{ __html: question.questionText }} />
             )}
 
-            {question.part <= 2 && !fillInBlankMode && (
-                <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 8, marginTop: '1rem' }}>
-                    <p style={{ color: 'var(--text-secondary)', margin: 0, textAlign: 'center' }}>
-                        <i className="fas fa-headphones"></i> Nghe audio và chọn đáp án phù hợp
-                    </p>
-                </div>
-            )}
         </>
     );
 }

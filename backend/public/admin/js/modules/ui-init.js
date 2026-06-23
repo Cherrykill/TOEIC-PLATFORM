@@ -187,6 +187,12 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('q-tab-manual')?.addEventListener('click', () => switchQuestionModalTab('manual'));
     document.getElementById('q-tab-json')?.addEventListener('click', () => switchQuestionModalTab('json'));
     document.getElementById('btn-copy-q-prompt')?.addEventListener('click', copyQuestionPrompt);
+    // Đổi Part → placeholder ô JSON cập nhật theo Part đó
+    const qPromptPartSel = document.getElementById('q-prompt-part');
+    if (qPromptPartSel) {
+        qPromptPartSel.addEventListener('change', updateQuestionJsonPlaceholder);
+        updateQuestionJsonPlaceholder(); // set theo Part mặc định khi tải trang
+    }
     document.getElementById('btn-submit-q-json')?.addEventListener('click', submitQuestionJsonImport);
     document.getElementById('btn-close-q-json')?.addEventListener('click', closeQuestionModal);
 

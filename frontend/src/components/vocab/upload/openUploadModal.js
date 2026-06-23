@@ -416,9 +416,6 @@ Danh sách từ vựng cần chuyển:
         <button id="upload-tab-add" style="flex:1;padding:10px;border:none;background:var(--primary-color);color:#fff;cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
             <i class="fas fa-plus"></i> Thêm từ mới
         </button>
-        <button id="upload-tab-manage" style="flex:1;padding:10px;border:none;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
-            <i class="fas fa-list"></i> Quản lý từ vựng
-        </button>
         <button id="upload-tab-json" style="flex:1;padding:10px;border:none;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
             <i class="fas fa-code"></i> Thêm JSON
         </button>
@@ -426,7 +423,10 @@ Danh sách từ vựng cần chuyển:
     <div id="upload-tab-content" style="padding:16px">${addTabHtml()}</div>
 </div>`;
 
-        Modal.show({ title: '☁️ Từ vựng riêng', content: modalContent, wide: true });
+        // "Quản lý từ vựng" tách khỏi tab bar → nút riêng nằm cạnh nút Đóng (X).
+        const manageBtnHtml = `<button id="upload-tab-manage" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-list"></i> Quản lý từ vựng</button>`;
+
+        Modal.show({ title: '☁️ Từ vựng riêng', content: modalContent, headerActionHtml: manageBtnHtml, wide: true });
 
         setTimeout(() => {
             attachAddHandlers();

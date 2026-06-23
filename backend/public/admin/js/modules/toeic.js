@@ -856,7 +856,8 @@ const PART_PROMPTS = {
 {
   "part": 1,
   "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "imageUrls": [],
+  "imageUrls": ["<đường dẫn ảnh, vd /assets/images/ets26t1/ets26t1-01.jpg — để trống nếu admin tự upload>"],
+  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-01.mp3 — để trống nếu admin tự upload>",
   "audioText": "<4 câu mô tả nối lại>",
   "options": [
     { "label": "A", "text": "<mô tả A>" },
@@ -868,11 +869,12 @@ const PART_PROMPTS = {
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
 === LƯU Ý PART 1 ===
-- KHÔNG có "questionText". "imageUrls": [] (admin tự upload ảnh).
+- KHÔNG có "questionText".
 - 4 đáp án là 4 câu mô tả tranh; "audioText" = 4 câu đó nối lại.
+- "imageUrls" = ảnh /assets/images/{thư mục đề}/{tên file}.jpg ; "audioUrl" = mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (cùng số thứ tự câu). Để trống nếu admin tự upload.
 === VÍ DỤ ===
 [
-  { "part": 1, "imageUrls": [], "audioText": "(A) The man is reading a newspaper. (B) The man is typing on a laptop. (C) The man is talking on the phone. (D) The man is drinking coffee.",
+  { "part": 1, "imageUrls": ["/assets/images/ets26t1/ets26t1-01.jpg"], "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3", "audioText": "(A) The man is reading a newspaper. (B) The man is typing on a laptop. (C) The man is talking on the phone. (D) The man is drinking coffee.",
     "options": [ {"label":"A","text":"The man is reading a newspaper."}, {"label":"B","text":"The man is typing on a laptop."}, {"label":"C","text":"The man is talking on the phone."}, {"label":"D","text":"The man is drinking coffee."} ],
     "correctAnswer": "B",
     "explanation": { "A": "❌ Không cầm báo.", "B": "✅ Đúng: đang gõ laptop.", "C": "❌ Không gọi điện.", "D": "❌ Không uống cà phê." } }
@@ -882,6 +884,7 @@ const PART_PROMPTS = {
 {
   "part": 2,
   "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
+  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-07.mp3 — để trống nếu admin tự upload>",
   "audioText": "<câu nói/câu hỏi + 3 phương án trả lời>",
   "questionText": "<câu được nói (câu hỏi gốc)>",
   "options": [
@@ -894,9 +897,10 @@ const PART_PROMPTS = {
 }
 === LƯU Ý PART 2 ===
 - CHỈ 3 đáp án A/B/C — KHÔNG có D. Không ảnh, không passage.
+- "audioUrl" = đường dẫn mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (theo số câu). Để trống nếu chưa có.
 === VÍ DỤ ===
 [
-  { "part": 2, "audioText": "Where can I find the meeting room? (A) It's on the third floor. (B) The meeting was great. (C) At 10 a.m.",
+  { "part": 2, "audioUrl": "/assets/audio/ets26t1/ets26t1-07.mp3", "audioText": "Where can I find the meeting room? (A) It's on the third floor. (B) The meeting was great. (C) At 10 a.m.",
     "questionText": "Where can I find the meeting room?",
     "options": [ {"label":"A","text":"It's on the third floor."}, {"label":"B","text":"The meeting was great."}, {"label":"C","text":"At 10 a.m."} ],
     "correctAnswer": "A",
@@ -908,6 +912,7 @@ const PART_PROMPTS = {
   "part": 3, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "groupId": "<vd p3_grp_001 — chung cho các câu cùng đoạn>",
   "questionIndex": "<1, 2, 3...>",
+  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-32.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
   "audioText": "<lời thoại 2-3 người — CHỈ ở câu questionIndex 1>",
   "audioTranslate": "<dịch — tùy chọn, ở câu 1>",
   "questionText": "<câu hỏi>",
@@ -917,10 +922,11 @@ const PART_PROMPTS = {
 }
 === LƯU Ý PART 3 ===
 - Các câu cùng đoạn dùng CHUNG "groupId"; "questionIndex" tăng dần (thường 3 câu).
-- Chỉ câu ĐẦU (questionIndex 1) chứa "audioText".
+- Chỉ câu ĐẦU (questionIndex 1) chứa "audioText" và "audioUrl" (đường dẫn mp3 /assets/audio/{thư mục đề}/{file}.mp3).
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-32.mp3",
     "audioText": "W: Have you finished the report yet? M: Almost, I just need to check the numbers. W: Great, the manager wants it by noon.",
     "questionText": "What is the man doing?",
     "options": [ {"label":"A","text":"Finishing a report"}, {"label":"B","text":"Checking some figures"}, {"label":"C","text":"Sending an email"}, {"label":"D","text":"Attending a meeting"} ],
@@ -938,6 +944,7 @@ const PART_PROMPTS = {
   "part": 4, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "groupId": "<vd p4_grp_001>",
   "questionIndex": "<1, 2, 3...>",
+  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-71.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
   "audioText": "<đoạn độc thoại 1 người (thông báo/bài giảng) — CHỈ ở câu 1>",
   "questionText": "<câu hỏi>",
   "options": [ 4 đáp án A-D ],
@@ -945,10 +952,11 @@ const PART_PROMPTS = {
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
 === LƯU Ý PART 4 ===
-- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioText".
+- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioText" và "audioUrl" (mp3 /assets/audio/{thư mục đề}/{file}.mp3).
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 4, "groupId": "p4_grp_001", "questionIndex": 1,
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-71.mp3",
     "audioText": "Attention shoppers. The store will close in 15 minutes. Please bring your items to the checkout counter now.",
     "questionText": "What is the announcement about?",
     "options": [ {"label":"A","text":"A store closing soon"}, {"label":"B","text":"A sale event"}, {"label":"C","text":"A lost item"}, {"label":"D","text":"A new product"} ],
@@ -1036,6 +1044,25 @@ const PART_PROMPTS = {
 ]` + _Q_FOOTER,
 };
 
+// Trích phần "=== VÍ DỤ === [...]" trong prompt của 1 Part để làm placeholder ô JSON.
+let _defaultJsonPlaceholder = null;
+function partExampleJson(part) {
+    const prompt = PART_PROMPTS[part];
+    if (!prompt) return null;
+    const m = prompt.match(/=== VÍ DỤ[^=]*===\s*([\s\S]*?)\s*\n\n=== QUY TẮC CHUNG/);
+    return m ? m[1].trim() : null;
+}
+
+// Đổi placeholder ô nhập JSON theo Part đang chọn (Tất cả → mẫu mặc định nhiều part).
+function updateQuestionJsonPlaceholder() {
+    const ta = document.getElementById('question-json-input');
+    const sel = document.getElementById('q-prompt-part');
+    if (!ta || !sel) return;
+    if (_defaultJsonPlaceholder === null) _defaultJsonPlaceholder = ta.placeholder;
+    const ex = sel.value === 'all' ? null : partExampleJson(sel.value);
+    ta.placeholder = ex || _defaultJsonPlaceholder;
+}
+
 function copyQuestionPrompt() {
     const partSel = document.getElementById('q-prompt-part');
     const part = partSel ? partSel.value : 'all';
@@ -1055,7 +1082,7 @@ function copyQuestionPrompt() {
   "questionTranslate": "<bản dịch tiếng Việt của câu hỏi — tùy chọn>",
 
   // Nghe (Part 1-4)
-  "audioUrl": "<URL file mp3 — để trống, admin tự upload>",
+  "audioUrl": "<đường dẫn mp3 dạng /assets/audio/{thư mục đề}/{file}.mp3, vd /assets/audio/ets26t1/ets26t1-01.mp3 — để trống nếu admin tự upload>",
   "audioText": "<transcript lời thoại/bài nói — Part 2/3/4>",
   "audioTranslate": "<bản dịch tiếng Việt của audio — tùy chọn>",
 
@@ -1064,7 +1091,7 @@ function copyQuestionPrompt() {
   "passageCount": <1 | 2 | 3 — chỉ Part 7>,
 
   // Ảnh (Part 1)
-  "imageUrls": ["<URL ảnh — để trống, admin tự upload>"],
+  "imageUrls": ["<đường dẫn ảnh dạng /assets/images/{thư mục đề}/{file}.jpg, vd /assets/images/ets26t1/ets26t1-01.jpg — để trống nếu admin tự upload>"],
 
   // Đáp án
   "options": [
@@ -1249,8 +1276,9 @@ async function submitQuestionJsonImport() {
 
     if (ok > 0 && typeof loadQuestions === 'function') loadQuestions();
 
-    // Import sạch (không lỗi) → xóa luôn JSON cũ trong ô nhập để lần sau khỏi dính.
-    if (ok > 0 && errors.length === 0) {
+    // Có câu vào được → xóa luôn JSON trong ô nhập (khỏi dính lần sau). Câu lỗi
+    // đã liệt kê ở khung kết quả bên dưới rồi.
+    if (ok > 0) {
         const ta = document.getElementById('question-json-input');
         if (ta) ta.value = '';
     }

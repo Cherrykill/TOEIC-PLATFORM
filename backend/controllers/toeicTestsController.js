@@ -202,13 +202,18 @@ exports.createTest = async (req, res, next) => {
                 });
             }
 
-            // Get random questions for this part
-            const questions = await ToeicQuestion.getRandomQuestions({
+            // Lấy câu theo THỨ TỰ TẠO (questionNumber tăng dần) → câu lưu trước =
+            // câu 1, 2, 3... (không random như trước).
+            const questions = await ToeicQuestion.find({
                 part: partNumber,
-                count: requiredCount,
-                excludeIds,
-                source: source || null,
-            });
+                isActive: true,
+                isPublished: true,
+                ...(source ? { source } : {}),
+                ...(excludeIds.length ? { _id: { $nin: excludeIds } } : {}),
+            })
+                .sort({ questionNumber: 1, createdAt: 1 })
+                .limit(requiredCount)
+                .lean();
 
             if (questions.length < requiredCount) {
                 return res.status(400).json({

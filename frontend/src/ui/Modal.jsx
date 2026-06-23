@@ -43,6 +43,13 @@ export default function ModalContainer() {
             <div className={`modal${modal.wide ? ' modal--wide' : ''}`}>
                 <div className="modal-header">
                     <h3>{modal.title || 'Thông báo'}</h3>
+                    {modal.headerActionHtml && (
+                        <span
+                            className="modal-header-action"
+                            style={{ marginLeft: 'auto', marginRight: '8px' }}
+                            dangerouslySetInnerHTML={{ __html: modal.headerActionHtml }}
+                        />
+                    )}
                     <button className="icon-btn modal-close-btn" onClick={close}>
                         <i className="fas fa-times"></i>
                     </button>
