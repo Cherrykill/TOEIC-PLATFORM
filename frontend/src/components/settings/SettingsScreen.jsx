@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGame } from '@game/GameContext.jsx';
+import { useAuth } from '@components/auth/AuthContext.jsx';
 import { GameState } from '@game/state.js';
 import { GameLogic } from '@game/gameLogic.js';
 import { API } from '@api/http.js';
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
 
 export default function SettingsScreen({ active }) {
     const { showScreen } = useGame();
+    const { isLoggedIn, logout } = useAuth();
     const [activeSection, setActiveSection] = useState('general');
     const [s, setS] = useState({});
 
@@ -286,6 +288,11 @@ export default function SettingsScreen({ active }) {
                             <i className={`fas ${item.icon}`}></i> {item.label}
                         </button>
                     ))}
+                    {isLoggedIn && (
+                        <button className="settings-nav-item settings-nav-logout" onClick={logout}>
+                            <i className="fas fa-sign-out-alt"></i> Đăng xuất
+                        </button>
+                    )}
                 </nav>
 
                 <div className="settings-panels">

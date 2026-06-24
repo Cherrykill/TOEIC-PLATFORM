@@ -2820,6 +2820,135 @@ mark {
   transform: rotate(90deg);
 }
 
+/* ── Layout popup ngang 2 cột ───────────────────────────────── */
+.auth-modal-content.auth-split {
+  max-width: 880px;
+  padding: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Cột trái — panel thương hiệu (gradient) */
+.auth-brand-panel {
+  flex: 0 0 42%;
+  background: linear-gradient(150deg, var(--primary-color, #E11D48) 0%, var(--secondary-color, #f97316) 100%);
+  color: #fff;
+  padding: 48px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+.auth-brand-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+}
+.auth-brand-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #fff;
+}
+.auth-brand-tagline {
+  margin: 0;
+  font-size: 15px;
+  opacity: 0.92;
+  line-height: 1.5;
+}
+.auth-brand-features {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.auth-brand-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  opacity: 0.95;
+  line-height: 1.4;
+}
+.auth-brand-features li i {
+  margin-top: 2px;
+}
+
+/* Cột phải — panel form */
+.auth-form-panel {
+  flex: 1;
+  padding: 30px 38px;
+  position: relative;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+/* Nén nhịp dọc để form + nút Google hiện trọn không cần cuộn */
+.auth-form-panel .auth-form-header { margin-bottom: 16px; }
+.auth-form-panel .auth-form-icon {
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+  margin: 0 auto 10px;
+}
+.auth-form-panel .auth-form h2 { font-size: 22px; }
+.auth-form-panel .form-group { margin-bottom: 11px; }
+.auth-form-panel .form-group label { margin-bottom: 5px; font-size: 13px; }
+.auth-form-panel .input-icon-wrap,
+.auth-form-panel .input-password-wrap { padding: 0 12px; }
+.auth-form-panel .input-icon-wrap input,
+.auth-form-panel .input-password-wrap input { padding: 9px 0; font-size: 14px; }
+.auth-form-panel .btn-auth-submit { padding: 11px; }
+.auth-form-panel .auth-switch { margin-top: 11px; }
+.auth-form-panel .google-signin-wrap { margin-top: 10px; }
+.auth-form-panel .auth-divider { margin: 2px 0 10px; }
+
+/* Thu gọn về 1 cột trên màn hình hẹp */
+@media (max-width: 720px) {
+  .auth-modal-content.auth-split {
+    max-width: 440px;
+    flex-direction: column;
+  }
+  .auth-brand-panel {
+    display: none;
+  }
+  .auth-form-panel {
+    padding: 34px 24px;
+    max-height: 90vh;
+  }
+}
+
+/* Phân cách "hoặc" + nút đăng nhập Google */
+.google-signin-wrap {
+  margin-top: 18px;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 16px;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 13px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-color, #e2e8f0);
+}
+.google-signin-btn {
+  display: flex;
+  justify-content: center;
+}
+
 /* Auth form header */
 .auth-form-header {
   text-align: center;
@@ -3764,6 +3893,18 @@ mark {
 .settings-nav-item.active {
   background: var(--primary-color);
   color: #fff;
+}
+
+/* Nút đăng xuất — tách nhẹ khỏi nhóm trên, màu cảnh báo */
+.settings-nav-logout {
+  margin-top: 8px;
+  border-top: 1px solid var(--border-color);
+  padding-top: 14px;
+  color: var(--error-color, #ef4444);
+}
+.settings-nav-logout:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error-color, #ef4444);
 }
 
 /* ── Panels ── */

@@ -6,10 +6,15 @@ const logger = require('../utils/logger');
 const { buildFullState, applyEnergyRegen, createUserWithDependents } = require('../utils/userStateHelper');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const { emailQueue } = require('../queues');
 const { sendOtpEmail } = require('../utils/emailService');
 
 const QUEUE_TIMEOUT_MS = 2000;
+
+// Client xác thực ID token Google. Khởi tạo 1 lần; audience kiểm tra trong verify.
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Nghiêm cấm đặt tên mạo danh admin/quản trị. Chuẩn hoá: bỏ dấu tiếng Việt,
 // bỏ ký tự không phải chữ-số (chặn mẹo chèn dấu cách/ký tự lạ kiểu "a.d.m.i.n").
@@ -452,10 +457,13 @@ const register = async (req, res, next) => {
         const { username, email, password } = req.body;
 
         if (!username || !email || !password) {
-            return res.status(400).json({ success: false, message: 'Please provide username, email and password' });
+            return res.status(400).json({ success: false, message: 'Vui lòng điền đầy đủ thông tin' });
         }
         if (password.length < 6) {
-            return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+            return res.status(400).json({ success: false, message: 'Mật khẩu phải ít nhất 6 ký tự' });
+        }
+        if (username.trim().length < 3 || username.trim().length > 20) {
+            return res.status(400).json({ success: false, message: 'Tên người dùng phải 3-20 ký tự' });
         }
         if (isReservedUsername(username)) {
             return res.status(400).json({ success: false, message: 'Tên không được chứa từ liên quan đến admin/quản trị' });
@@ -469,8 +477,8 @@ const register = async (req, res, next) => {
             UserProfile.findOne({ username: normalUsername }),
         ]);
 
-        if (existingUser) return res.status(400).json({ success: false, message: 'Email already registered' });
-        if (existingProfile) return res.status(400).json({ success: false, message: 'Username already taken' });
+        if (existingUser) return res.status(400).json({ success: false, message: 'Email này đã được đăng ký' });
+        if (existingProfile) return res.status(400).json({ success: false, message: 'Tên người dùng đã được sử dụng' });
 
         const { user } = await createUserWithDependents({ email: normalEmail, passwordHash: password, username: normalUsername });
 
@@ -551,8 +559,86 @@ const syncProgress = async (req, res, next) => {
     }
 };
 
+// ===================================
+// GOOGLE LOGIN (Google Identity Services)
+// ===================================
+// Frontend gửi { credential } = ID token Google. Verify chữ ký + audience,
+// tìm/khởi tạo user theo email, phát JWT như login thường.
+const googleLogin = async (req, res, next) => {
+    try {
+        const { credential } = req.body;
+        if (!credential) {
+            return res.status(400).json({ success: false, message: 'Thiếu Google credential' });
+        }
+        if (!process.env.GOOGLE_CLIENT_ID) {
+            return res.status(500).json({ success: false, message: 'Đăng nhập Google chưa được cấu hình trên máy chủ' });
+        }
+
+        // Verify token (chữ ký Google + audience = Client ID của ta)
+        let payload;
+        try {
+            const ticket = await googleClient.verifyIdToken({
+                idToken: credential,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+            payload = ticket.getPayload();
+        } catch (e) {
+            logger.warn('Google verifyIdToken failed', { error: e.message });
+            return res.status(401).json({ success: false, message: 'Google credential không hợp lệ' });
+        }
+
+        const email = (payload.email || '').toLowerCase().trim();
+        if (!email || payload.email_verified === false) {
+            return res.status(400).json({ success: false, message: 'Email Google chưa được xác thực' });
+        }
+        const googleId = payload.sub;
+
+        let user = await User.findOne({ email });
+        if (user) {
+            // Liên kết googleId nếu tài khoản email này chưa gắn (đăng ký thường trước đó)
+            if (!user.googleId) {
+                user.googleId = googleId;
+            }
+        } else {
+            // Tạo user mới — username suy ra từ tên/email, đảm bảo không trùng
+            const base = (payload.name || email.split('@')[0])
+                .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                .replace(/[^a-zA-Z0-9]/g, '')
+                .slice(0, 20) || 'user';
+            let username = base;
+            let n = 0;
+            // eslint-disable-next-line no-await-in-loop
+            while (await UserProfile.findOne({ username })) {
+                n += 1;
+                username = `${base}${n}`;
+            }
+            // Mật khẩu ngẫu nhiên (không dùng để đăng nhập) chỉ để qua validate
+            const randomPassword = crypto.randomBytes(24).toString('hex');
+            const created = await createUserWithDependents({
+                email,
+                passwordHash: randomPassword,
+                username,
+                googleId,
+            });
+            user = created.user;
+        }
+
+        user.lastLoginAt = Date.now();
+        await user.save();
+
+        const token = user.generateToken();
+        const fullState = await buildFullState(user._id);
+
+        res.json({ success: true, message: 'Đăng nhập Google thành công', token, user: fullState });
+    } catch (error) {
+        logger.error('GoogleLogin error:', error);
+        next(error);
+    }
+};
+
 module.exports = {
     register,
+    googleLogin,
     login,
     logout,
     getMe,

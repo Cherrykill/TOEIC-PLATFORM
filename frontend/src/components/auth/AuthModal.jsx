@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "@components/auth/AuthContext.jsx";
 import { useGame } from "@game/GameContext.jsx";
-import { API } from "@api/http.js";
 import { Notification } from "@ui/Toaster.jsx";
 import { AuthAPI } from "@api/auth.js";
+import GoogleSignInButton from "./GoogleSignInButton.jsx";
 import LoginForm from "./forms/LoginForm.jsx";
 import RegisterForm from "./forms/RegisterForm.jsx";
-import RegisterOtpForm from "./forms/RegisterOtpForm.jsx";
 import ForgotPasswordForm from "./forms/ForgotPasswordForm.jsx";
 import ResetPasswordForm from "./forms/ResetPasswordForm.jsx";
 
@@ -53,27 +52,26 @@ export default function AuthModal() {
     }
   };
 
-  const handleSendOtp = async (e) => {
-    e.preventDefault();
+  const handleGoogle = async (credential) => {
     setLoading(true);
-    const res = await API.auth.register(registerForm);
+    setLoginError("");
+    const res = await AuthAPI.googleLogin(credential);
     setLoading(false);
-    if (res.success) {
-      setOtpSent(true);
+    if (res.success && res.token) {
+      setUser(res.user, res.token);
+      syncFromState();
+      close();
+      Notification.success("Đăng nhập Google thành công!");
     } else {
-      setLoginError(res.error || "Không thể gửi OTP");
+      setLoginError(res.message || "Đăng nhập Google thất bại");
     }
   };
 
-  const handleVerifyOtp = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    const otp = otpDigits.join("");
-    if (otp.length !== 6) {
-      setLoginError("Nhập đủ 6 số OTP");
-      return;
-    }
     setLoading(true);
-    const res = await AuthAPI.verifyRegisterOtp({ email: registerForm.email, otp });
+    setLoginError("");
+    const res = await AuthAPI.register(registerForm);
     setLoading(false);
     if (res.success && res.token) {
       setUser(res.user, res.token);
@@ -81,7 +79,7 @@ export default function AuthModal() {
       close();
       Notification.success("Đăng ký thành công!");
     } else {
-      setLoginError(res.message || "OTP không đúng");
+      setLoginError(res.message || "Đăng ký thất bại");
     }
   };
 
@@ -105,7 +103,7 @@ export default function AuthModal() {
     }
     const otp = otpDigits.join("");
     setLoading(true);
-    const res = await AuthAPI.resetPassword({ email: forgotEmail, otp, newPassword: newPwd });
+    const res = await AuthAPI.resetPassword({ email: forgotEmail, code: otp, newPassword: newPwd });
     setLoading(false);
     if (res.success) {
       Notification.success("Đặt lại mật khẩu thành công!");
@@ -124,74 +122,88 @@ export default function AuthModal() {
 
   return (
     <div id="auth-modal" className="auth-modal active">
-      <div className="auth-modal-content">
-        <button className="auth-close-btn" onClick={close}>
-          <i className="fas fa-times"></i>
-        </button>
+      <div className="auth-modal-content auth-split">
+        {/* Cột trái — panel thương hiệu */}
+        <div className="auth-brand-panel">
+          <div className="auth-brand-logo">
+            <i className="fas fa-graduation-cap"></i>
+          </div>
+          <h2 className="auth-brand-title">TOEIC App</h2>
+          <p className="auth-brand-tagline">
+            Học từ vựng &amp; luyện thi TOEIC mỗi ngày — vui như chơi game.
+          </p>
+          <ul className="auth-brand-features">
+            <li><i className="fas fa-check-circle"></i> Bài thi 7-Part chuẩn quốc tế</li>
+            <li><i className="fas fa-check-circle"></i> Học từ vựng gamhóa: streak, huy hiệu, cửa hàng</li>
+            <li><i className="fas fa-check-circle"></i> Theo dõi tiến độ &amp; độ chính xác</li>
+          </ul>
+        </div>
 
-        {authModal === "login" && (
-          <LoginForm
-            loginError={loginError}
-            loginForm={loginForm}
-            setLoginForm={setLoginForm}
-            showPassword={showPassword}
-            setShowPassword={setShowPassword}
-            loading={loading}
-            handleLogin={handleLogin}
-            setAuthModal={setAuthModal}
-            setLoginError={setLoginError}
-          />
-        )}
+        {/* Cột phải — form */}
+        <div className="auth-form-panel">
+          <button className="auth-close-btn" onClick={close}>
+            <i className="fas fa-times"></i>
+          </button>
 
-        {authModal === "register" && !otpSent && (
-          <RegisterForm
-            loginError={loginError}
-            registerForm={registerForm}
-            setRegisterForm={setRegisterForm}
-            loading={loading}
-            handleSendOtp={handleSendOtp}
-            setAuthModal={setAuthModal}
-            setLoginError={setLoginError}
-            setOtpSent={setOtpSent}
-          />
-        )}
+          {authModal === "login" && (
+            <>
+              <LoginForm
+                loginError={loginError}
+                loginForm={loginForm}
+                setLoginForm={setLoginForm}
+                showPassword={showPassword}
+                setShowPassword={setShowPassword}
+                loading={loading}
+                handleLogin={handleLogin}
+                setAuthModal={setAuthModal}
+                setLoginError={setLoginError}
+              />
+              <GoogleSignInButton onCredential={handleGoogle} />
+            </>
+          )}
 
-        {authModal === "register" && otpSent && (
-          <RegisterOtpForm
-            loginError={loginError}
-            registerForm={registerForm}
-            otpDigits={otpDigits}
-            handleOtpChange={handleOtpChange}
-            loading={loading}
-            handleVerifyOtp={handleVerifyOtp}
-          />
-        )}
+          {authModal === "register" && (
+            <>
+              <RegisterForm
+                loginError={loginError}
+                registerForm={registerForm}
+                setRegisterForm={setRegisterForm}
+                loading={loading}
+                handleRegister={handleRegister}
+                setAuthModal={setAuthModal}
+                setLoginError={setLoginError}
+                setOtpSent={setOtpSent}
+              />
+              <GoogleSignInButton onCredential={handleGoogle} />
+            </>
+          )}
 
-        {authModal === "forgotPassword" && !otpSent && (
-          <ForgotPasswordForm
-            loginError={loginError}
-            forgotEmail={forgotEmail}
-            setForgotEmail={setForgotEmail}
-            loading={loading}
-            handleSendResetOtp={handleSendResetOtp}
-            setAuthModal={setAuthModal}
-            setLoginError={setLoginError}
-          />
-        )}
+          {authModal === "forgotPassword" && !otpSent && (
+            <ForgotPasswordForm
+              loginError={loginError}
+              forgotEmail={forgotEmail}
+              setForgotEmail={setForgotEmail}
+              loading={loading}
+              handleSendResetOtp={handleSendResetOtp}
+              setAuthModal={setAuthModal}
+              setLoginError={setLoginError}
+            />
+          )}
 
-        {authModal === "forgotPassword" && otpSent && (
-          <ResetPasswordForm
-            loginError={loginError}
-            otpDigits={otpDigits}
-            handleOtpChange={handleOtpChange}
-            newPwd={newPwd}
-            setNewPwd={setNewPwd}
-            confirmPwd={confirmPwd}
-            setConfirmPwd={setConfirmPwd}
-            loading={loading}
-            handleResetPassword={handleResetPassword}
-          />
-        )}
+          {authModal === "forgotPassword" && otpSent && (
+            <ResetPasswordForm
+              loginError={loginError}
+              otpDigits={otpDigits}
+              handleOtpChange={handleOtpChange}
+              newPwd={newPwd}
+              setNewPwd={setNewPwd}
+              confirmPwd={confirmPwd}
+              setConfirmPwd={setConfirmPwd}
+              loading={loading}
+              handleResetPassword={handleResetPassword}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

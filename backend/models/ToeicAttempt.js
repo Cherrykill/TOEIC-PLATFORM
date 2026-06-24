@@ -120,6 +120,12 @@ const ToeicAttemptSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    // Chế độ Nghe Đục Lỗ (fill-in-blank) — phân biệt với Mini Test thường
+    // dù cùng testType mini-partN.
+    fillBlankMode: {
+        type: Boolean,
+        default: false,
+    },
 
     // ===================================
     // SESSION INFO
@@ -542,6 +548,7 @@ ToeicAttemptSchema.methods.getDetailedResults = function() {
         attemptId: this._id,
         testName: this.testName,
         testType: this.testType,
+        fillBlankMode: this.fillBlankMode,
         startedAt: this.startedAt,
         completedAt: this.completedAt,
         duration: this.duration,
@@ -664,6 +671,7 @@ ToeicAttemptSchema.statics.getUserAnalytics = async function(userId) {
                 _id: null,
                 totalAttempts: { $sum: 1 },
                 averageScore: { $avg: '$totalScore' },
+                averageAccuracy: { $avg: '$accuracy' },
                 bestScore: { $max: '$totalScore' },
                 averageListening: { $avg: '$listeningScore' },
                 averageReading: { $avg: '$readingScore' },
@@ -677,6 +685,7 @@ ToeicAttemptSchema.statics.getUserAnalytics = async function(userId) {
         return {
             totalAttempts: 0,
             averageScore: 0,
+            averageAccuracy: 0,
             bestScore: 0,
             averageListening: 0,
             averageReading: 0,
@@ -688,6 +697,7 @@ ToeicAttemptSchema.statics.getUserAnalytics = async function(userId) {
     return {
         ...stats[0],
         averageScore: Math.round(stats[0].averageScore),
+        averageAccuracy: Math.round(stats[0].averageAccuracy || 0),
         averageListening: Math.round(stats[0].averageListening),
         averageReading: Math.round(stats[0].averageReading),
     };

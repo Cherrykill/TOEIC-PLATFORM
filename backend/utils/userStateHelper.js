@@ -163,9 +163,9 @@ async function buildFullState(userId) {
  * @returns {{ user, profile, stats }}
  */
 async function createUserWithDependents(opts) {
-    const { email, passwordHash, username, role = 'user', skipPasswordHash = false } = opts;
+    const { email, passwordHash, username, role = 'user', skipPasswordHash = false, googleId } = opts;
 
-    const user = new User({ email, password: passwordHash, role });
+    const user = new User({ email, password: passwordHash, role, ...(googleId ? { googleId } : {}) });
     if (skipPasswordHash) user.$skipPasswordHash = true;
     await user.save();
 

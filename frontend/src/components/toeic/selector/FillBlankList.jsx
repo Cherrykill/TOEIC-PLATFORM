@@ -37,29 +37,10 @@ export default function FillBlankList({ tests, loading, onStart, partFilter = 'a
     }
 
     return (
-        <>
-            <div
-                style={{
-                    marginBottom: 20,
-                    padding: 15,
-                    background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-                    borderRadius: 12,
-                    color: 'white',
-                }}
-            >
-                <h4 style={{ margin: '0 0 10px 0' }}>
-                    <i className="fas fa-pen-square"></i> Chế độ Đục lỗ (Fill-in-blank)
-                </h4>
-                <p style={{ margin: 0, opacity: 0.9, fontSize: '0.95rem' }}>
-                    Trong chế độ này, các từ khóa trong câu hỏi và đáp án đúng sẽ bị ẩn.
-                    Bạn cần điền đúng từ để hoàn thành bài thi.
-                </p>
-            </div>
-            <div className="toeic-tests-grid">
-                {fillBlankTests.map(test => (
-                    <FillBlankCard key={test._id} test={test} onStart={onStart} />
-                ))}
-            </div>
-        </>
+        <div className="toeic-tests-grid">
+            {fillBlankTests.map(test => (
+                <FillBlankCard key={test._id} test={test} onStart={onStart} />
+            ))}
+        </div>
     );
 }

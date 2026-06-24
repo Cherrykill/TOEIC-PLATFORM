@@ -383,6 +383,48 @@
     font-size: var(--font-size-xl);
 }
 
+/* 2 nút đăng nhập / đăng ký trên header menu (thay chữ "Menu") */
+.menu-header-auth {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.menu-auth-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--primary-color);
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+.menu-auth-btn.login {
+    background: transparent;
+    color: var(--primary-color);
+}
+.menu-auth-btn.login:hover {
+    background: rgba(225, 29, 72, 0.08);
+}
+.menu-auth-btn.register {
+    background: var(--primary-color);
+    color: #fff;
+}
+.menu-auth-btn.register:hover {
+    filter: brightness(0.93);
+}
+.menu-auth-btn.logout {
+    background: transparent;
+    color: var(--error-color, #ef4444);
+    border-color: var(--error-color, #ef4444);
+}
+.menu-auth-btn.logout:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
 .menu-nav {
     flex: 1;
     overflow-y: auto;
@@ -390,6 +432,7 @@
 }
 
 .menu-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
@@ -402,6 +445,30 @@
     text-decoration: none;
     width: 100%;
     text-align: left;
+}
+
+/* Nhãn "hot" mini ở góc trên-phải menu item (tab nổi bật) */
+.menu-item-hot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    padding: 0 5px;
+    height: 14px;
+    line-height: 14px;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #fff;
+    background: linear-gradient(135deg, #f59e0b, #ef4444);
+    border-radius: 7px;
+    box-shadow: 0 1px 3px rgba(239, 68, 68, 0.5);
+    animation: menuHotPulse 1.4s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes menuHotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
 }
 
 /* Badge nhỏ ở cuối menu item (nhiệm vụ chưa nhận / thành tích claimable /

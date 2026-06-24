@@ -78,6 +78,16 @@ export default function ResultsModal({ data, onClose }) {
 
     const toggle = (i) => setExpandedIndex(prev => (prev === i ? null : i));
 
+    // Full test → thang TOEIC /990 + Listening/Reading /495.
+    // Mini / Nghe Đục Lỗ → điểm theo part (đúng×5 / tổng×5) + số câu đúng + độ chính xác.
+    const isFull = data.testType === 'full-test';
+    const totalQ = data.stats.totalQuestions || 0;
+    const correct = data.stats.correctAnswers || 0;
+    const accuracy = Math.round(data.scores.accuracy || 0);
+    const partMatch = /(?:mini-)?part(\d)/.exec(data.testType || '');
+    const modeName = data.fillBlankMode ? 'Nghe Đục Lỗ' : 'Mini Test';
+    const partLabel = partMatch ? `${modeName} · Part ${partMatch[1]}` : modeName;
+
     return (
         <div id="modal-container" className="active">
             <div className="modal-backdrop" onClick={onClose}></div>
@@ -94,23 +104,45 @@ export default function ResultsModal({ data, onClose }) {
                     </div>
 
                     <div className="toeic-score-card">
-                        <div className="main-score">
-                            <div className="score-label">Tổng điểm TOEIC</div>
-                            <div className="score-value">{data.scores.total || 0}</div>
-                            <div className="score-max">/ 990</div>
-                        </div>
-                        <div className="sub-scores">
-                            <div className="sub-score">
-                                <div className="sub-score-label">Listening</div>
-                                <div className="sub-score-value">{data.scores.listening || 0}</div>
-                                <div className="sub-score-max">/ 495</div>
-                            </div>
-                            <div className="sub-score">
-                                <div className="sub-score-label">Reading</div>
-                                <div className="sub-score-value">{data.scores.reading || 0}</div>
-                                <div className="sub-score-max">/ 495</div>
-                            </div>
-                        </div>
+                        {isFull ? (
+                            <>
+                                <div className="main-score">
+                                    <div className="score-label">Tổng điểm TOEIC</div>
+                                    <div className="score-value">{data.scores.total || 0}</div>
+                                    <div className="score-max">/ 990</div>
+                                </div>
+                                <div className="sub-scores">
+                                    <div className="sub-score">
+                                        <div className="sub-score-label">Listening</div>
+                                        <div className="sub-score-value">{data.scores.listening || 0}</div>
+                                        <div className="sub-score-max">/ 495</div>
+                                    </div>
+                                    <div className="sub-score">
+                                        <div className="sub-score-label">Reading</div>
+                                        <div className="sub-score-value">{data.scores.reading || 0}</div>
+                                        <div className="sub-score-max">/ 495</div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="main-score">
+                                    <div className="score-label">{partLabel}</div>
+                                    <div className="score-value">{correct * 5}</div>
+                                    <div className="score-max">/ {totalQ * 5}</div>
+                                </div>
+                                <div className="sub-scores">
+                                    <div className="sub-score">
+                                        <div className="sub-score-label">Số câu đúng</div>
+                                        <div className="sub-score-value">{correct}/{totalQ}</div>
+                                    </div>
+                                    <div className="sub-score">
+                                        <div className="sub-score-label">Độ chính xác</div>
+                                        <div className="sub-score-value">{accuracy}%</div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     <div className="toeic-stats-grid">

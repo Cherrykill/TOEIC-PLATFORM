@@ -446,7 +446,10 @@ async function startServer() {
     logger.info('Connecting to databases...');
 
     await connectMongoDB();
-    await connectRedis();
+    // Redis là tùy chọn (cache + queue đều có fallback). KHÔNG await — nếu Redis
+    // không chạy, await sẽ kẹt ở vòng reconnect và app.listen() không bao giờ tới
+    // → mọi /api trả 502. Kết nối nền: có thì dùng, không thì server vẫn chạy.
+    connectRedis().catch((e) => logger.warn('Redis init skipped (server continues)', { error: e.message }));
 
     // Create missing UserProfile/UserStats for pre-restructure accounts
     await migrateUserDependents();
@@ -454,7 +457,7 @@ async function startServer() {
     // Seed achievement definitions if collection is empty
     await seedAchievementDefinitions();
 
-    // Khởi động background workers (sau khi Redis đã connect)
+    // Khởi động background workers (tự fallback nếu Redis chưa sẵn sàng)
     emailWorker = startEmailWorker();
 
     app.listen(PORT, async () => {

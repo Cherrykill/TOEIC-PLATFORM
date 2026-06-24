@@ -6,19 +6,18 @@ export default function RegisterForm({
     registerForm,
     setRegisterForm,
     loading,
-    handleSendOtp,
+    handleRegister,
     setAuthModal,
     setLoginError,
     setOtpSent,
 }) {
     return (
-        <form id="register-form" className="auth-form" onSubmit={handleSendOtp}>
+        <form id="register-form" className="auth-form" onSubmit={handleRegister}>
             <div className="auth-form-header">
                 <div className="auth-form-icon">
                     <i className="fas fa-user-plus"></i>
                 </div>
                 <h2>Đăng ký</h2>
-                <p className="auth-subtitle">Tạo tài khoản miễn phí</p>
             </div>
 
             <AuthError message={loginError} />
@@ -28,7 +27,13 @@ export default function RegisterForm({
                 <div className="input-icon-wrap">
                     <i className="fas fa-user"></i>
                     <input
+                        id="register-username"
+                        name="register-username"
+                        autoComplete="off"
                         type="text"
+                        placeholder="3-20 ký tự, không phải email"
+                        minLength={3}
+                        maxLength={20}
                         value={registerForm.username}
                         onChange={(e) =>
                             setRegisterForm((p) => ({ ...p, username: e.target.value }))
@@ -76,10 +81,10 @@ export default function RegisterForm({
             >
                 {loading ? (
                     <>
-                        <i className="fas fa-spinner fa-spin"></i> Đang gửi...
+                        <i className="fas fa-spinner fa-spin"></i> Đang tạo tài khoản...
                     </>
                 ) : (
-                    "Gửi mã OTP"
+                    "Đăng ký"
                 )}
             </button>
             <p className="auth-switch">

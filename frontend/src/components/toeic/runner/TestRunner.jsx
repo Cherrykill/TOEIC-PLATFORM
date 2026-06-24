@@ -18,10 +18,12 @@ export default function TestRunner({ config, onExit }) {
     const [keywordStatus, setKeywordStatus] = useState({});
     const startedRef = useRef(false);
 
+    // Ref trỏ tới doSubmit MỚI NHẤT — tránh stale closure khi hết giờ (onTimeUp
+    // deps [] sẽ ôm doSubmit của render đầu lúc attemptId còn null → submit lỗi).
+    const doSubmitRef = useRef(null);
     const onTimeUp = useCallback(() => {
         Notification.warning('Hết giờ! Tự động nộp bài...');
-        setTimeout(() => doSubmit(), 2000);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        setTimeout(() => doSubmitRef.current?.(), 2000);
     }, []);
 
     const timer = useToeicTimer({ totalSeconds: attempt.customTimeLimit, onTimeUp });
@@ -96,6 +98,7 @@ export default function TestRunner({ config, onExit }) {
             Notification.error(err.message || 'Lỗi nộp bài thi');
         }
     }, [attempt, timer, audio]);
+    doSubmitRef.current = doSubmit; // luôn trỏ tới doSubmit mới nhất
 
     const handleSelectAnswer = useCallback((answer) => {
         const q = attempt.currentQuestion;

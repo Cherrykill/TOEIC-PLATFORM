@@ -1,8 +1,9 @@
-function typeLabel(testType) {
+function typeLabel(testType, fillBlankMode) {
     if (testType === 'full-test') return 'Full Test';
     const m = /mini-part(\d)/.exec(testType || '');
-    if (m) return `Mini · Part ${m[1]}`;
-    return testType || 'Mini Test';
+    const part = m ? ` · Part ${m[1]}` : '';
+    if (fillBlankMode) return `Nghe Đục Lỗ${part}`;
+    return `Mini Test${part}`;
 }
 
 function fmtDuration(sec) {
@@ -26,7 +27,7 @@ export default function HistoryItem({ attempt, onView }) {
             <div className="history-left">
                 <div className="history-title-row">
                     <h4>{attempt.testName}</h4>
-                    <span className="history-type-badge">{typeLabel(attempt.testType)}</span>
+                    <span className="history-type-badge">{typeLabel(attempt.testType, attempt.fillBlankMode)}</span>
                 </div>
                 <div className="history-meta">
                     <span><i className="fas fa-calendar"></i> {date}</span>

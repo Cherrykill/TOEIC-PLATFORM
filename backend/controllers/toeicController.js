@@ -55,6 +55,7 @@ exports.startAttempt = async (req, res, next) => {
             testType: test.testType,
             testName: test.testName,
             totalQuestions: test.totalQuestions,
+            fillBlankMode: !!fillBlankMode,
             status: 'in-progress',
         });
 

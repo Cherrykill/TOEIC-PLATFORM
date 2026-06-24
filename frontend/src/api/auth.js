@@ -25,6 +25,32 @@ export const AuthAPI = {
         }).then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối' }));
     },
 
+    /** Đăng nhập bằng Google — gửi ID token (credential) từ Google Identity Services. */
+    async googleLogin(credential) {
+        return fetch('/api/auth/google', {
+            method: 'POST',
+            headers: JSON_HEADERS,
+            body: JSON.stringify({ credential }),
+        }).then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối' }));
+    },
+
+    /** Đăng ký trực tiếp bằng email + mật khẩu (không qua OTP). */
+    async register(payload) {
+        return fetch('/api/auth/register', {
+            method: 'POST',
+            headers: JSON_HEADERS,
+            body: JSON.stringify(payload),
+        }).then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối' }));
+    },
+
+    async sendRegisterOtp(payload) {
+        return fetch('/api/auth/send-register-otp', {
+            method: 'POST',
+            headers: JSON_HEADERS,
+            body: JSON.stringify(payload),
+        }).then(r => r.json()).catch(() => ({ success: false, message: 'Lỗi kết nối' }));
+    },
+
     async verifyRegisterOtp(payload) {
         return fetch('/api/auth/verify-register-otp', {
             method: 'POST',

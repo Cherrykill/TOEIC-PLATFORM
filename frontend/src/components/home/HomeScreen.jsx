@@ -5,6 +5,7 @@ import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PracticeManager } from '@components/practice/practiceManager.js';
 import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { QuestsAPI } from '@api/quests.js';
+import { ToeicAPI } from '@api/toeic.js';
 import { Quest } from '@components/quest/quest.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
@@ -136,6 +137,8 @@ export default function HomeScreen({ active }) {
     const [stats, setStats] = useState({});
     const [wrongWordsCount, setWrongWordsCount] = useState(0);
     const [userRank, setUserRank] = useState(null);
+    // Độ chính xác TOEIC trung bình (mọi lần thi) + số lần thi — cho vòng tiến độ thứ 4.
+    const [toeicStats, setToeicStats] = useState({ averageAccuracy: 0, totalAttempts: 0 });
     // Nhắc luyện tập: ẩn trong phiên nếu user tự đóng (mỗi phiên reset lại).
     const [reminderDismissed, setReminderDismissed] = useState(false);
     // Tháng đang xem trên lịch streak (mặc định = tháng hiện tại).
@@ -164,6 +167,12 @@ export default function HomeScreen({ active }) {
                     .then(j => { if (j.success) setUserRank(j.data.rank); })
                     .catch(() => {});
             }
+            ToeicAPI.getAnalyticsOverview()
+                .then(res => {
+                    const d = res?.data?.data || res?.data || res;
+                    if (d) setToeicStats({ averageAccuracy: d.averageAccuracy || 0, totalAttempts: d.totalAttempts || 0 });
+                })
+                .catch(() => {});
         }
     }, [active, loadLocalData]);
 
@@ -319,8 +328,13 @@ export default function HomeScreen({ active }) {
 
                 <div className="study-rings">
                     <Ring pct={studyPct} sub={`${studiedMinToday}/${goalMin}′`} caption="Giờ học" />
-                    <Ring pct={accPct} sub={`${_correctTotal}/${_answeredTotal}`} caption="Chính xác" />
                     <Ring pct={monthPct} sub={`${studiedDaysThisMonth}/${_daysInMonth}`} caption="Chuyên cần" />
+                    <Ring pct={accPct} sub={`${_correctTotal}/${_answeredTotal}`} caption="Chính xác" />
+                    <Ring
+                        pct={Math.round(toeicStats.averageAccuracy)}
+                        sub={toeicStats.totalAttempts > 0 ? `${toeicStats.totalAttempts} bài` : 'Chưa thi'}
+                        caption="TOEIC"
+                    />
                 </div>
                 {(() => {
                     const now = new Date();

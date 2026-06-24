@@ -14,9 +14,18 @@ const UserSchema = new mongoose.Schema(
         },
         password: {
             type: String,
-            required: [true, 'Please provide password'],
+            // Bắt buộc trừ khi đăng nhập bằng Google (không có mật khẩu).
+            required: [function () { return !this.googleId; }, 'Please provide password'],
             minlength: [6, 'Password must be at least 6 characters'],
             select: false,
+        },
+        // ID Google (payload.sub) cho tài khoản đăng nhập bằng Google. sparse:
+        // chỉ index các doc có giá trị → user thường (không googleId) không bị đụng unique.
+        googleId: {
+            type: String,
+            unique: true,
+            sparse: true,
+            index: true,
         },
         role: {
             type: String,

@@ -66,6 +66,7 @@ const checkLockLimiter = rateLimit({
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/login', loginLimiter, authController.login);
+router.post('/google', loginLimiter, authController.googleLogin);
 router.post('/admin/login', authController.login);
 
 /**

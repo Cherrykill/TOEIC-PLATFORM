@@ -16,7 +16,7 @@ import ResultsModal from './results/ResultsModal.jsx';
 const TABS = [
     { key: 'full-test',  icon: 'fa-clipboard-list', label: 'Full Test (200 câu)' },
     { key: 'mini-test',  icon: 'fa-tasks',           label: 'Mini Test (theo Part)' },
-    { key: 'fill-blank', icon: 'fa-pen-square',      label: 'Đục lỗ' },
+    { key: 'fill-blank', icon: 'fa-pen-square',      label: 'Nghe Đục Lỗ' },
 ];
 
 // Bộ lọc theo Part — chỉ hiện ở các tab có ý nghĩa theo part.
