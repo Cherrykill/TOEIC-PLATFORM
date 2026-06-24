@@ -9,7 +9,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="/admin/css/dashboard.css?v=10" />
+    <link rel="stylesheet" href="/admin/css/dashboard.css?v=11" />
     <style>
       /* Login modal */
       #admin-login-modal {
@@ -1078,17 +1078,14 @@
                       <th>Part</th>
                       <th>Nội dung câu hỏi</th>
                       <th>Đáp án đúng</th>
-                      <th>Từ khóa</th>
                       <th>Ảnh</th>
                       <th>Audio</th>
-                      <th>Đã dùng</th>
-                      <th>Ngày tạo</th>
                       <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td colspan="10" class="loading">
+                      <td colspan="6" class="loading">
                         <i class="fas fa-spinner"></i>
                         <p>Đang tải câu hỏi...</p>
                       </td>
@@ -1977,14 +1974,9 @@
                     </div>
                   </div>
 
-                  <!-- Table -->
-                  <div class="table-container" style="overflow-x:auto">
-                    <table class="data-table" id="db-doc-table">
-                      <thead id="db-doc-thead"></thead>
-                      <tbody id="db-doc-tbody">
-                        <tr><td class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
-                      </tbody>
-                    </table>
+                  <!-- Danh sách document dạng JSON -->
+                  <div id="db-doc-list" class="db-doc-list">
+                    <div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>
                   </div>
 
                   <!-- Pagination -->
@@ -4358,10 +4350,10 @@
     <script src="/admin/js/modules/vocab.js?v=3"></script>
     <script src="/admin/js/modules/users.js?v=2"></script>
     <script src="/admin/js/modules/vocab-stats.js?v=2"></script>
-    <script src="/admin/js/modules/toeic.js?v=1"></script>
+    <script src="/admin/js/modules/toeic.js?v=2"></script>
     <script src="/admin/js/modules/monitor.js?v=1"></script>
     <script src="/admin/js/modules/tabs.js?v=1"></script>
-    <script src="/admin/js/modules/db-manager.js?v=1"></script>
+    <script src="/admin/js/modules/db-manager.js?v=3"></script>
     <script src="/admin/js/modules/ui-init.js?v=1"></script>
     <script src="/admin/js/nav-game.js?v=3"></script>
   </body>

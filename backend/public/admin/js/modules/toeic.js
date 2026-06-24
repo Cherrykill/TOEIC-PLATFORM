@@ -139,7 +139,7 @@ async function loadQuestions(filterPart = '', _page = 1) {
         console.error('Error loading questions:', error);
         const tbody = document.querySelector('#questions-table tbody');
         if (tbody) tbody.innerHTML = `
-            <tr><td colspan="7" class="loading" style="color: red;">
+            <tr><td colspan="6" class="loading" style="color: red;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Error loading questions</p>
             </td></tr>
@@ -152,7 +152,7 @@ function renderQuestionsTable() {
 
     if (currentQuestions.length === 0) {
         tbody.innerHTML = `
-            <tr><td colspan="9" class="loading">
+            <tr><td colspan="6" class="loading">
                 <i class="fas fa-inbox"></i>
                 <p>No questions found</p>
             </td></tr>
@@ -202,11 +202,8 @@ function renderQuestionsTable() {
                 <td><span class="part-badge">Part ${q.part}</span></td>
                 <td title="${questionTextFull.replace(/"/g, '&quot;')}">${truncate(questionTextFull, 50)}</td>
                 <td style="text-align: center; font-weight: 600; color: #667eea;">${q.correctAnswer}</td>
-                <td style="text-align: center; font-size: 0.85em;" title="${keywordsTitle}">${keywordsDisplay}</td>
                 <td style="text-align: center;" title="${firstImage || ''}">${imageDisplay}</td>
                 <td style="text-align: center;" title="${q.audioUrl || ''}">${audioDisplay}</td>
-                <td style="text-align: center;">${q.timesUsed || 0}</td>
-                <td style="text-align: center; font-size: 0.85em; color: #666;">${q.createdAt ? new Date(q.createdAt).toLocaleString('vi-VN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}</td>
                 <td>
                     <button class="btn btn-info btn-sm btn-preview-question" data-question-id="${q._id}" title="Preview">
                         <i class="fas fa-eye"></i>

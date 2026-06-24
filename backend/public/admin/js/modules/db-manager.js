@@ -246,10 +246,8 @@ async function loadDbDocuments(page = 1) {
     if (!_db.currentCollection) return;
     _db.currentPage = page;
 
-    const tbody = document.getElementById('db-doc-tbody');
-    const thead = document.getElementById('db-doc-thead');
-    if (tbody) tbody.innerHTML = '<tr><td class="loading" colspan="100"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
-    if (thead) thead.innerHTML = '';
+    const list = document.getElementById('db-doc-list');
+    if (list) list.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
 
     try {
         const params = new URLSearchParams({
@@ -265,64 +263,59 @@ async function loadDbDocuments(page = 1) {
 
         document.getElementById('db-col-count').textContent = `${json.pagination.total.toLocaleString()} docs`;
 
-        renderDbTable(json.data);
+        renderDbDocs(json.data);
         renderDbPagination(json.pagination);
     } catch (err) {
-        if (tbody) tbody.innerHTML = `<tr><td class="loading" colspan="100" style="color:var(--danger)">${err.message}</td></tr>`;
+        if (list) list.innerHTML = `<div class="loading" style="color:var(--danger)">${err.message}</div>`;
     }
 }
 
-// ── Table render ──────────────────────────────────────────────
-function renderDbTable(docs) {
-    const thead = document.getElementById('db-doc-thead');
-    const tbody = document.getElementById('db-doc-tbody');
-    if (!thead || !tbody) return;
+// ── Document render (kiểu JSON như Mongo Compass) ──────────────
+function renderDbDocs(docs) {
+    const list = document.getElementById('db-doc-list');
+    if (!list) return;
 
     if (!docs.length) {
-        thead.innerHTML = '';
-        tbody.innerHTML = '<tr><td class="loading" colspan="100">Không có dữ liệu</td></tr>';
+        list.innerHTML = '<div class="loading">Không có dữ liệu</div>';
         return;
     }
 
-    // Collect all keys across all docs (up to first 5 docs for perf), _id first
-    const keySet = new Set(['_id']);
-    docs.slice(0, 5).forEach(doc => Object.keys(doc).forEach(k => keySet.add(k)));
-    const keys = [...keySet].slice(0, 12); // cap at 12 columns to avoid overflow
-
-    thead.innerHTML = '<tr>' +
-        keys.map(k => `<th>${k}</th>`).join('') +
-        '<th style="min-width:80px">Thao tác</th>' +
-        '</tr>';
-
-    tbody.innerHTML = docs.map(doc => {
-        const id = doc._id;
-        const cells = keys.map(k => {
-            const val = doc[k];
-            const display = formatDbCell(val);
-            return `<td title="${escapeHtml(String(val ?? ''))}">${display}</td>`;
-        }).join('');
-        return `<tr>
-            ${cells}
-            <td>
-                <button class="btn btn-ghost btn-sm" onclick="openDbEditModal(${escapeAttr(JSON.stringify(doc))})" title="Sửa">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteDbDocument('${id}')" title="Xóa">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        </tr>`;
-    }).join('');
+    list.innerHTML = docs.map(doc =>
+        `<div class="db-doc-card">${renderDocFields(doc)}</div>`
+    ).join('');
 }
 
-function formatDbCell(val) {
-    if (val === null || val === undefined) return '<span style="opacity:.4">—</span>';
-    if (typeof val === 'object') {
-        const s = JSON.stringify(val);
-        return `<span style="opacity:.6;font-size:11px">${escapeHtml(s.length > 60 ? s.slice(0, 60) + '…' : s)}</span>`;
+// Render các trường top-level của 1 document
+function renderDocFields(obj) {
+    return Object.keys(obj).map(k =>
+        `<div class="db-field"><span class="db-key">${escapeHtml(k)}</span><span class="db-colon">:</span> ${renderDbValue(obj[k], k)}</div>`
+    ).join('');
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+const OBJECT_ID_RE = /^[a-f0-9]{24}$/i;
+
+function renderDbValue(val, key) {
+    if (val === null || val === undefined) return '<span class="dbv-null">null</span>';
+
+    if (Array.isArray(val)) {
+        if (val.length === 0) return '<span class="dbv-meta">Array (empty)</span>';
+        const json = escapeHtml(JSON.stringify(val, null, 2));
+        return `<details class="dbv-tree"><summary class="dbv-meta">Array (${val.length})</summary><pre class="dbv-pre">${json}</pre></details>`;
     }
+    if (typeof val === 'object') {
+        const n = Object.keys(val).length;
+        const json = escapeHtml(JSON.stringify(val, null, 2));
+        return `<details class="dbv-tree"><summary class="dbv-meta">Object {${n}}</summary><pre class="dbv-pre">${json}</pre></details>`;
+    }
+    if (typeof val === 'boolean') return `<span class="dbv-bool">${val}</span>`;
+    if (typeof val === 'number') return `<span class="dbv-num">${val}</span>`;
+
+    // string
     const s = String(val);
-    return escapeHtml(s.length > 80 ? s.slice(0, 80) + '…' : s);
+    if (key === '_id' || OBJECT_ID_RE.test(s)) return `<span class="dbv-oid">ObjectId('${escapeHtml(s)}')</span>`;
+    if (ISO_DATE_RE.test(s)) return `<span class="dbv-date">${escapeHtml(s)}</span>`;
+    return `<span class="dbv-str">"${escapeHtml(s)}"</span>`;
 }
 
 function escapeHtml(str) {
