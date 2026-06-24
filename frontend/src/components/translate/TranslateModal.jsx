@@ -1,37 +1,112 @@
 import { useEffect, useState } from 'react';
+import { GameState } from '@game/state.js';
+import { getVocabLang } from '@api/vocabulary.js';
+import { FavoritesAPI } from '@api/favorites.js';
+import { Notification } from '@ui/Toaster.jsx';
 
-// Mã ngôn ngữ phổ biến → tên tiếng Việt (hiện nguồn phát hiện được).
+// Ngôn ngữ học của hệ thống (en/zh) → mã đích ưu tiên khi dịch.
+const studyTargetLang = () => (getVocabLang() === 'zh' ? 'zh-CN' : 'en');
+// Chuẩn hoá so sánh: 'zh-CN'→'zh', 'en'→'en', 'vi'→'vi'.
+const baseLang = (code) => String(code || '').split('-')[0];
+
+// Mã ngôn ngữ → tên tiếng Việt (hiện nguồn phát hiện được).
 const LANG_NAMES = {
     en: 'Tiếng Anh', vi: 'Tiếng Việt', zh: 'Tiếng Trung', 'zh-CN': 'Tiếng Trung',
     ja: 'Tiếng Nhật', ko: 'Tiếng Hàn', fr: 'Tiếng Pháp', de: 'Tiếng Đức',
     es: 'Tiếng Tây Ban Nha', ru: 'Tiếng Nga', th: 'Tiếng Thái',
 };
 
+// Mã ngôn ngữ → BCP-47 cho TTS (phát âm).
+const SPEAK_LANG = {
+    en: 'en-US', vi: 'vi-VN', zh: 'zh-CN', 'zh-CN': 'zh-CN',
+    ja: 'ja-JP', ko: 'ko-KR', fr: 'fr-FR', de: 'de-DE', es: 'es-ES', ru: 'ru-RU', th: 'th-TH',
+};
+const speakLangOf = (code) => SPEAK_LANG[code] || (code ? `${code}` : 'en-US');
+
+// Phát âm ĐÚNG ngôn ngữ (vi/en/zh...) — không dùng giọng en/zh của luyện tập.
+// Ưu tiên Google Translate TTS (giọng bản ngữ), lỗi thì dùng giọng hệ thống đúng lang.
+function fallbackSpeak(text, code) {
+    try {
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = speakLangOf(code);
+        const base = String(code || '').split('-')[0];
+        const v = (window.speechSynthesis.getVoices() || []).find(x => x.lang.toLowerCase().startsWith(base));
+        if (v) u.voice = v;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(u);
+    } catch { /* no-op */ }
+}
+
+function speakText(text, code) {
+    if (!text) return;
+    const tl = code === 'zh-CN' || code === 'zh' ? 'zh-CN' : String(code || 'en').split('-')[0];
+    const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${encodeURIComponent(tl)}&client=tw-ob&q=${encodeURIComponent(text.slice(0, 200))}`;
+    let fell = false;
+    const fb = () => { if (!fell) { fell = true; fallbackSpeak(text, code); } };
+    try {
+        const audio = new Audio(url);
+        audio.onerror = fb;
+        audio.play().catch(fb);
+    } catch { fb(); }
+}
+
+// Ngôn ngữ đích chọn được.
+const TARGETS = [
+    { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'en', label: 'English' },
+    { code: 'zh-CN', label: '中文' },
+];
+
+function isAlreadyFavorite(en) {
+    const favs = GameState.state?.progress?.favoriteWords || [];
+    return favs.some(w => (w.en || w.word || '').toLowerCase() === (en || '').toLowerCase());
+}
+
 /**
  * Popup dịch trong app — gọi API công khai của Google Translate (không cần key).
- * @param {string} text - từ/cụm cần dịch
- * @param {() => void} onClose
+ * Hỗ trợ phát âm, đổi ngôn ngữ đích (gồm tiếng Trung) và dịch đảo ngược.
  */
 export default function TranslateModal({ text, onClose }) {
+    const [inputText, setInputText] = useState(text);
+    // Mặc định dịch sang ngôn ngữ hệ thống đang học (Anh/Trung); nếu nguồn trùng
+    // ngôn ngữ này thì sẽ tự đổi sang Tiếng Việt (xử lý sau khi phát hiện nguồn).
+    const [targetLang, setTargetLang] = useState(studyTargetLang);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [result, setResult] = useState(null); // { translated, sourceLang }
+    const [result, setResult] = useState(null); // { translated, sourceLang, part, synonyms, phonetic }
+    const [saved, setSaved] = useState(() => isAlreadyFavorite(text));
 
-    const fullUrl = `https://translate.google.com.vn/?sl=auto&tl=vi&text=${encodeURIComponent(text)}&op=translate`;
+    const fullUrl = `https://translate.google.com.vn/?sl=auto&tl=${targetLang}&text=${encodeURIComponent(inputText)}&op=translate`;
 
     useEffect(() => {
         let cancelled = false;
         setLoading(true); setError(''); setResult(null);
+        setSaved(isAlreadyFavorite(inputText));
         (async () => {
             try {
-                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${encodeURIComponent(text)}`;
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(inputText)}`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('Không dịch được');
                 const data = await res.json();
                 if (cancelled) return;
-                const translated = (data[0] || []).map(seg => seg[0]).join('');
+
                 const sourceLang = data[2] || 'auto';
-                setResult({ translated, sourceLang });
+
+                // Không dịch sang cùng ngôn ngữ với nguồn → tự đổi đích.
+                if (sourceLang !== 'auto' && baseLang(sourceLang) === baseLang(targetLang)) {
+                    const study = studyTargetLang();
+                    const next = baseLang(study) !== baseLang(sourceLang) ? study : 'vi';
+                    if (!cancelled) setTargetLang(next); // effect chạy lại với đích mới
+                    return;
+                }
+
+                const translated = (data[0] || []).map(seg => seg[0]).filter(Boolean).join('');
+                const phonetic = (data[0] || []).map(seg => seg[3]).filter(Boolean).join(' ');
+                const dict = Array.isArray(data[1]) ? data[1] : [];
+                const part = dict[0]?.[0] || '';
+                const synonyms = dict.flatMap(d => d[1] || []).slice(0, 6).join(', ');
+
+                setResult({ translated, sourceLang, part, synonyms, phonetic });
             } catch {
                 if (!cancelled) setError('Không kết nối được dịch vụ dịch. Hãy mở Google Dịch đầy đủ.');
             } finally {
@@ -39,7 +114,39 @@ export default function TranslateModal({ text, onClose }) {
             }
         })();
         return () => { cancelled = true; };
-    }, [text]);
+    }, [inputText, targetLang]);
+
+    const speak = (txt, langCode) => speakText(txt, langCode);
+
+    // Dịch đảo ngược: lấy bản dịch làm đầu vào, đổi đích về ngôn ngữ nguồn vừa phát hiện.
+    const handleReverse = () => {
+        if (!result?.translated) return;
+        const newTarget = result.sourceLang && result.sourceLang !== 'auto' ? result.sourceLang : 'en';
+        setInputText(result.translated);
+        setTargetLang(newTarget);
+    };
+
+    const handleSaveFavorite = () => {
+        if (!result?.translated || saved) return;
+        // Lưu theo shape {en, vn}: ưu tiên gán đúng phía Anh/Việt.
+        let en = inputText.trim();
+        let vn = result.translated;
+        if (targetLang === 'vi') { en = inputText.trim(); vn = result.translated; }
+        else if (result.sourceLang === 'vi') { en = result.translated; vn = inputText.trim(); }
+
+        const entry = { en, vn, phonetic: result.phonetic || '', synonyms: result.synonyms || '', part: result.part || '' };
+        if (!GameState.state.progress) GameState.state.progress = {};
+        const favs = GameState.state.progress.favoriteWords || [];
+        if (!isAlreadyFavorite(en)) {
+            GameState.state.progress.favoriteWords = [...favs, entry];
+            FavoritesAPI.add(entry).catch(() => {});
+            GameState.save?.();
+        }
+        setSaved(true);
+        Notification.show({ type: 'success', message: `Đã lưu "${en}" vào từ vựng yêu thích`, duration: 1800 });
+    };
+
+    const targetName = LANG_NAMES[targetLang] || targetLang;
 
     return (
         <div id="modal-container" className="active">
@@ -52,32 +159,79 @@ export default function TranslateModal({ text, onClose }) {
                     </button>
                 </div>
                 <div className="modal-body" style={{ padding: 20 }}>
-                    <div className="translate-source">
-                        <div className="translate-label">Gốc</div>
-                        <div className="translate-text">{text}</div>
+                    {/* Chọn ngôn ngữ đích — ẩn tab trùng ngôn ngữ nguồn (chỉ dịch 2 tiếng) */}
+                    <div className="translate-targets">
+                        <span className="translate-targets-label">Dịch sang:</span>
+                        {TARGETS
+                            .filter(t => !result?.sourceLang || result.sourceLang === 'auto'
+                                || baseLang(t.code) !== baseLang(result.sourceLang))
+                            .map(t => (
+                                <button
+                                    key={t.code}
+                                    className={`translate-lang-btn${targetLang === t.code ? ' active' : ''}`}
+                                    onClick={() => setTargetLang(t.code)}
+                                >
+                                    {t.label}
+                                </button>
+                            ))}
                     </div>
 
-                    <div className="translate-arrow"><i className="fas fa-arrow-down"></i></div>
+                    <div className="translate-source">
+                        <div className="translate-label">
+                            Gốc
+                            {result?.sourceLang && result.sourceLang !== 'auto' && (
+                                <span className="translate-detected"> · {LANG_NAMES[result.sourceLang] || result.sourceLang}</span>
+                            )}
+                        </div>
+                        <div className="translate-row">
+                            <div className="translate-text">{inputText}</div>
+                            <button className="translate-speak" title="Phát âm" onClick={() => speak(inputText, result?.sourceLang || 'en')}>
+                                <i className="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="translate-arrow">
+                        <button className="translate-reverse" title="Dịch đảo ngược" onClick={handleReverse} disabled={loading || !result}>
+                            <i className="fas fa-exchange-alt"></i>
+                        </button>
+                    </div>
 
                     <div className="translate-target">
                         <div className="translate-label">
-                            Tiếng Việt
-                            {result?.sourceLang && result.sourceLang !== 'vi' && (
-                                <span className="translate-detected">
-                                    {' '}· từ {LANG_NAMES[result.sourceLang] || result.sourceLang}
-                                </span>
-                            )}
+                            {targetName}
+                            {result?.part && <span className="translate-detected"> · {result.part}</span>}
                         </div>
                         {loading && (
                             <div className="translate-text muted"><i className="fas fa-spinner fa-spin"></i> Đang dịch...</div>
                         )}
                         {!loading && error && <div className="translate-text error">{error}</div>}
-                        {!loading && result && <div className="translate-text result">{result.translated}</div>}
+                        {!loading && result && (
+                            <div className="translate-row">
+                                <div className="translate-text result">{result.translated}</div>
+                                <button className="translate-speak" title="Phát âm" onClick={() => speak(result.translated, targetLang)}>
+                                    <i className="fas fa-volume-up"></i>
+                                </button>
+                            </div>
+                        )}
+                        {!loading && result?.synonyms && (
+                            <div className="translate-syn">Nghĩa khác: {result.synonyms}</div>
+                        )}
                     </div>
 
-                    <a className="btn btn-secondary btn-sm translate-full-link" href={fullUrl} target="_blank" rel="noopener noreferrer">
-                        <i className="fas fa-external-link-alt"></i> Mở Google Dịch đầy đủ
-                    </a>
+                    <div className="translate-actions">
+                        <button
+                            className={`btn btn-sm ${saved ? 'btn-secondary' : 'btn-primary'}`}
+                            onClick={handleSaveFavorite}
+                            disabled={loading || !!error || saved}
+                        >
+                            <i className="fas fa-heart"></i>
+                            {saved ? ' Đã lưu yêu thích' : ' Lưu vào từ vựng yêu thích'}
+                        </button>
+                        <a className="btn btn-secondary btn-sm" href={fullUrl} target="_blank" rel="noopener noreferrer">
+                            <i className="fas fa-external-link-alt"></i> Google Dịch
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

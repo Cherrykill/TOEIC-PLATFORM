@@ -7244,4 +7244,50 @@ mark {
 .translate-text.muted { color: var(--text-secondary); font-size: 15px; }
 .translate-text.error { color: var(--error-color, #ef4444); font-size: 14px; }
 .translate-arrow { text-align: center; color: var(--text-tertiary, #94a3b8); margin: 8px 0; }
-.translate-full-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; }
+.translate-syn { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
+.translate-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.translate-actions .btn { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Chọn ngôn ngữ đích */
+.translate-targets { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.translate-targets-label { font-size: 12px; color: var(--text-tertiary, #94a3b8); margin-right: 2px; }
+.translate-lang-btn {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.translate-lang-btn:hover { border-color: var(--primary-color, #E11D48); }
+.translate-lang-btn.active { background: var(--primary-color, #E11D48); border-color: var(--primary-color, #E11D48); color: #fff; }
+
+/* Hàng văn bản + nút phát âm */
+.translate-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.translate-speak {
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(148,163,184,0.15);
+  color: var(--primary-color, #E11D48);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.translate-speak:hover { background: rgba(225,29,72,0.15); }
+
+/* Nút dịch đảo ngược ở giữa */
+.translate-reverse {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary, #fff);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.translate-reverse:hover:not(:disabled) { border-color: var(--primary-color, #E11D48); color: var(--primary-color, #E11D48); transform: rotate(180deg); }
+.translate-reverse:disabled { opacity: 0.4; cursor: default; }
