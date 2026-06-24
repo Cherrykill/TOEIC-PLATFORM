@@ -116,12 +116,14 @@ export default function SettingsScreen({ active }) {
     };
 
     const handleColorPreset = (primary, secondary) => {
+        if (!isLoggedIn) { Notification.warning('Đăng nhập để tùy chỉnh màu sắc'); return; }
         setColorPrimary(primary); setColorSecondary(secondary);
         applyColorTheme(primary, secondary);
         Notification.success('Màu sắc đã thay đổi');
     };
 
     const handleCustomColor = () => {
+        if (!isLoggedIn) { Notification.warning('Đăng nhập để tùy chỉnh màu sắc'); return; }
         applyColorTheme(colorPrimary, colorSecondary);
         Notification.success('Màu sắc đã thay đổi');
     };
@@ -300,6 +302,7 @@ export default function SettingsScreen({ active }) {
                     <div className={`settings-panel ${activeSection === 'general' ? 'active' : ''}`}>
                         <GeneralPanel
                             s={s}
+                            canCustomizeColor={isLoggedIn}
                             handleTheme={handleTheme}
                             reverseMode={reverseMode}
                             handleReverseMode={handleReverseMode}

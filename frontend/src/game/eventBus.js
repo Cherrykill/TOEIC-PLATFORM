@@ -151,6 +151,9 @@ export const GameEvents = {
     HINT_USED: 'practice:hintUsed',
     QUESTION_SKIPPED: 'practice:questionSkipped',
     
+    // TOEIC: khoá thanh tìm kiếm khi đang làm Full Test (mini/đục lỗ không khoá)
+    TOEIC_SEARCH_LOCK: 'toeic:searchLock',
+
     // Game mode events
     MODE_SELECTED: 'mode:selected',
     MODE_COMPLETED: 'mode:completed',

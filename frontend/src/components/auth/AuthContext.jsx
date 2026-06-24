@@ -4,6 +4,7 @@ import { ServerStorage } from '@lib/serverStorage.js';
 import { Storage } from '@lib/storage.js';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { applySavedColorTheme } from '@/services/theme.js';
 
 const AuthContext = createContext(null);
 
@@ -69,6 +70,8 @@ export function AuthProvider({ children }) {
 
         setCurrentUser(u);
         setIsLoggedIn(true);
+        // Đã đăng nhập → áp màu chủ đề đã lưu của user (khách bị ép màu mặc định).
+        applySavedColorTheme();
         EventBus.emit(GameEvents.USER_LOGIN, u);
     }, []);
 

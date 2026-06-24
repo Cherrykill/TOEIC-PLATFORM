@@ -3896,6 +3896,19 @@ mark {
 }
 
 /* Nút đăng xuất — tách nhẹ khỏi nhóm trên, màu cảnh báo */
+.settings-locked-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: var(--warning-color, #f59e0b);
+  font-size: 13px;
+}
+
 .settings-nav-logout {
   margin-top: 8px;
   border-top: 1px solid var(--border-color);
@@ -7209,3 +7222,26 @@ mark {
 .review-nav-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
 .review-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .review-nav-info { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+
+/* ── Popup Dịch nhanh (Shift+Enter ở ô tìm kiếm) ── */
+.translate-modal .translate-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 4px;
+}
+.translate-detected { text-transform: none; font-weight: 400; letter-spacing: 0; }
+.translate-source, .translate-target {
+  background: var(--bg-secondary, rgba(148,163,184,0.08));
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.translate-text { font-size: 17px; line-height: 1.5; color: var(--text-primary); word-break: break-word; }
+.translate-text.result { font-weight: 700; color: var(--primary-color, #E11D48); }
+.translate-text.muted { color: var(--text-secondary); font-size: 15px; }
+.translate-text.error { color: var(--error-color, #ef4444); font-size: 14px; }
+.translate-arrow { text-align: center; color: var(--text-tertiary, #94a3b8); margin: 8px 0; }
+.translate-full-link { display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; }

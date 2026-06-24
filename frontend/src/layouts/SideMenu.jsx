@@ -7,7 +7,7 @@ const MENU_ITEMS = [
     { label: 'Luyện tập TOEIC',icon: 'fa-graduation-cap',   screen: 'toeic-screen',        hot: true },
     { label: 'Hồ sơ',          icon: 'fa-user',             screen: 'profile-screen' },
     { label: 'Nhiệm vụ',       icon: 'fa-tasks',            screen: 'quest-screen',        badgeKey: 'quest' },
-    { label: 'Bảng xếp hạng',  icon: 'fa-trophy',           screen: 'leaderboard-screen',  badgeKey: 'online',       badgeStyle: 'info' },
+    { label: 'Bảng xếp hạng',  icon: 'fa-trophy',           screen: 'leaderboard-screen',  badgeKey: 'online',       badgeStyle: 'info', guestOk: true },
     { label: 'Thành tích',     icon: 'fa-medal',            screen: 'achievements-screen', badgeKey: 'achievement' },
     { label: 'Thống kê',       icon: 'fa-chart-bar',        screen: 'statistics-screen',   badgeKey: 'statsExport',  badgeStyle: 'dot' },
     { label: 'Cửa hàng',       icon: 'fa-shopping-cart',    screen: 'shop-screen',         badgeKey: 'shopDiscount', badgeStyle: 'sale' },
@@ -24,6 +24,12 @@ export default function SideMenu() {
 
     const handleNav = (screen) => {
         showScreen(screen);
+        setMenuOpen(false);
+    };
+
+    // Khách bấm vào mục bị khóa → mở popup đăng nhập thay vì điều hướng.
+    const handleLockedClick = () => {
+        setAuthModal('login');
         setMenuOpen(false);
     };
 
@@ -71,23 +77,27 @@ export default function SideMenu() {
                 <nav className="menu-nav">
                     {MENU_ITEMS.map(item => {
                         const n = item.badgeKey ? badges[item.badgeKey] : 0;
+                        const locked = !isLoggedIn && !item.guestOk;
                         return (
                             <button
                                 key={item.screen}
-                                className={`menu-item${currentScreen === item.screen ? ' active' : ''}`}
+                                className={`menu-item${currentScreen === item.screen ? ' active' : ''}${locked ? ' is-locked' : ''}`}
                                 data-screen={item.screen}
-                                onClick={() => handleNav(item.screen)}
+                                onClick={() => (locked ? handleLockedClick() : handleNav(item.screen))}
+                                title={locked ? 'Đăng nhập để mở khóa' : undefined}
                             >
                                 {item.hot && <span className="menu-item-hot">hot</span>}
                                 <i className={`fas ${item.icon}`}></i>
                                 <span>{item.label}</span>
-                                {n > 0 && (
+                                {locked ? (
+                                    <i className="fas fa-lock menu-item-lock"></i>
+                                ) : (n > 0 && (
                                     item.badgeStyle === 'dot'
                                         ? <span className="menu-item-badge dot" title="Nên xuất báo cáo trước khi sang tháng mới" />
                                         : <span className={`menu-item-badge ${item.badgeStyle || 'reward'}`}>
                                             {n > 99 ? '99+' : n}
                                           </span>
-                                )}
+                                ))}
                             </button>
                         );
                     })}

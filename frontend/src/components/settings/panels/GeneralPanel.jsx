@@ -15,6 +15,7 @@ const COLOR_PRESETS = [
 
 export default function GeneralPanel({
     s,
+    canCustomizeColor = true,
     handleTheme,
     reverseMode,
     handleReverseMode,
@@ -49,7 +50,15 @@ export default function GeneralPanel({
 
             <div className="settings-section">
                 <h3>Màu chủ đề</h3>
-                <div className="setting-item-block">
+                {!canCustomizeColor && (
+                    <div className="settings-locked-note">
+                        <i className="fas fa-lock"></i> Đăng nhập để tùy chỉnh màu sắc. Khách dùng màu mặc định.
+                    </div>
+                )}
+                <div
+                    className="setting-item-block"
+                    style={!canCustomizeColor ? { opacity: 0.5, pointerEvents: 'none' } : undefined}
+                >
                     <div id="color-presets-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                         {COLOR_PRESETS.map((p, i) => {
                             const isActive = savedColor

@@ -495,6 +495,15 @@
 }
 .menu-item.active .menu-item-badge { box-shadow: 0 0 0 2px rgba(255,255,255,0.25); }
 
+/* Mục bị khóa khi chưa đăng nhập — icon khóa ở góc phải */
+.menu-item.is-locked { opacity: 0.6; }
+.menu-item-lock {
+    margin-left: auto;
+    color: var(--text-tertiary, #94a3b8);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
 .menu-item:hover {
     background-color: var(--bg-secondary);
 }

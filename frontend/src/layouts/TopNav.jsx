@@ -9,6 +9,7 @@ import FavoritesModal from '@components/favorites/FavoritesModal.jsx';
 import TopicModal from '@components/vocab/topic/TopicModal.jsx';
 import { openUploadModal } from '@components/vocab/upload/openUploadModal.js';
 import SpinWheelModal from '@components/spin/SpinWheelModal.jsx';
+import TranslateModal from '@components/translate/TranslateModal.jsx';
 
 export default function TopNav() {
     const { user, resources, setMenuOpen, showScreen, menuOpen, currentScreen } = useGame();
@@ -18,7 +19,9 @@ export default function TopNav() {
     // Xếp hạng bảng xếp hạng (all-time): top 1/2/3 = vàng/bạc/đồng, còn lại tím.
     const [rank, setRank] = useState(null);
     const rankColor = rank === 1 ? '#fbbf24' : rank === 2 ? '#cbd5e1' : rank === 3 ? '#d97706' : '#a78bfa';
-    const isInPractice = currentScreen === 'practice-screen' || currentScreen === 'toeic-test-screen';
+    // Khoá khi đang làm Full Test TOEIC (mini/đục lỗ không khoá) — báo qua EventBus.
+    const [toeicFullTestLock, setToeicFullTestLock] = useState(false);
+    const isInPractice = currentScreen === 'practice-screen' || currentScreen === 'toeic-test-screen' || toeicFullTestLock;
     const { isLoggedIn, setAuthModal } = useAuth();
     const { badges: menuBadges } = useMenuBadges(isLoggedIn, { listenEvents: true });
     // Number = unclaimed quest + achievement rewards; dot = other menu items have badges
@@ -31,8 +34,15 @@ export default function TopNav() {
     const [favOpen, setFavOpen] = useState(false);
     const [topicOpen, setTopicOpen] = useState(false);
     const [spinOpen, setSpinOpen] = useState(false);
+    const [translateText, setTranslateText] = useState(null); // từ đang dịch (popup)
     const [spinAvailable, setSpinAvailable] = useState(false);
     const pendingModeRef = useRef(null);
+
+    // Nghe tín hiệu khoá/mở thanh tìm kiếm khi vào/ra Full Test TOEIC.
+    useEffect(() => {
+        const unsub = EventBus.on(GameEvents.TOEIC_SEARCH_LOCK, (lock) => setToeicFullTestLock(!!lock));
+        return unsub;
+    }, []);
     const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
 
     // Mở popup chọn đề khi user click 1 chế độ mà chưa chọn đề
@@ -168,7 +178,7 @@ export default function TopNav() {
                     <input
                         type="text"
                         id="search-input"
-                        placeholder={isInPractice ? 'Đang luyện tập — tạm khoá tìm kiếm' : 'Tìm từ vựng...'}
+                        placeholder={isInPractice ? 'Đang luyện tập — tạm khoá tìm kiếm' : 'Tìm từ vựng... (Shift+Enter: dịch Google)'}
                         autoComplete="off"
                         readOnly={searchReadOnly || isInPractice}
                         disabled={isInPractice}
@@ -177,6 +187,14 @@ export default function TopNav() {
                         onFocus={() => { setSearchReadOnly(false); setSearchFocused(true); }}
                         onMouseDown={() => setSearchReadOnly(false)}
                         onBlur={() => setSearchFocused(false)}
+                        onKeyDown={(e) => {
+                            // Shift+Enter → mở popup dịch nhanh ngay trong app (khi không tìm thấy trong app)
+                            if (e.key === 'Enter' && e.shiftKey) {
+                                e.preventDefault();
+                                const q = searchQuery.trim();
+                                if (q) setTranslateText(q);
+                            }
+                        }}
                     />
                     {searchQuery && !isInPractice && (
                         <button id="clear-search-btn" className="clear-search-btn" onClick={() => { setSearchQuery(''); window._reactClearSearch?.(); }}>
@@ -217,6 +235,7 @@ export default function TopNav() {
         <FavoritesModal open={favOpen} onClose={() => setFavOpen(false)} />
         <TopicModal open={topicOpen} onClose={handleTopicClose} onSelected={handleTopicSelected} />
         <SpinWheelModal open={spinOpen} onClose={() => setSpinOpen(false)} />
+        {translateText && <TranslateModal text={translateText} onClose={() => setTranslateText(null)} />}
         </>
     );
 }

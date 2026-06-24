@@ -910,6 +910,7 @@ const PART_PROMPTS = {
   "groupId": "<vd p3_grp_001 — chung cho các câu cùng đoạn>",
   "questionIndex": "<1, 2, 3...>",
   "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-32.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
+  "imageUrls": ["<đường dẫn ảnh nếu hội thoại có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-32.jpg — CHỈ ở câu 1; để [] nếu không có>"],
   "audioText": "<lời thoại 2-3 người — CHỈ ở câu questionIndex 1>",
   "audioTranslate": "<dịch — tùy chọn, ở câu 1>",
   "questionText": "<câu hỏi>",
@@ -919,11 +920,12 @@ const PART_PROMPTS = {
 }
 === LƯU Ý PART 3 ===
 - Các câu cùng đoạn dùng CHUNG "groupId"; "questionIndex" tăng dần (thường 3 câu).
-- Chỉ câu ĐẦU (questionIndex 1) chứa "audioText" và "audioUrl" (đường dẫn mp3 /assets/audio/{thư mục đề}/{file}.mp3).
+- Chỉ câu ĐẦU (questionIndex 1) chứa "audioText", "audioUrl" (mp3 /assets/audio/{thư mục đề}/{file}.mp3) và "imageUrls" (ảnh nếu có biểu đồ/hình, /assets/images/{thư mục đề}/{file}.jpg; để [] nếu không có).
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
     "audioUrl": "/assets/audio/ets26t1/ets26t1-32.mp3",
+    "imageUrls": [],
     "audioText": "W: Have you finished the report yet? M: Almost, I just need to check the numbers. W: Great, the manager wants it by noon.",
     "questionText": "What is the man doing?",
     "options": [ {"label":"A","text":"Finishing a report"}, {"label":"B","text":"Checking some figures"}, {"label":"C","text":"Sending an email"}, {"label":"D","text":"Attending a meeting"} ],
@@ -942,6 +944,7 @@ const PART_PROMPTS = {
   "groupId": "<vd p4_grp_001>",
   "questionIndex": "<1, 2, 3...>",
   "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-71.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
+  "imageUrls": ["<đường dẫn ảnh nếu bài nói có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-71.jpg — CHỈ ở câu 1; để [] nếu không có>"],
   "audioText": "<đoạn độc thoại 1 người (thông báo/bài giảng) — CHỈ ở câu 1>",
   "questionText": "<câu hỏi>",
   "options": [ 4 đáp án A-D ],
@@ -949,11 +952,12 @@ const PART_PROMPTS = {
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
 === LƯU Ý PART 4 ===
-- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioText" và "audioUrl" (mp3 /assets/audio/{thư mục đề}/{file}.mp3).
+- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioText", "audioUrl" (mp3 /assets/audio/{thư mục đề}/{file}.mp3) và "imageUrls" (ảnh nếu có; để [] nếu không có).
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 4, "groupId": "p4_grp_001", "questionIndex": 1,
     "audioUrl": "/assets/audio/ets26t1/ets26t1-71.mp3",
+    "imageUrls": [],
     "audioText": "Attention shoppers. The store will close in 15 minutes. Please bring your items to the checkout counter now.",
     "questionText": "What is the announcement about?",
     "options": [ {"label":"A","text":"A store closing soon"}, {"label":"B","text":"A sale event"}, {"label":"C","text":"A lost item"}, {"label":"D","text":"A new product"} ],
@@ -994,17 +998,19 @@ const PART_PROMPTS = {
   "groupId": "<vd p6_grp_001>",
   "questionIndex": "<1, 2, 3...>",
   "passages": ["<đoạn văn có các chỗ trống đánh số (1)(2)... — CHỈ ở câu 1>"],
+  "imageUrls": ["<đường dẫn ảnh nếu đoạn là văn bản/email có hình, vd /assets/images/ets26t1/ets26t1-131.jpg — CHỈ ở câu 1; để [] nếu không có>"],
   "questionText": "<số chỗ trống tương ứng, vd: (1)>",
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
 === LƯU Ý PART 6 ===
-- Chung "groupId"; mỗi câu ứng 1 chỗ trống. Chỉ câu ĐẦU chứa "passages".
+- Chung "groupId"; mỗi câu ứng 1 chỗ trống. Chỉ câu ĐẦU chứa "passages" và "imageUrls" (ảnh nếu có; để [] nếu không có).
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 6, "groupId": "p6_grp_001", "questionIndex": 1,
     "passages": ["Thank you for your order. Your package will _____(1)_____ within 3 days. If you have questions, please _____(2)_____ our support team."],
+    "imageUrls": [],
     "questionText": "(1)",
     "options": [ {"label":"A","text":"arrive"}, {"label":"B","text":"arrives"}, {"label":"C","text":"arrived"}, {"label":"D","text":"arriving"} ],
     "correctAnswer": "A",
@@ -1023,17 +1029,19 @@ const PART_PROMPTS = {
   "questionIndex": "<1, 2, 3...>",
   "passageCount": "<1 | 2 | 3>",
   "passages": ["<đoạn đọc — CHỈ ở câu 1; nếu double/triple thì nhiều phần tử>"],
+  "imageUrls": ["<đường dẫn ảnh nếu đoạn là văn bản/biểu mẫu có hình, vd /assets/images/ets26t1/ets26t1-147.jpg — CHỈ ở câu 1; để [] nếu không có>"],
   "questionText": "<câu hỏi>",
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
 === LƯU Ý PART 7 ===
-- Chung "groupId" + "passageCount". Chỉ câu ĐẦU chứa "passages".
+- Chung "groupId" + "passageCount". Chỉ câu ĐẦU chứa "passages" và "imageUrls" (ảnh nếu có; để [] nếu không có).
 === VÍ DỤ ===
 [
   { "part": 7, "groupId": "p7_grp_001", "questionIndex": 1, "passageCount": 1,
     "passages": ["NOTICE: The library will be closed on Monday, July 4th for the national holiday. Normal opening hours will resume on Tuesday."],
+    "imageUrls": [],
     "questionText": "Why will the library be closed?",
     "options": [ {"label":"A","text":"For a holiday"}, {"label":"B","text":"For repairs"}, {"label":"C","text":"For an event"}, {"label":"D","text":"For cleaning"} ],
     "correctAnswer": "A",

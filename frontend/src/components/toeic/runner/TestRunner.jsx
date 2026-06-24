@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Modal } from '@ui/Modal.jsx';
 import { Notification } from '@ui/Toaster.jsx';
+import { EventBus, GameEvents } from '@game/eventBus.js';
 import { useToeicAttempt } from '../hooks/useToeicAttempt.js';
 import { useToeicTimer } from '../hooks/useToeicTimer.js';
 import { useToeicAudio } from '../hooks/useToeicAudio.js';
@@ -36,6 +37,13 @@ export default function TestRunner({ config, onExit }) {
     }, [attempt]);
 
     const audio = useToeicAudio({ onFinished: handleAudioFinished });
+
+    // Khoá thanh tìm kiếm trên header CHỈ khi đang làm Full Test (mini/đục lỗ không khoá).
+    useEffect(() => {
+        const lock = phase === 'running' && attempt.test?.testType === 'full-test';
+        EventBus.emit(GameEvents.TOEIC_SEARCH_LOCK, lock);
+        return () => EventBus.emit(GameEvents.TOEIC_SEARCH_LOCK, false);
+    }, [phase, attempt.test?.testType]);
 
     // Start or resume attempt on mount
     useEffect(() => {

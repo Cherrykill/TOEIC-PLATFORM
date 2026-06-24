@@ -13,6 +13,15 @@ import {
     COLOR_THEME_GUEST_KEY,
 } from '@/constants/storageKeys.js';
 
+// Màu mặc định của hệ thống (đỏ–cam). Khách chưa đăng nhập luôn dùng màu này.
+export const DEFAULT_PRIMARY = '#E11D48';
+export const DEFAULT_SECONDARY = '#F97316';
+
+/** Chưa đăng nhập (không có user id) → coi là khách. */
+export function isGuestUser() {
+    return !GameState.state?.user?.id;
+}
+
 function hexToRgb(hex) {
     const num = parseInt(hex.replace('#', ''), 16);
     return `${(num >> 16) & 255},${(num >> 8) & 255},${num & 255}`;
@@ -62,6 +71,11 @@ export function applyColorTheme(primary, secondary, { persist = true } = {}) {
  * App.applySavedColorTheme().
  */
 export function applySavedColorTheme() {
+    // Khách chưa đăng nhập → luôn dùng màu mặc định, bỏ qua màu đã lưu.
+    if (isGuestUser()) {
+        setColorVars(DEFAULT_PRIMARY, DEFAULT_SECONDARY);
+        return;
+    }
     const saved = JSON.parse(
         localStorage.getItem(currentColorThemeKey())
         || localStorage.getItem(COLOR_THEME_GUEST_KEY)
@@ -69,6 +83,8 @@ export function applySavedColorTheme() {
     );
     if (saved?.primary && saved?.secondary) {
         setColorVars(saved.primary, saved.secondary);
+    } else {
+        setColorVars(DEFAULT_PRIMARY, DEFAULT_SECONDARY);
     }
 }
 
