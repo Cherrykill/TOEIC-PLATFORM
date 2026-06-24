@@ -842,7 +842,7 @@ const _Q_FOOTER = `
 - Trả về DUY NHẤT một mảng JSON hợp lệ [ ... ], KHÔNG markdown, KHÔNG bọc trong khối code, KHÔNG giải thích thừa.
 - "part" là số nguyên. "correctAnswer" phải khớp đúng 1 "label" trong "options".
 - "source" = MÃ ĐỀ/BỘ ĐỀ (vd: official_2024) — RẤT QUAN TRỌNG: hệ thống gom câu hỏi thành đề thi THEO "source". TẤT CẢ câu hỏi cùng một đề PHẢI dùng CÙNG một "source".
-- "explanation" viết tiếng Việt; giữ nguyên tiếng Anh ở questionText/options/audioText/passages.
+- "explanation" viết tiếng Việt; giữ nguyên tiếng Anh ở questionText/options.
 
 Nội dung câu hỏi của tôi:
 <<< DÁN NỘI DUNG CÂU HỎI CỦA BẠN VÀO ĐÂY >>>`;
@@ -855,7 +855,6 @@ const PART_PROMPTS = {
   "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "imageUrls": ["<đường dẫn ảnh, vd /assets/images/ets26t1/ets26t1-01.jpg — để trống nếu admin tự upload>"],
   "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-01.mp3 — để trống nếu admin tự upload>",
-  "audioText": "<4 câu mô tả nối lại>",
   "options": [
     { "label": "A", "text": "<mô tả A>" },
     { "label": "B", "text": "<mô tả B>" },
@@ -865,13 +864,13 @@ const PART_PROMPTS = {
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
-=== LƯU Ý PART 1 ===
-- KHÔNG có "questionText".
-- 4 đáp án là 4 câu mô tả tranh; "audioText" = 4 câu đó nối lại.
+=== LƯU Ý PART 1 (câu 1-6, mỗi câu 1 ảnh + 1 audio đơn) ===
+- KHÔNG có "questionText", KHÔNG cần "audioText" (phát file audio thật).
+- 4 đáp án là 4 câu mô tả tranh.
 - "imageUrls" = ảnh /assets/images/{thư mục đề}/{tên file}.jpg ; "audioUrl" = mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (cùng số thứ tự câu). Để trống nếu admin tự upload.
 === VÍ DỤ ===
 [
-  { "part": 1, "imageUrls": ["/assets/images/ets26t1/ets26t1-01.jpg"], "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3", "audioText": "(A) The man is reading a newspaper. (B) The man is typing on a laptop. (C) The man is talking on the phone. (D) The man is drinking coffee.",
+  { "part": 1, "imageUrls": ["/assets/images/ets26t1/ets26t1-01.jpg"], "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3",
     "options": [ {"label":"A","text":"The man is reading a newspaper."}, {"label":"B","text":"The man is typing on a laptop."}, {"label":"C","text":"The man is talking on the phone."}, {"label":"D","text":"The man is drinking coffee."} ],
     "correctAnswer": "B",
     "explanation": { "A": "❌ Không cầm báo.", "B": "✅ Đúng: đang gõ laptop.", "C": "❌ Không gọi điện.", "D": "❌ Không uống cà phê." } }
@@ -882,8 +881,7 @@ const PART_PROMPTS = {
   "part": 2,
   "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-07.mp3 — để trống nếu admin tự upload>",
-  "audioText": "<câu nói/câu hỏi + 3 phương án trả lời>",
-  "questionText": "<câu được nói (câu hỏi gốc)>",
+  "questionText": "<câu được nói (câu hỏi gốc) — tùy chọn>",
   "options": [
     { "label": "A", "text": "..." },
     { "label": "B", "text": "..." },
@@ -892,12 +890,12 @@ const PART_PROMPTS = {
   "correctAnswer": "A|B|C",
   "explanation": { "A": "...", "B": "...", "C": "..." }
 }
-=== LƯU Ý PART 2 ===
-- CHỈ 3 đáp án A/B/C — KHÔNG có D. Không ảnh, không passage.
+=== LƯU Ý PART 2 (câu 7-31, mỗi câu 1 audio đơn) ===
+- CHỈ 3 đáp án A/B/C — KHÔNG có D. Không ảnh, không passage, KHÔNG cần "audioText" (phát file audio thật).
 - "audioUrl" = đường dẫn mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (theo số câu). Để trống nếu chưa có.
 === VÍ DỤ ===
 [
-  { "part": 2, "audioUrl": "/assets/audio/ets26t1/ets26t1-07.mp3", "audioText": "Where can I find the meeting room? (A) It's on the third floor. (B) The meeting was great. (C) At 10 a.m.",
+  { "part": 2, "audioUrl": "/assets/audio/ets26t1/ets26t1-07.mp3",
     "questionText": "Where can I find the meeting room?",
     "options": [ {"label":"A","text":"It's on the third floor."}, {"label":"B","text":"The meeting was great."}, {"label":"C","text":"At 10 a.m."} ],
     "correctAnswer": "A",
@@ -909,24 +907,22 @@ const PART_PROMPTS = {
   "part": 3, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "groupId": "<vd p3_grp_001 — chung cho các câu cùng đoạn>",
   "questionIndex": "<1, 2, 3...>",
-  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-32.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
-  "imageUrls": ["<đường dẫn ảnh nếu hội thoại có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-32.jpg — CHỈ ở câu 1; để [] nếu không có>"],
-  "audioText": "<lời thoại 2-3 người — CHỈ ở câu questionIndex 1>",
-  "audioTranslate": "<dịch — tùy chọn, ở câu 1>",
+  "audioUrl": "<đường dẫn mp3 theo DẢI SỐ câu của nhóm, vd nhóm câu 32-34 → /assets/audio/ets26t1/ets26t1-32-34.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
+  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-32-34.jpg — CHỈ ở câu 1; để [] nếu không có>"],
   "questionText": "<câu hỏi>",
   "options": [ {"label":"A","text":"..."}, {"label":"B","text":"..."}, {"label":"C","text":"..."}, {"label":"D","text":"..."} ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
-=== LƯU Ý PART 3 ===
+=== LƯU Ý PART 3 (câu 32-70 — 13 nhóm × 3 câu/đoạn hội thoại) ===
 - Các câu cùng đoạn dùng CHUNG "groupId"; "questionIndex" tăng dần (thường 3 câu).
-- Chỉ câu ĐẦU (questionIndex 1) chứa "audioText", "audioUrl" (mp3 /assets/audio/{thư mục đề}/{file}.mp3) và "imageUrls" (ảnh nếu có biểu đồ/hình, /assets/images/{thư mục đề}/{file}.jpg; để [] nếu không có).
+- Chỉ câu ĐẦU (questionIndex 1) chứa "audioUrl" và "imageUrls". KHÔNG cần "audioText" (hệ thống phát file audio thật).
+- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 32-34 → "ets26t1-32-34.mp3" (audio), "ets26t1-32-34.jpg" (ảnh). Để [] / để trống nếu không có.
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
-    "audioUrl": "/assets/audio/ets26t1/ets26t1-32.mp3",
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-32-34.mp3",
     "imageUrls": [],
-    "audioText": "W: Have you finished the report yet? M: Almost, I just need to check the numbers. W: Great, the manager wants it by noon.",
     "questionText": "What is the man doing?",
     "options": [ {"label":"A","text":"Finishing a report"}, {"label":"B","text":"Checking some figures"}, {"label":"C","text":"Sending an email"}, {"label":"D","text":"Attending a meeting"} ],
     "correctAnswer": "B",
@@ -943,22 +939,21 @@ const PART_PROMPTS = {
   "part": 4, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "groupId": "<vd p4_grp_001>",
   "questionIndex": "<1, 2, 3...>",
-  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-71.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
-  "imageUrls": ["<đường dẫn ảnh nếu bài nói có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-71.jpg — CHỈ ở câu 1; để [] nếu không có>"],
-  "audioText": "<đoạn độc thoại 1 người (thông báo/bài giảng) — CHỈ ở câu 1>",
+  "audioUrl": "<đường dẫn mp3 theo DẢI SỐ câu của nhóm, vd nhóm câu 71-73 → /assets/audio/ets26t1/ets26t1-71-73.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
+  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-71-73.jpg — CHỈ ở câu 1; để [] nếu không có>"],
   "questionText": "<câu hỏi>",
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
-=== LƯU Ý PART 4 ===
-- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioText", "audioUrl" (mp3 /assets/audio/{thư mục đề}/{file}.mp3) và "imageUrls" (ảnh nếu có; để [] nếu không có).
+=== LƯU Ý PART 4 (câu 71-100 — 10 nhóm × 3 câu/bài nói) ===
+- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioUrl" và "imageUrls". KHÔNG cần "audioText" (hệ thống phát file audio thật).
+- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 71-73 → "ets26t1-71-73.mp3" (audio), "ets26t1-71-73.jpg" (ảnh). Để [] / để trống nếu không có.
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 4, "groupId": "p4_grp_001", "questionIndex": 1,
-    "audioUrl": "/assets/audio/ets26t1/ets26t1-71.mp3",
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-71-73.mp3",
     "imageUrls": [],
-    "audioText": "Attention shoppers. The store will close in 15 minutes. Please bring your items to the checkout counter now.",
     "questionText": "What is the announcement about?",
     "options": [ {"label":"A","text":"A store closing soon"}, {"label":"B","text":"A sale event"}, {"label":"C","text":"A lost item"}, {"label":"D","text":"A new product"} ],
     "correctAnswer": "A",
@@ -980,7 +975,7 @@ const PART_PROMPTS = {
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
-=== LƯU Ý PART 5 ===
+=== LƯU Ý PART 5 (câu 101-130 — không audio/ảnh/passage) ===
 - 1 câu có chỗ trống, 4 đáp án A-D. KHÔNG cần audio/passage/group.
 === VÍ DỤ ===
 [
@@ -997,20 +992,20 @@ const PART_PROMPTS = {
   "part": 6, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "groupId": "<vd p6_grp_001>",
   "questionIndex": "<1, 2, 3...>",
-  "passages": ["<đoạn văn có các chỗ trống đánh số (1)(2)... — CHỈ ở câu 1>"],
-  "imageUrls": ["<đường dẫn ảnh nếu đoạn là văn bản/email có hình, vd /assets/images/ets26t1/ets26t1-131.jpg — CHỈ ở câu 1; để [] nếu không có>"],
+  "imageUrls": ["<ẢNH đoạn văn (cách dùng CHÍNH) theo DẢI SỐ câu, vd nhóm câu 131-134 → /assets/images/ets26t1/ets26t1-131-134.jpg — CHỈ ở câu 1; để [] nếu admin upload sau>"],
+  "passages": ["<TÙY CHỌN: đoạn văn dạng text nếu không dùng ảnh — CHỈ ở câu 1>"],
   "questionText": "<số chỗ trống tương ứng, vd: (1)>",
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
-=== LƯU Ý PART 6 ===
-- Chung "groupId"; mỗi câu ứng 1 chỗ trống. Chỉ câu ĐẦU chứa "passages" và "imageUrls" (ảnh nếu có; để [] nếu không có).
+=== LƯU Ý PART 6 (câu 131-146 — 4 nhóm × 4 câu/đoạn) ===
+- Chung "groupId"; mỗi câu ứng 1 chỗ trống (Part 6 bắt đầu từ câu 131). Chỉ câu ĐẦU chứa "imageUrls" (ẢNH đoạn văn — cách chính); "passages" text là TÙY CHỌN.
+- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 131-134 → "ets26t1-131-134.jpg". Để [] nếu admin upload sau.
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 6, "groupId": "p6_grp_001", "questionIndex": 1,
-    "passages": ["Thank you for your order. Your package will _____(1)_____ within 3 days. If you have questions, please _____(2)_____ our support team."],
-    "imageUrls": [],
+    "imageUrls": ["/assets/images/ets26t1/ets26t1-131-134.jpg"],
     "questionText": "(1)",
     "options": [ {"label":"A","text":"arrive"}, {"label":"B","text":"arrives"}, {"label":"C","text":"arrived"}, {"label":"D","text":"arriving"} ],
     "correctAnswer": "A",
@@ -1028,20 +1023,20 @@ const PART_PROMPTS = {
   "groupId": "<vd p7_grp_001>",
   "questionIndex": "<1, 2, 3...>",
   "passageCount": "<1 | 2 | 3>",
-  "passages": ["<đoạn đọc — CHỈ ở câu 1; nếu double/triple thì nhiều phần tử>"],
-  "imageUrls": ["<đường dẫn ảnh nếu đoạn là văn bản/biểu mẫu có hình, vd /assets/images/ets26t1/ets26t1-147.jpg — CHỈ ở câu 1; để [] nếu không có>"],
+  "imageUrls": ["<ẢNH đoạn đọc (cách dùng CHÍNH) theo DẢI SỐ câu, vd nhóm câu 147-148 → /assets/images/ets26t1/ets26t1-147-148.jpg — CHỈ ở câu 1; để [] nếu admin upload sau>"],
+  "passages": ["<TÙY CHỌN: đoạn đọc dạng text nếu không dùng ảnh — CHỈ ở câu 1>"],
   "questionText": "<câu hỏi>",
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
-=== LƯU Ý PART 7 ===
-- Chung "groupId" + "passageCount". Chỉ câu ĐẦU chứa "passages" và "imageUrls" (ảnh nếu có; để [] nếu không có).
+=== LƯU Ý PART 7 (câu 147-200 — nhóm tùy: single/double/triple đoạn, dải số theo nhóm) ===
+- Chung "groupId" + "passageCount" (Part 7 bắt đầu từ câu 147). Chỉ câu ĐẦU chứa "imageUrls" (ẢNH đoạn đọc — cách chính); "passages" text là TÙY CHỌN.
+- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 147-148 → "ets26t1-147-148.jpg". Để [] nếu admin upload sau.
 === VÍ DỤ ===
 [
   { "part": 7, "groupId": "p7_grp_001", "questionIndex": 1, "passageCount": 1,
-    "passages": ["NOTICE: The library will be closed on Monday, July 4th for the national holiday. Normal opening hours will resume on Tuesday."],
-    "imageUrls": [],
+    "imageUrls": ["/assets/images/ets26t1/ets26t1-147-148.jpg"],
     "questionText": "Why will the library be closed?",
     "options": [ {"label":"A","text":"For a holiday"}, {"label":"B","text":"For repairs"}, {"label":"C","text":"For an event"}, {"label":"D","text":"For cleaning"} ],
     "correctAnswer": "A",
@@ -1086,17 +1081,15 @@ function copyQuestionPrompt() {
   "questionText": "<câu hỏi tiếng Anh — bắt buộc với Part 2-7, bỏ với Part 1>",
   "questionTranslate": "<bản dịch tiếng Việt của câu hỏi — tùy chọn>",
 
-  // Nghe (Part 1-4)
-  "audioUrl": "<đường dẫn mp3 dạng /assets/audio/{thư mục đề}/{file}.mp3, vd /assets/audio/ets26t1/ets26t1-01.mp3 — để trống nếu admin tự upload>",
-  "audioText": "<transcript lời thoại/bài nói — Part 2/3/4>",
-  "audioTranslate": "<bản dịch tiếng Việt của audio — tùy chọn>",
+  // Nghe (Part 1-4) — KHÔNG cần "audioText", hệ thống phát file audio thật theo audioUrl
+  "audioUrl": "<mp3: Part 1/2 file đơn vd /assets/audio/ets26t1/ets26t1-01.mp3 ; Part 3/4 file dải số nhóm vd ets26t1-32-34.mp3 (chỉ ở câu đầu) — để trống nếu admin upload>",
 
-  // Đọc (Part 6-7)
-  "passages": ["<đoạn văn 1>", "<đoạn văn 2 nếu double/triple>"],
+  // Đọc (Part 6-7) — dùng ẢNH đoạn văn (imageUrls) là chính; "passages" text TÙY CHỌN
   "passageCount": <1 | 2 | 3 — chỉ Part 7>,
+  "passages": ["<TÙY CHỌN: đoạn văn dạng text nếu không dùng ảnh>"],
 
-  // Ảnh (Part 1)
-  "imageUrls": ["<đường dẫn ảnh dạng /assets/images/{thư mục đề}/{file}.jpg, vd /assets/images/ets26t1/ets26t1-01.jpg — để trống nếu admin tự upload>"],
+  // Ảnh (Part 1 = tranh; Part 3/4 = biểu đồ nếu có; Part 6/7 = ảnh đoạn văn)
+  "imageUrls": ["<ảnh .jpg: Part 1 file đơn vd ets26t1-01.jpg ; Part 3/4/6/7 file dải số nhóm vd ets26t1-32-34.jpg (chỉ ở câu đầu) — để [] nếu admin upload sau>"],
 
   // Đáp án
   "options": [
@@ -1125,9 +1118,13 @@ function copyQuestionPrompt() {
 - Part 1: bỏ "questionText", để "imageUrls": [] (admin upload sau).
 - Part 2: chỉ có A/B/C, không có D.
 - Part 3/4: nhiều câu hỏi cùng 1 audio → cùng "groupId", "questionIndex" tăng dần.
-- Part 6/7: nhiều câu hỏi cùng 1 passage → cùng "groupId", chỉ câu đầu tiên (questionIndex: 1) cần có "passages".
-- Giải thích trong "explanation" viết tiếng Việt; giữ nguyên tiếng Anh trong "questionText", "options", "audioText", "passages".
-- Bỏ qua các trường không liên quan đến part đó (ví dụ: Part 5 không cần audioText, passages).
+- Part 6/7: nhiều câu hỏi cùng 1 đoạn → cùng "groupId", chỉ câu đầu tiên (questionIndex: 1) chứa "imageUrls" (ẢNH đoạn văn — cách chính); "passages" text là TÙY CHỌN.
+- ĐẶT TÊN FILE audio/ảnh (RẤT QUAN TRỌNG, đúng từng ký tự):
+  • Thư mục theo số đề: "ets26t" + số đề, vd đề 1 → ets26t1, đề 2 → ets26t2 (PHẢI có "26", KHÔNG viết "etst2").
+  • Part 1/2 (mỗi câu 1 audio/ảnh) → file ĐƠN theo số câu: /assets/audio/ets26t2/ets26t2-01.mp3
+  • Part 3/4/6/7 (nhóm nhiều câu) → file theo DẢI SỐ câu của nhóm: /assets/audio/ets26t2/ets26t2-32-34.mp3 ; ảnh tương tự .jpg. "audioUrl"/"imageUrls" CHỈ đặt ở câu đầu nhóm (questionIndex 1).
+- Giải thích trong "explanation" viết tiếng Việt; giữ nguyên tiếng Anh trong "questionText", "options".
+- Bỏ qua các trường không liên quan đến part đó (ví dụ: Part 5 không cần audio/ảnh/passages).
 
 === VÍ DỤ PART 5 ===
 [
@@ -1155,8 +1152,8 @@ function copyQuestionPrompt() {
 [
   {
     "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
-    "audioText": "W: Have you finished the report yet? M: Almost, I just need to check the numbers. W: Great, the manager wants it by noon.",
-    "audioTranslate": "Nữ: Bạn đã xong báo cáo chưa? Nam: Gần xong, tôi chỉ cần kiểm tra số liệu. Nữ: Tốt, quản lý muốn có trước 12 giờ.",
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-32-34.mp3",
+    "imageUrls": [],
     "questionText": "What is the man doing?",
     "options": [{ "label": "A", "text": "Finishing a report" }, { "label": "B", "text": "Checking some figures" }, { "label": "C", "text": "Sending an email" }, { "label": "D", "text": "Attending a meeting" }],
     "correctAnswer": "B",
@@ -1194,6 +1191,56 @@ Nội dung câu hỏi của tôi:
     }
 }
 
+// Kiểm tra ĐỊNH DẠNG 1 câu hỏi import. Trả mảng lỗi (rỗng nếu hợp lệ).
+function validateImportedQuestion(q, i) {
+    const n = `Câu #${i + 1}`;
+    const errs = [];
+    if (!q || typeof q !== 'object' || Array.isArray(q)) return [`${n}: phải là một object JSON`];
+
+    const part = parseInt(q.part);
+    if (!part || part < 1 || part > 7) return [`${n}: thiếu/sai "part" (phải là số 1-7)`];
+
+    // Đáp án: Part 2 cần 3, các part khác cần 4 — đều phải có nội dung.
+    if (!Array.isArray(q.options)) {
+        errs.push(`${n}: thiếu "options" (mảng đáp án)`);
+    } else {
+        const cleaned = q.options.map((o, idx) => ({
+            label: (o && o.label) || String.fromCharCode(65 + idx),
+            text: (o && o.text != null ? String(o.text) : '').trim(),
+        }));
+        const withText = cleaned.filter(o => o.text);
+        const expected = part === 2 ? 3 : 4;
+        if (withText.length !== expected) errs.push(`${n}: Part ${part} cần đúng ${expected} đáp án có nội dung (đang có ${withText.length})`);
+        // correctAnswer
+        if (!q.correctAnswer || !/^[A-D]$/.test(String(q.correctAnswer))) {
+            errs.push(`${n}: "correctAnswer" phải là một chữ A/B/C/D`);
+        } else if (!cleaned.some(o => o.label === q.correctAnswer)) {
+            errs.push(`${n}: "correctAnswer" (${q.correctAnswer}) không khớp đáp án nào`);
+        }
+    }
+
+    // source bắt buộc (gom câu thành đề thi)
+    if (!q.source || !String(q.source).trim()) errs.push(`${n}: thiếu "source" (mã đề — bắt buộc)`);
+
+    // questionText bắt buộc với Part 3-7
+    if (part >= 3 && (!q.questionText || !String(q.questionText).trim())) errs.push(`${n}: Part ${part} cần "questionText"`);
+
+    // Part nhóm: 3,4,6,7 cần groupId + questionIndex. Nội dung (audio/ảnh) đặt ở
+    // câu đầu — KHÔNG bắt buộc "audioText"/"passages" (dùng file audio thật + ảnh).
+    if ([3, 4, 6, 7].includes(part)) {
+        if (!q.groupId || !String(q.groupId).trim()) errs.push(`${n}: Part ${part} cần "groupId"`);
+        const idx = parseInt(q.questionIndex);
+        if (!idx || idx < 1) errs.push(`${n}: Part ${part} cần "questionIndex" (số ≥ 1)`);
+    }
+
+    // Kiểu dữ liệu media nếu có
+    if (q.imageUrls != null && !Array.isArray(q.imageUrls) && typeof q.imageUrls !== 'string') errs.push(`${n}: "imageUrls" phải là mảng hoặc chuỗi`);
+    if (q.audioUrl != null && typeof q.audioUrl !== 'string') errs.push(`${n}: "audioUrl" phải là chuỗi`);
+    if (q.explanation != null && typeof q.explanation !== 'object' && typeof q.explanation !== 'string') errs.push(`${n}: "explanation" phải là object hoặc chuỗi`);
+
+    return errs;
+}
+
 async function submitQuestionJsonImport() {
     const raw = document.getElementById('question-json-input').value.trim();
     const resultDiv = document.getElementById('question-json-result');
@@ -1208,6 +1255,22 @@ async function submitQuestionJsonImport() {
         return;
     }
     if (questions.length === 0) { showToast('Không có câu hỏi nào trong JSON', 'error'); return; }
+
+    // PRE-VALIDATE TOÀN BỘ — sai định dạng thì KHÔNG lưu gì cả (import nguyên khối).
+    const preErrors = [];
+    questions.forEach((q, i) => { preErrors.push(...validateImportedQuestion(q, i)); });
+    if (preErrors.length) {
+        resultDiv.style.display = 'block';
+        resultDiv.style.background = '#fef2f2';
+        resultDiv.style.border = '1px solid #fca5a5';
+        resultDiv.style.color = '#1f2937';
+        resultDiv.innerHTML = `
+            <b>❌ Không lưu — JSON sai định dạng (${preErrors.length} lỗi)</b>
+            <ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">${preErrors.map(e => `<li>${e}</li>`).join('')}</ul>
+        `;
+        showToast('JSON sai định dạng — đã hủy import (không lưu câu nào)', 'error');
+        return;
+    }
 
     const btn = document.getElementById('btn-submit-q-json');
     btn.disabled = true;
