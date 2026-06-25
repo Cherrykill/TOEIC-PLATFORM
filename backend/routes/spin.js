@@ -1,40 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const UserSpin = require('../models/UserSpin');
 const UserStats = require('../models/UserStats');
+const SpinConfig = require('../models/SpinConfig');
 const logger = require('../utils/logger');
 
-const SPIN_COST = { coin: 100, gem: 5 };
+const admin = [protect, authorize('admin')];
 
-// Phải khớp thứ tự với PRIZES trong SpinWheelModal.jsx
-const PRIZES = [
-    { type: 'coins',  amount: 50,  label: '50 Xu'   },
-    { type: 'gems',   amount: 5,   label: '5 Đá'    },
-    { type: 'xp',     amount: 100, label: '100 XP'  },
-    { type: 'coins',  amount: 100, label: '100 Xu'  },
-    { type: 'coins',  amount: 200, label: '200 Xu'  },
-    { type: 'gems',   amount: 10,  label: '10 Đá'   },
-    { type: 'energy', amount: 100, label: 'Nạp NL'  },
-    { type: 'hints',  amount: 2,   label: '2 Gợi ý' },
-];
+// Cache config trong RAM — xoá khi admin lưu.
+let _cfgCache = null;
+async function getCfg() {
+    if (_cfgCache) return _cfgCache;
+    _cfgCache = await SpinConfig.getConfig();
+    return _cfgCache;
+}
 
-// Tỷ lệ theo chế độ quay — index khớp với PRIZES
-const PROBS = {
-    free: [0.28, 0.18, 0.18, 0.14, 0.10, 0.06, 0.04, 0.02],
-    coin: [0.25, 0.15, 0.18, 0.16, 0.12, 0.07, 0.05, 0.02],
-    gem:  [0.05, 0.10, 0.15, 0.20, 0.20, 0.15, 0.10, 0.05],
-};
-
-function pickPrize(mode) {
-    const probs = PROBS[mode] || PROBS.free;
-    const r = Math.random();
-    let cumulative = 0;
-    for (let i = 0; i < PRIZES.length; i++) {
-        cumulative += probs[i];
-        if (r < cumulative) return i;
+// Chọn phần thưởng theo TRỌNG SỐ (prob[mode]) — tự chuẩn hoá.
+function pickPrizeIndex(prizes, mode) {
+    const weights = prizes.map(p => Math.max(0, p.prob?.[mode] ?? 0));
+    const total = weights.reduce((a, b) => a + b, 0);
+    if (total <= 0) return Math.floor(Math.random() * prizes.length);
+    let r = Math.random() * total;
+    for (let i = 0; i < prizes.length; i++) {
+        r -= weights[i];
+        if (r < 0) return i;
     }
-    return PRIZES.length - 1;
+    return prizes.length - 1;
+}
+
+// Chỉ gửi field hiển thị ra client (giấu tỷ lệ).
+function publicPrize(p) {
+    return { type: p.type, amount: p.amount, label: p.label, icon: p.icon, color: p.color };
 }
 
 function msUntilMidnight() {
@@ -46,9 +43,10 @@ function msUntilMidnight() {
 
 router.get('/status', protect, async (req, res) => {
     try {
-        const [spin, stats] = await Promise.all([
+        const [spin, stats, cfg] = await Promise.all([
             UserSpin.findOne({ userId: req.user.id }).lean(),
             UserStats.findOne({ userId: req.user.id }).select('coins gems').lean(),
+            getCfg(),
         ]);
 
         let canFreeSpin = true, nextSpinAt = null;
@@ -69,7 +67,8 @@ router.get('/status', protect, async (req, res) => {
             totalSpins: spin?.totalSpins || 0,
             coins: stats?.coins || 0,
             gems: stats?.gems || 0,
-            costs: SPIN_COST,
+            costs: cfg.costs,
+            prizes: cfg.prizes.map(publicPrize),
         });
     } catch (err) {
         logger.error('Spin status error:', err);
@@ -82,10 +81,13 @@ router.post('/', protect, async (req, res) => {
         const userId = req.user.id;
         const mode = ['free', 'coin', 'gem'].includes(req.body.mode) ? req.body.mode : 'free';
 
-        const [spin, stats] = await Promise.all([
+        const [spin, stats, cfg] = await Promise.all([
             UserSpin.findOne({ userId }),
             UserStats.findOne({ userId }),
+            getCfg(),
         ]);
+        const cost = cfg.costs;
+        const prizes = cfg.prizes;
 
         if (mode === 'free') {
             if (spin?.lastSpinAt) {
@@ -98,17 +100,17 @@ router.post('/', protect, async (req, res) => {
                 }
             }
         } else if (mode === 'coin') {
-            if ((stats?.coins || 0) < SPIN_COST.coin) {
-                return res.status(400).json({ success: false, message: `Không đủ xu! Cần ${SPIN_COST.coin} xu.` });
+            if ((stats?.coins || 0) < cost.coin) {
+                return res.status(400).json({ success: false, message: `Không đủ xu! Cần ${cost.coin} xu.` });
             }
         } else if (mode === 'gem') {
-            if ((stats?.gems || 0) < SPIN_COST.gem) {
-                return res.status(400).json({ success: false, message: `Không đủ đá quý! Cần ${SPIN_COST.gem} đá.` });
+            if ((stats?.gems || 0) < cost.gem) {
+                return res.status(400).json({ success: false, message: `Không đủ đá quý! Cần ${cost.gem} đá.` });
             }
         }
 
-        const prizeIndex = pickPrize(mode);
-        const prize = PRIZES[prizeIndex];
+        const prizeIndex = pickPrizeIndex(prizes, mode);
+        const prize = prizes[prizeIndex];
 
         // Áp dụng phần thưởng + trừ chi phí
         const rewardUpdate = {};
@@ -116,14 +118,13 @@ router.post('/', protect, async (req, res) => {
         if (prize.type === 'gems')   rewardUpdate.$inc = { gems: prize.amount };
         if (prize.type === 'xp')     rewardUpdate.$inc = { xp: prize.amount, totalXp: prize.amount };
         if (prize.type === 'hints')  rewardUpdate.$inc = { hints: prize.amount };
-        if (prize.type === 'energy') rewardUpdate.$set = { energy: 100, lastEnergyUpdate: new Date() };
+        if (prize.type === 'energy') rewardUpdate.$set = { energy: prize.amount, lastEnergyUpdate: new Date() };
 
-        // Trừ chi phí (merge vào $inc)
         if (mode === 'coin') {
-            rewardUpdate.$inc = { ...(rewardUpdate.$inc || {}), coins: (rewardUpdate.$inc?.coins || 0) - SPIN_COST.coin };
+            rewardUpdate.$inc = { ...(rewardUpdate.$inc || {}), coins: (rewardUpdate.$inc?.coins || 0) - cost.coin };
         }
         if (mode === 'gem') {
-            rewardUpdate.$inc = { ...(rewardUpdate.$inc || {}), gems: (rewardUpdate.$inc?.gems || 0) - SPIN_COST.gem };
+            rewardUpdate.$inc = { ...(rewardUpdate.$inc || {}), gems: (rewardUpdate.$inc?.gems || 0) - cost.gem };
         }
 
         await UserStats.findOneAndUpdate({ userId }, rewardUpdate);
@@ -139,11 +140,50 @@ router.post('/', protect, async (req, res) => {
         }
 
         const nextSpinAt = mode === 'free' ? new Date(Date.now() + msUntilMidnight()) : null;
-        res.json({ success: true, prizeIndex, prize, mode, nextSpinAt });
+        res.json({ success: true, prizeIndex, prize: publicPrize(prize), mode, nextSpinAt });
     } catch (err) {
         logger.error('Spin error:', err);
         res.status(500).json({ success: false, message: 'Lỗi quay thưởng' });
     }
+});
+
+// ── Admin: cấu hình phần thưởng + tỷ lệ ──
+router.get('/config', admin, async (req, res, next) => {
+    try {
+        const cfg = await SpinConfig.getConfig();
+        res.json({ success: true, data: cfg });
+    } catch (e) { next(e); }
+});
+
+router.put('/config', admin, async (req, res, next) => {
+    try {
+        const { costs, prizes } = req.body;
+        const cfg = await SpinConfig.getConfig();
+
+        if (costs) {
+            cfg.costs = {
+                coin: Number(costs.coin) > 0 ? Number(costs.coin) : cfg.costs.coin,
+                gem: Number(costs.gem) > 0 ? Number(costs.gem) : cfg.costs.gem,
+            };
+        }
+        if (Array.isArray(prizes) && prizes.length > 0) {
+            cfg.prizes = prizes.map(p => ({
+                type: p.type,
+                amount: Number(p.amount) || 0,
+                label: String(p.label || ''),
+                icon: p.icon || '🎁',
+                color: p.color || '#888888',
+                prob: {
+                    free: Math.max(0, Number(p.prob?.free) || 0),
+                    coin: Math.max(0, Number(p.prob?.coin) || 0),
+                    gem: Math.max(0, Number(p.prob?.gem) || 0),
+                },
+            }));
+        }
+        await cfg.save();
+        _cfgCache = null; // xoá cache để áp dụng ngay
+        res.json({ success: true, message: 'Đã lưu cấu hình vòng quay', data: cfg });
+    } catch (e) { next(e); }
 });
 
 module.exports = router;

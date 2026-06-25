@@ -7310,3 +7310,36 @@ mark {
 @media (max-width: 640px) {
   .season-countdown { font-size: 11px; padding: 5px 9px; }
 }
+
+/* Vòng quay: nút x5/x10 nhanh + checkbox bỏ hoạt ảnh */
+.spin-qty-quick {
+  min-width: 38px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--bg-secondary, #f3f4f6);
+  color: var(--text-primary, #1e293b);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.spin-qty-quick:hover:not(:disabled) { border-color: var(--primary-color, #E11D48); }
+.spin-qty-quick.active {
+  background: linear-gradient(135deg, var(--primary-color, #E11D48), var(--secondary-color, #F97316));
+  color: #fff;
+  border-color: transparent;
+}
+.spin-qty-quick:disabled { opacity: 0.5; cursor: not-allowed; }
+.spin-skip-anim {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  user-select: none;
+}
+.spin-skip-anim input { width: 16px; height: 16px; cursor: pointer; }

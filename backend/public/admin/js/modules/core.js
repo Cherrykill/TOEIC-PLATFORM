@@ -491,6 +491,7 @@ async function initDashboard() {
   loadRecentUsers();
   loadGrowthChart(30);
   if (typeof window.refreshSeasonAdmin === 'function') window.refreshSeasonAdmin();
+  if (typeof window.initSpinAdmin === 'function') window.initSpinAdmin();
   loadReportStats(); // load badge count on startup
   // Poll for new reports every 60s so the badge stays current
   setInterval(loadReportStats, 60_000);

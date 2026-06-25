@@ -25,20 +25,19 @@ const PRIZES = [
     { label: '2 Gợi ý', icon: '💡', type: 'hints',  amount: 2,   color: '#3b82f6' },
 ];
 
-const SEG = 360 / PRIZES.length;
-
-function drawWheel(canvas, rotationDeg) {
+function drawWheel(canvas, rotationDeg, prizes = PRIZES) {
     const ctx = canvas.getContext('2d');
     const S = canvas.width;
     const cx = S / 2, cy = S / 2;
     const R = cx - 4;
     const rot = (rotationDeg * Math.PI) / 180;
+    const n = prizes.length || 1;
 
     ctx.clearRect(0, 0, S, S);
 
-    PRIZES.forEach((prize, i) => {
-        const start = rot + (i * 2 * Math.PI) / PRIZES.length - Math.PI / 2;
-        const end = start + (2 * Math.PI) / PRIZES.length;
+    prizes.forEach((prize, i) => {
+        const start = rot + (i * 2 * Math.PI) / n - Math.PI / 2;
+        const end = start + (2 * Math.PI) / n;
 
         ctx.beginPath();
         ctx.moveTo(cx, cy);
@@ -52,7 +51,7 @@ function drawWheel(canvas, rotationDeg) {
 
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.rotate(start + Math.PI / PRIZES.length);
+        ctx.rotate(start + Math.PI / n);
         ctx.textAlign = 'right';
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 12px sans-serif';
@@ -99,11 +98,14 @@ export default function SpinWheelModal({ open, onClose }) {
     const [gems, setGems] = useState(0);
     const [costs, setCosts] = useState({ coin: 100, gem: 5 });
     const [qty, setQty] = useState(1);
+    const [skipAnim, setSkipAnim] = useState(false);
+    const [prizes, setPrizes] = useState(PRIZES); // phần thưởng động (từ backend), fallback PRIZES
+    const phaseRef = useRef('idle');
 
     useEffect(() => {
         if (!open || !canvasRef.current) return;
-        drawWheel(canvasRef.current, rotRef.current);
-    }, [open]);
+        drawWheel(canvasRef.current, rotRef.current, prizes);
+    }, [open, prizes]);
 
     useEffect(() => {
         if (!open) return;
@@ -118,6 +120,7 @@ export default function SpinWheelModal({ open, onClose }) {
                     setCoins(data.coins || 0);
                     setGems(data.gems || 0);
                     if (data.costs) setCosts(data.costs);
+                    if (data.prizes?.length) setPrizes(data.prizes);
                 }
             })
             .catch(() => {});
@@ -144,11 +147,66 @@ export default function SpinWheelModal({ open, onClose }) {
         setResult(null);
         setSpinSummary(null);
 
+        const SEG = 360 / (prizes.length || 1);
+        const draw = () => { if (canvasRef.current) drawWheel(canvasRef.current, rotRef.current, prizes); };
+        const stopAll = () => {
+            phaseRef.current = 'idle';
+            if (animRef.current) cancelAnimationFrame(animRef.current);
+            if (spinSoundRef.current) { spinSoundRef.current.pause(); spinSoundRef.current = null; }
+            setSpinning(false);
+        };
+
+        // Áp dụng phần thưởng + cập nhật state (dùng chung cho cả 2 chế độ).
+        const applyResults = (results, nextAt) => {
+            let totalCoinsWon = 0, totalGemsWon = 0, totalXpWon = 0, totalHints = 0;
+            let totalCoinCost = 0, totalGemCost = 0;
+            for (const r of results) {
+                if (mode === 'coin') totalCoinCost += costs.coin;
+                if (mode === 'gem')  totalGemCost  += costs.gem;
+                if (r.prize.type === 'coins')  totalCoinsWon += r.prize.amount;
+                if (r.prize.type === 'gems')   totalGemsWon  += r.prize.amount;
+                if (r.prize.type === 'xp')     totalXpWon    += r.prize.amount;
+                if (r.prize.type === 'hints')  totalHints    += r.prize.amount;
+            }
+            if (results.length > 1) {
+                setSpinSummary({ spins: results.length, coins: totalCoinsWon, gems: totalGemsWon, xp: totalXpWon, hints: totalHints });
+            }
+            if (mode === 'free') { setCanFreeSpin(false); setNextSpinAt(nextAt); }
+            setCoins(c => c - totalCoinCost + totalCoinsWon);
+            setGems(g  => g - totalGemCost  + totalGemsWon);
+
+            const rs = GameState.state?.resources;
+            if (rs) {
+                if (mode === 'coin') rs.coins = (rs.coins || 0) - totalCoinCost;
+                if (mode === 'gem')  rs.gems  = (rs.gems  || 0) - totalGemCost;
+                for (const r of results) {
+                    if (r.prize.type === 'coins')  rs.coins  = (rs.coins  || 0) + r.prize.amount;
+                    if (r.prize.type === 'gems')   rs.gems   = (rs.gems   || 0) + r.prize.amount;
+                    if (r.prize.type === 'hints')  rs.hints  = (rs.hints  || 0) + r.prize.amount;
+                    if (r.prize.type === 'energy') rs.energy = 100;
+                    if (r.prize.type === 'xp' && GameState.state?.user)
+                        GameState.state.user.xp = (GameState.state.user.xp || 0) + r.prize.amount;
+                }
+            }
+            syncFromState();
+        };
+
+        // Bánh xe QUAY NGAY khi bấm (không chờ API) — chỉ khi không bỏ hoạt ảnh.
+        if (!skipAnim) {
+            spinSoundRef.current = playSound('spin.mp3', { loop: true, volume: 0.7 });
+            phaseRef.current = 'spin';
+            const spinLoop = () => {
+                if (phaseRef.current !== 'spin') return;
+                rotRef.current += 16;
+                draw();
+                animRef.current = requestAnimationFrame(spinLoop);
+            };
+            animRef.current = requestAnimationFrame(spinLoop);
+        }
+
         const token = getToken();
-        // Free spin is always qty=1
         const spins = mode === 'free' ? 1 : Math.max(1, qty);
         const results = [];
-
         for (let i = 0; i < spins; i++) {
             try {
                 const res = await fetch('/api/spin', {
@@ -156,91 +214,59 @@ export default function SpinWheelModal({ open, onClose }) {
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({ mode }),
                 }).then(r => r.json());
-
                 if (!res.success) {
-                    if (i === 0) {
-                        Notification.error(res.message || 'Không thể quay');
-                        setSpinning(false);
-                        return;
-                    }
-                    break; // hết tiền/đá ở lượt sau → dừng
+                    if (i === 0) { Notification.error(res.message || 'Không thể quay'); stopAll(); return; }
+                    break;
                 }
                 results.push(res);
             } catch {
-                if (i === 0) { Notification.error('Lỗi kết nối'); setSpinning(false); return; }
+                if (i === 0) { Notification.error('Lỗi kết nối'); stopAll(); return; }
                 break;
             }
         }
-
-        if (results.length === 0) { setSpinning(false); return; }
+        if (results.length === 0) { stopAll(); return; }
 
         const lastResult = results[results.length - 1];
         const prizeIndex = lastResult.prizeIndex;
         const nextAt = lastResult.nextSpinAt ? new Date(lastResult.nextSpinAt) : null;
-
-        spinSoundRef.current = playSound('spin.mp3', { loop: true, volume: 0.7 });
-
         const segCenter = prizeIndex * SEG + SEG / 2;
-        const jitter = (Math.random() - 0.5) * 20;
-        const targetRot = rotRef.current + 5 * 360 + (360 - segCenter) + jitter;
-        const startRot = rotRef.current;
-        const delta = targetRot - startRot;
-        const duration = 4000;
-        const startTime = performance.now();
-        const easeOut = t => 1 - Math.pow(1 - t, 3);
+        const desiredMod = (((360 - segCenter) % 360) + 360) % 360;
 
-        const animate = (now) => {
-            const elapsed = now - startTime;
-            const t = Math.min(elapsed / duration, 1);
-            rotRef.current = startRot + delta * easeOut(t);
-            if (canvasRef.current) drawWheel(canvasRef.current, rotRef.current);
-            if (t < 1) {
-                animRef.current = requestAnimationFrame(animate);
-            } else {
-                if (spinSoundRef.current) { spinSoundRef.current.pause(); spinSoundRef.current = null; }
-                playSound('achieve.mp3', { volume: 0.7 });
-                rotRef.current = targetRot;
-                setSpinning(false);
-                setResult(lastResult.prize);
-
-                // Tổng hợp phần thưởng
-                let totalCoinsWon = 0, totalGemsWon = 0, totalXpWon = 0, totalHints = 0;
-                let totalCoinCost = 0, totalGemCost = 0;
-                for (const r of results) {
-                    if (mode === 'coin') totalCoinCost += costs.coin;
-                    if (mode === 'gem')  totalGemCost  += costs.gem;
-                    if (r.prize.type === 'coins')  totalCoinsWon += r.prize.amount;
-                    if (r.prize.type === 'gems')   totalGemsWon  += r.prize.amount;
-                    if (r.prize.type === 'xp')     totalXpWon    += r.prize.amount;
-                    if (r.prize.type === 'hints')  totalHints    += r.prize.amount;
-                }
-
-                if (results.length > 1) {
-                    setSpinSummary({ spins: results.length, coins: totalCoinsWon, gems: totalGemsWon, xp: totalXpWon, hints: totalHints });
-                }
-
-                if (mode === 'free') { setCanFreeSpin(false); setNextSpinAt(nextAt); }
-                setCoins(c => c - totalCoinCost + totalCoinsWon);
-                setGems(g  => g - totalGemCost  + totalGemsWon);
-
-                const rs = GameState.state?.resources;
-                if (rs) {
-                    if (mode === 'coin') rs.coins  = (rs.coins  || 0) - totalCoinCost;
-                    if (mode === 'gem')  rs.gems   = (rs.gems   || 0) - totalGemCost;
-                    for (const r of results) {
-                        if (r.prize.type === 'coins')  rs.coins  = (rs.coins  || 0) + r.prize.amount;
-                        if (r.prize.type === 'gems')   rs.gems   = (rs.gems   || 0) + r.prize.amount;
-                        if (r.prize.type === 'hints')  rs.hints  = (rs.hints  || 0) + r.prize.amount;
-                        if (r.prize.type === 'energy') rs.energy = 100;
-                        if (r.prize.type === 'xp' && GameState.state?.user)
-                            GameState.state.user.xp = (GameState.state.user.xp || 0) + r.prize.amount;
-                    }
-                }
-                syncFromState();
-            }
+        const finish = () => {
+            if (spinSoundRef.current) { spinSoundRef.current.pause(); spinSoundRef.current = null; }
+            playSound('achieve.mp3', { volume: 0.7 });
+            phaseRef.current = 'idle';
+            setSpinning(false);
+            setResult(lastResult.prize);
+            applyResults(results, nextAt);
         };
-        animRef.current = requestAnimationFrame(animate);
-    }, [spinning, qty, costs, syncFromState]);
+
+        if (skipAnim) {
+            // Nhận ngay, đặt bánh xe đúng ô trúng, không hoạt ảnh.
+            rotRef.current = desiredMod;
+            draw();
+            finish();
+            return;
+        }
+
+        // Giảm tốc dừng vào ô trúng (ít nhất 2 vòng nữa).
+        phaseRef.current = 'land';
+        const startRot = rotRef.current;
+        let target = startRot - (startRot % 360) + desiredMod;
+        while (target < startRot + 2 * 360) target += 360;
+        const delta = target - startRot;
+        const duration = 2200;
+        const t0 = performance.now();
+        const easeOut = t => 1 - Math.pow(1 - t, 3);
+        const landLoop = (now) => {
+            const t = Math.min((now - t0) / duration, 1);
+            rotRef.current = startRot + delta * easeOut(t);
+            draw();
+            if (t < 1) { animRef.current = requestAnimationFrame(landLoop); }
+            else { rotRef.current = target; draw(); finish(); }
+        };
+        animRef.current = requestAnimationFrame(landLoop);
+    }, [spinning, qty, skipAnim, costs, prizes, syncFromState]);
 
     useEffect(() => () => {
         if (animRef.current) cancelAnimationFrame(animRef.current);
@@ -249,7 +275,7 @@ export default function SpinWheelModal({ open, onClose }) {
 
     if (!open) return null;
 
-    const resultPrize = result ? PRIZES.find(p => p.type === result.type && p.amount === result.amount) : null;
+    const resultPrize = result ? prizes.find(p => p.type === result.type && p.amount === result.amount) : null;
     const totalCoinCost = costs.coin * qty;
     const totalGemCost  = costs.gem  * qty;
 
@@ -294,15 +320,34 @@ export default function SpinWheelModal({ open, onClose }) {
                                     onClick={() => setQty(q => Math.min(50, q + 1))}
                                     disabled={spinning || qty >= 50}
                                 >+</button>
+                                <button
+                                    className={`spin-qty-quick${qty === 5 ? ' active' : ''}`}
+                                    onClick={() => setQty(5)}
+                                    disabled={spinning}
+                                >x5</button>
+                                <button
+                                    className={`spin-qty-quick${qty === 10 ? ' active' : ''}`}
+                                    onClick={() => setQty(10)}
+                                    disabled={spinning}
+                                >x10</button>
                             </div>
                         </div>
+                        <label className="spin-skip-anim">
+                            <input
+                                type="checkbox"
+                                checked={skipAnim}
+                                onChange={e => setSkipAnim(e.target.checked)}
+                                disabled={spinning}
+                            />
+                            Bỏ qua hoạt ảnh (nhận thưởng ngay)
+                        </label>
                     </div>
 
                     {/* COL 2: prizes + result + all spin buttons */}
                     <div className="spin-col-right">
                         <h3 className="spin-prizes-title">🎁 Phần thưởng</h3>
                         <div className="spin-prizes-grid">
-                            {PRIZES.map((p, i) => (
+                            {prizes.map((p, i) => (
                                 <div key={i} className="spin-prize-row" style={{ borderLeftColor: p.color }}>
                                     <span>{p.icon}</span>
                                     <span>{p.label}</span>

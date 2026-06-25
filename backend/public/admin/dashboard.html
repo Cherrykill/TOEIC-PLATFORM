@@ -529,6 +529,41 @@
               </div>
             </div>
 
+            <!-- Spin wheel config -->
+            <div class="card" style="margin-bottom:20px">
+              <div class="card-header">
+                <h2><i class="fas fa-dharmachakra"></i> Vòng quay — Phần thưởng &amp; tỷ lệ</h2>
+                <span id="spin-config-status" style="font-size:13px;color:var(--text-secondary)"></span>
+              </div>
+              <div style="padding:16px">
+                <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
+                  <div>
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Chi phí Xu / lượt</label>
+                    <input type="number" id="spin-cost-coin" style="width:120px;padding:7px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
+                  </div>
+                  <div>
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Chi phí Đá / lượt</label>
+                    <input type="number" id="spin-cost-gem" style="width:120px;padding:7px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
+                  </div>
+                </div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">
+                  <i class="fas fa-info-circle"></i> Tỷ lệ là <b>trọng số</b> (không cần cộng = 1) — hệ thống tự chuẩn hoá theo từng chế độ (Free / Xu / Đá).
+                </div>
+                <div style="overflow-x:auto">
+                  <table class="data-table" id="spin-config-table" style="font-size:13px">
+                    <thead><tr>
+                      <th>Màu</th><th>Icon</th><th>Nhãn</th><th>Loại</th><th>SL</th>
+                      <th>TL Free</th><th>TL Xu</th><th>TL Đá</th>
+                    </tr></thead>
+                    <tbody id="spin-config-rows"></tbody>
+                  </table>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                  <button class="btn btn-primary" id="spin-config-save"><i class="fas fa-save"></i> Lưu cấu hình</button>
+                </div>
+              </div>
+            </div>
+
             <!-- User Growth Chart -->
             <div class="card" style="margin-bottom: 20px">
               <div class="card-header">
@@ -4316,7 +4351,7 @@
     <script src="/admin/js/modules/state.js?v=1"></script>
     <script src="/admin/js/modules/utils.js?v=2"></script>
     <script src="/admin/js/modules/auth.js?v=2"></script>
-    <script src="/admin/js/modules/core.js?v=5"></script>
+    <script src="/admin/js/modules/core.js?v=6"></script>
     <script src="/admin/js/modules/vocab.js?v=4"></script>
     <script src="/admin/js/modules/users.js?v=2"></script>
     <script src="/admin/js/modules/vocab-stats.js?v=2"></script>
@@ -4324,6 +4359,7 @@
     <script src="/admin/js/modules/monitor.js?v=1"></script>
     <script src="/admin/js/modules/tabs.js?v=2"></script>
     <script src="/admin/js/modules/season-admin.js?v=1"></script>
+    <script src="/admin/js/modules/spin-admin.js?v=1"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
     <script src="/admin/js/modules/ui-init.js?v=2"></script>
     <script src="/admin/js/nav-game.js?v=3"></script>
