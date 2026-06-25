@@ -279,6 +279,17 @@ async function initVocabExtraFilters() {
         });
         typeSelect.dataset.bound = '1';
     }
+
+    // Wire up ô tìm kiếm (chế độ online/DB) — gọi lại API với từ khoá.
+    const searchInput = document.getElementById('vocab-search');
+    if (searchInput && !searchInput.dataset.boundOnline) {
+        const run = debounce(() => {
+            vocabSearchTerm = searchInput.value.trim();
+            loadVocabulary(1, vocabCurrentPart, vocabCurrentSource, vocabCurrentType);
+        }, 350);
+        searchInput.addEventListener('input', run);
+        searchInput.dataset.boundOnline = '1';
+    }
 }
 
 

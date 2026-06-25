@@ -213,7 +213,7 @@ function showTopicModal(topic) {
   modal.style.cssText =
     "position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:9999;";
   modal.innerHTML = `
-        <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;width:480px;max-width:95vw;padding:28px;">
+        <div style="background:#1e293b;border:1px solid #334155;border-radius:14px;width:560px;max-width:95vw;padding:26px;">
             <h3 style="margin:0 0 20px;font-size:17px;">${isEdit ? "Sửa đề" : "Thêm đề mới"}</h3>
             <div style="display:grid;gap:14px;">
                 <div>

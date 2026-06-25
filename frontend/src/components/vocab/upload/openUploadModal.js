@@ -82,12 +82,6 @@ export function openUploadModal() {
             <div style="text-align:right;margin-bottom:10px">
                 <button id="vocab-save-btn" class="btn btn-primary" style="min-width:100px"><i class="fas fa-save"></i> Lưu từ</button>
             </div>
-            <details style="margin-bottom:10px;border:1px dashed var(--border-color);border-radius:6px;padding:8px">
-                <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text-primary)"><i class="fas fa-code"></i> Dán JSON (nhanh, nhiều từ cùng lúc)</summary>
-                <textarea id="vocab-json" rows="6" placeholder='[{"en":"caterer","vn":"người cung cấp","part":"ETS26T10-RC","source":"ets2026","type":"noun","level":"B2","example":"The caterer provided lunch.","synonyms":"food provider","phonetic":"ˈkeɪtərər","image":""}]'
-                    style="width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;font-size:12px;font-family:monospace;background:var(--bg-tertiary,var(--bg-secondary));color:var(--text-primary);resize:vertical"></textarea>
-                <button id="vocab-json-submit" class="btn btn-primary" style="margin-top:8px;width:100%"><i class="fas fa-upload"></i> Gửi JSON</button>
-            </details>
             <div id="upload-form-result"></div>`;
 
         const manageTabHtml = () => `
@@ -180,30 +174,6 @@ export function openUploadModal() {
                     document.getElementById('vocab-en')?.focus();
                     saveAddTabState();
                 } catch (err) { resultDiv.innerHTML = resultHtml('error', err.message); }
-            });
-
-            document.getElementById('vocab-json-submit')?.addEventListener('click', async () => {
-                const ta = document.getElementById('vocab-json');
-                const raw = ta?.value.trim();
-                const resultDiv = document.getElementById('upload-form-result');
-                if (!raw) { resultDiv.innerHTML = resultHtml('error', 'Textarea JSON rỗng'); return; }
-                let parsed; try { parsed = JSON.parse(raw); } catch (e) { resultDiv.innerHTML = resultHtml('error', `JSON không hợp lệ: ${e.message}`); return; }
-                const items = Array.isArray(parsed) ? parsed : [parsed];
-                const retentionDays = readRetention('vocab-retention');
-                resultDiv.innerHTML = `<p style="color:var(--text-secondary);font-size:13px"><i class="fas fa-spinner fa-spin"></i> Đang lưu ${items.length} từ...</p>`;
-                let ok = 0, failed = 0, errors = [];
-                for (const raw of items) {
-                    const item = normalizeVocabItem(raw);
-                    if (!item.en || !item.part || !item.source) { failed++; errors.push(`Thiếu en/part/source: ${JSON.stringify(raw).slice(0,60)}`); continue; }
-                    try {
-                        const res = await UploadVocabAPI.create({ ...item, retentionDays });
-                        if (!res.success) throw new Error(res.message);
-                        ok++;
-                    } catch (err) { failed++; errors.push(`${item.en}: ${err.message}`); }
-                }
-                const msg = `✓ ${ok} thành công, ✗ ${failed} lỗi` + (errors.length ? '\n' + errors.slice(0,3).join('\n') : '');
-                resultDiv.innerHTML = resultHtml(failed === 0 ? 'success' : 'error', msg);
-                if (failed === 0 && ta) ta.value = '';
             });
         };
 

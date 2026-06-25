@@ -78,8 +78,17 @@ const ToeicTestSchema = new mongoose.Schema({
         max: 200,
     },
     allowReuseQuestions: {
-        type: Boolean, // Allow selecting questions already used in other tests
+        type: Boolean, // (Legacy) Allow selecting questions already used in other tests
         default: false,
+    },
+    // Chế độ chọn câu khi tạo Mini Test:
+    //  default       → theo thứ tự tạo, trong test này
+    //  shuffle-same  → đảo câu, cùng test, cùng Part
+    //  shuffle-cross → đảo câu, lấy từ mọi test cùng Part
+    questionSelectMode: {
+        type: String,
+        enum: ['default', 'shuffle-same', 'shuffle-cross'],
+        default: 'default',
     },
 
     // ===================================

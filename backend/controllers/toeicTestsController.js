@@ -98,7 +98,7 @@ exports.getTest = async (req, res, next) => {
  */
 exports.createTest = async (req, res, next) => {
     try {
-        const { testName, testType, description, source, level, totalTime: customTotalTime, allowReuseQuestions } = req.body;
+        const { testName, testType, description, source, level, totalTime: customTotalTime, questionSelectMode } = req.body;
 
         // Validate required fields
         if (!testName || !testType) {
@@ -168,14 +168,18 @@ exports.createTest = async (req, res, next) => {
             const requiredCount = partQuestionCounts[partNumber];
             const defaultTime = partTimeLimits[partNumber] || 600;
 
-            // Check if enough questions available
-            const availableCount = await ToeicQuestion.countDocuments({
+            // Chế độ chọn câu: default (thứ tự, trong test này) | shuffle-same (đảo,
+            // cùng test) | shuffle-cross (đảo, lấy từ MỌI test cùng Part).
+            const selectMode = questionSelectMode || 'default';
+            const scopeFilter = {
                 part: partNumber,
                 isActive: true,
                 isPublished: true,
-                ...(source ? { source } : {}),
-            });
+                // shuffle-cross bỏ filter source để gộp câu từ các test khác
+                ...(selectMode !== 'shuffle-cross' && source ? { source } : {}),
+            };
 
+            const availableCount = await ToeicQuestion.countDocuments(scopeFilter);
             if (availableCount < requiredCount) {
                 return res.status(400).json({
                     success: false,
@@ -189,36 +193,48 @@ exports.createTest = async (req, res, next) => {
                 });
             }
 
-            // Get questions already used in other tests if reuse is not allowed
-            let excludeIds = [];
-            if (allowReuseQuestions === false) {
-                const existingTests = await ToeicTest.find({ isActive: true }).select('parts').lean();
-                existingTests.forEach(test => {
-                    test.parts.forEach(part => {
-                        if (part.partNumber === partNumber && part.questions) {
-                            excludeIds.push(...part.questions);
-                        }
-                    });
-                });
-            }
-
-            // Lấy câu theo THỨ TỰ TẠO (questionNumber tăng dần) → câu lưu trước =
-            // câu 1, 2, 3... (không random như trước).
-            const questions = await ToeicQuestion.find({
-                part: partNumber,
-                isActive: true,
-                isPublished: true,
-                ...(source ? { source } : {}),
-                ...(excludeIds.length ? { _id: { $nin: excludeIds } } : {}),
-            })
+            const pool = await ToeicQuestion.find(scopeFilter)
                 .sort({ questionNumber: 1, createdAt: 1 })
-                .limit(requiredCount)
                 .lean();
+
+            const shuffle = (arr) => {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            };
+
+            let questions;
+            if (selectMode === 'default') {
+                // Theo thứ tự tạo
+                questions = pool.slice(0, requiredCount);
+            } else if ([3, 4, 6, 7].includes(partNumber)) {
+                // Part có nhóm → ĐẢO THEO NHÓM, giữ nguyên thứ tự câu trong nhóm
+                const groupMap = new Map();
+                for (const q of pool) {
+                    const key = q.groupId || String(q._id);
+                    if (!groupMap.has(key)) groupMap.set(key, []);
+                    groupMap.get(key).push(q);
+                }
+                const groups = [...groupMap.values()];
+                groups.forEach(g => g.sort((a, b) => (a.questionIndex || 0) - (b.questionIndex || 0)));
+                shuffle(groups);
+                questions = [];
+                for (const g of groups) {
+                    if (questions.length >= requiredCount) break;
+                    questions.push(...g);
+                }
+                questions = questions.slice(0, requiredCount);
+            } else {
+                // Part câu đơn (1, 2, 5) → đảo từng câu
+                questions = shuffle(pool).slice(0, requiredCount);
+            }
 
             if (questions.length < requiredCount) {
                 return res.status(400).json({
                     success: false,
-                    message: `⚠️ Cannot create Mini Test Part ${partNumber}: Not enough ${allowReuseQuestions === false ? 'unused ' : ''}questions available. Need ${requiredCount} questions, but only ${questions.length} found. Please ${allowReuseQuestions === false ? 'enable question reuse or ' : ''}add more questions.`,
+                    message: `⚠️ Cannot create Mini Test Part ${partNumber}: Not enough questions. Need ${requiredCount}, found ${questions.length}.`,
                 });
             }
 
@@ -246,7 +262,7 @@ exports.createTest = async (req, res, next) => {
             createdBy: req.user.id,
             isPublished: false,
             isActive: true,
-            allowReuseQuestions: allowReuseQuestions || false,
+            questionSelectMode: questionSelectMode || 'default',
         });
 
         res.status(201).json({
@@ -300,7 +316,7 @@ exports.generateFullTest = async (req, res, next) => {
  */
 exports.updateTest = async (req, res, next) => {
     try {
-        const { testName, testType, description, source, level, totalTime, randomQuestionCount, allowReuseQuestions, isPublished, isActive } = req.body;
+        const { testName, testType, description, source, level, totalTime, randomQuestionCount, questionSelectMode, isPublished, isActive } = req.body;
 
         const test = await ToeicTest.findById(req.params.id);
 
@@ -327,7 +343,7 @@ exports.updateTest = async (req, res, next) => {
         if (level !== undefined) test.level = level;
         if (totalTime !== undefined) test.totalTime = totalTime;
         if (randomQuestionCount !== undefined) test.randomQuestionCount = randomQuestionCount;
-        if (allowReuseQuestions !== undefined) test.allowReuseQuestions = allowReuseQuestions;
+        if (questionSelectMode !== undefined) test.questionSelectMode = questionSelectMode;
         if (isPublished !== undefined) test.isPublished = isPublished;
         if (isActive !== undefined) test.isActive = isActive;
 

@@ -9,7 +9,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="/admin/css/dashboard.css?v=11" />
+    <link rel="stylesheet" href="/admin/css/dashboard.css?v=15" />
     <style>
       /* Login modal */
       #admin-login-modal {
@@ -2913,9 +2913,9 @@
         style="
           background: white;
           border-radius: 15px;
-          padding: 30px;
+          padding: 22px;
           max-width: 800px;
-          width: 90%;
+          width: 92%;
           max-height: 90vh;
           overflow-y: auto;
         "
@@ -3739,49 +3739,26 @@
         style="
           background: white;
           border-radius: 15px;
-          padding: 30px;
-          max-width: 600px;
-          width: 90%;
+          padding: 24px;
+          max-width: 660px;
+          width: 92%;
           max-height: 90vh;
           overflow-y: auto;
         "
       >
-        <h3 style="margin-bottom: 20px; color: #e11d48">
+        <h3 style="margin-bottom: 16px; color: #e11d48">
           <i class="fas fa-file-alt"></i> Tạo đề thi mới
         </h3>
         <form id="test-form">
-          <div style="margin-bottom: 15px">
-            <label style="display: block; margin-bottom: 5px; font-weight: 500"
-              >Tên đề thi *</label
-            >
-            <input
-              type="text"
-              id="test-name"
-              required
-              placeholder="VD: Đề thi TOEIC thực hành 1"
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 2px solid #e0e0e0;
-                border-radius: 8px;
-              "
-            />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;align-items:start">
+          <div style="grid-column:1/-1">
+            <label style="display:block;margin-bottom:4px;font-weight:500">Tên đề thi *</label>
+            <input type="text" id="test-name" required placeholder="VD: Đề thi TOEIC thực hành 1" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
           </div>
 
-          <div style="margin-bottom: 15px">
-            <label style="display: block; margin-bottom: 5px; font-weight: 500"
-              >Loại đề *</label
-            >
-            <select
-              id="test-type"
-              required
-              style="
-                width: 100%;
-                padding: 10px;
-                border: 2px solid #e0e0e0;
-                border-radius: 8px;
-              "
-            >
+          <div>
+            <label style="display:block;margin-bottom:4px;font-weight:500">Loại đề *</label>
+            <select id="test-type" required style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
               <option value="">Chọn loại đề</option>
               <option value="full-test">Full Test (200 câu)</option>
               <option value="mini-part1">Mini Test - Part 1</option>
@@ -3794,62 +3771,33 @@
             </select>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px">
-            <div>
-              <label style="display: block; margin-bottom: 5px; font-weight: 500">Thời gian (phút) *</label>
-              <input
-                type="number"
-                id="test-duration"
-                required
-                min="1"
-                placeholder="Tự động điền khi chọn loại đề"
-                style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
-              />
-              <small style="color: #666; font-size: 12px">
-                <i class="fas fa-magic"></i> Tự điền khi chọn loại đề, có thể chỉnh
-              </small>
-            </div>
-            <div>
-              <label style="display: block; margin-bottom: 5px; font-weight: 500">Độ khó</label>
-              <select
-                id="test-level"
-                style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; height: 42px;"
-              >
-                <option value="beginner">🟢 Cơ bản</option>
-                <option value="intermediate" selected>🟡 Trung cấp</option>
-                <option value="advanced">🔴 Nâng cao</option>
-              </select>
-            </div>
+          <div>
+            <label style="display:block;margin-bottom:4px;font-weight:500">Thời gian (phút) *</label>
+            <input type="number" id="test-duration" required min="1" placeholder="Tự điền khi chọn loại đề" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
           </div>
 
-          <div style="margin-bottom: 15px">
-            <label style="display: block; margin-bottom: 5px; font-weight: 500">
-              <i class="fas fa-database"></i> Nguồn câu hỏi (Source)
-            </label>
-            <input
-              type="text"
-              id="test-source"
-              placeholder="VD: official_2024, economy_vol1, practice_set_a — để trống = tất cả nguồn"
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
-            />
-            <small style="color: #666; font-size: 12px">
-              <i class="fas fa-info-circle"></i> Chỉ chọn câu hỏi từ nguồn này khi tạo đề. Phải khớp với trường <code>source</code> trong câu hỏi.
-            </small>
+          <div>
+            <label style="display:block;margin-bottom:4px;font-weight:500">Độ khó</label>
+            <select id="test-level" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+              <option value="beginner">🟢 Cơ bản</option>
+              <option value="intermediate" selected>🟡 Trung cấp</option>
+              <option value="advanced">🔴 Nâng cao</option>
+            </select>
           </div>
 
-          <div style="margin-bottom: 15px">
-            <label style="display: block; margin-bottom: 5px; font-weight: 500">Mô tả</label>
-            <textarea
-              id="test-description"
-              rows="2"
-              placeholder="Mô tả ngắn về đề thi..."
-              style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
-            ></textarea>
+          <div>
+            <label style="display:block;margin-bottom:4px;font-weight:500"><i class="fas fa-database"></i> Nguồn (Source)</label>
+            <input type="text" id="test-source" placeholder="để trống = tất cả nguồn" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+          </div>
+
+          <div style="grid-column:1/-1">
+            <label style="display:block;margin-bottom:4px;font-weight:500">Mô tả</label>
+            <textarea id="test-description" rows="2" placeholder="Mô tả ngắn về đề thi..." style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px"></textarea>
           </div>
 
           <div
             id="random-questions-field"
-            style="margin-bottom: 15px; display: none"
+            style="grid-column:1/-1; display: none"
           >
             <label style="display: block; margin-bottom: 5px; font-weight: 500">
               <i class="fas fa-random"></i> Random Questions (Optional)
@@ -3874,67 +3822,50 @@
           </div>
 
           <div
+            id="q-select-mode-box"
             style="
-              margin-bottom: 15px;
-              padding: 15px;
-              background: #f8f9fa;
+              grid-column:1/-1;
+              padding: 10px 12px;
+              background: var(--bg-secondary,#f8f9fa);
               border-radius: 8px;
-              border: 2px solid #e9ecef;
+              border: 1.5px solid var(--border-color,#e9ecef);
             "
           >
-            <label
-              style="
-                display: flex;
-                align-items: center;
-                cursor: pointer;
-                font-weight: 500;
-              "
-            >
-              <input
-                type="checkbox"
-                id="reuse-questions-checkbox"
-                style="
-                  width: 18px;
-                  height: 18px;
-                  margin-right: 10px;
-                  cursor: pointer;
-                "
-              />
-              <span>
-                <i class="fas fa-recycle" style="color: #28a745"></i> Cho phép
-                chọn lại câu hỏi từ các test khác
-              </span>
+            <div style="font-weight:500;margin-bottom:6px">
+              <i class="fas fa-random" style="color:#28a745"></i> Chế độ chọn câu hỏi
+              <small style="color:var(--text-secondary,#888);font-weight:400">(chỉ Mini Test Part 1-7 — không áp dụng Full Test)</small>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:5px">
+              <input type="radio" name="q-select-mode" value="default" checked style="width:16px;height:16px;cursor:pointer">
+              <span>Mặc định — theo thứ tự tạo, trong test này</span>
             </label>
-            <small
-              style="
-                color: #666;
-                font-size: 12px;
-                margin-left: 28px;
-                display: block;
-                margin-top: 5px;
-              "
-            >
-              <i class="fas fa-info-circle"></i> Khi bật, hệ thống có thể chọn
-              ngẫu nhiên các câu hỏi đã được sử dụng trong test khác. Nếu tắt,
-              chỉ chọn câu hỏi chưa được sử dụng.
-            </small>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:5px">
+              <input type="radio" name="q-select-mode" value="shuffle-same" style="width:16px;height:16px;cursor:pointer">
+              <span>🔀 Đảo câu hỏi — <strong>cùng test</strong>, cùng Part</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="radio" name="q-select-mode" value="shuffle-cross" style="width:16px;height:16px;cursor:pointer">
+              <span>🔀 Đảo câu hỏi — <strong>khác test</strong>, cùng Part</span>
+            </label>
           </div>
 
           <div
             style="
+              grid-column:1/-1;
               display: flex;
               gap: 10px;
               justify-content: flex-end;
-              margin-top: 20px;
+              margin-top: 8px;
             "
           >
             <button
               type="button"
               id="btn-close-test-modal"
               style="
-                padding: 10px 20px;
-                border: 2px solid #ccc;
-                background: white;
+                padding: 9px 18px;
+                border: 1.5px solid var(--border-color,#ccc);
+                background: transparent;
+                color: var(--text-primary);
                 border-radius: 8px;
                 cursor: pointer;
               "
@@ -3944,7 +3875,7 @@
             <button
               type="submit"
               style="
-                padding: 10px 20px;
+                padding: 9px 18px;
                 border: none;
                 background: #e11d48;
                 color: white;
@@ -3954,6 +3885,7 @@
             >
               Tạo đề thi
             </button>
+          </div>
           </div>
         </form>
       </div>
@@ -4347,12 +4279,12 @@
     <script src="/admin/js/modules/utils.js?v=2"></script>
     <script src="/admin/js/modules/auth.js?v=1"></script>
     <script src="/admin/js/modules/core.js?v=3"></script>
-    <script src="/admin/js/modules/vocab.js?v=3"></script>
+    <script src="/admin/js/modules/vocab.js?v=4"></script>
     <script src="/admin/js/modules/users.js?v=2"></script>
     <script src="/admin/js/modules/vocab-stats.js?v=2"></script>
-    <script src="/admin/js/modules/toeic.js?v=11"></script>
+    <script src="/admin/js/modules/toeic.js?v=14"></script>
     <script src="/admin/js/modules/monitor.js?v=1"></script>
-    <script src="/admin/js/modules/tabs.js?v=1"></script>
+    <script src="/admin/js/modules/tabs.js?v=2"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
     <script src="/admin/js/modules/ui-init.js?v=1"></script>
     <script src="/admin/js/nav-game.js?v=3"></script>

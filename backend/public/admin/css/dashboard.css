@@ -1210,11 +1210,22 @@ table tbody tr:hover td { background: var(--hover-bg); }
 /* ===================================
    MISC FORM ELEMENTS
    =================================== */
-.question-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.question-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 .full-width { grid-column: 1 / -1; }
-.options-container { border: 1.5px solid var(--border-color); border-radius: var(--radius); padding: 15px; margin-top: 10px; }
-.option-item { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+/* 4 đáp án xếp 2×2 cho gọn, ít cuộn */
+.options-container { border: 1.5px solid var(--border-color); border-radius: var(--radius); padding: 12px; margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.option-item { display: flex; gap: 8px; margin-bottom: 0; align-items: center; }
 .option-item input[type="radio"] { width: 18px; height: 18px; flex-shrink: 0; }
+/* Nén toàn bộ form Add Question — input thấp như form Add Word */
+.option-item input[type="text"],
+#question-form input, #question-form select, #question-form textarea {
+  padding: 8px 10px !important;
+  border-width: 1px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+}
+#question-form label { font-size: 12px !important; font-weight: 600 !important; margin-bottom: 4px !important; }
+#question-form textarea { min-height: 0; }
 
 /* Search inputs inside card (vocab / history) */
 .card-search {
@@ -1908,6 +1919,16 @@ table tbody tr:hover td { background: var(--hover-bg); }
   background: var(--bg-primary) !important;
   color: var(--text-primary) !important;
 }
+
+/* Form "Tạo đề thi mới" — lưới 2 cột gọn, input thấp như form Add Word */
+#test-modal > div { max-width: 660px !important; }
+#test-form input, #test-form select, #test-form textarea {
+  padding: 8px 10px !important;
+  border-width: 1px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+}
+#test-form label { font-size: 12px !important; font-weight: 600 !important; margin-bottom: 4px !important; }
 
 /* Chữ & label bên trong mọi modal admin (label thường không set màu) */
 [data-theme="dark"] #add-word-modal,

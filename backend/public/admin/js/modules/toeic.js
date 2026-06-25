@@ -11,11 +11,15 @@ async function loadToeicStats() {
         ]);
 
         const testsData = await testsRes.json();
-        await questionsRes.json();
+        const questionsData = await questionsRes.json();
 
         const testsEl = document.getElementById('toeic-tests-count');
         if (testsEl) {
             testsEl.textContent = testsData.data?.length ?? testsData.count ?? '-';
+        }
+        const questionsEl = document.getElementById('total-sessions');
+        if (questionsEl) {
+            questionsEl.textContent = questionsData.total ?? questionsData.count ?? questionsData.data?.length ?? '-';
         }
     } catch (error) {
         console.error('Error loading TOEIC stats:', error);
@@ -320,14 +324,20 @@ function applyFiltersAndSort() {
     let filtered = [...allQuestions];
 
     if (searchFilters.searchText) {
+        const t = searchFilters.searchText;
         filtered = filtered.filter(q => {
-            const searchText = searchFilters.searchText;
-            return (
-                (q.questionText && q.questionText.toLowerCase().includes(searchText)) ||
-                (q.passage && q.passage.toLowerCase().includes(searchText)) ||
-                (q.explanation && q.explanation.toLowerCase().includes(searchText)) ||
-                (q.options && q.options.some(opt => opt.toLowerCase().includes(searchText)))
-            );
+            const inText = q.questionText && q.questionText.toLowerCase().includes(t);
+            // passages: mảng (mới) hoặc passage chuỗi (cũ)
+            const passageStr = Array.isArray(q.passages) ? q.passages.join(' ') : (q.passage || '');
+            const inPassage = passageStr.toLowerCase().includes(t);
+            // explanation: object {A,B,C,D} (mới) hoặc chuỗi (cũ)
+            const explStr = (q.explanation && typeof q.explanation === 'object')
+                ? Object.values(q.explanation).join(' ') : (q.explanation || '');
+            const inExpl = String(explStr).toLowerCase().includes(t);
+            // options: object {label,text} (mới) hoặc chuỗi (cũ)
+            const inOptions = Array.isArray(q.options)
+                && q.options.some(opt => String(opt?.text ?? opt ?? '').toLowerCase().includes(t));
+            return inText || inPassage || inExpl || inOptions;
         });
     }
 
@@ -1818,8 +1828,8 @@ function openTestModal(testId = null) {
     document.getElementById('test-source').value = '';
     document.getElementById('test-level').value = 'intermediate';
     document.getElementById('random-question-count').value = '';
-    const reuseCheckbox = document.getElementById('reuse-questions-checkbox');
-    if (reuseCheckbox) reuseCheckbox.checked = false;
+    const defMode = document.querySelector('input[name="q-select-mode"][value="default"]');
+    if (defMode) defMode.checked = true;
 
     modal.dataset.testId = testId || '';
     modal.dataset.editMode = testId ? 'true' : 'false';
@@ -1870,8 +1880,8 @@ function closeTestModal() {
     document.getElementById('test-source').value = '';
     document.getElementById('test-level').value = 'intermediate';
     document.getElementById('random-question-count').value = '';
-    const reuseCheckbox = document.getElementById('reuse-questions-checkbox');
-    if (reuseCheckbox) reuseCheckbox.checked = false;
+    const defMode = document.querySelector('input[name="q-select-mode"][value="default"]');
+    if (defMode) defMode.checked = true;
 
     modal.dataset.testId = '';
     modal.dataset.editMode = 'false';
@@ -1915,8 +1925,9 @@ async function editTest(testId) {
             document.getElementById('random-question-count').value = '';
         }
 
-        const reuseCheckbox = document.getElementById('reuse-questions-checkbox');
-        if (reuseCheckbox) reuseCheckbox.checked = test.allowReuseQuestions || false;
+        const mode = test.questionSelectMode || 'default';
+        const modeRadio = document.querySelector(`input[name="q-select-mode"][value="${mode}"]`);
+        if (modeRadio) modeRadio.checked = true;
 
     } catch (error) {
         console.error('Error loading test:', error);
@@ -1954,8 +1965,9 @@ async function handleTestSubmit(e) {
     const randomCount = parseInt(document.getElementById('random-question-count').value);
     if (!isNaN(randomCount) && randomCount > 0) testData.randomQuestionCount = randomCount;
 
-    const reuseQuestions = document.getElementById('reuse-questions-checkbox')?.checked || false;
-    testData.allowReuseQuestions = reuseQuestions;
+    // Chế độ chọn câu hỏi (chỉ Mini Test): default | shuffle-same | shuffle-cross
+    const selectMode = document.querySelector('input[name="q-select-mode"]:checked')?.value || 'default';
+    testData.questionSelectMode = selectMode;
 
     try {
         const url = isEditMode ? `${TOEIC_API_BASE}/tests/${testId}` : `${TOEIC_API_BASE}/tests`;
