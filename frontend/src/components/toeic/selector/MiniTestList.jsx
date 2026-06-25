@@ -1,7 +1,7 @@
 import EmptyState from './EmptyState.jsx';
 import TestCard from './TestCard.jsx';
 
-export default function MiniTestList({ tests, loading, onStart, partFilter = 'all' }) {
+export default function MiniTestList({ tests, loading, onStart, partFilter = 'all', search = '' }) {
     if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: 40 }}>
@@ -10,9 +10,11 @@ export default function MiniTestList({ tests, loading, onStart, partFilter = 'al
         );
     }
 
+    const q = search.trim().toLowerCase();
     const miniTests = tests.filter(t =>
         t.testType?.startsWith('mini-part') && t.isPublished === true
         && (partFilter === 'all' || t.testType === `mini-part${partFilter}`)
+        && (!q || (t.testName || t.title || '').toLowerCase().includes(q))
     );
 
     if (miniTests.length === 0) {

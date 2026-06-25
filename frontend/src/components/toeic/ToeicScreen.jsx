@@ -25,6 +25,9 @@ const PART_FILTERS = [
     ...[1, 2, 3, 4, 5, 6, 7].map(n => ({ key: n, label: `Part ${n}` })),
 ];
 const PART_FILTER_TABS = ['mini-test', 'fill-blank', 'my-history'];
+const LIST_TABS = ['full-test', 'mini-test', 'fill-blank'];
+// Gợi ý nhanh — bấm để điền vào ô tìm kiếm.
+const SEARCH_SUGGESTIONS = ['ETS 2026', 'ETS 2025', 'ETS 2024', 'ETS 2023', 'ETS 2022', 'ETS 2021', 'ETS 2020', 'ETS 2019', 'ETS 2018'];
 
 export default function ToeicScreen({ active }) {
     const { showScreen } = useGame();
@@ -33,6 +36,8 @@ export default function ToeicScreen({ active }) {
     // Bump để remount History/Analytics (chúng tự fetch khi mount) → tải lại dữ liệu.
     const [refreshKey, setRefreshKey] = useState(0);
     const [partFilter, setPartFilter] = useState('all'); // 'all' | 1..7
+    const [searchQuery, setSearchQuery] = useState('');  // lọc đề theo tên
+    const [searchFocused, setSearchFocused] = useState(false);
 
     const [mode, setMode] = useState('selector');       // selector | runner
     const [runnerConfig, setRunnerConfig] = useState(null);
@@ -144,19 +149,40 @@ export default function ToeicScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-graduation-cap"></i> Luyện tập TOEIC</h2>
-                {PART_FILTER_TABS.includes(activeTab) && (
-                    <div className="toeic-part-filters in-header">
-                        {PART_FILTERS.map(f => (
-                            <button
-                                key={f.key}
-                                className={`toeic-part-btn${partFilter === f.key ? ' active' : ''}`}
-                                onClick={() => setPartFilter(f.key)}
-                            >
-                                {f.label}
-                            </button>
-                        ))}
-                    </div>
-                )}
+                <div className="toeic-search-bar in-header">
+                    <i className="fas fa-search"></i>
+                    <input
+                        type="text"
+                        placeholder="Tìm đề thi theo tên..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => setSearchFocused(true)}
+                        onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+                    />
+                    {searchQuery && (
+                        <button className="toeic-search-clear" onClick={() => setSearchQuery('')} title="Xóa">
+                            <i className="fas fa-times"></i>
+                        </button>
+                    )}
+                    {searchFocused && (() => {
+                        const sug = SEARCH_SUGGESTIONS.filter(s =>
+                            !searchQuery || (s.toLowerCase().includes(searchQuery.toLowerCase()) && s.toLowerCase() !== searchQuery.toLowerCase())
+                        );
+                        return sug.length > 0 && (
+                            <div className="toeic-search-suggest">
+                                {sug.map(s => (
+                                    <button
+                                        key={s}
+                                        className="toeic-search-suggest-item"
+                                        onMouseDown={() => { setSearchQuery(s); setSearchFocused(false); }}
+                                    >
+                                        <i className="fas fa-magnifying-glass"></i> {s}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
+                </div>
                 <button
                     className={`toeic-header-btn${activeTab === 'my-history' ? ' active' : ''}`}
                     style={{ marginLeft: 'auto' }}
@@ -178,10 +204,6 @@ export default function ToeicScreen({ active }) {
             </div>
             <div className="screen-content">
                 <div id="toeic-selector" className="toeic-container">
-                    <div className="toeic-intro">
-                        <h3>🎯 TOEIC 7-Part Test System</h3>
-                        <p>Luyện thi TOEIC với hệ thống bài thi chuẩn quốc tế. Chọn bài thi phù hợp với trình độ của bạn!</p>
-                    </div>
                     <div className="toeic-tabs">
                         {TABS.map(tab => (
                             <button
@@ -194,10 +216,24 @@ export default function ToeicScreen({ active }) {
                             </button>
                         ))}
                     </div>
+                    {/* Bộ lọc theo Part — đặt ngay trên danh sách để dễ hiểu */}
+                    {PART_FILTER_TABS.includes(activeTab) && (
+                        <div className="toeic-part-filters">
+                            {PART_FILTERS.map(f => (
+                                <button
+                                    key={f.key}
+                                    className={`toeic-part-btn${partFilter === f.key ? ' active' : ''}`}
+                                    onClick={() => setPartFilter(f.key)}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <div id="toeic-tab-content">
-                        {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} onStart={(id) => openStartModal(id, true)} />}
+                        {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
+                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
+                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} search={searchQuery} onStart={(id) => openStartModal(id, true)} />}
                         {activeTab === 'my-history' && <HistoryList key={`history-${refreshKey}`} active={active && activeTab === 'my-history'} partFilter={partFilter} onView={handleViewResults} />}
                         {activeTab === 'analytics'  && <AnalyticsView key={`analytics-${refreshKey}`} active={active && activeTab === 'analytics'} />}
                     </div>

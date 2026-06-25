@@ -32,39 +32,46 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
             </div>
             {expanded && (
                 <div className="review-question-detail" style={{ display: 'block' }}>
-                    {imageUrl && (
-                        <img src={imageUrl} alt="Question" style={{ maxWidth: 300, margin: '10px 0' }} />
-                    )}
-                    {passageList.map((p, pi) => (
-                        <div key={pi} className="question-passage">
-                            <span dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }} />
-                        </div>
-                    ))}
-                    {q.questionText && (
-                        <p className="question-text"><strong>Câu hỏi:</strong> <span dangerouslySetInnerHTML={{ __html: q.questionText }} /></p>
-                    )}
-                    <div className="question-options">
-                        {q.options?.map(opt => {
-                            let cls = '';
-                            if (opt.label === q.correctAnswer) cls = 'option-correct';
-                            if (opt.label === q.userAnswer && !isCorrect) cls = 'option-wrong';
-                            const optExpl = explObj?.[opt.label];
-                            return (
-                                <div key={opt.label} className={`option-item ${cls}`}>
-                                    <span className="option-label">{opt.label}.</span>
-                                    <span className="option-text">
-                                        {opt.text}
-                                        {optExpl ? <em style={{ display: 'block', opacity: 0.8, fontSize: '0.9em', marginTop: 2 }}>{optExpl}</em> : null}
-                                    </span>
+                    {/* Có ảnh → 2 cột cố định: ảnh bên trái, câu hỏi/đáp án bên phải */}
+                    <div className={imageUrl ? 'review-detail-2col' : ''}>
+                        {imageUrl && (
+                            <div className="review-detail-image">
+                                <img src={imageUrl} alt="Question" />
+                            </div>
+                        )}
+                        <div className="review-detail-content">
+                            {passageList.map((p, pi) => (
+                                <div key={pi} className="question-passage">
+                                    <span dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }} />
                                 </div>
-                            );
-                        })}
-                    </div>
-                    {explString && (
-                        <div className="question-explanation">
-                            <strong>Giải thích:</strong> {explString}
+                            ))}
+                            {q.questionText && (
+                                <p className="question-text"><strong>Câu hỏi:</strong> <span dangerouslySetInnerHTML={{ __html: q.questionText }} /></p>
+                            )}
+                            <div className="question-options">
+                                {q.options?.map(opt => {
+                                    let cls = '';
+                                    if (opt.label === q.correctAnswer) cls = 'option-correct';
+                                    if (opt.label === q.userAnswer && !isCorrect) cls = 'option-wrong';
+                                    const optExpl = explObj?.[opt.label];
+                                    return (
+                                        <div key={opt.label} className={`option-item ${cls}`}>
+                                            <span className="option-label">{opt.label}.</span>
+                                            <span className="option-text">
+                                                {opt.text}
+                                                {optExpl ? <em style={{ display: 'block', opacity: 0.8, fontSize: '0.9em', marginTop: 2 }}>{optExpl}</em> : null}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {explString && (
+                                <div className="question-explanation">
+                                    <strong>Giải thích:</strong> {explString}
+                                </div>
+                            )}
                         </div>
-                    )}
+                    </div>
                 </div>
             )}
         </div>

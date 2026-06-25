@@ -1,7 +1,7 @@
 import EmptyState from './EmptyState.jsx';
 import TestCard from './TestCard.jsx';
 
-export default function FullTestList({ tests, loading, onStart }) {
+export default function FullTestList({ tests, loading, onStart, search = '' }) {
     if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: 40 }}>
@@ -10,7 +10,11 @@ export default function FullTestList({ tests, loading, onStart }) {
         );
     }
 
-    const fullTests = tests.filter(t => t.testType === 'full-test');
+    const q = search.trim().toLowerCase();
+    const fullTests = tests.filter(t =>
+        t.testType === 'full-test'
+        && (!q || (t.testName || t.title || '').toLowerCase().includes(q))
+    );
 
     if (fullTests.length === 0) {
         return (

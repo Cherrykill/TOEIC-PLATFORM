@@ -121,6 +121,19 @@ export default function TestRunner({ config, onExit }) {
         }
     }, [attempt]);
 
+    // Đánh dấu rồi nhảy sang câu tiếp. Riêng FULL TEST: chỉ nhảy ở phần Đọc
+    // (Part 5-7); phần Nghe (Part 1-4) tự chuyển theo audio nên chỉ đánh dấu.
+    const handleToggleMark = useCallback(() => {
+        attempt.toggleMark();
+        const q = attempt.currentQuestion;
+        const isFullTest = attempt.test?.testType === 'full-test';
+        const isListening = q && q.part <= 4;
+        if (isFullTest && isListening) return; // chỉ đánh dấu, không nhảy
+        if (!attempt.pendingTransition && attempt.currentIndex < attempt.questions.length - 1) {
+            attempt.nextQuestion();
+        }
+    }, [attempt]);
+
     const handleCheckKeywords = useCallback(() => {
         const inputs = document.querySelectorAll('.keyword-blank-input');
         let correct = 0;
@@ -226,7 +239,7 @@ export default function TestRunner({ config, onExit }) {
                 isMarked={attempt.markedQuestions.has(attempt.currentIndex)}
                 onBack={handleConfirmExit}
                 onToggleNav={() => setNavOpen(o => !o)}
-                onToggleMark={attempt.toggleMark}
+                onToggleMark={handleToggleMark}
                 onPause={handlePause}
                 onSubmit={handleConfirmSubmit}
                 onPrev={attempt.prevQuestion}

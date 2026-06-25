@@ -328,6 +328,7 @@ Danh sách từ vựng cần chuyển:
                                 <th style="padding:6px 8px;text-align:left;color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--border-color)">English</th>
                                 <th style="padding:6px 8px;text-align:left;color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--border-color)">Vietnamese</th>
                                 <th style="padding:6px 8px;text-align:left;color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--border-color)">Part</th>
+                                <th style="padding:6px 8px;text-align:left;color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--border-color)">Ngày hết hạn</th>
                                 <th style="padding:6px 8px;border-bottom:1px solid var(--border-color)"></th>
                             </tr></thead>
                             <tbody id="word-rows">
@@ -336,6 +337,7 @@ Danh sách từ vựng cần chuyển:
                                         <td style="padding:6px 8px;color:var(--text-primary);font-weight:500">${w.en}</td>
                                         <td style="padding:6px 8px;color:var(--text-secondary)">${w.vn || '—'}</td>
                                         <td style="padding:6px 8px;color:var(--text-secondary)">${w.part || '—'}</td>
+                                        <td style="padding:6px 8px;color:var(--text-secondary)">${w.expiresAt ? new Date(w.expiresAt).toLocaleDateString('vi-VN') : 'Không hết hạn'}</td>
                                         <td style="padding:6px 8px;text-align:right">
                                             <button class="word-delete-btn" data-id="${w._id}" data-en="${w.en}"
                                                 style="padding:3px 8px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:4px;font-size:11px;cursor:pointer">

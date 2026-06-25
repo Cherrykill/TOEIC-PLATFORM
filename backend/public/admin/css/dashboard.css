@@ -2056,3 +2056,15 @@ table tbody tr:hover td { background: var(--hover-bg); }
   white-space: pre;
   overflow-x: auto;
 }
+
+/* ── Đếm ngược mùa giải trên topbar ── */
+.season-countdown {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #e11d48, #f97316);
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}

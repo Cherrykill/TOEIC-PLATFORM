@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { useMenuBadges } from './useMenuBadges.js';
+import SeasonCountdown from '@components/season/SeasonCountdown.jsx';
 
 const MENU_ITEMS = [
     { label: 'Luyện tập TOEIC',icon: 'fa-graduation-cap',   screen: 'toeic-screen',        hot: true },
@@ -102,6 +103,11 @@ export default function SideMenu() {
                         );
                     })}
                 </nav>
+
+                {/* Footer: đếm ngược mùa giải (ghim đáy sidebar) */}
+                <div className="menu-season-row">
+                    <SeasonCountdown />
+                </div>
             </aside>
         </>
     );

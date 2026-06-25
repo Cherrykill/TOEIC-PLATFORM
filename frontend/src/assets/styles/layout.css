@@ -383,6 +383,19 @@
     font-size: var(--font-size-xl);
 }
 
+/* Footer đếm ngược mùa giải — ghim đáy side menu */
+.menu-season-row {
+    margin-top: auto;
+    padding: 12px var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+.menu-season-row .season-countdown {
+    width: 100%;
+    justify-content: center;
+    font-size: 13.5px;
+    padding: 8px 12px;
+}
+
 /* 2 nút đăng nhập / đăng ký trên header menu (thay chữ "Menu") */
 .menu-header-auth {
     display: flex;

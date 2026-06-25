@@ -490,6 +490,7 @@ async function initDashboard() {
   initMainTabs();
   loadRecentUsers();
   loadGrowthChart(30);
+  if (typeof window.refreshSeasonAdmin === 'function') window.refreshSeasonAdmin();
   loadReportStats(); // load badge count on startup
   // Poll for new reports every 60s so the badge stays current
   setInterval(loadReportStats, 60_000);
@@ -684,7 +685,7 @@ async function loadDashboard() {
     const healthRes = await fetch("http://localhost:5000/health");
     const health = await healthRes.json();
 
-    document.getElementById("total-users").textContent = health.usersCount || 1;
+    document.getElementById("total-users").textContent = health.usersCount ?? 0;
     document.getElementById("total-vocabulary").textContent =
       health.vocabularyCount || 0;
 

@@ -2075,6 +2075,36 @@ async function publishTest(testId, shouldPublish) {
     }
 }
 
+// Xuất bản HÀNG LOẠT: đăng tất cả đề đang "Nháp" mà đã có câu hỏi.
+async function publishAllDrafts() {
+    const drafts = (allTests || []).filter(t => !t.isPublished && (t.totalQuestions || 0) > 0);
+    if (drafts.length === 0) {
+        alert('Không có đề nháp nào (đã có câu hỏi) để xuất bản.');
+        return;
+    }
+    if (!confirm(`Xuất bản ${drafts.length} đề đang ở trạng thái Nháp?`)) return;
+
+    let ok = 0;
+    const errors = [];
+    for (const t of drafts) {
+        try {
+            const res = await fetch(`${TOEIC_API_BASE}/tests/${t._id}/publish`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify({ isPublished: true }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.message || 'lỗi');
+            ok++;
+        } catch (err) {
+            errors.push(`${t.testName || t._id}: ${err.message}`);
+        }
+    }
+
+    alert(`✅ Đã xuất bản ${ok}/${drafts.length} đề.` + (errors.length ? `\n\n❌ Lỗi:\n${errors.slice(0, 5).join('\n')}` : ''));
+    loadTests();
+}
+
 async function deleteTest(testId) {
     if (!confirm('Are you sure you want to delete this test? All associated attempts will remain but the test will be unavailable.')) return;
 

@@ -2,6 +2,8 @@ export default function TestCard({ test, onStart }) {
     const isFullTest = test.testType === 'full-test';
     const badge = isFullTest ? 'full' : 'mini';
     const difficulty = test.difficulty || 'medium';
+    const partMatch = /mini-part(\d)/.exec(test.testType || '');
+    const partNum = partMatch ? partMatch[1] : null;
 
     return (
         <div className="toeic-test-card" data-test-id={test._id}>
@@ -13,6 +15,7 @@ export default function TestCard({ test, onStart }) {
                     <span className={`toeic-test-badge ${badge}`}>
                         {isFullTest ? 'Full Test' : 'Mini Test'}
                     </span>
+                    {partNum && <span className="toeic-test-badge part">Part {partNum}</span>}
                     <span className={`toeic-test-badge ${difficulty}`}>{difficulty}</span>
                 </div>
             </div>

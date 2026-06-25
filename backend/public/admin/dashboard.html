@@ -390,6 +390,10 @@
             <h1 class="topbar-title" id="topbar-title">Tổng quan</h1>
           </div>
           <div class="topbar-right">
+            <span id="season-countdown" class="season-countdown" title="Thời gian còn lại của mùa">SS1: --</span>
+
+            <div class="topbar-divider"></div>
+
             <span
               class="status-dot online"
               id="topbar-server-status"
@@ -490,6 +494,37 @@
                 </div>
                 <div class="stat-icon toeic">
                   <i class="fas fa-file-alt"></i>
+                </div>
+              </div>
+            </div>
+
+            <!-- Season config -->
+            <div class="card" style="margin-bottom:20px">
+              <div class="card-header">
+                <h2><i class="fas fa-trophy"></i> Mùa giải <span id="season-num-badge" class="badge" style="background:#e11d48">SS1</span></h2>
+                <span id="season-config-status" style="font-size:13px;color:var(--text-secondary)"></span>
+              </div>
+              <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Bắt đầu mùa</label>
+                  <input type="datetime-local" id="season-start" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
+                </div>
+                <div>
+                  <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Kết thúc mùa (sẽ reset)</label>
+                  <input type="datetime-local" id="season-end" style="width:100%;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
+                </div>
+                <div style="grid-column:1/-1">
+                  <label style="display:block;font-size:12px;font-weight:600;margin-bottom:6px">Reset những nhóm dữ liệu nào khi hết mùa</label>
+                  <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:13px">
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="rb-resources"> Tài nguyên (Vàng/Đá quý/Level/XP)</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="rb-progress"> Tiến trình (Thành tích/Nhiệm vụ/Streak)</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="rb-stats"> Thống kê/Hoạt động + Thông báo</label>
+                    <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="rb-learning"> Học tập + Nội dung upload</label>
+                  </div>
+                </div>
+                <div style="grid-column:1/-1;display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
+                  <button class="btn btn-primary" id="season-save-btn"><i class="fas fa-save"></i> Lưu cấu hình</button>
+                  <button class="btn btn-danger" id="season-reset-btn"><i class="fas fa-bomb"></i> Reset mùa ngay</button>
                 </div>
               </div>
             </div>
@@ -1109,6 +1144,9 @@
                   </button>
                   <button class="btn btn-success btn-sm" id="btn-create-test">
                     <i class="fas fa-plus"></i> Tạo đề thi
+                  </button>
+                  <button class="btn btn-primary btn-sm" id="btn-publish-all-tests">
+                    <i class="fas fa-cloud-upload-alt"></i> Xuất bản hàng loạt
                   </button>
                   <button class="btn btn-danger btn-sm" id="btn-delete-all-tests">
                     <i class="fas fa-trash-alt"></i> Xóa tất cả
@@ -3891,8 +3929,8 @@
       </div>
     </div>
 
-    <!-- Modal: Questions Statistics -->
-    <div
+    <!-- Modal: Achievement -->
+    <div id="achievement-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
       <div style="background:var(--bg-primary,white);border-radius:14px;padding:28px;max-width:540px;width:90%;max-height:90vh;overflow-y:auto">
         <h3 style="margin-bottom:20px;color:var(--primary)"><i class="fas fa-trophy"></i> <span id="ach-modal-title">Thêm thành tích</span></h3>
         <form id="achievement-form">
@@ -4277,16 +4315,17 @@
     <!-- Modular dashboard: load order matters (state first, then dependencies) -->
     <script src="/admin/js/modules/state.js?v=1"></script>
     <script src="/admin/js/modules/utils.js?v=2"></script>
-    <script src="/admin/js/modules/auth.js?v=1"></script>
-    <script src="/admin/js/modules/core.js?v=3"></script>
+    <script src="/admin/js/modules/auth.js?v=2"></script>
+    <script src="/admin/js/modules/core.js?v=5"></script>
     <script src="/admin/js/modules/vocab.js?v=4"></script>
     <script src="/admin/js/modules/users.js?v=2"></script>
     <script src="/admin/js/modules/vocab-stats.js?v=2"></script>
-    <script src="/admin/js/modules/toeic.js?v=14"></script>
+    <script src="/admin/js/modules/toeic.js?v=15"></script>
     <script src="/admin/js/modules/monitor.js?v=1"></script>
     <script src="/admin/js/modules/tabs.js?v=2"></script>
+    <script src="/admin/js/modules/season-admin.js?v=1"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
-    <script src="/admin/js/modules/ui-init.js?v=1"></script>
+    <script src="/admin/js/modules/ui-init.js?v=2"></script>
     <script src="/admin/js/nav-game.js?v=3"></script>
   </body>
 </html>

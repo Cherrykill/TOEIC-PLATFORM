@@ -7291,3 +7291,22 @@ mark {
 }
 .translate-reverse:hover:not(:disabled) { border-color: var(--primary-color, #E11D48); color: var(--primary-color, #E11D48); transform: rotate(180deg); }
 .translate-reverse:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Đếm ngược mùa giải (SS) trên thanh điều hướng ── */
+.season-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color, #E11D48), var(--secondary-color, #F97316));
+  padding: 6px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+.season-countdown i { font-size: 12px; }
+@media (max-width: 640px) {
+  .season-countdown { font-size: 11px; padding: 5px 9px; }
+}

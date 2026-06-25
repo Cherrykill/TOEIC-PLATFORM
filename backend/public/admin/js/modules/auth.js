@@ -75,6 +75,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', handleLogout);
     }
+
+    // Toggle dropdown avatar (mở/đóng menu chứa nút Đăng xuất)
+    const avatarBtn = document.getElementById('avatar-btn');
+    const avatarDropdown = document.getElementById('avatar-dropdown');
+    if (avatarBtn && avatarDropdown) {
+        avatarBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            avatarDropdown.classList.toggle('open');
+        });
+        // Bấm ra ngoài → đóng
+        document.addEventListener('click', (e) => {
+            if (!avatarDropdown.contains(e.target) && !avatarBtn.contains(e.target)) {
+                avatarDropdown.classList.remove('open');
+            }
+        });
+    }
 });
 
 async function handleLogin(e) {

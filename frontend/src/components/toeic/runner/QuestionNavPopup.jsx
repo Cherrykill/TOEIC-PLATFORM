@@ -19,50 +19,57 @@ export default function QuestionNavPopup({ open, questions, currentIndex, answer
                         <i className="fas fa-times"></i>
                     </button>
                 </div>
-                <div className="toeic-nav-legend">
-                    <span className="toeic-legend-item"><span className="toeic-legend-dot current"></span>Hiện tại</span>
-                    <span className="toeic-legend-item"><span className="toeic-legend-dot answered"></span>Đã trả lời</span>
-                    <span className="toeic-legend-item"><span className="toeic-legend-dot marked"></span>Đánh dấu</span>
-                </div>
-                <div className="toeic-nav-grid">
-                    {questions.map((q, i) => {
-                        const classes = ['toeic-nav-btn'];
-                        if (i === currentIndex) classes.push('current');
-                        if (answers[i] !== undefined) classes.push('answered');
-                        if (markedQuestions.has(i)) classes.push('marked');
-                        return (
-                            <button
-                                key={i}
-                                className={classes.join(' ')}
-                                onClick={() => { onSelect(i); onClose(); }}
-                                onMouseEnter={() => setHover(i)}
-                                onMouseLeave={() => setHover(null)}
-                            >
-                                {i + 1}
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Preview: câu hỏi + đáp án của câu đang xem */}
-                {pq && (
-                    <div className="toeic-nav-preview">
-                        <div className="toeic-nav-preview-title">Câu {previewIdx + 1}</div>
-                        {pq.questionText
-                            ? <div className="toeic-nav-preview-q" dangerouslySetInnerHTML={{ __html: pq.questionText }} />
-                            : <div className="toeic-nav-preview-q toeic-nav-preview-muted">(Câu nghe — không có đề chữ)</div>}
-                        <div className="toeic-nav-preview-opts">
-                            {pq.options?.map(o => (
-                                <div
-                                    key={o.label}
-                                    className={`toeic-nav-preview-opt${answers[previewIdx] === o.label ? ' chosen' : ''}`}
-                                >
-                                    <b>{o.label}.</b> {o.text}
-                                </div>
-                            ))}
+                <div className="toeic-nav-body">
+                    {/* Cột trái: lưới số câu (cuộn riêng nếu nhiều) */}
+                    <div className="toeic-nav-left">
+                        <div className="toeic-nav-legend">
+                            <span className="toeic-legend-item"><span className="toeic-legend-dot current"></span>Hiện tại</span>
+                            <span className="toeic-legend-item"><span className="toeic-legend-dot answered"></span>Đã trả lời</span>
+                            <span className="toeic-legend-item"><span className="toeic-legend-dot marked"></span>Đánh dấu</span>
+                        </div>
+                        <div className="toeic-nav-grid">
+                            {questions.map((q, i) => {
+                                const classes = ['toeic-nav-btn'];
+                                if (i === currentIndex) classes.push('current');
+                                if (answers[i] !== undefined) classes.push('answered');
+                                if (markedQuestions.has(i)) classes.push('marked');
+                                return (
+                                    <button
+                                        key={i}
+                                        className={classes.join(' ')}
+                                        onClick={() => { onSelect(i); onClose(); }}
+                                        onMouseEnter={() => setHover(i)}
+                                        onMouseLeave={() => setHover(null)}
+                                    >
+                                        {i + 1}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
-                )}
+
+                    {/* Cột phải: preview câu hỏi + đáp án (luôn hiển thị) */}
+                    <div className="toeic-nav-right">
+                        {pq && (
+                            <div className="toeic-nav-preview">
+                                <div className="toeic-nav-preview-title">Câu {previewIdx + 1}</div>
+                                {pq.questionText
+                                    ? <div className="toeic-nav-preview-q" dangerouslySetInnerHTML={{ __html: pq.questionText }} />
+                                    : <div className="toeic-nav-preview-q toeic-nav-preview-muted">(Câu nghe — không có đề chữ)</div>}
+                                <div className="toeic-nav-preview-opts">
+                                    {pq.options?.map(o => (
+                                        <div
+                                            key={o.label}
+                                            className={`toeic-nav-preview-opt${answers[previewIdx] === o.label ? ' chosen' : ''}`}
+                                        >
+                                            <b>{o.label}.</b> {o.text}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
         </div>
     );

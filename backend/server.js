@@ -203,12 +203,18 @@ app.get('/health', async (_, res) => {
         vocabularyCount = await Vocabulary.countDocuments();
     } catch (_) {}
 
+    let usersCount = 0;
+    try {
+        usersCount = await require('./models/User').countDocuments();
+    } catch (_) {}
+
     const status = mongoOk ? 'OK' : 'DEGRADED';
     res.status(mongoOk ? 200 : 503).json({
         status,
         uptime: Math.floor(process.uptime()),
         mongodb: mongoState,
         vocabularyCount,
+        usersCount,
         timestamp: new Date().toISOString(),
     });
 });
@@ -308,6 +314,7 @@ app.use('/api/quests', require('./routes/quests'));          // Quest system (da
 app.use('/api/checkin', require('./routes/checkin'));        // Weekly check-in (điểm danh hằng tuần)
 app.use('/api/notifications', require('./routes/notifications')); // In-app notification center
 app.use('/api/spin', require('./routes/spin'));              // Lucky spin wheel (1 lần/ngày)
+app.use('/api/season', require('./routes/season'));          // Mùa giải: đếm ngược + reset mùa
 
 // ===================================
 // ADMIN STATS: USER GROWTH
@@ -459,6 +466,11 @@ async function startServer() {
 
     // Khởi động background workers (tự fallback nếu Redis chưa sẵn sàng)
     emailWorker = startEmailWorker();
+
+    // Mùa giải: kiểm tra & tự reset khi quá hạn (mỗi phút + 1 lần lúc khởi động)
+    const { checkAndAutoReset } = require('./services/seasonService');
+    checkAndAutoReset();
+    setInterval(() => checkAndAutoReset(), 60 * 1000);
 
     app.listen(PORT, async () => {
         logger.info(`Server running on port ${PORT}`, {
