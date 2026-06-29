@@ -1,4 +1,4 @@
-export default function ReadingQuestion({ question }) {
+export default function ReadingQuestion({ question, hideQuestionText = false }) {
     return (
         <>
             {question.imageUrls?.length > 0 && question.imageUrls.map((url, i) => (
@@ -17,7 +17,7 @@ export default function ReadingQuestion({ question }) {
                     dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }}
                 />
             ))}
-            {question.questionText && (
+            {!hideQuestionText && question.questionText && (
                 <div className="toeic-question-text" dangerouslySetInnerHTML={{ __html: question.questionText }} />
             )}
         </>

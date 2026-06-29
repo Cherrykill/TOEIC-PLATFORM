@@ -1,4 +1,3 @@
-import Timer from './Timer.jsx';
 import AudioPlayer from './AudioPlayer.jsx';
 import ListeningQuestion from './ListeningQuestion.jsx';
 import ReadingQuestion from './ReadingQuestion.jsx';
@@ -13,24 +12,9 @@ export default function QuestionView({
 }) {
     if (!question) return null;
 
-    const isTwoCols = question.part <= 4;
+    const isListening = question.part <= 4;
     const hasKeywords = question.questionKeyword || question.answerKeyword || question.audioKeyword;
     const hasAudio = question.audioText || question.audioUrl;
-
-    // Hàng đầu: badge "Câu X" bên trái; nút "Câu hỏi" + đồng hồ căn phải.
-    const qHeader = (
-        <div className="toeic-q-row">
-            <div className="toeic-question-number">Câu {currentIndex + 1}</div>
-            <div className="toeic-q-row-right">
-                {onToggleNav && (
-                    <button className="toeic-action-btn" title="Điều hướng câu hỏi" onClick={onToggleNav}>
-                        <i className="fas fa-th"></i> Câu hỏi
-                    </button>
-                )}
-                {timer && <Timer display={timer.display} warning={timer.warning} isUnlimited={timer.isUnlimited} />}
-            </div>
-        </div>
-    );
 
     const optionsBlock = fillInBlankMode ? (
         <>
@@ -58,39 +42,46 @@ export default function QuestionView({
         <OptionList question={question} selected={selectedAnswer} onSelect={onSelectAnswer} />
     );
 
-    if (isTwoCols) {
-        return (
-            <div className="toeic-two-col-layout">
-                <div className="toeic-left-panel">
-                    {qHeader}
-                    <ListeningQuestion
-                        question={question}
-                        currentIndex={currentIndex}
-                        fillInBlankMode={fillInBlankMode}
-                        audioPlaying={audioPlaying}
-                        onPlayAudio={onPlayAudio}
-                        keywordAnswers={keywordAnswers}
-                        keywordStatus={keywordStatus}
-                        onKeywordChange={onKeywordChange}
-                        onCheck={onCheckKeywords}
-                    />
-                </div>
-                <div className="toeic-right-panel">
-                    <div className="toeic-right-header">Chọn đáp án</div>
-                    {hasAudio && (
-                        <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
-                    )}
-                    {optionsBlock}
-                </div>
-            </div>
-        );
-    }
+    // Cột TRÁI ("Câu hỏi"): nghe → ảnh + transcript; đọc → ảnh + đoạn văn.
+    const hasReadingMedia = question.imageUrls?.length > 0 || question.passages?.length > 0;
+    const leftContent = isListening ? (
+        <ListeningQuestion
+            question={question}
+            currentIndex={currentIndex}
+            fillInBlankMode={fillInBlankMode}
+            audioPlaying={audioPlaying}
+            onPlayAudio={onPlayAudio}
+            keywordAnswers={keywordAnswers}
+            keywordStatus={keywordStatus}
+            onKeywordChange={onKeywordChange}
+            onCheck={onCheckKeywords}
+        />
+    ) : hasReadingMedia ? (
+        <ReadingQuestion question={question} hideQuestionText />
+    ) : (
+        <div className="toeic-image-placeholder">
+            <i className="fas fa-align-left"></i>
+            <span>Câu hỏi không có hình / đoạn văn</span>
+        </div>
+    );
 
+    // Thống nhất 2 cột cho mọi Part: trái "Câu hỏi", phải đề + đáp án.
     return (
-        <>
-            {qHeader}
-            <ReadingQuestion question={question} />
-            {optionsBlock}
-        </>
+        <div className="toeic-two-col-layout">
+            <div className="toeic-left-panel">
+                <div className="toeic-left-header">Câu {currentIndex + 1}</div>
+                <div className="toeic-left-body">{leftContent}</div>
+            </div>
+            <div className="toeic-right-panel">
+                <div className="toeic-right-header">{isListening ? 'Chọn đáp án' : 'Câu hỏi & đáp án'}</div>
+                {hasAudio && (
+                    <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
+                )}
+                {!isListening && question.questionText && (
+                    <div className="toeic-question-text" dangerouslySetInnerHTML={{ __html: question.questionText }} />
+                )}
+                {optionsBlock}
+            </div>
+        </div>
     );
 }

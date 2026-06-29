@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { GameState } from '@game/state.js';
 import { getVocabLang } from '@api/vocabulary.js';
 import { FavoritesAPI } from '@api/favorites.js';
+import { UploadVocabAPI } from '@api/uploadVocab.js';
 import { Notification } from '@ui/Toaster.jsx';
 
 // Ngôn ngữ học của hệ thống (en/zh) → mã đích ưu tiên khi dịch.
@@ -75,6 +76,9 @@ export default function TranslateModal({ text, onClose }) {
     const [error, setError] = useState('');
     const [result, setResult] = useState(null); // { translated, sourceLang, part, synonyms, phonetic }
     const [saved, setSaved] = useState(() => isAlreadyFavorite(text));
+    const [savedVocab, setSavedVocab] = useState(false);
+    const [srcDraft, setSrcDraft] = useState(text);   // ô GỐC sửa được
+    const [editedVn, setEditedVn] = useState('');      // ô bản dịch sửa được
 
     const fullUrl = `https://translate.google.com.vn/?sl=auto&tl=${targetLang}&text=${encodeURIComponent(inputText)}&op=translate`;
 
@@ -82,6 +86,7 @@ export default function TranslateModal({ text, onClose }) {
         let cancelled = false;
         setLoading(true); setError(''); setResult(null);
         setSaved(isAlreadyFavorite(inputText));
+        setSavedVocab(false);
         (async () => {
             try {
                 const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(inputText)}`;
@@ -116,6 +121,18 @@ export default function TranslateModal({ text, onClose }) {
         return () => { cancelled = true; };
     }, [inputText, targetLang]);
 
+    // Đồng bộ ô GỐC khi nguồn đổi (đảo ngược / chọn lại); ô bản dịch theo kết quả.
+    useEffect(() => { setSrcDraft(inputText); }, [inputText]);
+    useEffect(() => { if (result?.translated) setEditedVn(result.translated); }, [result]);
+
+    // Gõ ở ô GỐC → tự dịch lại sau 450ms (ô dưới cập nhật theo).
+    useEffect(() => {
+        const v = srcDraft.trim();
+        if (!v || v === inputText) return;
+        const id = setTimeout(() => setInputText(v), 450);
+        return () => clearTimeout(id);
+    }, [srcDraft, inputText]);
+
     const speak = (txt, langCode) => speakText(txt, langCode);
 
     // Dịch đảo ngược: lấy bản dịch làm đầu vào, đổi đích về ngôn ngữ nguồn vừa phát hiện.
@@ -128,11 +145,11 @@ export default function TranslateModal({ text, onClose }) {
 
     const handleSaveFavorite = () => {
         if (!result?.translated || saved) return;
-        // Lưu theo shape {en, vn}: ưu tiên gán đúng phía Anh/Việt.
+        // Lưu theo shape {en, vn}: ưu tiên gán đúng phía Anh/Việt (dùng bản dịch đã sửa).
+        const vnText = editedVn.trim() || result.translated;
         let en = inputText.trim();
-        let vn = result.translated;
-        if (targetLang === 'vi') { en = inputText.trim(); vn = result.translated; }
-        else if (result.sourceLang === 'vi') { en = result.translated; vn = inputText.trim(); }
+        let vn = vnText;
+        if (result.sourceLang === 'vi') { en = vnText; vn = inputText.trim(); }
 
         const entry = { en, vn, phonetic: result.phonetic || '', synonyms: result.synonyms || '', part: result.part || '' };
         if (!GameState.state.progress) GameState.state.progress = {};
@@ -144,6 +161,35 @@ export default function TranslateModal({ text, onClose }) {
         }
         setSaved(true);
         Notification.show({ type: 'success', message: `Đã lưu "${en}" vào từ vựng yêu thích`, duration: 1800 });
+    };
+
+    // Lưu vào "Từ vựng riêng" (user upload) — gom vào source "dich-nhanh".
+    const handleSaveVocab = async () => {
+        if (!result?.translated || savedVocab) return;
+        const vnText = editedVn.trim() || result.translated;
+        let en = inputText.trim();
+        let vn = vnText;
+        if (result.sourceLang === 'vi') { en = vnText; vn = inputText.trim(); }
+
+        try {
+            const res = await UploadVocabAPI.create({
+                en, vn,
+                source: 'dich-nhanh',
+                part: 'DICH-NHANH',
+                type: result.part || '',
+                phonetic: result.phonetic || '',
+                synonyms: result.synonyms || '',
+                retentionDays: 30,
+            });
+            if (res?.success) {
+                setSavedVocab(true);
+                Notification.show({ type: 'success', message: `Đã lưu "${en}" vào từ vựng riêng`, duration: 1800 });
+            } else {
+                Notification.error(res?.message || 'Lưu thất bại (cần đăng nhập?)');
+            }
+        } catch {
+            Notification.error('Lỗi kết nối');
+        }
     };
 
     const targetName = LANG_NAMES[targetLang] || targetLang;
@@ -184,8 +230,15 @@ export default function TranslateModal({ text, onClose }) {
                             )}
                         </div>
                         <div className="translate-row">
-                            <div className="translate-text">{inputText}</div>
-                            <button className="translate-speak" title="Phát âm" onClick={() => speak(inputText, result?.sourceLang || 'en')}>
+                            <input
+                                className="translate-input"
+                                value={srcDraft}
+                                onChange={e => setSrcDraft(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter' && srcDraft.trim()) setInputText(srcDraft.trim()); }}
+                                onBlur={() => { const v = srcDraft.trim(); if (v && v !== inputText) setInputText(v); }}
+                                placeholder="Nhập từ cần dịch..."
+                            />
+                            <button className="translate-speak" title="Phát âm" onClick={() => speak(srcDraft, result?.sourceLang || 'en')}>
                                 <i className="fas fa-volume-up"></i>
                             </button>
                         </div>
@@ -208,8 +261,13 @@ export default function TranslateModal({ text, onClose }) {
                         {!loading && error && <div className="translate-text error">{error}</div>}
                         {!loading && result && (
                             <div className="translate-row">
-                                <div className="translate-text result">{result.translated}</div>
-                                <button className="translate-speak" title="Phát âm" onClick={() => speak(result.translated, targetLang)}>
+                                <input
+                                    className="translate-input result"
+                                    value={editedVn}
+                                    onChange={e => setEditedVn(e.target.value)}
+                                    placeholder="Bản dịch (sửa được)..."
+                                />
+                                <button className="translate-speak" title="Phát âm" onClick={() => speak(editedVn, targetLang)}>
                                     <i className="fas fa-volume-up"></i>
                                 </button>
                             </div>
@@ -226,7 +284,15 @@ export default function TranslateModal({ text, onClose }) {
                             disabled={loading || !!error || saved}
                         >
                             <i className="fas fa-heart"></i>
-                            {saved ? ' Đã lưu yêu thích' : ' Lưu vào từ vựng yêu thích'}
+                            {saved ? ' Đã lưu yêu thích' : ' Yêu thích'}
+                        </button>
+                        <button
+                            className={`btn btn-sm ${savedVocab ? 'btn-secondary' : 'btn-primary'}`}
+                            onClick={handleSaveVocab}
+                            disabled={loading || !!error || savedVocab}
+                        >
+                            <i className="fas fa-cloud-arrow-up"></i>
+                            {savedVocab ? ' Đã lưu' : ' Từ vựng riêng'}
                         </button>
                         <a className="btn btn-secondary btn-sm" href={fullUrl} target="_blank" rel="noopener noreferrer">
                             <i className="fas fa-external-link-alt"></i> Google Dịch

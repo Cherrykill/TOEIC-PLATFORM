@@ -1593,18 +1593,24 @@
 .toeic-left-panel {
   background: var(--bg-secondary, #f8fafc);
   border-radius: 14px;
-  padding: 16px;
   border: 1px solid var(--border-color, rgba(0,0,0,.07));
   min-height: 220px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  overflow: hidden;
 }
 
-/* Căn "Câu X" badge trong left ngang với header right */
-.toeic-left-panel .toeic-question-number {
-  margin-bottom: 0;
-  align-self: flex-start;
+/* Header cột trái — đồng bộ với header cột phải (bar màu) */
+.toeic-left-header {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  padding: 10px 16px;
+}
+.toeic-left-body {
+  padding: 16px;
+  flex: 1;
 }
 
 .toeic-right-panel {
@@ -1630,6 +1636,14 @@
 .toeic-right-panel .toeic-options-listening,
 .toeic-right-panel .toeic-options {
   padding: 0 16px 16px;
+}
+
+/* Đề bài (Part 5-7) trong cột phải — nới khoảng cách, không sát mép */
+.toeic-right-panel .toeic-question-text {
+  padding: 6px 16px 0;
+  margin-bottom: 4px;
+  font-size: 1.05rem;
+  line-height: 1.7;
 }
 
 @media (max-width: 700px) {
@@ -1796,17 +1810,29 @@
   border-color: var(--border-color);
 }
 
-/* Kết quả chi tiết: ảnh trái | câu hỏi+đáp án phải (cố định 2 cột) */
+/* Kết quả chi tiết: LUÔN 2 cột — trái "Câu hỏi"(ảnh/đoạn) | phải câu hỏi+đáp án */
 .review-detail-2col {
   display: flex;
   gap: 18px;
-  align-items: flex-start;
+  align-items: stretch;
 }
-.review-detail-image {
-  flex: 0 0 320px;
-  max-width: 42%;
+.review-detail-left {
+  flex: 0 0 40%;
+  max-width: 40%;
+  border-right: 1px solid var(--border-color);
+  padding-right: 16px;
 }
-.review-detail-image img {
+.review-detail-left-title {
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.review-detail-left-empty {
+  color: var(--text-tertiary, #94a3b8);
+  font-style: italic;
+  font-size: 0.9rem;
+}
+.review-detail-img {
   width: 100%;
   border-radius: 8px;
   display: block;
@@ -1814,7 +1840,14 @@
 .review-detail-content { flex: 1; min-width: 0; }
 @media (max-width: 640px) {
   .review-detail-2col { flex-direction: column; }
-  .review-detail-image { flex: 0 0 auto; max-width: 100%; }
+  .review-detail-left {
+    flex: 0 0 auto;
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding-right: 0;
+    padding-bottom: 12px;
+  }
 }
 
 /* Thanh tìm đề thi (thay banner giới thiệu) */
@@ -1923,4 +1956,88 @@
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: #fff;
   border-color: transparent;
+}
+
+/* Trang Kết quả: thanh tiêu đề + lọc đúng/sai */
+.review-questions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-md);
+}
+.review-questions-bar h3 { margin: 0; }
+.review-filter { display: flex; gap: 8px; flex-wrap: wrap; }
+.toeic-results-content { max-width: 1100px; margin: 0 auto; }
+
+/* Thu gọn chiều cao thẻ đề thi (~1/2) */
+.toeic-test-card { padding: 14px 16px; }
+.toeic-test-header { margin-bottom: 8px; }
+.toeic-test-icon { width: 38px; height: 38px; font-size: 1.05rem; }
+.toeic-test-title { font-size: 1.05rem; margin-bottom: 2px; }
+.toeic-test-description { font-size: 0.82rem; margin-bottom: 10px; }
+.toeic-test-stats { padding: 8px 10px; margin-bottom: 10px; }
+.toeic-test-stats .toeic-stat-value { font-size: 1.1rem; }
+.toeic-test-stats .toeic-stat-label { font-size: 0.66rem; }
+.toeic-test-footer { padding-top: 8px; }
+.toeic-test-footer .toeic-start-btn { padding: 6px 16px; }
+
+/* Tab TOEIC kiểu pill gọn — đồng bộ với tab Nhiệm vụ (.quest-tabs) */
+.toeic-tabs {
+  gap: var(--spacing-xs);
+  background: var(--bg-secondary);
+  padding: 4px;
+  border-radius: var(--border-radius-lg);
+  margin-bottom: var(--spacing-md);
+}
+.toeic-tab {
+  min-width: max-content;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--border-radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+.toeic-tab i { font-size: 0.95rem; }
+.toeic-tab:hover {
+  background: transparent;
+  transform: none;
+  box-shadow: none;
+  color: var(--text-primary);
+}
+.toeic-tab.active {
+  background: var(--primary-color);
+  color: #fff;
+  font-weight: 600;
+  border-color: transparent;
+  transform: none;
+}
+.toeic-tab.active:hover { color: #fff; }
+
+/* Ép thấp thẻ đề thêm (bỏ mô tả) để 2 hàng hiện trọn vẹn */
+.toeic-tests-grid { gap: 12px; }
+.toeic-test-card { padding: 12px 14px; }
+.toeic-test-header { margin-bottom: 6px; }
+.toeic-test-title { font-size: 1rem; margin-bottom: 0; }
+.toeic-test-description { margin-bottom: 8px; }
+.toeic-test-stats { padding: 6px 8px; margin-bottom: 8px; }
+.toeic-test-footer { padding-top: 6px; }
+
+/* 2 cột cuộn ĐỘC LẬP (đoạn văn Part 7 dài) — header panel ghim trên */
+.toeic-left-panel,
+.toeic-right-panel {
+  max-height: calc(100vh - 165px);
+  overflow-y: auto;
+}
+.toeic-left-header,
+.toeic-right-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+@media (max-width: 700px) {
+  .toeic-left-panel,
+  .toeic-right-panel { max-height: none; overflow: visible; }
 }

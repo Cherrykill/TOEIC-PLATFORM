@@ -32,19 +32,23 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
             </div>
             {expanded && (
                 <div className="review-question-detail" style={{ display: 'block' }}>
-                    {/* Có ảnh → 2 cột cố định: ảnh bên trái, câu hỏi/đáp án bên phải */}
-                    <div className={imageUrl ? 'review-detail-2col' : ''}>
-                        {imageUrl && (
-                            <div className="review-detail-image">
-                                <img src={imageUrl} alt="Question" />
-                            </div>
-                        )}
-                        <div className="review-detail-content">
+                    {/* LUÔN 2 cột: trái = "Câu hỏi" (ảnh/đoạn văn) · phải = câu hỏi + đáp án + giải thích */}
+                    <div className="review-detail-2col">
+                        <div className="review-detail-left">
+                            <div className="review-detail-left-title">Câu hỏi</div>
+                            {imageUrl && (
+                                <img src={imageUrl} alt="Question" className="review-detail-img" />
+                            )}
                             {passageList.map((p, pi) => (
                                 <div key={pi} className="question-passage">
                                     <span dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }} />
                                 </div>
                             ))}
+                            {!imageUrl && passageList.length === 0 && (
+                                <div className="review-detail-left-empty">(Câu không có hình / đoạn văn)</div>
+                            )}
+                        </div>
+                        <div className="review-detail-content">
                             {q.questionText && (
                                 <p className="question-text"><strong>Câu hỏi:</strong> <span dangerouslySetInnerHTML={{ __html: q.questionText }} /></p>
                             )}

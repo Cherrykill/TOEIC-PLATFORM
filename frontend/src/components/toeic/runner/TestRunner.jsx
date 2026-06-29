@@ -9,12 +9,10 @@ import RunnerHeader from './RunnerHeader.jsx';
 import QuestionView from './QuestionView.jsx';
 import QuestionNavPopup from './QuestionNavPopup.jsx';
 import PartTransitionModal from './PartTransitionModal.jsx';
-import ResultsModal from '../results/ResultsModal.jsx';
 
-export default function TestRunner({ config, onExit }) {
+export default function TestRunner({ config, onExit, onShowResults }) {
     const attempt = useToeicAttempt();
-    const [phase, setPhase] = useState('loading'); // loading | running | results
-    const [resultData, setResultData] = useState(null);
+    const [phase, setPhase] = useState('loading'); // loading | running
     const [navOpen, setNavOpen] = useState(false);
     const [keywordStatus, setKeywordStatus] = useState({});
     const startedRef = useRef(false);
@@ -99,13 +97,13 @@ export default function TestRunner({ config, onExit }) {
         try {
             const data = await attempt.submitTest();
             Modal.close();
-            setResultData(data);
-            setPhase('results');
+            attempt.reset();
+            onShowResults?.(data); // mở TRANG kết quả thay cho popup
         } catch (err) {
             Modal.close();
             Notification.error(err.message || 'Lỗi nộp bài thi');
         }
-    }, [attempt, timer, audio]);
+    }, [attempt, timer, audio, onShowResults]);
     doSubmitRef.current = doSubmit; // luôn trỏ tới doSubmit mới nhất
 
     const handleSelectAnswer = useCallback((answer) => {
@@ -215,15 +213,6 @@ export default function TestRunner({ config, onExit }) {
                 <i className="fas fa-spinner fa-spin" style={{ fontSize: 48, color: 'var(--primary-color)' }}></i>
                 <p style={{ marginTop: 16 }}>Đang chuẩn bị bài thi...</p>
             </div>
-        );
-    }
-
-    if (phase === 'results') {
-        return (
-            <ResultsModal
-                data={resultData}
-                onClose={() => { attempt.reset(); onExit(); }}
-            />
         );
     }
 

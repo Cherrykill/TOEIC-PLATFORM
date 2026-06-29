@@ -1,7 +1,14 @@
 // "Practice" panel. Presentational — state/handlers passed from SettingsScreen.
+import { useState } from 'react';
 import Toggle from './Toggle.jsx';
 
+const GOAL_PRESETS = [10, 15, 30, 60, 90, 120, 180];
+
 export default function PracticePanel({ s, handleQPS, updateSetting, handleDifficulty }) {
+    const goalVal = s.dailyStudyGoalMin ?? 15;
+    const [goalCustom, setGoalCustom] = useState(false);
+    const isGoalCustom = goalCustom || !GOAL_PRESETS.includes(goalVal);
+
     return (
         <div className="settings-section">
             <h3>Cài đặt luyện tập</h3>
@@ -30,12 +37,39 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
             </div>
             <div className="setting-item">
                 <label>Mục tiêu thời gian học mỗi ngày</label>
-                <select value={s.dailyStudyGoalMin ?? 15} onChange={e => updateSetting('dailyStudyGoalMin', parseInt(e.target.value))}>
-                    <option value={10}>10 phút — Nhẹ nhàng</option>
-                    <option value={15}>15 phút — Khuyên dùng ⭐</option>
-                    <option value={30}>30 phút — Chăm chỉ</option>
-                    <option value={60}>60 phút — Cường độ cao</option>
-                </select>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                        value={isGoalCustom ? 'custom' : goalVal}
+                        onChange={e => {
+                            if (e.target.value === 'custom') { setGoalCustom(true); }
+                            else { setGoalCustom(false); updateSetting('dailyStudyGoalMin', parseInt(e.target.value)); }
+                        }}
+                    >
+                        <option value={10}>10 phút — Nhẹ nhàng</option>
+                        <option value={15}>15 phút — Khuyên dùng ⭐</option>
+                        <option value={30}>30 phút — Chăm chỉ</option>
+                        <option value={60}>60 phút — Cường độ cao</option>
+                        <option value={90}>90 phút — Bứt phá</option>
+                        <option value={120}>120 phút — Cày cuốc</option>
+                        <option value={180}>180 phút — Khổ luyện</option>
+                        <option value="custom">⚙️ Tùy chỉnh…</option>
+                    </select>
+                    {isGoalCustom && (
+                        <input
+                            type="number"
+                            min={5}
+                            max={600}
+                            value={goalVal}
+                            style={{ width: 90 }}
+                            placeholder="phút"
+                            onChange={e => {
+                                const v = Math.max(5, Math.min(600, parseInt(e.target.value) || 5));
+                                updateSetting('dailyStudyGoalMin', v);
+                            }}
+                        />
+                    )}
+                    {isGoalCustom && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>phút</span>}
+                </div>
             </div>
             <div className="setting-item">
                 <label>Độ khó</label>

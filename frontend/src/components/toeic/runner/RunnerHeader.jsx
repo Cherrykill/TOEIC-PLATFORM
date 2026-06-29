@@ -1,3 +1,5 @@
+import Timer from './Timer.jsx';
+
 export default function RunnerHeader({
     testName, currentIndex, totalQuestions,
     timer, isMarked,
@@ -27,8 +29,14 @@ export default function RunnerHeader({
                 </div>
             </div>
 
-            {/* Phải: các nút hành động */}
+            {/* Phải: điều hướng câu hỏi + đồng hồ + hành động */}
             <div className="toeic-test-actions">
+                {onToggleNav && (
+                    <button className="toeic-action-btn" title="Điều hướng câu hỏi" onClick={onToggleNav}>
+                        <i className="fas fa-th"></i> Câu hỏi
+                    </button>
+                )}
+                {timer && <Timer display={timer.display} warning={timer.warning} isUnlimited={timer.isUnlimited} />}
                 <button className={`toeic-action-btn${isMarked ? ' active' : ''}`} onClick={onToggleMark}>
                     <i className="fas fa-bookmark"></i> Đánh dấu
                 </button>

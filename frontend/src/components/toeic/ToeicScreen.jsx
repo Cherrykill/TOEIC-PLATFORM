@@ -11,7 +11,7 @@ import HistoryList from './selector/HistoryList.jsx';
 import AnalyticsView from './selector/AnalyticsView.jsx';
 import StartTestModal from './runner/StartTestModal.jsx';
 import TestRunner from './runner/TestRunner.jsx';
-import ResultsModal from './results/ResultsModal.jsx';
+import { GameState } from '@game/state.js';
 
 const TABS = [
     { key: 'full-test',  icon: 'fa-clipboard-list', label: 'Full Test (200 câu)' },
@@ -42,8 +42,13 @@ export default function ToeicScreen({ active }) {
     const [mode, setMode] = useState('selector');       // selector | runner
     const [runnerConfig, setRunnerConfig] = useState(null);
     const [startModalCfg, setStartModalCfg] = useState(null); // { test, fillInBlankMode }
-    const [reviewData, setReviewData] = useState(null);
     const inProgressChecked = useRef(false);
+
+    // Lưu tạm dữ liệu kết quả rồi mở TRANG kết quả (thay cho popup cũ).
+    const openResultScreen = useCallback((resultData) => {
+        GameState.state._toeicResult = resultData;
+        showScreen('toeic-result-screen');
+    }, [showScreen]);
 
     // Offer to resume an in-progress attempt the first time the screen is shown
     useEffect(() => {
@@ -122,7 +127,7 @@ export default function ToeicScreen({ active }) {
             const apiData = res.data || res;
             Modal.close();
             if (apiData?.success && apiData.data) {
-                setReviewData(apiData.data);
+                openResultScreen(apiData.data);
             } else {
                 Notification.error('Dữ liệu kết quả không hợp lệ');
             }
@@ -130,13 +135,13 @@ export default function ToeicScreen({ active }) {
             Modal.close();
             Notification.error('Lỗi tải kết quả: ' + (err.message || ''));
         }
-    }, []);
+    }, [openResultScreen]);
 
     if (mode === 'runner' && runnerConfig) {
         return (
             <div id="toeic-screen" className={`screen ${active ? 'active' : ''}`}>
                 <div className="screen-content">
-                    <TestRunner config={runnerConfig} onExit={handleRunnerExit} />
+                    <TestRunner config={runnerConfig} onExit={handleRunnerExit} onShowResults={openResultScreen} />
                 </div>
             </div>
         );
@@ -246,10 +251,6 @@ export default function ToeicScreen({ active }) {
                     onConfirm={handleStartConfirm}
                     onCancel={() => setStartModalCfg(null)}
                 />
-            )}
-
-            {reviewData && (
-                <ResultsModal data={reviewData} onClose={() => setReviewData(null)} />
             )}
         </div>
     );

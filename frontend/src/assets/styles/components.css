@@ -7343,3 +7343,22 @@ mark {
   user-select: none;
 }
 .spin-skip-anim input { width: 16px; height: 16px; cursor: pointer; }
+
+/* Ô GỐC / bản dịch sửa được trong popup Dịch nhanh */
+.translate-input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  padding: 5px 8px;
+  border-radius: 8px;
+  outline: none;
+}
+.translate-input:focus {
+  border-color: var(--primary-color, #E11D48);
+  background: rgba(0, 0, 0, 0.03);
+}
+.translate-input.result { font-weight: 700; color: var(--primary-color, #E11D48); }

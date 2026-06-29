@@ -21,9 +21,9 @@ export default function TestCard({ test, onStart }) {
             </div>
 
             <h3 className="toeic-test-title">{test.testName}</h3>
-            <p className="toeic-test-description">
-                {test.description || 'Bài thi TOEIC chuẩn quốc tế'}
-            </p>
+            {test.description && (
+                <p className="toeic-test-description">{test.description}</p>
+            )}
 
             <div className="toeic-test-stats">
                 <div className="toeic-stat">
