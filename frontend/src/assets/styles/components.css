@@ -7224,6 +7224,11 @@ mark {
 .review-nav-info { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
 
 /* ── Popup Dịch nhanh (Shift+Enter ở ô tìm kiếm) ── */
+/* Nâng chiều cao để nội dung (2 select + nút lưu) không bị cuộn dọc */
+.translate-modal { max-height: 94vh; }
+/* Hạ 1 bậc để popup DS Yêu thích / DS Từ riêng nổi lên trên; đóng chúng thì
+   popup Dịch nhanh vẫn còn phía sau. */
+#modal-container.translate-layer { z-index: calc(var(--z-modal) - 1); }
 .translate-modal .translate-label {
   font-size: 12px;
   font-weight: 600;
@@ -7243,10 +7248,11 @@ mark {
 .translate-text.result { font-weight: 700; color: var(--primary-color, #E11D48); }
 .translate-text.muted { color: var(--text-secondary); font-size: 15px; }
 .translate-text.error { color: var(--error-color, #ef4444); font-size: 14px; }
-.translate-arrow { text-align: center; color: var(--text-tertiary, #94a3b8); margin: 8px 0; }
+.translate-arrow { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-tertiary, #94a3b8); margin: 8px 0; }
+.translate-arrow .translate-save-btn { flex: 1; justify-content: center; max-width: 160px; }
 .translate-syn { margin-top: 8px; font-size: 13px; color: var(--text-secondary); }
-.translate-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
-.translate-actions .btn { display: inline-flex; align-items: center; gap: 6px; }
+.translate-actions { display: flex; gap: 8px; margin-top: 16px; }
+.translate-actions .btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 
 /* Chọn ngôn ngữ đích */
 .translate-targets { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
@@ -7264,6 +7270,60 @@ mark {
 }
 .translate-lang-btn:hover { border-color: var(--primary-color, #E11D48); }
 .translate-lang-btn.active { background: var(--primary-color, #E11D48); border-color: var(--primary-color, #E11D48); color: #fff; }
+
+/* Nút Google Dịch — đẩy về cuối hàng "Dịch sang" */
+.translate-gg-link { margin-left: auto; }
+
+/* 2 select ngôn ngữ kiểu Google Dịch — trên ô FROM */
+.translate-lang-selects { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.translate-lang-select {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary, #f8fafc);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+.translate-lang-select:focus { border-color: var(--primary-color, #E11D48); }
+.translate-lang-swap {
+  flex-shrink: 0;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(148,163,184,0.15);
+  color: var(--primary-color, #E11D48);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.translate-lang-swap:hover:not(:disabled) { background: rgba(225,29,72,0.12); }
+.translate-lang-swap:disabled { opacity: 0.5; cursor: default; }
+
+/* Nút lưu (Yêu thích / Từ vựng riêng) — đặt hai bên nút hoán đổi */
+.translate-save-btn {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.translate-save-btn:hover:not(:disabled) { border-color: #f59e0b; color: #f59e0b; }
+.translate-save-btn.saved {
+  border-color: #f59e0b;
+  background: #fffaf0;
+  color: #f59e0b;
+}
+.translate-save-btn:disabled { cursor: default; opacity: 0.9; }
 
 /* Hàng văn bản + nút phát âm */
 .translate-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }

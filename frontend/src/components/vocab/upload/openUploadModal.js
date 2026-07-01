@@ -15,7 +15,7 @@ import { downloadWords } from '@/services/vocabExport.js';
 const RETENTION_OPTIONS = [3, 7, 14, 30];
 const DEFAULT_RETENTION = 30;
 
-export function openUploadModal() {
+export function openUploadModal({ tab } = {}) {
         const TYPE1 = ['noun','verb','adjective','adverb','pronoun','preposition','conjunction','interjection','article','determiner','auxiliary'];
         const TYPE2 = ['noun phrase','verb phrase','adjective phrase','adverb phrase','prepositional phrase','participle phrase','gerund phrase','infinitive phrase'];
         const opts1 = ['<option value="">— Loại từ —</option>', ...TYPE1.map(t => `<option value="${t}">${t}</option>`)].join('');
@@ -421,5 +421,8 @@ Danh sách từ vựng cần chuyển:
                 styleTabBtns('json');
                 attachJsonHandlers();
             });
+
+            // Mở thẳng tab quản lý nếu được yêu cầu (vd từ popup Dịch nhanh).
+            if (tab === 'manage') document.getElementById('upload-tab-manage')?.click();
         }, 80);
 }

@@ -235,7 +235,13 @@ export default function TopNav() {
         <FavoritesModal open={favOpen} onClose={() => setFavOpen(false)} />
         <TopicModal open={topicOpen} onClose={handleTopicClose} onSelected={handleTopicSelected} />
         <SpinWheelModal open={spinOpen} onClose={() => setSpinOpen(false)} />
-        {translateText && <TranslateModal text={translateText} onClose={() => setTranslateText(null)} />}
+        {translateText && (
+            <TranslateModal
+                text={translateText}
+                onClose={() => setTranslateText(null)}
+                onOpenFavorites={() => setFavOpen(true)}
+            />
+        )}
         </>
     );
 }

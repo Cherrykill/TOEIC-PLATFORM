@@ -175,7 +175,7 @@ export default function SearchResults() {
                                 title={isFav ? 'Bỏ yêu thích' : 'Yêu thích'}
                                 onClick={(e) => toggleFavorite(e, word)}
                             >
-                                <i className={isFav ? 'fas fa-heart' : 'far fa-heart'}></i>
+                                <i className={isFav ? 'fas fa-star' : 'far fa-star'}></i>
                             </button>
                             <button
                                 className="search-result-speak-btn"

@@ -1690,15 +1690,15 @@
 .search-result-fav-btn:hover {
     opacity: 1;
     transform: scale(1.1);
-    color: #ef4444;
-    border-color: #ef4444;
-    background: #fff0f0;
+    color: #f59e0b;
+    border-color: #f59e0b;
+    background: #fffaf0;
 }
 
 .search-result-fav-btn.active {
-    color: #ef4444;
-    border-color: #ef4444;
-    background: #fff0f0;
+    color: #f59e0b;
+    border-color: #f59e0b;
+    background: #fffaf0;
     opacity: 1;
 }
 

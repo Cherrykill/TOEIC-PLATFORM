@@ -3,6 +3,7 @@ import { GameState } from '@game/state.js';
 import { getVocabLang } from '@api/vocabulary.js';
 import { FavoritesAPI } from '@api/favorites.js';
 import { UploadVocabAPI } from '@api/uploadVocab.js';
+import { openUploadModal } from '@components/vocab/upload/openUploadModal.js';
 import { Notification } from '@ui/Toaster.jsx';
 
 // Ngôn ngữ học của hệ thống (en/zh) → mã đích ưu tiên khi dịch.
@@ -58,6 +59,20 @@ const TARGETS = [
     { code: 'zh-CN', label: '中文' },
 ];
 
+// Danh sách ngôn ngữ cho 2 select kiểu Google Dịch.
+const SELECT_LANGS = [
+    { code: 'en', label: 'English' },
+    { code: 'vi', label: 'Tiếng Việt' },
+    { code: 'zh-CN', label: '中文' },
+    { code: 'ja', label: '日本語' },
+    { code: 'ko', label: '한국어' },
+    { code: 'fr', label: 'Français' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'es', label: 'Español' },
+    { code: 'ru', label: 'Русский' },
+    { code: 'th', label: 'ไทย' },
+];
+
 function isAlreadyFavorite(en) {
     const favs = GameState.state?.progress?.favoriteWords || [];
     return favs.some(w => (w.en || w.word || '').toLowerCase() === (en || '').toLowerCase());
@@ -67,7 +82,7 @@ function isAlreadyFavorite(en) {
  * Popup dịch trong app — gọi API công khai của Google Translate (không cần key).
  * Hỗ trợ phát âm, đổi ngôn ngữ đích (gồm tiếng Trung) và dịch đảo ngược.
  */
-export default function TranslateModal({ text, onClose }) {
+export default function TranslateModal({ text, onClose, onOpenFavorites }) {
     const [inputText, setInputText] = useState(text);
     // Mặc định dịch sang ngôn ngữ hệ thống đang học (Anh/Trung); nếu nguồn trùng
     // ngôn ngữ này thì sẽ tự đổi sang Tiếng Việt (xử lý sau khi phát hiện nguồn).
@@ -79,8 +94,9 @@ export default function TranslateModal({ text, onClose }) {
     const [savedVocab, setSavedVocab] = useState(false);
     const [srcDraft, setSrcDraft] = useState(text);   // ô GỐC sửa được
     const [editedVn, setEditedVn] = useState('');      // ô bản dịch sửa được
+    const [srcLang, setSrcLang] = useState('auto');    // ngôn ngữ nguồn (auto = tự phát hiện)
 
-    const fullUrl = `https://translate.google.com.vn/?sl=auto&tl=${targetLang}&text=${encodeURIComponent(inputText)}&op=translate`;
+    const fullUrl = `https://translate.google.com.vn/?sl=${srcLang}&tl=${targetLang}&text=${encodeURIComponent(inputText)}&op=translate`;
 
     useEffect(() => {
         let cancelled = false;
@@ -89,7 +105,7 @@ export default function TranslateModal({ text, onClose }) {
         setSavedVocab(false);
         (async () => {
             try {
-                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(inputText)}`;
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${srcLang}&tl=${targetLang}&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(inputText)}`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error('Không dịch được');
                 const data = await res.json();
@@ -119,7 +135,7 @@ export default function TranslateModal({ text, onClose }) {
             }
         })();
         return () => { cancelled = true; };
-    }, [inputText, targetLang]);
+    }, [inputText, targetLang, srcLang]);
 
     // Đồng bộ ô GỐC khi nguồn đổi (đảo ngược / chọn lại); ô bản dịch theo kết quả.
     useEffect(() => { setSrcDraft(inputText); }, [inputText]);
@@ -138,9 +154,10 @@ export default function TranslateModal({ text, onClose }) {
     // Dịch đảo ngược: lấy bản dịch làm đầu vào, đổi đích về ngôn ngữ nguồn vừa phát hiện.
     const handleReverse = () => {
         if (!result?.translated) return;
-        const newTarget = result.sourceLang && result.sourceLang !== 'auto' ? result.sourceLang : 'en';
+        const detected = result.sourceLang && result.sourceLang !== 'auto' ? result.sourceLang : 'en';
+        setSrcLang(targetLang);        // nguồn mới = đích cũ
+        setTargetLang(detected);       // đích mới = ngôn ngữ nguồn vừa phát hiện
         setInputText(result.translated);
-        setTargetLang(newTarget);
     };
 
     const handleSaveFavorite = () => {
@@ -195,7 +212,7 @@ export default function TranslateModal({ text, onClose }) {
     const targetName = LANG_NAMES[targetLang] || targetLang;
 
     return (
-        <div id="modal-container" className="active">
+        <div id="modal-container" className="active translate-layer">
             <div className="modal-backdrop" onClick={onClose}></div>
             <div className="modal translate-modal" style={{ maxWidth: 480, width: '92vw' }}>
                 <div className="modal-header">
@@ -220,11 +237,40 @@ export default function TranslateModal({ text, onClose }) {
                                     {t.label}
                                 </button>
                             ))}
+                        <a className="btn btn-secondary btn-sm translate-gg-link" href={fullUrl} target="_blank" rel="noopener noreferrer">
+                            <i className="fas fa-external-link-alt"></i> Google Dịch
+                        </a>
+                    </div>
+
+                    {/* 2 select chọn ngôn ngữ kiểu Google Dịch */}
+                    <div className="translate-lang-selects">
+                        <select
+                            className="translate-lang-select"
+                            value={srcLang}
+                            onChange={e => setSrcLang(e.target.value)}
+                        >
+                            <option value="auto">Tự động phát hiện</option>
+                            {SELECT_LANGS.map(l => (
+                                <option key={l.code} value={l.code}>{l.label}</option>
+                            ))}
+                        </select>
+                        <button className="translate-lang-swap" title="Hoán đổi ngôn ngữ" onClick={handleReverse} disabled={loading || !result}>
+                            <i className="fas fa-exchange-alt"></i>
+                        </button>
+                        <select
+                            className="translate-lang-select"
+                            value={targetLang}
+                            onChange={e => setTargetLang(e.target.value)}
+                        >
+                            {SELECT_LANGS.map(l => (
+                                <option key={l.code} value={l.code}>{l.label}</option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="translate-source">
                         <div className="translate-label">
-                            Gốc
+                            FROM
                             {result?.sourceLang && result.sourceLang !== 'auto' && (
                                 <span className="translate-detected"> · {LANG_NAMES[result.sourceLang] || result.sourceLang}</span>
                             )}
@@ -245,14 +291,30 @@ export default function TranslateModal({ text, onClose }) {
                     </div>
 
                     <div className="translate-arrow">
-                        <button className="translate-reverse" title="Dịch đảo ngược" onClick={handleReverse} disabled={loading || !result}>
-                            <i className="fas fa-exchange-alt"></i>
+                        <button
+                            className={`translate-save-btn${saved ? ' saved' : ''}`}
+                            title={saved ? 'Đã lưu yêu thích' : 'Lưu yêu thích'}
+                            onClick={handleSaveFavorite}
+                            disabled={loading || !!error || saved}
+                        >
+                            <i className="fas fa-star"></i>
+                            {saved ? ' Đã lưu' : ' Yêu thích'}
+                        </button>
+                        <button
+                            className={`translate-save-btn${savedVocab ? ' saved' : ''}`}
+                            title={savedVocab ? 'Đã lưu vào từ vựng riêng' : 'Lưu vào từ vựng riêng'}
+                            onClick={handleSaveVocab}
+                            disabled={loading || !!error || savedVocab}
+                        >
+                            <i className="fas fa-cloud-arrow-up"></i>
+                            {savedVocab ? ' Đã lưu' : ' Từ vựng riêng'}
                         </button>
                     </div>
 
                     <div className="translate-target">
                         <div className="translate-label">
-                            {targetName}
+                            TO
+                            <span className="translate-detected"> · {targetName}</span>
                             {result?.part && <span className="translate-detected"> · {result.part}</span>}
                         </div>
                         {loading && (
@@ -278,25 +340,17 @@ export default function TranslateModal({ text, onClose }) {
                     </div>
 
                     <div className="translate-actions">
+                        {onOpenFavorites && (
+                            <button className="btn btn-primary btn-sm" onClick={onOpenFavorites}>
+                                <i className="fas fa-star"></i> DS Yêu thích
+                            </button>
+                        )}
                         <button
-                            className={`btn btn-sm ${saved ? 'btn-secondary' : 'btn-primary'}`}
-                            onClick={handleSaveFavorite}
-                            disabled={loading || !!error || saved}
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => openUploadModal({ tab: 'manage' })}
                         >
-                            <i className="fas fa-heart"></i>
-                            {saved ? ' Đã lưu yêu thích' : ' Yêu thích'}
+                            <i className="fas fa-cloud"></i> DS Từ riêng
                         </button>
-                        <button
-                            className={`btn btn-sm ${savedVocab ? 'btn-secondary' : 'btn-primary'}`}
-                            onClick={handleSaveVocab}
-                            disabled={loading || !!error || savedVocab}
-                        >
-                            <i className="fas fa-cloud-arrow-up"></i>
-                            {savedVocab ? ' Đã lưu' : ' Từ vựng riêng'}
-                        </button>
-                        <a className="btn btn-secondary btn-sm" href={fullUrl} target="_blank" rel="noopener noreferrer">
-                            <i className="fas fa-external-link-alt"></i> Google Dịch
-                        </a>
                     </div>
                 </div>
             </div>
