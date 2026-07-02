@@ -50,5 +50,7 @@ userUploadSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 // Tra cứu nhanh theo chủ sở hữu + source
 userUploadSchema.index({ ownerEmail: 1, source: 1 });
 userUploadSchema.index({ ownerId: 1, source: 1 });
+// Khóa upsert chống trùng: 1 từ (en) / source / chủ sở hữu
+userUploadSchema.index({ ownerEmail: 1, source: 1, en: 1 });
 
 module.exports = mongoose.model('UserUpload', userUploadSchema);

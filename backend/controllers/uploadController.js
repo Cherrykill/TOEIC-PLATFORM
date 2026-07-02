@@ -55,25 +55,42 @@ exports.uploadVocabulary = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Source is required' });
     }
 
-    const doc = await UserUpload.create({
-      en: lower(en),
-      vn: lower(vn),
-      phonetic: lower(phonetic),
-      part: upper(part),
-      synonyms: lower(synonyms),
-      type: lower(type),
-      image: lower(image),
-      example: capFirst(example),
-      level: upper(level),
-      source: lower(source),
-      ownerId: userId,
-      ownerEmail: email,
-      expiresAt: new Date(Date.now() + resolveRetentionDays(retentionDays) * DAY_MS),
-    });
+    const enL = lower(en);
+    const sourceL = lower(source);
+
+    // Upsert theo (ownerEmail + source + en): trùng thì cập nhật đè dữ liệu mới
+    // (bổ sung field còn thiếu), không tạo bản ghi trùng.
+    const filter = { ownerEmail: email, source: sourceL, en: enL };
+    const existing = await UserUpload.findOne(filter).select('_id').lean();
+
+    const doc = await UserUpload.findOneAndUpdate(
+      filter,
+      {
+        $set: {
+          en: enL,
+          vn: lower(vn),
+          phonetic: lower(phonetic),
+          part: upper(part),
+          synonyms: lower(synonyms),
+          type: lower(type),
+          image: lower(image),
+          example: capFirst(example),
+          level: upper(level),
+          source: sourceL,
+          ownerId: userId,
+          ownerEmail: email,
+          expiresAt: new Date(Date.now() + resolveRetentionDays(retentionDays) * DAY_MS),
+        },
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true },
+    );
 
     res.json({
       success: true,
-      message: `Saved "${doc.en}" to source "${doc.source}"`,
+      updated: !!existing,
+      message: existing
+        ? `Đã cập nhật "${doc.en}" trong source "${doc.source}"`
+        : `Saved "${doc.en}" to source "${doc.source}"`,
       data: doc,
     });
   } catch (err) {
