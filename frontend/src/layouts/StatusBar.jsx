@@ -3,6 +3,7 @@ import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Utils } from '@lib/utils.js';
+import { Energy } from '@game/energy.js';
 import FlagIcon from '@ui/FlagIcon.jsx';
 
 function computeSessionLabel() {
@@ -59,6 +60,11 @@ export default function StatusBar() {
         window.location.reload();
     };
 
+    const energyFull = resources.energy >= resources.maxEnergy;
+    const energyTitle = energyFull
+        ? 'Năng lượng đã đầy'
+        : `Năng lượng sẽ đầy sau ${Utils.formatTime(Energy.getSecondsUntilFull())}`;
+
     const level = user?.level || 1;
     const neededXp = Utils.getXpForLevel(level) || 100;
     const currentXp = Math.min(user?.xp || 0, neededXp);
@@ -88,7 +94,7 @@ export default function StatusBar() {
                     </button>
                 </div>
                 <div className="status-bar-divider"></div>
-                <div className="resource energy-display">
+                <div className="resource energy-display" title={energyTitle}>
                     <i className="fas fa-bolt"></i>
                     <span id="energy-count">{resources.energy}</span>
                     <span className="resource-max">/{resources.maxEnergy}</span>

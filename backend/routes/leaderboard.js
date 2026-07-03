@@ -67,8 +67,12 @@ router.get('/:period?', async (req, res) => {
         const cacheKey = `lb:${period}:${sortField}:${limitNum}`;
         const cached = getCache(cacheKey);
         if (cached) {
-            // Cập nhật isOnline realtime (không cache vì thay đổi theo giây)
-            cached.forEach(e => { e.isOnline = e._lastLogin && new Date(e._lastLogin) >= onlineThreshold; });
+            // Cập nhật isOnline + isVip realtime (thay đổi theo thời gian, không cache)
+            const nowMs = Date.now();
+            cached.forEach(e => {
+                e.isOnline = e._lastLogin && new Date(e._lastLogin) >= onlineThreshold;
+                e.isVip = !!(e._vipExpiresAt && new Date(e._vipExpiresAt).getTime() > nowMs);
+            });
             return res.json({ success: true, period, sortBy: sortField, count: cached.length, data: cached, _cached: true });
         }
 
@@ -100,6 +104,9 @@ router.get('/:period?', async (req, res) => {
                 gamesPlayed: s.totalGamesPlayed || 0,
                 isOnline: lastLogin && new Date(lastLogin) >= onlineThreshold,
                 _lastLogin: lastLogin, // giữ để recalc isOnline khi serve từ cache
+                isVip: !!(s.vipExpiresAt && new Date(s.vipExpiresAt).getTime() > Date.now()),
+                _vipExpiresAt: s.vipExpiresAt || null, // recalc isVip khi serve từ cache
+                background: p.equipped?.background || null, // cosmetic nền đang trang bị
             };
         });
 

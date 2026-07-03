@@ -85,6 +85,22 @@ export function GameProvider({ children }) {
         heartbeat(); // tick ngay
         const hbTimer = setInterval(heartbeat, 5 * 60 * 1000);
 
+        // Hồi năng lượng theo thời gian thực → header tự cập nhật (không cần F5).
+        // Tự tính số phút trôi qua rồi cộng năng lượng + ép sync UI mỗi 10s.
+        const tickEnergy = () => {
+            const r = GameState.state?.resources;
+            if (r && r.lastEnergyUpdate && r.energy < r.maxEnergy) {
+                const mins = Math.floor((Date.now() - r.lastEnergyUpdate) / 60000);
+                if (mins > 0) {
+                    GameState.addEnergy(mins);
+                    r.lastEnergyUpdate += mins * 60000; // giữ phần dư giây cho chính xác
+                }
+            }
+            syncFromState();
+        };
+        tickEnergy();
+        const energyTimer = setInterval(tickEnergy, 10000);
+
         const unsubs = [
             EventBus.on(GameEvents.USER_LEVEL_UP, syncFromState),
             EventBus.on(GameEvents.USER_XP_GAINED, syncFromState),
@@ -103,6 +119,7 @@ export function GameProvider({ children }) {
         return () => {
             unsubs.forEach(fn => fn());
             clearInterval(hbTimer);
+            clearInterval(energyTimer);
         };
     }, [syncFromState]);
 

@@ -151,6 +151,7 @@ async function buildFullState(userId) {
             active: !!(stats.vipExpiresAt && new Date(stats.vipExpiresAt) > new Date()),
             expiresAt: stats.vipExpiresAt ? new Date(stats.vipExpiresAt).getTime() : 0,
         },
+        equipped: profile.equipped || {}, // cosmetic đang trang bị (background, frame…)
         transactions: stats.transactions || [],
         settings: profile.settings,
         practiceHistory: stats.practiceHistory || [],

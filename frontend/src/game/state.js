@@ -107,6 +107,9 @@ export const GameState = {
         // năng lượng không trừ + x2 XP/Coins.
         vip: { active: false, expiresAt: 0 },
 
+        // Cosmetic đang trang bị (server-authoritative): { background: itemId, ... }
+        equipped: {},
+
         // Lịch sử chi tiêu (cap 50, newest first) — server-authoritative.
         transactions: [],
 

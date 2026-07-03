@@ -138,9 +138,20 @@ export const Energy = {
         });
     },
 
+    // Số giây chính xác đến khi năng lượng đầy (tính theo thời gian thực).
+    getSecondsUntilFull() {
+        const r = GameState.getResources();
+        if (r.energy >= r.maxEnergy) return 0;
+        const interval = Config.game.energyRegenInterval; // ms cho +1 năng lượng
+        const needed = r.maxEnergy - r.energy;
+        const sinceLast = Date.now() - (r.lastEnergyUpdate || Date.now());
+        const timeToNext = interval - (((sinceLast % interval) + interval) % interval);
+        const totalMs = timeToNext + (needed - 1) * interval;
+        return Math.max(0, Math.ceil(totalMs / 1000));
+    },
+
     showRefillModal() {
-        const timeUntilFull = this.getTimeUntilFull();
-        const timeText = Utils.formatTime(timeUntilFull);
+        const fmt = (sec) => Utils.formatTime(Math.max(0, sec));
 
         Modal.show({
             title: 'Hết năng lượng',
@@ -148,7 +159,7 @@ export const Energy = {
                 <div class="energy-refill-modal">
                     <div class="energy-icon">⚡</div>
                     <p>Bạn đã hết năng lượng!</p>
-                    <p class="energy-info">Năng lượng sẽ đầy sau: <strong>${timeText}</strong></p>
+                    <p class="energy-info">Năng lượng sẽ đầy sau: <strong id="energy-countdown">${fmt(this.getSecondsUntilFull())}</strong></p>
                     <div class="refill-options">
                         <button class="btn btn-primary" id="buy-energy-coins-btn">
                             <i class="fas fa-coins"></i>
@@ -161,6 +172,7 @@ export const Energy = {
                     </div>
                 </div>
             `,
+            onClose: () => this.stopRefillCountdown(),
             buttons: [
                 {
                     text: 'Đóng',
@@ -181,7 +193,29 @@ export const Energy = {
             if (gemsBtn) {
                 gemsBtn.addEventListener('click', () => this.buyRefillGems());
             }
+
+            // Đếm ngược real-time (cập nhật mỗi giây).
+            this.stopRefillCountdown();
+            this._refillTimer = setInterval(() => {
+                const el = document.getElementById('energy-countdown');
+                if (!el) { this.stopRefillCountdown(); return; }
+                const sec = this.getSecondsUntilFull();
+                el.textContent = fmt(sec);
+                if (sec <= 0) this.stopRefillCountdown();
+            }, 1000);
         }, 100);
+    },
+
+    stopRefillCountdown() {
+        if (this._refillTimer) {
+            clearInterval(this._refillTimer);
+            this._refillTimer = null;
+        }
+    },
+
+    playSound(name, volume = 0.6) {
+        if (GameState.state?.settings?.soundEnabled === false) return;
+        Utils.playSound(Config.sounds[name], volume);
     },
 
     buyRefillCoins() {
@@ -190,6 +224,7 @@ export const Energy = {
 
         if (GameState.useCoins(cost)) {
             this.add(refillAmount);
+            this.playSound('buyItem');
 
             Notification.show({
                 type: 'success',
@@ -199,6 +234,7 @@ export const Energy = {
 
             Modal.close();
         } else {
+            this.playSound('wrong', 0.5);
             Notification.show({
                 type: 'error',
                 title: 'Không đủ coins!',
@@ -212,6 +248,7 @@ export const Energy = {
 
         if (GameState.useGems(cost)) {
             this.refillFull();
+            this.playSound('buyItem');
 
             Notification.show({
                 type: 'success',
@@ -221,6 +258,7 @@ export const Energy = {
 
             Modal.close();
         } else {
+            this.playSound('wrong', 0.5);
             Notification.show({
                 type: 'error',
                 title: 'Không đủ gems!',

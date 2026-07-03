@@ -11,6 +11,17 @@ const ShopItem = require('../models/ShopItem');
 const UserStats = require('../models/UserStats');
 const logger = require('../utils/logger');
 const { applyShopEffect } = require('../services/shopEffects');
+const Inventory = require('../services/inventoryService');
+
+// Grant vật phẩm inventory từ effect (đệ quy qua combo). Dùng chung: shop + quest.
+async function grantItemsFromEffect(userId, effect, source = 'shop') {
+    if (!effect) return;
+    if (effect.type === 'item' && effect.itemId) {
+        await Inventory.grant(userId, effect.itemId, effect.amount || 1, { source });
+    } else if (effect.type === 'combo' && Array.isArray(effect.items)) {
+        for (const sub of effect.items) await grantItemsFromEffect(userId, sub, source);
+    }
+}
 
 // Vật phẩm giới hạn theo chu kỳ: itemId → số ngày phải chờ giữa 2 lần mua.
 // (Cũng tôn trọng item.cooldownDays nếu được đặt trong DB.)
@@ -105,6 +116,27 @@ exports.purchaseItem = async (req, res, next) => {
         }
 
         await stats.save();
+
+        // Grant vật phẩm inventory (effect type 'item' hoặc trong combo) — vd Vé quay.
+        try {
+            await grantItemsFromEffect(req.user.id, item.effect);
+        } catch (e) {
+            logger.error('Grant inventory item failed:', e.message);
+        }
+
+        // VIP → grant + tự trang bị nền cosmetic (hạn = VIP). Best-effort:
+        // lỗi inventory không được làm hỏng giao dịch mua đã lưu.
+        if (item.effect?.type === 'vip' || item.category === 'vip') {
+            try {
+                await Inventory.grant(req.user.id, 'bg-vip-week', 1, {
+                    source: 'vip',
+                    expiresAt: stats.vipExpiresAt || null,
+                });
+                await Inventory.equip(req.user.id, 'bg-vip-week');
+            } catch (e) {
+                logger.error('VIP cosmetic grant failed:', e.message);
+            }
+        }
 
         res.json({
             success: true,

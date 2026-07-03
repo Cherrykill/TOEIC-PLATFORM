@@ -315,6 +315,7 @@ app.use('/api/checkin', require('./routes/checkin'));        // Weekly check-in 
 app.use('/api/notifications', require('./routes/notifications')); // In-app notification center
 app.use('/api/spin', require('./routes/spin'));              // Lucky spin wheel (1 lần/ngày)
 app.use('/api/season', require('./routes/season'));          // Mùa giải: đếm ngược + reset mùa
+app.use('/api/inventory', require('./routes/inventory'));    // Túi đồ: item_definitions + inventory_items
 
 // ===================================
 // ADMIN STATS: USER GROWTH

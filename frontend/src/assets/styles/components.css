@@ -723,6 +723,35 @@
   color: var(--error-color);
 }
 
+/* Gộp thanh điểm vào header thành 1 hàng (tiết kiệm chiều cao) */
+.practice-header { gap: 12px; position: relative; }
+.practice-info { text-align: left; min-width: 0; }
+.practice-info h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.practice-meta { justify-content: flex-start; }
+/* Thanh điểm ⭐✓✗ nằm chính giữa header */
+.practice-header .practice-score-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  gap: 16px;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  /* Màn nhỏ: header xuống dòng → trả thanh điểm về trong luồng */
+  .practice-header .practice-score-bar { position: static; transform: none; }
+}
+
 .practice-content {
   background-color: var(--bg-primary);
   border-radius: var(--border-radius-large);
@@ -2075,6 +2104,34 @@
   vertical-align: middle;
 }
 
+/* Dòng có nền tuỳ chỉnh (ảnh) — ảnh set inline; chữ sáng cho dễ đọc.
+   Đặt sau --me để đè khi vừa là mình vừa có nền. */
+.leaderboard-item--custom-bg {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+.leaderboard-item--custom-bg > * { position: relative; z-index: 1; }
+.leaderboard-item--custom-bg .leaderboard-name { color: #fff !important; }
+.leaderboard-item--custom-bg .leaderboard-level { color: rgba(255, 255, 255, 0.85) !important; }
+.leaderboard-item--custom-bg .leaderboard-level i { color: #fbbf24 !important; }
+.leaderboard-item--custom-bg .leaderboard-score { color: #fde68a !important; }
+/* VIP: thêm viền vàng */
+.leaderboard-item--vip { border: 2px solid #f0b429 !important; }
+
+.leaderboard-vip-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 9px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #3b2400;
+  font-size: 11px;
+  font-weight: 800;
+  vertical-align: middle;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
 .leaderboard-level i {
   color: #f59e0b;
   font-size: 11px;
@@ -2160,6 +2217,28 @@
   );
   border-radius: var(--border-radius-large);
   color: #fff;
+}
+
+/* Nền tuỳ chỉnh (ảnh) — dùng cho VIP hoặc nền chọn sau này; ảnh set inline. */
+.profile-header--custom-bg {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+.profile-header--custom-bg > * { position: relative; z-index: 1; }
+/* Huy hiệu VIP nhỏ cạnh tên */
+.profile-header--vip .profile-details h2::after {
+  content: '\1F451 VIP';
+  margin-left: 10px;
+  font-size: 0.6em;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  color: #3b2400;
+  vertical-align: middle;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .profile-avatar {
@@ -7108,6 +7187,10 @@ mark {
     background: linear-gradient(135deg, #8b5cf6, #7c3aed);
     box-shadow: 0 3px 12px rgba(139,92,246,0.35);
 }
+.spin-ticket-btn {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+    box-shadow: 0 3px 12px rgba(236,72,153,0.35);
+}
 .spin-balance {
     font-size: 11px; font-weight: 400; opacity: 0.85;
 }
@@ -7561,3 +7644,40 @@ mark {
   background: rgba(0, 0, 0, 0.03);
 }
 .translate-input.result { font-weight: 700; color: var(--primary-color, #E11D48); }
+
+/* ===== Tủ đồ (Wardrobe) — sidebar category + lưới + preview ===== */
+.wardrobe { display: grid; grid-template-columns: 128px 1fr 200px; gap: 14px; min-height: 340px; max-height: 62vh; }
+.wardrobe-cats { display: flex; flex-direction: column; gap: 6px; }
+.wardrobe-cat { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 12px 6px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 600; transition: all .15s; }
+.wardrobe-cat i { font-size: 18px; }
+.wardrobe-cat:hover { border-color: var(--primary-color); }
+.wardrobe-cat.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+
+.wardrobe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 10px; align-content: start; overflow-y: auto; padding-right: 4px; }
+.wardrobe-empty { grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 46px 0; }
+.wardrobe-cell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all .15s; }
+.wardrobe-cell:hover { border-color: var(--primary-color); transform: translateY(-2px); }
+.wardrobe-cell.selected { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(225,29,72,.25); }
+.wardrobe-cell.equipped { border-color: #16a34a; }
+.wardrobe-cell.rarity-legendary { border-color: #f59e0b; }
+.wardrobe-cell.rarity-epic { border-color: #a855f7; }
+.wardrobe-cell.rarity-rare { border-color: #3b82f6; }
+.cell-thumb { width: 100%; aspect-ratio: 1; border-radius: 8px; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; }
+.cell-thumb--icon { background: var(--bg-tertiary, #eef); font-size: 26px; }
+.cell-name { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.2; color: var(--text-primary); }
+.cell-badge { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.72); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
+.cell-equipped { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 50%; background: #16a34a; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+
+.wardrobe-preview { border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: var(--bg-secondary); }
+.wardrobe-preview-empty { margin: auto; text-align: center; color: var(--text-tertiary, #94a3b8); }
+.wardrobe-preview-empty i { font-size: 28px; display: block; margin-bottom: 8px; }
+.preview-visual { width: 100%; aspect-ratio: 16/9; border-radius: 10px; background: var(--bg-tertiary, #eef); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--primary-color); }
+.preview-name { font-weight: 700; text-align: center; }
+.preview-desc { font-size: 12px; color: var(--text-secondary); text-align: center; }
+.preview-btn { margin-top: auto; width: 100%; justify-content: center; }
+
+@media (max-width: 640px) {
+  .wardrobe { grid-template-columns: 1fr; max-height: none; }
+  .wardrobe-cats { flex-direction: row; overflow-x: auto; }
+  .wardrobe-cat { flex: 1 0 auto; }
+}

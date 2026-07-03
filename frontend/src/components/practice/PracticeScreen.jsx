@@ -99,6 +99,20 @@ export default function PracticeScreen({ active }) {
                         </span>
                     </div>
                 </div>
+                <div className="practice-score-bar">
+                    <div className="score-item">
+                        <i className="fas fa-star"></i>
+                        <span id="practice-score">{score}</span>
+                    </div>
+                    <div className="score-item">
+                        <i className="fas fa-check-circle"></i>
+                        <span id="correct-count">{correctCount}</span>
+                    </div>
+                    <div className="score-item">
+                        <i className="fas fa-times-circle"></i>
+                        <span id="wrong-count">{wrongCount}</span>
+                    </div>
+                </div>
                 <FavoriteButton />
                 {timerVisible && (
                     <div className="practice-timer">
@@ -106,21 +120,6 @@ export default function PracticeScreen({ active }) {
                         <span id="practice-timer">{timer}</span>
                     </div>
                 )}
-            </div>
-
-            <div className="practice-score-bar">
-                <div className="score-item">
-                    <i className="fas fa-star"></i>
-                    <span id="practice-score">{score}</span>
-                </div>
-                <div className="score-item">
-                    <i className="fas fa-check-circle"></i>
-                    <span id="correct-count">{correctCount}</span>
-                </div>
-                <div className="score-item">
-                    <i className="fas fa-times-circle"></i>
-                    <span id="wrong-count">{wrongCount}</span>
-                </div>
             </div>
 
             {engineLoading && (

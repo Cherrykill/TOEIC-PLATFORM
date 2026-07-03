@@ -1,0 +1,41 @@
+// ===================================
+// INVENTORY API SERVICE
+// ===================================
+// Bọc các endpoint /api/inventory (túi đồ + trang bị cosmetic).
+import { authHeaders } from '@/auth/token.js';
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+export const InventoryAPI = {
+    /** Túi đồ của tôi + slot đang trang bị. → { success, data, equipped } */
+    async get() {
+        return fetch('/api/inventory', { headers: authHeaders() })
+            .then(r => r.json())
+            .catch(() => ({ success: false, data: [], equipped: {} }));
+    },
+
+    /** Catalog item (public). */
+    async items() {
+        return fetch('/api/inventory/items')
+            .then(r => r.json())
+            .catch(() => ({ success: false, data: [] }));
+    },
+
+    /** Trang bị cosmetic. */
+    async equip(itemId) {
+        return fetch('/api/inventory/equip', {
+            method: 'POST',
+            headers: { ...JSON_HEADERS, ...authHeaders() },
+            body: JSON.stringify({ itemId }),
+        }).then(r => r.json()).catch(() => ({ success: false }));
+    },
+
+    /** Bỏ trang bị theo slot. */
+    async unequip(slot) {
+        return fetch('/api/inventory/unequip', {
+            method: 'POST',
+            headers: { ...JSON_HEADERS, ...authHeaders() },
+            body: JSON.stringify({ slot }),
+        }).then(r => r.json()).catch(() => ({ success: false }));
+    },
+};

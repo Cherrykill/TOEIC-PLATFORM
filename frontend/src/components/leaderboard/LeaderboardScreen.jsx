@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { RankingsAPI } from '@api/rankings.js';
+import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
 
 export default function LeaderboardScreen({ active }) {
     const { showScreen } = useGame();
@@ -116,12 +117,17 @@ export default function LeaderboardScreen({ active }) {
                     const myId = GameState.state.user?.id || GameState.state.user?._id;
                     const myName = GameState.state.user?.username;
                     const isMe = (myId && entry.userId === myId) || (myName && entry.username === myName);
+                    const myVip = GameState.state?.vip;
+                    const myVipActive = !!(myVip?.active && myVip.expiresAt && Date.now() < myVip.expiresAt);
+                    const rowVip = entry.isVip || (isMe && myVipActive);
+                    const bgKey = bgKeyForUser({ isVip: rowVip, background: entry.background });
+                    const rowStyle = { cursor: 'pointer', ...(bgStyle(bgKey) || {}) };
                     return (
                         <div
                             key={i}
-                            className={`leaderboard-item${isMe ? ' leaderboard-item--me' : ''}`}
+                            className={`leaderboard-item${isMe ? ' leaderboard-item--me' : ''}${bgKey ? ' leaderboard-item--custom-bg' : ''}${rowVip ? ' leaderboard-item--vip' : ''}`}
                             onClick={() => setSelected(entry)}
-                            style={{ cursor: 'pointer' }}
+                            style={rowStyle}
                         >
                             <div className="leaderboard-rank">{rank}</div>
                             <div className="leaderboard-avatar-wrap">
@@ -136,6 +142,7 @@ export default function LeaderboardScreen({ active }) {
                             <div className="leaderboard-info">
                                 <div className="leaderboard-name">
                                     {entry.username || 'Ẩn danh'}
+                                    {rowVip && <span className="leaderboard-vip-badge">👑 VIP</span>}
                                     {isMe && <span className="leaderboard-you-badge">Bạn</span>}
                                 </div>
                                 <div className="leaderboard-level"><i className="fas fa-star"></i> Level {entry.level || 1}</div>

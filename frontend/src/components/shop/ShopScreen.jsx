@@ -7,6 +7,7 @@ import { Config } from '@game/config.js';
 import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
+import InventoryWardrobe from '@components/inventory/InventoryWardrobe.jsx';
 
 // Gộp 6 category trong DB thành 5 tab cho gọn. `cats` = các category map vào tab.
 const SHOP_TABS = [
@@ -130,93 +131,19 @@ export default function ShopScreen({ active }) {
         ? items
         : items.filter(it => activeTabDef.cats?.includes(it.category));
 
-    // Túi đồ: hiện vật phẩm tiêu hao + boost đang chạy + số dư (đọc thẳng state).
+    // Túi đồ: bố cục tủ đồ (sidebar category + lưới + preview/trang bị).
     function openInventory() {
         const r = GameState.state.resources || {};
-        const b = GameState.state.boosts || {};
-        const now = Date.now();
-        const boostLeft = (boost) => {
-            if (!boost?.active || !boost.expiresAt) return null;
-            const ms = new Date(boost.expiresAt).getTime() - now;
-            if (ms <= 0) return null;
-            const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000);
-            return h > 0 ? `${h}h ${m}m` : `${m}m`;
-        };
-        const xpLeft = boostLeft(b.xp);
-        const coinsLeft = boostLeft(b.coins);
-        const vip = GameState.state.vip;
-        const vipActive = !!(vip?.active && vip.expiresAt > now);
-        const vipLeft = vipActive ? (() => {
-            const ms = vip.expiresAt - now;
-            const d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000);
-            return d > 0 ? `${d} ngày ${h}h` : `${h}h`;
-        })() : null;
-
-        const consumables = [
-            { icon: 'fa-shield-alt', color: '#3b82f6', name: 'Khiên bảo vệ streak', count: r.shields || 0, desc: 'Giữ streak khi bạn nghỉ 1 ngày' },
-            { icon: 'fa-lightbulb', color: '#f59e0b', name: 'Gợi ý', count: r.hints || 0, desc: 'Dùng khi luyện tập' },
-            { icon: 'fa-snowflake', color: '#06b6d4', name: 'Dừng thời gian', count: r.timeFreezes || 0, desc: 'Tạm dừng đồng hồ câu hỏi' },
-        ];
-        const allEmpty = consumables.every(c => c.count <= 0) && !xpLeft && !coinsLeft && !vipActive;
-
         const body = (
-            <div className="inventory-modal">
+            <>
                 <div className="inventory-currency">
                     <span><i className="fas fa-coins" style={{ color: '#f59e0b' }}></i> {r.coins || 0}</span>
                     <span><i className="fas fa-gem" style={{ color: '#a855f7' }}></i> {r.gems || 0}</span>
                     <span><i className="fas fa-bolt" style={{ color: '#22c55e' }}></i> {r.energy || 0}/{r.maxEnergy || 100}</span>
                 </div>
-
-                {vipActive && (
-                    <div className="inventory-vip">
-                        <i className="fas fa-crown"></i>
-                        <div className="inv-info">
-                            <span className="inv-name">VIP đang kích hoạt</span>
-                            <span className="inv-desc">Năng lượng không giới hạn + x2 XP/Coins · còn {vipLeft}</span>
-                        </div>
-                    </div>
-                )}
-
-                <div className="inventory-section-title">Vật phẩm</div>
-                <ul className="inventory-list">
-                    {consumables.map(it => (
-                        <li key={it.name} className={`inventory-item${it.count <= 0 ? ' inventory-item--empty' : ''}`}>
-                            <i className={`fas ${it.icon} inv-icon`} style={{ color: it.color }}></i>
-                            <div className="inv-info">
-                                <span className="inv-name">{it.name}</span>
-                                <span className="inv-desc">{it.desc}</span>
-                            </div>
-                            <span className="inv-count">×{it.count}</span>
-                        </li>
-                    ))}
-                </ul>
-
-                {(xpLeft || coinsLeft) && (
-                    <>
-                        <div className="inventory-section-title">Tăng tốc đang chạy</div>
-                        <ul className="inventory-list">
-                            {xpLeft && (
-                                <li className="inventory-item">
-                                    <i className="fas fa-bolt inv-icon" style={{ color: '#8b5cf6' }}></i>
-                                    <div className="inv-info"><span className="inv-name">x{b.xp.multiplier} XP</span><span className="inv-desc">Còn {xpLeft}</span></div>
-                                </li>
-                            )}
-                            {coinsLeft && (
-                                <li className="inventory-item">
-                                    <i className="fas fa-coins inv-icon" style={{ color: '#f59e0b' }}></i>
-                                    <div className="inv-info"><span className="inv-name">x{b.coins.multiplier} Coins</span><span className="inv-desc">Còn {coinsLeft}</span></div>
-                                </li>
-                            )}
-                        </ul>
-                    </>
-                )}
-
-                {allEmpty && (
-                    <p className="inventory-empty-note">Túi còn trống — mua vật phẩm ở cửa hàng nhé!</p>
-                )}
-            </div>
+                <InventoryWardrobe />
+            </>
         );
-
         Modal.show({ title: '🎒 Túi đồ', wide: true, contentJsx: body });
     }
 

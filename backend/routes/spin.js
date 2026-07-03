@@ -4,7 +4,10 @@ const { protect, authorize } = require('../middleware/auth');
 const UserSpin = require('../models/UserSpin');
 const UserStats = require('../models/UserStats');
 const SpinConfig = require('../models/SpinConfig');
+const Inventory = require('../services/inventoryService');
 const logger = require('../utils/logger');
+
+const SPIN_TICKET = 'spin-ticket';
 
 const admin = [protect, authorize('admin')];
 
@@ -43,10 +46,11 @@ function msUntilMidnight() {
 
 router.get('/status', protect, async (req, res) => {
     try {
-        const [spin, stats, cfg] = await Promise.all([
+        const [spin, stats, cfg, tickets] = await Promise.all([
             UserSpin.findOne({ userId: req.user.id }).lean(),
             UserStats.findOne({ userId: req.user.id }).select('coins gems').lean(),
             getCfg(),
+            Inventory.count(req.user.id, SPIN_TICKET),
         ]);
 
         let canFreeSpin = true, nextSpinAt = null;
@@ -67,6 +71,7 @@ router.get('/status', protect, async (req, res) => {
             totalSpins: spin?.totalSpins || 0,
             coins: stats?.coins || 0,
             gems: stats?.gems || 0,
+            tickets,
             costs: cfg.costs,
             prizes: cfg.prizes.map(publicPrize),
         });
@@ -79,7 +84,7 @@ router.get('/status', protect, async (req, res) => {
 router.post('/', protect, async (req, res) => {
     try {
         const userId = req.user.id;
-        const mode = ['free', 'coin', 'gem'].includes(req.body.mode) ? req.body.mode : 'free';
+        const mode = ['free', 'coin', 'gem', 'ticket'].includes(req.body.mode) ? req.body.mode : 'free';
 
         const [spin, stats, cfg] = await Promise.all([
             UserSpin.findOne({ userId }),
@@ -107,9 +112,17 @@ router.post('/', protect, async (req, res) => {
             if ((stats?.gems || 0) < cost.gem) {
                 return res.status(400).json({ success: false, message: `Không đủ đá quý! Cần ${cost.gem} đá.` });
             }
+        } else if (mode === 'ticket') {
+            // Tiêu 1 vé ATOMIC trước khi quay; thiếu vé → dừng.
+            const ok = await Inventory.consume(userId, SPIN_TICKET, 1);
+            if (!ok) {
+                return res.status(400).json({ success: false, message: 'Bạn không có Vé quay may mắn!' });
+            }
         }
 
-        const prizeIndex = pickPrizeIndex(prizes, mode);
+        // Tỷ lệ: mode 'ticket' dùng bảng của 'free' (quay như lượt thường).
+        const prizeMode = mode === 'ticket' ? 'free' : mode;
+        const prizeIndex = pickPrizeIndex(prizes, prizeMode);
         const prize = prizes[prizeIndex];
 
         // Áp dụng phần thưởng + trừ chi phí

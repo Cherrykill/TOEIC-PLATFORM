@@ -96,6 +96,7 @@ export default function SpinWheelModal({ open, onClose }) {
     const [countdown, setCountdown] = useState('');
     const [coins, setCoins] = useState(0);
     const [gems, setGems] = useState(0);
+    const [tickets, setTickets] = useState(0);
     const [costs, setCosts] = useState({ coin: 100, gem: 5 });
     const [qty, setQty] = useState(1);
     const [skipAnim, setSkipAnim] = useState(false);
@@ -119,6 +120,7 @@ export default function SpinWheelModal({ open, onClose }) {
                     setNextSpinAt(data.nextSpinAt ? new Date(data.nextSpinAt) : null);
                     setCoins(data.coins || 0);
                     setGems(data.gems || 0);
+                    setTickets(data.tickets || 0);
                     if (data.costs) setCosts(data.costs);
                     if (data.prizes?.length) setPrizes(data.prizes);
                 }
@@ -172,6 +174,7 @@ export default function SpinWheelModal({ open, onClose }) {
                 setSpinSummary({ spins: results.length, coins: totalCoinsWon, gems: totalGemsWon, xp: totalXpWon, hints: totalHints });
             }
             if (mode === 'free') { setCanFreeSpin(false); setNextSpinAt(nextAt); }
+            if (mode === 'ticket') setTickets(t => Math.max(0, t - results.length));
             setCoins(c => c - totalCoinCost + totalCoinsWon);
             setGems(g  => g - totalGemCost  + totalGemsWon);
 
@@ -408,6 +411,17 @@ export default function SpinWheelModal({ open, onClose }) {
                                 💎 {totalGemCost} Đá
                                 <span className="spin-balance">({gems} đá) ✨</span>
                             </button>
+                            {tickets > 0 && (
+                                <button
+                                    className="spin-action-btn spin-ticket-btn"
+                                    onClick={() => doSpin('ticket')}
+                                    disabled={spinning || tickets < qty}
+                                    title={`Bạn có ${tickets} vé quay`}
+                                >
+                                    🎟️ Quay bằng vé ×{qty}
+                                    <span className="spin-balance">(còn {tickets} vé)</span>
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

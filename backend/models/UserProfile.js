@@ -56,6 +56,9 @@ const userProfileSchema = new mongoose.Schema(
         level: { type: Number, default: 1 },
         currentLevelXp: { type: Number, default: 0 },
 
+        // Cosmetic đang trang bị theo slot: { background: itemId, frame: itemId, ... }
+        equipped: { type: mongoose.Schema.Types.Mixed, default: {} },
+
         settings: { type: settingsSchema, default: () => ({}) },
     },
     {

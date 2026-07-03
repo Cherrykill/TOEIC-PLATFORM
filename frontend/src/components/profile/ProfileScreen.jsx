@@ -5,6 +5,7 @@ import { API } from '@api/http.js';
 import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
+import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
 
 export default function ProfileScreen({ active }) {
     const { showScreen, user, resources, streak, syncFromState } = useGame();
@@ -123,6 +124,11 @@ export default function ProfileScreen({ active }) {
     const levelTitle = Utils.getLevelTitle(level);
     const userId = user?.id || user?._id || '—';
 
+    const vip = GameState.state?.vip;
+    const vipActive = !!(vip?.active && vip.expiresAt && Date.now() < vip.expiresAt);
+    const bgKey = bgKeyForUser({ isVip: vipActive, background: GameState.state?.equipped?.background });
+    const headerStyle = bgStyle(bgKey);
+
     const unlockedCount = achievements.filter(a => a.unlocked).length;
 
     if (!isLoggedIn) {
@@ -166,7 +172,10 @@ export default function ProfileScreen({ active }) {
             </div>
             <div id="profile-content" className="profile-content">
 
-                <div className="profile-header">
+                <div
+                    className={`profile-header${bgKey ? ' profile-header--custom-bg' : ''}${vipActive ? ' profile-header--vip' : ''}`}
+                    style={headerStyle || undefined}
+                >
                     <div
                         className="profile-avatar profile-avatar--clickable"
                         onClick={() => avatarInputRef.current?.click()}
