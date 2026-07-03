@@ -44,6 +44,8 @@ const questDefinitionSchema = new mongoose.Schema(
         rewardCoins: { type: Number, default: 0 },
         rewardXp:    { type: Number, default: 0 },
         rewardGems:  { type: Number, default: 0 },
+        // Thưởng thêm vật phẩm inventory: [{ itemId, quantity }] (vd vé quay).
+        rewardItems: { type: [mongoose.Schema.Types.Mixed], default: [] },
 
         isActive: { type: Boolean, default: true },
         // Higher weight = more likely to be selected when generating daily quests

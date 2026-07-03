@@ -10,6 +10,16 @@ import { GameState } from '@game/state.js';
 import CheckinModal from '@components/checkin/CheckinModal.jsx';
 import { CheckinAPI } from '@api/checkin.js';
 
+// Nhãn hiển thị cho vật phẩm thưởng (itemId → emoji + tên). Thêm item mới thì
+// bổ sung 1 dòng ở đây (khớp item_definitions.itemId).
+const ITEM_REWARD_META = {
+    'spin-ticket': { icon: '🎟️', label: 'Vé quay' },
+    'hint': { icon: '💡', label: 'Gợi ý' },
+    'shield': { icon: '🛡️', label: 'Khiên' },
+    'time-freeze': { icon: '⏸️', label: 'Dừng giờ' },
+    'bg-vip-week': { icon: '👑', label: 'Nền VIP' },
+};
+
 const TABS = [
     { type: 'daily',   label: 'Hàng ngày',  icon: 'fa-sun' },
     { type: 'weekly',  label: 'Hàng tuần',  icon: 'fa-calendar-week' },
@@ -323,6 +333,10 @@ export default function QuestScreen({ active }) {
                                         {!quest.rewardCoins && quest.reward?.coins > 0 && <span><i className="fas fa-coins"></i> {quest.reward.coins}</span>}
                                         {!quest.rewardXp && quest.reward?.xp > 0 && <span><i className="fas fa-star"></i> {quest.reward.xp} XP</span>}
                                         {!quest.rewardGems && quest.reward?.gems > 0 && <span><i className="fas fa-gem"></i> {quest.reward.gems}</span>}
+                                        {Array.isArray(quest.rewardItems) && quest.rewardItems.map((it, k) => {
+                                            const m = ITEM_REWARD_META[it.itemId] || { icon: '🎁', label: it.itemId };
+                                            return <span key={k} className="quest-reward-item">{m.icon} {(it.quantity > 1 ? it.quantity + ' ' : '') + m.label}</span>;
+                                        })}
                                     </div>
                                 </div>
                                 {quest.description && <div className="quest-description">{quest.description}</div>}

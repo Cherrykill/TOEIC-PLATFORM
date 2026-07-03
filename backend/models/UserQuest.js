@@ -16,6 +16,7 @@ const questEntrySchema = new mongoose.Schema(
         rewardCoins: { type: Number, default: 0 },
         rewardXp:    { type: Number, default: 0 },
         rewardGems:  { type: Number, default: 0 },
+        rewardItems: { type: [mongoose.Schema.Types.Mixed], default: [] },
         progress:    { type: Number, default: 0 },
         completed:   { type: Boolean, default: false },
         completedAt: { type: Date, default: null },

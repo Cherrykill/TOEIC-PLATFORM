@@ -6,6 +6,7 @@ const logger = require('../utils/logger');
 const { getPeriodKey, getNextReset } = require('../services/questPeriod');
 // Phase B: evaluator chạy server-side đọc UserStats/DB (không phụ thuộc client emit).
 const { captureSnapshot, parsePeriodStart, refreshDoc } = require('../services/questEvaluators');
+const Inventory = require('../services/inventoryService');
 
 // How many quests to assign per type. Phase A: cấp nhiều hơn để bớt cảm
 // giác "ai cũng giống nhau" — kết hợp với pool defaults mở rộng (xem
@@ -58,6 +59,7 @@ async function generateQuests(userId, type, periodKey) {
         rewardCoins: d.rewardCoins || 0,
         rewardXp:    d.rewardXp || 0,
         rewardGems:  d.rewardGems || 0,
+        rewardItems: Array.isArray(d.rewardItems) ? d.rewardItems : [],
         progress:    0,
         completed:   false,
     }));
@@ -139,6 +141,7 @@ const getQuests = async (req, res, next) => {
                             : (d.metric === 'play-mode' && d.mode && d.mode !== 'any') ? { mode: d.mode } : {},
                     target: d.target, rewardCoins: d.rewardCoins || 0,
                     rewardXp: d.rewardXp || 0, rewardGems: d.rewardGems || 0,
+                    rewardItems: Array.isArray(d.rewardItems) ? d.rewardItems : [],
                     progress: 0, completed: false,
                 });
             }
@@ -199,6 +202,7 @@ const syncProgress = async (req, res, next) => {
                             : (d.metric === 'play-mode' && d.mode && d.mode !== 'any') ? { mode: d.mode } : {},
                     target: d.target, rewardCoins: d.rewardCoins || 0,
                     rewardXp: d.rewardXp || 0, rewardGems: d.rewardGems || 0,
+                    rewardItems: Array.isArray(d.rewardItems) ? d.rewardItems : [],
                     progress: 0, completed: false,
                 });
             }
@@ -285,12 +289,24 @@ const claimReward = async (req, res, next) => {
             await stats.save();
         }
 
+        // Thưởng thêm vật phẩm inventory (vd vé quay). Best-effort — lỗi grant
+        // không làm hỏng việc claim đã lưu.
+        const rewardItems = Array.isArray(q.rewardItems) ? q.rewardItems : [];
+        for (const it of rewardItems) {
+            if (!it?.itemId) continue;
+            try {
+                await Inventory.grant(userId, it.itemId, Number(it.quantity) || 1, { source: 'quest' });
+            } catch (e) {
+                logger.error('Quest reward grant failed:', e.message);
+            }
+        }
+
         await doc.save();
 
         res.json({
             success: true,
             message: 'Phần thưởng đã được nhận!',
-            rewards: { coins: q.rewardCoins, xp: q.rewardXp, gems: q.rewardGems },
+            rewards: { coins: q.rewardCoins, xp: q.rewardXp, gems: q.rewardGems, items: rewardItems },
         });
     } catch (err) {
         logger.error('claimReward error', { error: err.message });
