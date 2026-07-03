@@ -626,6 +626,15 @@ const googleLogin = async (req, res, next) => {
         user.lastLoginAt = Date.now();
         await user.save();
 
+        // Lấy avatar Google làm mặc định khi user chưa có ảnh thật (ảnh ngoài, không tự host).
+        if (payload.picture) {
+            const profile = await UserProfile.findOne({ userId: user._id });
+            if (profile && !/^(https?:|\/|data:)/.test(profile.avatar || '')) {
+                profile.avatar = payload.picture;
+                await profile.save();
+            }
+        }
+
         const token = user.generateToken();
         const fullState = await buildFullState(user._id);
 

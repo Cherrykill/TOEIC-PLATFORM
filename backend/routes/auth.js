@@ -268,7 +268,11 @@ router.get('/me', protect, authController.getMe);
  *         description: Cập nhật thành công
  */
 router.put('/profile', protect, authController.updateProfile);
-router.post('/avatar', protect, uploadAvatar.single('avatar'), authController.uploadAvatar);
+// Tải avatar riêng đã TẮT (tránh nội dung không kiểm duyệt hiển thị công khai ở BXH).
+// Đổi ảnh đại diện: mua & trang bị avatar trong Cửa hàng, hoặc dùng avatar Google.
+router.post('/avatar', protect, (req, res) => {
+    res.status(403).json({ success: false, message: 'Tải avatar riêng đã tắt. Hãy chọn avatar trong Cửa hàng.' });
+});
 
 /**
  * @swagger

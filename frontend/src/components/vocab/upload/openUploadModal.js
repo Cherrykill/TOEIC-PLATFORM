@@ -385,10 +385,10 @@ Danh sách từ vựng cần chuyển:
         const modalContent = `
 <div style="padding:0">
     <div style="display:flex;border-bottom:1px solid var(--border-color);margin-bottom:0">
-        <button id="upload-tab-add" style="flex:1;padding:10px;border:none;background:var(--primary-color);color:#fff;cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
+        <button type="button" id="upload-tab-add" style="flex:1;padding:10px;border:none;background:var(--primary-color);color:#fff;cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
             <i class="fas fa-plus"></i> Thêm từ mới
         </button>
-        <button id="upload-tab-json" style="flex:1;padding:10px;border:none;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
+        <button type="button" id="upload-tab-json" style="flex:1;padding:10px;border:none;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
             <i class="fas fa-code"></i> Thêm JSON
         </button>
     </div>
@@ -396,33 +396,36 @@ Danh sách từ vựng cần chuyển:
 </div>`;
 
         // "Quản lý từ vựng" tách khỏi tab bar → nút riêng nằm cạnh nút Đóng (X).
-        const manageBtnHtml = `<button id="upload-tab-manage" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-list"></i> Quản lý từ vựng</button>`;
+        const manageBtnHtml = `<button type="button" id="upload-tab-manage" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-list"></i> Quản lý từ vựng</button>`;
 
-        Modal.show({ title: '☁️ Từ vựng riêng', content: modalContent, headerActionHtml: manageBtnHtml, wide: true });
+        // Chuyển tab: thay nội dung + tô nút + gắn lại handler nội bộ của tab đó.
+        const showTab = (name) => {
+            const content = document.getElementById('upload-tab-content');
+            if (!content) return;
+            if (name === 'add') { saveJsonTabState(); content.innerHTML = addTabHtml(); styleTabBtns('add'); attachAddHandlers(); }
+            else if (name === 'json') { saveAddTabState(); content.innerHTML = jsonTabHtml(); styleTabBtns('json'); attachJsonHandlers(); }
+            else if (name === 'manage') { saveAddTabState(); content.innerHTML = manageTabHtml(); styleTabBtns('manage'); loadMyTopics(); }
+        };
+
+        // Uỷ quyền sự kiện trên document → nút tab LUÔN hoạt động, kể cả khi React
+        // dựng lại subtree modal (dangerouslySetInnerHTML) làm handler gắn trực tiếp
+        // bị mất → trước đây gây "kẹt" ở tab đầu khi bấm Thêm JSON.
+        const onDocClick = (e) => {
+            if (!document.getElementById('upload-tab-content')) return; // modal đã đóng
+            if (e.target.closest('#upload-tab-add')) showTab('add');
+            else if (e.target.closest('#upload-tab-json')) showTab('json');
+            else if (e.target.closest('#upload-tab-manage')) showTab('manage');
+        };
+
+        Modal.show({
+            title: '☁️ Từ vựng riêng', content: modalContent, headerActionHtml: manageBtnHtml, wide: true,
+            onClose: () => document.removeEventListener('click', onDocClick),
+        });
+        document.addEventListener('click', onDocClick);
 
         setTimeout(() => {
             attachAddHandlers();
-
-            document.getElementById('upload-tab-add')?.addEventListener('click', () => {
-                saveJsonTabState();
-                document.getElementById('upload-tab-content').innerHTML = addTabHtml();
-                styleTabBtns('add');
-                attachAddHandlers();
-            });
-            document.getElementById('upload-tab-manage')?.addEventListener('click', () => {
-                saveAddTabState();
-                document.getElementById('upload-tab-content').innerHTML = manageTabHtml();
-                styleTabBtns('manage');
-                loadMyTopics();
-            });
-            document.getElementById('upload-tab-json')?.addEventListener('click', () => {
-                saveAddTabState();
-                document.getElementById('upload-tab-content').innerHTML = jsonTabHtml();
-                styleTabBtns('json');
-                attachJsonHandlers();
-            });
-
             // Mở thẳng tab quản lý nếu được yêu cầu (vd từ popup Dịch nhanh).
-            if (tab === 'manage') document.getElementById('upload-tab-manage')?.click();
+            if (tab === 'manage') showTab('manage');
         }, 80);
 }

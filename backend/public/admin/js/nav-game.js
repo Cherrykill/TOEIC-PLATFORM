@@ -396,8 +396,11 @@ function _renderShopItems(items) {
             } else {
                 saleTd = '<span style="color:var(--text-secondary)">–</span>';
             }
+            var iconCell = d.image
+                ? '<img src="' + d.image + '" alt="" style="width:30px;height:30px;object-fit:cover;border-radius:6px">'
+                : (d.icon || '🛒');
             return '<tr>' +
-                '<td style="font-size:20px;text-align:center">' + (d.icon || '🛒') + '</td>' +
+                '<td style="font-size:20px;text-align:center">' + iconCell + '</td>' +
                 '<td><strong>' + d.name + '</strong><br><small style="color:var(--text-secondary);font-family:monospace">' + d.itemId + '</small></td>' +
                 '<td><span class="badge neutral">' + (SHOP_CAT[d.category] || d.category) + '</span></td>' +
                 '<td>' + icon + ' ' + d.price + '</td>' +
@@ -553,7 +556,35 @@ function openShopModal(data) {
     _shopFillEffectFields(category, data.effect || null);
     _shopUpdatePricePreview();
 
+    _shopSetImage(data.image || '');
+    _shopSyncImageRole(category);
+
     document.getElementById('shop-modal').style.display = 'flex';
+}
+
+// Hiện/ẩn preview ảnh + set hidden field.
+function _shopSetImage(url) {
+    document.getElementById('shop-image').value = url || '';
+    var img = document.getElementById('shop-image-preview');
+    if (url) { img.src = url; img.style.display = ''; }
+    else { img.removeAttribute('src'); img.style.display = 'none'; }
+}
+
+// Gợi ý thư mục lưu theo danh mục (cosmetic → background/frame; còn lại → item).
+function _shopSyncImageRole(category) {
+    var sel = document.getElementById('shop-image-role');
+    if (!sel) return;
+    sel.value = category === 'cosmetic' ? 'background' : 'item';
+}
+
+// Upload 1 ảnh lên server theo role → trả url.
+async function _uploadShopImage(file, role) {
+    var fd = new FormData();
+    fd.append('image', file);
+    var res = await fetch(API_URL + '/admin/upload-image?role=' + encodeURIComponent(role), {
+        method: 'POST', headers: { Authorization: 'Bearer ' + getToken() }, body: fd,
+    });
+    return res.json();
 }
 
 function attachShopListeners() {
@@ -584,7 +615,22 @@ function initShopModal() {
 
     // Dynamic effect section on category change
     var catSel = document.getElementById('shop-category');
-    if (catSel) catSel.addEventListener('change', function() { _shopShowEffectSection(this.value); });
+    if (catSel) catSel.addEventListener('change', function() { _shopShowEffectSection(this.value); _shopSyncImageRole(this.value); });
+
+    // Upload ảnh (ưu tiên hơn icon)
+    var fileInp = document.getElementById('shop-image-file');
+    if (fileInp) fileInp.addEventListener('change', async function() {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        var role = document.getElementById('shop-image-role').value || 'item';
+        showToast('Đang tải ảnh...', 'info');
+        var data = await _uploadShopImage(file, role);
+        if (data.success) { _shopSetImage(data.url); showToast('Đã tải ảnh', 'success'); }
+        else showToast(data.message || 'Tải ảnh thất bại', 'error');
+        this.value = '';
+    });
+    var clearBtn = document.getElementById('shop-image-clear');
+    if (clearBtn) clearBtn.addEventListener('click', function() { _shopSetImage(''); });
 
     // Real-time price preview
     ['shop-price', 'shop-discount', 'shop-currency'].forEach(function(id) {
@@ -606,6 +652,7 @@ function initShopModal() {
             name:            document.getElementById('shop-name').value.trim(),
             description:     document.getElementById('shop-desc').value.trim(),
             icon:            document.getElementById('shop-icon').value.trim(),
+            image:           document.getElementById('shop-image').value.trim(),
             category:        category,
             currency:        document.getElementById('shop-currency').value,
             price:           Number(document.getElementById('shop-price').value),

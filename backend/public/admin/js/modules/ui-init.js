@@ -42,6 +42,7 @@ function initMainTabs() {
         achievements:        'Quản lý Thành tích',
         quests:              'Quản lý Nhiệm vụ',
         shop:                'Quản lý Cửa hàng',
+        items:               'Catalog vật phẩm (item_definitions)',
         spin:                'Vòng quay — Phần thưởng & tỷ lệ',
         monitor:             'Giám sát hệ thống',
         broadcast:           'Gửi thông báo',
@@ -90,6 +91,8 @@ function initMainTabs() {
             loadQuests();
         } else if (tab === 'shop') {
             loadShopItems();
+        } else if (tab === 'items') {
+            window.loadItemDefs?.();
         } else if (tab === 'spin') {
             window.initSpinAdmin?.();
         } else if (tab === 'monitor') {

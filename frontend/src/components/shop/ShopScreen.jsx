@@ -8,6 +8,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
 import InventoryWardrobe from '@components/inventory/InventoryWardrobe.jsx';
+import ItemThumb from '@ui/ItemThumb.jsx';
 import { InventoryAPI } from '@api/inventory.js';
 import { authHeaders } from '@/auth/token.js';
 
@@ -234,7 +235,9 @@ export default function ShopScreen({ active }) {
                     return (
                         <div key={item.id} className={`shop-item${onSale ? ' on-sale' : ''}${owned ? ' owned' : ''}`}>
                             {onSale && <div className="sale-ribbon">SALE</div>}
-                            <div className="shop-item-icon">{item.icon}</div>
+                            <div className="shop-item-icon">
+                                <ItemThumb image={item.image} imgClassName="shop-item-img">{item.icon}</ItemThumb>
+                            </div>
                             <div className="shop-item-title">{item.name}</div>
                             {item.description && <div className="shop-item-description">{item.description}</div>}
                             <div className="shop-item-price">

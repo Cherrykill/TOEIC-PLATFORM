@@ -11,6 +11,8 @@ const shopItemSchema = new mongoose.Schema(
         name: { type: String, required: true, trim: true },
         description: { type: String, default: '' },
         icon: { type: String, default: '' },
+        // Ảnh vật phẩm — nếu có sẽ ưu tiên hiển thị thay cho icon (emoji/FA).
+        image: { type: String, default: '' },
         category: {
             type: String,
             enum: ['energy', 'resource', 'boost', 'exchange', 'bundle', 'vip', 'cosmetic'],

@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { GameState } from '@game/state.js';
+import { resolveAvatarSrc } from '@game/avatars.js';
 import { useMenuBadges } from './useMenuBadges.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import NotificationPanel from '@components/notifications/NotificationPanel.jsx';
@@ -112,8 +114,8 @@ export default function TopNav() {
             .catch(() => {});
     }, [user]);
 
-    const avatarSrc = user?.avatar;
-    const isAvatarImg = avatarSrc && (avatarSrc.startsWith('data:image') || avatarSrc.startsWith('http') || avatarSrc.startsWith('/'));
+    const avatarSrc = resolveAvatarSrc(GameState.state?.equippedImages?.avatar, user?.avatar);
+    const isAvatarImg = !!avatarSrc;
 
     return (
         <>

@@ -34,7 +34,7 @@ function pickPrizeIndex(prizes, mode) {
 
 // Chỉ gửi field hiển thị ra client (giấu tỷ lệ).
 function publicPrize(p) {
-    return { type: p.type, amount: p.amount, itemId: p.itemId, label: p.label, icon: p.icon, color: p.color };
+    return { type: p.type, amount: p.amount, itemId: p.itemId, label: p.label, icon: p.icon, image: p.image || '', color: p.color };
 }
 
 function msUntilMidnight() {
@@ -195,6 +195,7 @@ router.put('/config', admin, async (req, res, next) => {
                 itemId: p.type === 'item' ? String(p.itemId || '') : '',
                 label: String(p.label || ''),
                 icon: p.icon || '🎁',
+                image: String(p.image || ''),
                 color: p.color || '#888888',
                 prob: {
                     free: Math.max(0, Number(p.prob?.free) || 0),

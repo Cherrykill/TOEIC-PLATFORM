@@ -4,6 +4,7 @@ const UserStats = require('../models/UserStats');
 const UserAchievement = require('../models/UserAchievement');
 const UserQuest = require('../models/UserQuest');
 const AchievementDefinition = require('../models/AchievementDefinition');
+const ItemDefinition = require('../models/ItemDefinition');
 
 const XP_FORMULA = (level) => Math.floor(100 * Math.pow(level, 1.5));
 const ENERGY_REGEN_PER_MIN = 1;
@@ -84,6 +85,20 @@ async function buildFullState(userId) {
         unlockedAt: unlockedMap.get(def.code)?.unlockedAt || null,
     }));
 
+    // Ảnh cosmetic đang trang bị — lấy TỪ DB (admin sửa được ở catalog vật phẩm),
+    // KHÔNG hardcode ở frontend. equippedImages: { avatar, background, frame }.
+    const equipped = profile.equipped || {};
+    const equippedIds = [...new Set(Object.values(equipped).filter(Boolean))];
+    const equippedImages = {};
+    if (equippedIds.length) {
+        const defs = await ItemDefinition.find({ itemId: { $in: equippedIds } }).select('itemId image').lean();
+        const imgById = new Map(defs.map(d => [d.itemId, d.image || '']));
+        for (const [slot, id] of Object.entries(equipped)) {
+            const img = imgById.get(id);
+            if (img) equippedImages[slot] = img;
+        }
+    }
+
     return {
         user: {
             id: user._id,
@@ -151,7 +166,8 @@ async function buildFullState(userId) {
             active: !!(stats.vipExpiresAt && new Date(stats.vipExpiresAt) > new Date()),
             expiresAt: stats.vipExpiresAt ? new Date(stats.vipExpiresAt).getTime() : 0,
         },
-        equipped: profile.equipped || {}, // cosmetic đang trang bị (background, frame…)
+        equipped, // cosmetic đang trang bị (itemId theo slot: background, frame, avatar)
+        equippedImages, // ảnh cosmetic đang trang bị (từ DB, admin sửa được)
         transactions: stats.transactions || [],
         settings: profile.settings,
         practiceHistory: stats.practiceHistory || [],

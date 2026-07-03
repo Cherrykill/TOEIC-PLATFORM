@@ -3,6 +3,7 @@ import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { getToken } from '@/auth/token.js';
+import ItemThumb from '@ui/ItemThumb.jsx';
 
 function playSound(file, { loop = false, volume = 0.6 } = {}) {
     if (GameState.state?.settings?.soundEnabled === false) return null;
@@ -25,7 +26,7 @@ const PRIZES = [
     { label: '2 Gợi ý', icon: '💡', type: 'hints',  amount: 2,   color: '#3b82f6' },
 ];
 
-function drawWheel(canvas, rotationDeg, prizes = PRIZES) {
+function drawWheel(canvas, rotationDeg, prizes = PRIZES, imgs = {}) {
     const ctx = canvas.getContext('2d');
     const S = canvas.width;
     const cx = S / 2, cy = S / 2;
@@ -57,7 +58,14 @@ function drawWheel(canvas, rotationDeg, prizes = PRIZES) {
         ctx.font = 'bold 12px sans-serif';
         ctx.shadowColor = 'rgba(0,0,0,0.5)';
         ctx.shadowBlur = 3;
-        ctx.fillText(prize.icon + ' ' + prize.label, R - 10, 5);
+        const img = prize.image ? imgs[prize.image] : null;
+        if (img && img.complete && img.naturalWidth) {
+            const size = 22;
+            ctx.drawImage(img, R - 10 - size, -size / 2, size, size);
+            ctx.fillText(prize.label, R - 10 - size - 4, 5);
+        } else {
+            ctx.fillText(prize.icon + ' ' + prize.label, R - 10, 5);
+        }
         ctx.restore();
     });
 
@@ -102,10 +110,25 @@ export default function SpinWheelModal({ open, onClose }) {
     const [skipAnim, setSkipAnim] = useState(false);
     const [prizes, setPrizes] = useState(PRIZES); // phần thưởng động (từ backend), fallback PRIZES
     const phaseRef = useRef('idle');
+    const prizeImgsRef = useRef({}); // cache ảnh phần thưởng (url → HTMLImageElement)
+
+    // Preload ảnh phần thưởng → vẽ lại bánh xe khi tải xong.
+    useEffect(() => {
+        let alive = true;
+        prizes.forEach(p => {
+            if (p.image && !prizeImgsRef.current[p.image]) {
+                const img = new Image();
+                img.onload = () => { if (alive && canvasRef.current) drawWheel(canvasRef.current, rotRef.current, prizes, prizeImgsRef.current); };
+                img.src = p.image;
+                prizeImgsRef.current[p.image] = img;
+            }
+        });
+        return () => { alive = false; };
+    }, [prizes]);
 
     useEffect(() => {
         if (!open || !canvasRef.current) return;
-        drawWheel(canvasRef.current, rotRef.current, prizes);
+        drawWheel(canvasRef.current, rotRef.current, prizes, prizeImgsRef.current);
     }, [open, prizes]);
 
     useEffect(() => {
@@ -150,7 +173,7 @@ export default function SpinWheelModal({ open, onClose }) {
         setSpinSummary(null);
 
         const SEG = 360 / (prizes.length || 1);
-        const draw = () => { if (canvasRef.current) drawWheel(canvasRef.current, rotRef.current, prizes); };
+        const draw = () => { if (canvasRef.current) drawWheel(canvasRef.current, rotRef.current, prizes, prizeImgsRef.current); };
         const stopAll = () => {
             phaseRef.current = 'idle';
             if (animRef.current) cancelAnimationFrame(animRef.current);
@@ -352,7 +375,7 @@ export default function SpinWheelModal({ open, onClose }) {
                         <div className="spin-prizes-grid">
                             {prizes.map((p, i) => (
                                 <div key={i} className="spin-prize-row" style={{ borderLeftColor: p.color }}>
-                                    <span>{p.icon}</span>
+                                    <span><ItemThumb image={p.image} imgClassName="spin-prize-img">{p.icon}</ItemThumb></span>
                                     <span>{p.label}</span>
                                 </div>
                             ))}
@@ -373,7 +396,7 @@ export default function SpinWheelModal({ open, onClose }) {
                             </div>
                         ) : result ? (
                             <div className="spin-result">
-                                <span className="spin-result-icon">{resultPrize?.icon || '🎁'}</span>
+                                <span className="spin-result-icon"><ItemThumb image={resultPrize?.image} imgClassName="spin-prize-img spin-prize-img--lg">{resultPrize?.icon || '🎁'}</ItemThumb></span>
                                 <span className="spin-result-text">Nhận được <strong>{result.label}</strong>!</span>
                             </div>
                         ) : null}

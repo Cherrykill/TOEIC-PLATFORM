@@ -348,6 +348,9 @@
               <a href="#" class="sidebar-link" data-main-tab="shop">
                 <i class="fas fa-store"></i><span>Cửa hàng</span>
               </a>
+              <a href="#" class="sidebar-link" data-main-tab="items">
+                <i class="fas fa-cubes"></i><span>Vật phẩm (catalog)</span>
+              </a>
               <a href="#" class="sidebar-link" data-main-tab="spin">
                 <i class="fas fa-dharmachakra"></i><span>Vòng quay</span>
               </a>
@@ -1662,6 +1665,40 @@
             </div>
           </div>
 
+          <!-- ===== ITEM CATALOG TAB ===== -->
+          <div id="main-tab-items" class="main-tab-content">
+            <div class="card">
+              <div class="card-header">
+                <h2><i class="fas fa-cubes"></i> Catalog vật phẩm (item_definitions)</h2>
+                <div class="card-header-actions">
+                  <button class="btn btn-success btn-sm" id="btn-add-item-def"><i class="fas fa-plus"></i> Thêm vật phẩm</button>
+                </div>
+              </div>
+              <div style="padding:0 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="itemdef-search" class="card-search" placeholder="Tên, mã, loại..." style="flex:1;margin:0;min-width:200px">
+                <select id="itemdef-filter-type" class="filter-select" style="width:auto;min-width:170px;flex-shrink:0">
+                  <option value="">Tất cả loại</option>
+                  <option value="consumable">consumable</option>
+                  <option value="boost">boost</option>
+                  <option value="cosmetic_background">cosmetic_background</option>
+                  <option value="cosmetic_avatar">cosmetic_avatar</option>
+                  <option value="cosmetic_frame">cosmetic_frame</option>
+                  <option value="currency">currency</option>
+                </select>
+              </div>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr>
+                    <th>Ảnh/Icon</th><th>Tên</th><th>Loại</th><th>Hiếm</th><th>Thời hạn</th><th>Thứ tự</th><th>Thao tác</th>
+                  </tr></thead>
+                  <tbody id="itemdef-tbody">
+                    <tr><td colspan="7" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- ===== VÒNG QUAY TAB ===== -->
           <div id="main-tab-spin" class="main-tab-content">
             <div class="card" style="margin-bottom:20px">
@@ -1686,7 +1723,7 @@
                 <div style="overflow-x:auto">
                   <table class="data-table" id="spin-config-table" style="font-size:13px">
                     <thead><tr>
-                      <th>Màu</th><th>Icon</th><th>Nhãn</th><th>Loại</th><th>SL</th>
+                      <th>Màu</th><th>Icon</th><th>Ảnh</th><th>Nhãn</th><th>Loại</th><th>SL</th>
                       <th>TL Free</th><th>TL Xu</th><th>TL Đá</th>
                     </tr></thead>
                     <tbody id="spin-config-rows"></tbody>
@@ -4170,6 +4207,24 @@
             </div>
           </div>
 
+          <!-- Row 1b: ảnh (ưu tiên hơn icon) -->
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Ảnh (tùy chọn — có ảnh sẽ ưu tiên hơn icon)</label>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
+              <img id="shop-image-preview" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border-color);display:none;background:#f1f5f9">
+              <select id="shop-image-role" title="Thư mục lưu theo vai trò"
+                style="padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+                <option value="item">📦 item</option>
+                <option value="background">🖼️ background</option>
+                <option value="frame">🔲 frame</option>
+                <option value="avatar">🙂 avatar</option>
+              </select>
+              <input type="file" id="shop-image-file" accept="image/*" style="flex:1;font-size:13px">
+              <button type="button" id="shop-image-clear" class="btn btn-sm btn-secondary" style="white-space:nowrap">Xóa ảnh</button>
+            </div>
+            <input type="hidden" id="shop-image">
+          </div>
+
           <!-- Row 2: itemId + category -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
             <div>
@@ -4187,6 +4242,7 @@
                 <option value="exchange">💱 Đổi gems</option>
                 <option value="bundle">🎁 Combo</option>
                 <option value="vip">👑 VIP</option>
+                <option value="cosmetic">🎨 Giao diện</option>
               </select>
             </div>
           </div>
@@ -4353,6 +4409,104 @@
       </div>
     </div>
 
+    <!-- Modal: Catalog vật phẩm (item_definitions) -->
+    <div id="itemdef-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+      <div style="background:var(--bg-primary,white);border-radius:14px;padding:28px;max-width:620px;width:94%;max-height:92vh;overflow-y:auto">
+        <h3 style="margin-bottom:20px;color:var(--primary)"><i class="fas fa-cube"></i> <span id="itemdef-modal-title">Thêm vật phẩm</span></h3>
+        <form id="itemdef-form">
+          <input type="hidden" id="itemdef-id">
+          <div style="display:grid;grid-template-columns:110px 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Icon (FA/emoji)</label>
+              <input type="text" id="itemdef-icon" placeholder="fa-bolt / 🎟️" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;text-align:center">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Tên *</label>
+              <input type="text" id="itemdef-name" required placeholder="vd: Thẻ x2 XP" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Ảnh (có ảnh sẽ ưu tiên hơn icon)</label>
+            <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
+              <img id="itemdef-image-preview" alt="" style="width:46px;height:46px;object-fit:contain;border-radius:8px;border:1.5px solid var(--border-color);display:none;background:#f1f5f9">
+              <select id="itemdef-image-role" title="Thư mục lưu theo vai trò" style="padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+                <option value="item">📦 item</option>
+                <option value="background">🖼️ background</option>
+                <option value="frame">🔲 frame</option>
+                <option value="avatar">🙂 avatar</option>
+              </select>
+              <input type="file" id="itemdef-image-file" accept="image/*" style="flex:1;font-size:13px">
+              <button type="button" id="itemdef-image-clear" class="btn btn-sm btn-secondary" style="white-space:nowrap">Xóa ảnh</button>
+            </div>
+            <input type="hidden" id="itemdef-image">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Item ID (unique) *</label>
+              <input type="text" id="itemdef-item-id" required placeholder="vd: boost-xp-card" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Loại *</label>
+              <select id="itemdef-type" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="consumable">consumable</option>
+                <option value="boost">boost</option>
+                <option value="cosmetic_background">cosmetic_background</option>
+                <option value="cosmetic_avatar">cosmetic_avatar</option>
+                <option value="cosmetic_frame">cosmetic_frame</option>
+                <option value="currency">currency</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Độ hiếm</label>
+              <select id="itemdef-rarity" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="common">common</option>
+                <option value="rare">rare</option>
+                <option value="epic">epic</option>
+                <option value="legendary">legendary</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Loại thời hạn</label>
+              <select id="itemdef-duration-type" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="permanent">permanent</option>
+                <option value="from_grant">from_grant</option>
+                <option value="on_use">on_use</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Thời hạn (giây, 0 = vô hạn)</label>
+              <input type="number" id="itemdef-duration-sec" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Thứ tự</label>
+              <input type="number" id="itemdef-order" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Mô tả</label>
+            <input type="text" id="itemdef-desc" placeholder="Mô tả ngắn" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Effect (JSON)</label>
+            <textarea id="itemdef-effect" rows="3" placeholder='{"type":"boost","boostType":"xp","multiplier":2,"duration":86400}' style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace;font-size:12px"></textarea>
+          </div>
+          <div style="display:flex;gap:18px;margin-bottom:16px;flex-wrap:wrap">
+            <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="itemdef-stackable" checked> stackable</label>
+            <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="itemdef-tradable"> tradable</label>
+            <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="itemdef-active" checked> đang bật</label>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px">
+            <button type="button" id="btn-itemdef-cancel" class="btn btn-secondary">Hủy</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Modular dashboard: load order matters (state first, then dependencies) -->
     <script src="/admin/js/modules/state.js?v=1"></script>
     <script src="/admin/js/modules/utils.js?v=2"></script>
@@ -4365,9 +4519,10 @@
     <script src="/admin/js/modules/monitor.js?v=1"></script>
     <script src="/admin/js/modules/tabs.js?v=2"></script>
     <script src="/admin/js/modules/season-admin.js?v=1"></script>
-    <script src="/admin/js/modules/spin-admin.js?v=2"></script>
+    <script src="/admin/js/modules/spin-admin.js?v=3"></script>
+    <script src="/admin/js/modules/item-defs-admin.js?v=1"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
-    <script src="/admin/js/modules/ui-init.js?v=3"></script>
-    <script src="/admin/js/nav-game.js?v=4"></script>
+    <script src="/admin/js/modules/ui-init.js?v=4"></script>
+    <script src="/admin/js/nav-game.js?v=5"></script>
   </body>
 </html>

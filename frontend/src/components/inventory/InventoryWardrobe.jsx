@@ -4,6 +4,7 @@ import { EventBus, GameEvents } from '@game/eventBus.js';
 import { InventoryAPI } from '@api/inventory.js';
 import { BACKGROUNDS, bgStyle } from '@game/backgrounds.js';
 import { FRAMES, frameStyle } from '@game/frames.js';
+import ItemThumb from '@ui/ItemThumb.jsx';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
 
@@ -67,6 +68,8 @@ export default function InventoryWardrobe() {
                     name: BACKGROUNDS[i.itemId]?.label || FRAMES[i.itemId]?.label || i.definition?.name || i.itemId,
                     bg: BACKGROUNDS[i.itemId] || null,
                     frame: FRAMES[i.itemId] || null,
+                    avatar: i.definition?.type === 'cosmetic_avatar',
+                    image: i.definition?.image || '', // ảnh avatar từ DB (admin sửa được)
                     slot: i.definition?.effect?.slot || 'background',
                     equipped: equipped[i.definition?.effect?.slot || 'background'] === i.itemId,
                     rarity: i.definition?.rarity,
@@ -86,7 +89,7 @@ export default function InventoryWardrobe() {
                 .filter(i => i.definition?.type === 'consumable' && !known.has(i.itemId) && i.quantity > 0)
                 .map(i => ({
                     id: i.itemId, kind: 'consumable', name: i.definition.name,
-                    icon: i.definition.icon || 'fa-cube', color: '#8b5cf6',
+                    icon: i.definition.icon || 'fa-cube', image: i.definition.image || '', color: '#8b5cf6',
                     desc: i.definition.description, count: i.quantity,
                 }));
             return [...fromStats, ...fromInv];
@@ -97,7 +100,7 @@ export default function InventoryWardrobe() {
                 .filter(i => i.definition?.type === 'boost' && i.quantity > 0)
                 .map(i => ({
                     id: i.itemId, kind: 'boost-card', name: i.definition.name,
-                    icon: i.definition.icon || 'fa-bolt', color: '#8b5cf6',
+                    icon: i.definition.icon || 'fa-bolt', image: i.definition.image || '', color: '#8b5cf6',
                     desc: i.definition.description, count: i.quantity,
                 }));
         }
@@ -124,6 +127,10 @@ export default function InventoryWardrobe() {
             const slot = res.slot || item.slot || 'background';
             if (!GameState.state.equipped) GameState.state.equipped = {};
             GameState.state.equipped[slot] = item.id;
+            // Cập nhật ảnh cosmetic đang trang bị (avatar) để hồ sơ/topnav đổi ngay.
+            if (!GameState.state.equippedImages) GameState.state.equippedImages = {};
+            if (item.image) GameState.state.equippedImages[slot] = item.image;
+            else delete GameState.state.equippedImages[slot];
             EventBus.emit(GameEvents.STATE_CHANGED);
             await reload();
             setSelected({ ...item, equipped: true });
@@ -204,9 +211,17 @@ export default function InventoryWardrobe() {
                                     <i className="fas fa-user"></i>
                                 </span>
                             </span>
+                        ) : it.kind === 'cosmetic' && it.avatar ? (
+                            <span className="cell-thumb cell-thumb--icon">
+                                <img src={it.image} alt="" className="avatar-dot"
+                                    onError={e => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = ''; }} />
+                                <i className="fas fa-user" style={{ display: 'none', color: '#94a3b8' }}></i>
+                            </span>
                         ) : (
                             <span className="cell-thumb cell-thumb--icon">
-                                <i className={`fas ${it.icon}`} style={{ color: it.color }}></i>
+                                <ItemThumb image={it.image} imgClassName="cell-img">
+                                    <i className={`fas ${it.icon}`} style={{ color: it.color }}></i>
+                                </ItemThumb>
                                 {(it.kind === 'consumable' || it.kind === 'boost-card') && <span className="cell-count">{it.count}</span>}
                                 {it.kind === 'boost' && it.left && <span className="cell-expiry">{it.left}</span>}
                             </span>
@@ -226,7 +241,11 @@ export default function InventoryWardrobe() {
                         <div className="preview-visual" style={selected.kind === 'cosmetic' && selected.bg ? (bgStyle(selected.id) || undefined) : undefined}>
                             {selected.kind === 'cosmetic' && selected.frame
                                 ? <span className="frame-dot frame-dot--lg" style={frameStyle(selected.id) || undefined}><i className="fas fa-user"></i></span>
-                                : selected.kind !== 'cosmetic' && <i className={`fas ${selected.icon}`} style={{ color: selected.color }}></i>}
+                                : selected.kind === 'cosmetic' && selected.avatar
+                                    ? <img src={selected.image} alt="" className="avatar-dot avatar-dot--lg" />
+                                    : selected.kind !== 'cosmetic'
+                                        ? <ItemThumb image={selected.image} imgClassName="preview-img"><i className={`fas ${selected.icon}`} style={{ color: selected.color }}></i></ItemThumb>
+                                        : null}
                         </div>
                         <div className="preview-name">{selected.name}</div>
                         {selected.desc && <div className="preview-desc">{selected.desc}</div>}

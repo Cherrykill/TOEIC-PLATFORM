@@ -4,9 +4,20 @@ const { protect, authorize } = require('../middleware/auth');
 const AchievementDefinition = require('../models/AchievementDefinition');
 const QuestDefinition = require('../models/QuestDefinition');
 const ShopItem = require('../models/ShopItem');
+const ItemDefinition = require('../models/ItemDefinition');
 const adminCtrl = require('../controllers/adminController');
+const { uploadShopImage, SHOP_IMAGE_ROLES } = require('../middleware/upload');
 
 const admin = [protect, authorize('admin')];
+
+// ── Upload ảnh cosmetic/shop/vòng quay (lưu theo role-folder) ────────
+// POST /api/admin/upload-image?role=background|avatar|frame|item|spin  (field: image)
+router.post('/upload-image', admin, uploadShopImage.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ success: false, message: 'Thiếu file ảnh' });
+    const role = SHOP_IMAGE_ROLES.includes(req.query.role) ? req.query.role : 'item';
+    const url = `/uploads/${role}/${req.file.filename}`;
+    res.json({ success: true, url, role });
+});
 
 // ── User Stats & Achievements ────────────────────────────────
 router.get('/users-stats',         admin, adminCtrl.getUsersStats);
@@ -144,6 +155,42 @@ router.delete('/shop-items/:id', admin, async (req, res) => {
     const data = await ShopItem.findByIdAndDelete(req.params.id);
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
     res.json({ success: true, message: 'Đã xóa item' });
+});
+
+// ── Catalog vật phẩm (item_definitions) — CRUD ───────────────
+router.get('/item-defs', admin, async (req, res) => {
+    const data = await ItemDefinition.find().sort({ order: 1, itemId: 1 }).lean();
+    res.json({ success: true, data });
+});
+router.get('/item-defs/:id', admin, async (req, res) => {
+    const data = await ItemDefinition.findById(req.params.id).lean();
+    if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, data });
+});
+router.post('/item-defs', admin, async (req, res) => {
+    try {
+        const data = await ItemDefinition.create(req.body);
+        res.status(201).json({ success: true, message: 'Đã tạo vật phẩm', data });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+});
+router.put('/item-defs/:id', admin, async (req, res) => {
+    try {
+        const { itemId, _id, __v, ...fields } = req.body;
+        if (fields.durationSec !== undefined) fields.durationSec = Number(fields.durationSec) || 0;
+        if (fields.order !== undefined) fields.order = Number(fields.order) || 0;
+        const data = await ItemDefinition.findByIdAndUpdate(req.params.id, { $set: fields }, { new: true, runValidators: true });
+        if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+        res.json({ success: true, message: 'Đã cập nhật vật phẩm', data });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+});
+router.delete('/item-defs/:id', admin, async (req, res) => {
+    const data = await ItemDefinition.findByIdAndDelete(req.params.id);
+    if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, message: 'Đã xóa vật phẩm' });
 });
 
 // ── Seed defaults ─────────────────────────────────────────────

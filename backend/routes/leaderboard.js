@@ -4,6 +4,7 @@ const router = express.Router();
 const User = require('../models/User');
 const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
+const ItemDefinition = require('../models/ItemDefinition');
 
 const SORT_FIELD_MAP = { score: 'highestScore', xp: 'xp', totalXp: 'totalXp' };
 const ONLINE_THRESHOLD_MS = 15 * 60 * 1000;
@@ -88,6 +89,14 @@ router.get('/:period?', async (req, res) => {
 
         const profileMap = await fetchProfileMap(topStats.map(s => s.userId));
 
+        // Ảnh avatar cosmetic — lấy từ DB (admin sửa được), không hardcode.
+        const avatarIds = [...new Set([...profileMap.values()].map(p => p.equipped?.avatar).filter(Boolean))];
+        let avatarImgById = new Map();
+        if (avatarIds.length) {
+            const defs = await ItemDefinition.find({ itemId: { $in: avatarIds } }).select('itemId image').lean();
+            avatarImgById = new Map(defs.map(d => [d.itemId, d.image || '']));
+        }
+
         const leaderboard = topStats.map((s, i) => {
             const p = profileMap.get(s.userId.toString()) || {};
             const lastLogin = lastLoginMap.get(s.userId.toString());
@@ -108,6 +117,7 @@ router.get('/:period?', async (req, res) => {
                 _vipExpiresAt: s.vipExpiresAt || null, // recalc isVip khi serve từ cache
                 background: p.equipped?.background || null, // cosmetic nền đang trang bị
                 frame: p.equipped?.frame || null, // cosmetic khung avatar đang trang bị
+                avatarImage: avatarImgById.get(p.equipped?.avatar) || null, // ảnh avatar cosmetic (từ DB)
             };
         });
 

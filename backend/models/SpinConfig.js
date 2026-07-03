@@ -12,6 +12,8 @@ const prizeSchema = new mongoose.Schema(
         itemId: { type: String, default: '' },
         label: { type: String, required: true },
         icon: { type: String, default: '🎁' },
+        // Ảnh phần thưởng — ưu tiên hơn icon khi hiển thị ô quay.
+        image: { type: String, default: '' },
         color: { type: String, default: '#888888' },
         // Trọng số theo chế độ (không cần cộng = 1; server tự normalize)
         prob: {

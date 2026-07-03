@@ -10,6 +10,8 @@ const itemDefinitionSchema = new mongoose.Schema(
         name: { type: String, required: true, trim: true },
         description: { type: String, default: '' },
         icon: { type: String, default: '' },
+        // Ảnh vật phẩm — ưu tiên hơn icon khi hiển thị (túi đồ, vòng quay…).
+        image: { type: String, default: '' },
 
         type: {
             type: String,

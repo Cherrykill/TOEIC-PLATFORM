@@ -19,9 +19,15 @@
 
   function rowHtml(p) {
     const opts = TYPES.map(t => `<option value="${t}"${p.type === t ? ' selected' : ''}>${t}</option>`).join('');
+    const imgUrl = (p.image || '').replace(/"/g, '&quot;');
     return `<tr>
       <td><input type="color" class="sc-color" value="${p.color || '#888888'}" style="width:34px;height:30px;padding:2px;border:1px solid var(--border-color);border-radius:5px;cursor:pointer"></td>
       <td>${inp('sc-icon', p.icon || '🎁', 44)}</td>
+      <td>
+        <input type="hidden" class="sc-image" value="${imgUrl}">
+        <img class="sc-img-preview" ${p.image ? `src="${imgUrl}"` : ''} style="width:30px;height:30px;object-fit:cover;border-radius:5px;vertical-align:middle;${p.image ? '' : 'display:none'}">
+        <input type="file" class="sc-img-file" accept="image/*" style="width:86px;font-size:10px">
+      </td>
       <td>${inp('sc-label', p.label || '', 110)}</td>
       <td><select class="sc-type" style="padding:5px;border:1px solid var(--border-color);border-radius:5px;background:var(--bg-secondary);color:var(--text-primary)">${opts}</select><br>${itemSelect(p)}</td>
       <td>${inp('sc-amount', p.amount ?? 0, 70, 'type="number"')}</td>
@@ -34,6 +40,33 @@
   function setStatus(msg, ok) {
     const el = document.getElementById('spin-config-status');
     if (el) { el.textContent = msg; el.style.color = ok ? '#22c55e' : '#ef4444'; }
+  }
+
+  // Upload ảnh cho từng phần thưởng (lưu vào /uploads/spin/).
+  function bindImageUploads() {
+    document.querySelectorAll('#spin-config-rows .sc-img-file').forEach(inpf => {
+      inpf.onchange = async () => {
+        const file = inpf.files && inpf.files[0];
+        if (!file) return;
+        const fd = new FormData();
+        fd.append('image', file);
+        setStatus('Đang tải ảnh...', true);
+        try {
+          const r = await fetch(`${API_URL}/admin/upload-image?role=spin`, {
+            method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd,
+          });
+          const j = await r.json();
+          if (j.success) {
+            const td = inpf.closest('td');
+            td.querySelector('.sc-image').value = j.url;
+            const img = td.querySelector('.sc-img-preview');
+            img.src = j.url; img.style.display = '';
+            setStatus('✅ Đã tải ảnh', true);
+          } else setStatus('❌ ' + (j.message || 'Lỗi tải ảnh'), false);
+        } catch (e) { setStatus('❌ ' + e.message, false); }
+        inpf.value = '';
+      };
+    });
   }
 
   // Hiện/ẩn ô chọn item khi đổi Loại.
@@ -64,7 +97,7 @@
       const cc = document.getElementById('spin-cost-coin'); if (cc) cc.value = cfg.costs?.coin ?? 100;
       const cg = document.getElementById('spin-cost-gem'); if (cg) cg.value = cfg.costs?.gem ?? 5;
       const tbody = document.getElementById('spin-config-rows');
-      if (tbody) { tbody.innerHTML = (cfg.prizes || []).map(rowHtml).join(''); bindTypeToggles(); }
+      if (tbody) { tbody.innerHTML = (cfg.prizes || []).map(rowHtml).join(''); bindTypeToggles(); bindImageUploads(); }
     } catch (_) {}
   }
 
@@ -76,6 +109,7 @@
       return {
         color: tr.querySelector('.sc-color').value,
         icon: tr.querySelector('.sc-icon').value,
+        image: tr.querySelector('.sc-image')?.value || '',
         label: tr.querySelector('.sc-label').value,
         type,
         itemId: type === 'item' ? (tr.querySelector('.sc-itemid')?.value || '') : '',

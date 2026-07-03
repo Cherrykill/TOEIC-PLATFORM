@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { API } from '@api/http.js';
@@ -7,6 +7,7 @@ import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
 import { frameStyle } from '@game/frames.js';
+import { resolveAvatarSrc } from '@game/avatars.js';
 
 export default function ProfileScreen({ active }) {
     const { showScreen, user, resources, streak, syncFromState } = useGame();
@@ -16,8 +17,6 @@ export default function ProfileScreen({ active }) {
     const [stats, setStats] = useState(null);
     const [achievements, setAchievements] = useState([]);
     const [showAllAchievements, setShowAllAchievements] = useState(false);
-    const [uploadingAvatar, setUploadingAvatar] = useState(false);
-    const avatarInputRef = useRef(null);
 
     useEffect(() => {
         if (active) {
@@ -66,49 +65,6 @@ export default function ProfileScreen({ active }) {
         }
     }
 
-    function resizeToBlob(file, maxSize) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            const url = URL.createObjectURL(file);
-            img.onload = () => {
-                URL.revokeObjectURL(url);
-                let w = img.width, h = img.height;
-                if (w > h) { if (w > maxSize) { h = Math.round(h * maxSize / w); w = maxSize; } }
-                else { if (h > maxSize) { w = Math.round(w * maxSize / h); h = maxSize; } }
-                const canvas = document.createElement('canvas');
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.85);
-            };
-            img.onerror = reject;
-            img.src = url;
-        });
-    }
-
-    async function handleAvatarChange(e) {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (!file.type.startsWith('image/')) { Notification.error('Chỉ hỗ trợ file ảnh'); return; }
-        setUploadingAvatar(true);
-        try {
-            const blob = await resizeToBlob(file, 300);
-            const res = await API.auth.uploadAvatar(blob);
-            if (res.success) {
-                // Thêm cache-buster để browser fetch lại ảnh mới (filename không đổi)
-                GameState.state.user.avatar = res.avatar + '?v=' + Date.now();
-                syncFromState();
-                Notification.success('Đã cập nhật ảnh đại diện!');
-            } else {
-                Notification.error(res.message || 'Cập nhật thất bại');
-            }
-        } catch {
-            Notification.error('Không thể tải ảnh lên');
-        } finally {
-            setUploadingAvatar(false);
-            e.target.value = '';
-        }
-    }
-
     const handleCopyId = useCallback(() => {
         const id = user?.id || user?._id || '';
         if (!id) return;
@@ -134,6 +90,7 @@ export default function ProfileScreen({ active }) {
     const bgKey = bgKeyForUser({ isVip: vipActive, background: GameState.state?.equipped?.background });
     const headerStyle = bgStyle(bgKey);
     const avatarFrameStyle = frameStyle(GameState.state?.equipped?.frame);
+    const avatarSrc = resolveAvatarSrc(GameState.state?.equippedImages?.avatar, user?.avatar);
 
     const unlockedCount = achievements.filter(a => a.unlocked).length;
 
@@ -183,29 +140,15 @@ export default function ProfileScreen({ active }) {
                     style={headerStyle || undefined}
                 >
                     <div
-                        className="profile-avatar profile-avatar--clickable"
-                        onClick={() => avatarInputRef.current?.click()}
-                        title="Đổi ảnh đại diện"
+                        className="profile-avatar"
+                        title="Đổi ảnh đại diện trong Túi đồ (Cửa hàng)"
                         style={avatarFrameStyle || undefined}
                     >
-                        {user?.avatar && (user.avatar.startsWith('data:image') || user.avatar.startsWith('http') || user.avatar.startsWith('/'))
-                            ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                        {avatarSrc
+                            ? <img src={avatarSrc} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                             : (user?.avatar || 'P')
                         }
-                        <div className="profile-avatar-overlay">
-                            {uploadingAvatar
-                                ? <i className="fas fa-spinner fa-spin"></i>
-                                : <i className="fas fa-camera"></i>
-                            }
-                        </div>
                     </div>
-                    <input
-                        ref={avatarInputRef}
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        onChange={handleAvatarChange}
-                    />
 
                     <div className="profile-details">
                         {editing ? (

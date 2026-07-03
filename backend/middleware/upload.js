@@ -134,8 +134,38 @@ const uploadAvatar = multer({
     fileFilter: avatarFilter,
 });
 
+// ===================================
+// COSMETIC / SHOP IMAGE UPLOAD (admin)
+// Lưu theo vai trò: public/uploads/{role}/  (background | avatar | frame | item | spin)
+// Phục vụ tại /uploads/{role}/<file>. Ưu tiên hiển thị thay icon khi có ảnh.
+// ===================================
+const SHOP_IMAGE_ROLES = ['background', 'avatar', 'frame', 'item', 'spin'];
+
+const shopImageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const role = SHOP_IMAGE_ROLES.includes(req.query.role) ? req.query.role : 'item';
+        const dir = path.join(__dirname, '../public/uploads', role);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase() || '.png';
+        const base = path.basename(file.originalname, ext)
+            .toLowerCase().replace(/[^a-z0-9-_]/g, '-').slice(0, 40) || 'img';
+        cb(null, `${base}-${Date.now()}${ext}`);
+    },
+});
+
+const uploadShopImage = multer({
+    storage: shopImageStorage,
+    limits: { fileSize: 3 * 1024 * 1024 }, // 3MB
+    fileFilter: imageFilter,
+});
+
 module.exports = {
     uploadImage,
     uploadAudio,
     uploadAvatar,
+    uploadShopImage,
+    SHOP_IMAGE_ROLES,
 };

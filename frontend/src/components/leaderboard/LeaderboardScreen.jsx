@@ -4,6 +4,7 @@ import { GameState } from '@game/state.js';
 import { RankingsAPI } from '@api/rankings.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
 import { frameStyle } from '@game/frames.js';
+import { resolveAvatarSrc } from '@game/avatars.js';
 
 export default function LeaderboardScreen({ active }) {
     const { showScreen } = useGame();
@@ -133,8 +134,8 @@ export default function LeaderboardScreen({ active }) {
                             <div className="leaderboard-rank">{rank}</div>
                             <div className="leaderboard-avatar-wrap">
                                 <div className="leaderboard-avatar" style={frameStyle(entry.frame) || undefined}>
-                                    {entry.avatar && (entry.avatar.startsWith('data:image') || entry.avatar.startsWith('http') || entry.avatar.startsWith('/'))
-                                        ? <img src={entry.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                    {resolveAvatarSrc(entry.avatarImage, entry.avatar)
+                                        ? <img src={resolveAvatarSrc(entry.avatarImage, entry.avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                         : (entry.avatar || entry.username?.charAt(0)?.toUpperCase() || 'P')
                                     }
                                 </div>
@@ -161,8 +162,8 @@ export default function LeaderboardScreen({ active }) {
                             <i className="fas fa-times"></i>
                         </button>
                         <div className="player-popup-avatar" style={frameStyle(selected.frame) || undefined}>
-                            {selected.avatar && (selected.avatar.startsWith('data:image') || selected.avatar.startsWith('http') || selected.avatar.startsWith('/'))
-                                ? <img src={selected.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                            {resolveAvatarSrc(selected.avatarImage, selected.avatar)
+                                ? <img src={resolveAvatarSrc(selected.avatarImage, selected.avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                 : (selected.avatar || selected.username?.[0]?.toUpperCase() || '?')
                             }
                         </div>
