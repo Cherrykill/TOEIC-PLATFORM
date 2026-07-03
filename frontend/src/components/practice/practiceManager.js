@@ -720,60 +720,46 @@ export const PracticeManager = {
             title: '🎉 Hoàn thành!',
             closeOnBackdrop: false,
             content: `
-                <div class="flashcard-summary">
-                    <div class="summary-stats">
-                        <div class="summary-stat known">
-                            <i class="fas fa-check-circle"></i>
-                            <h3>${correct}</h3>
-                            <p>Đúng</p>
+                <div class="practice-result">
+                    <div class="pr-left">
+                        <div class="pr-circle" style="background: conic-gradient(var(--primary-color) ${accuracy * 3.6}deg, var(--bg-tertiary, #e5e7eb) 0)">
+                            <span class="pr-circle-val">${accuracy}%</span>
+                            <span class="pr-circle-label">Chính xác</span>
                         </div>
-                        <div class="summary-stat unknown">
-                            <i class="fas fa-times-circle"></i>
-                            <h3>${wrong}</h3>
-                            <p>Sai</p>
+                        <div class="pr-badge ${isPerfect ? 'perfect' : 'pass'}">
+                            <i class="fas fa-${isPerfect ? 'trophy' : 'star'}"></i>
+                            <span>${stars} ${isPerfect ? 'Hoàn hảo!' : performance.message}</span>
                         </div>
                     </div>
-
-                    <div class="summary-accuracy">
-                        <div class="accuracy-circle">
-                            <span class="accuracy-value">${accuracy}%</span>
-                            <span class="accuracy-label">Chính xác</span>
-                        </div>
+                    <div class="pr-right">
+                        <div class="pr-row correct"><span><i class="fas fa-check-circle"></i> Đúng</span><b>${correct}</b></div>
+                        <div class="pr-row wrong"><span><i class="fas fa-times-circle"></i> Sai</span><b>${wrong}</b></div>
+                        <div class="pr-row"><span><i class="fas fa-star"></i> Kinh nghiệm</span><b>+${xpReward} XP</b></div>
+                        <div class="pr-row"><span><i class="fas fa-coins"></i> Xu</span><b>+${coinsReward}</b></div>
+                        ${gemsBonus > 0 ? `<div class="pr-row"><span><i class="fas fa-gem"></i> Gems</span><b>+${gemsBonus}</b></div>` : ''}
+                        <div class="pr-row"><span><i class="fas fa-clock"></i> Thời gian</span><b>${durationStr}</b></div>
                     </div>
-
-                    <div class="summary-rewards" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin:4px 0 2px">
-                        <span class="reward-item"><i class="fas fa-star"></i> +${xpReward} XP</span>
-                        <span class="reward-item"><i class="fas fa-coins"></i> +${coinsReward}</span>
-                        ${gemsBonus > 0 ? `<span class="reward-item"><i class="fas fa-gem"></i> +${gemsBonus}</span>` : ''}
-                        <span class="reward-item"><i class="fas fa-clock"></i> ${durationStr}</span>
-                    </div>
-
-                    ${isPerfect ? `
-                        <div class="perfect-message">
-                            <i class="fas fa-trophy"></i>
-                            <p>${stars} Hoàn hảo! Tất cả câu trả lời đều đúng!</p>
-                        </div>
-                    ` : `
-                        <div class="review-suggestion">
-                            <i class="fas fa-info-circle"></i>
-                            <p>${stars} ${performance.message}</p>
-                        </div>
-                    `}
                 </div>
             `,
             buttons: [
                 {
-                    text: 'Chơi lại',
-                    className: 'btn-secondary',
+                    text: 'Về trang chủ',
+                    className: 'btn-secondary pr-btn-home',
                     onClick: () => {
-                        const mode = this.currentSession.mode;
+                        Utils.stopAllSounds();
                         this.cleanupCurrentMode();
                         this.cleanupKeyboardShortcuts();
                         this.currentSession = null;
                         Modal.close();
-                        this.start(mode);
+                        UI.showScreen('home-screen');
                     }
                 },
+                ...(answerHistory.length > 0 ? [{
+                    text: 'Xem lại câu sai',
+                    className: 'btn-secondary',
+                    closeOnClick: false,
+                    onClick: () => ReviewOverlay.show(answerHistory),
+                }] : []),
                 ...(wrongWordsInSession.length > 0 ? [{
                     text: `Làm lại ${wrongWordsInSession.length} câu sai`,
                     className: 'btn-warning',
@@ -787,22 +773,16 @@ export const PracticeManager = {
                         this.start(mode);
                     }
                 }] : []),
-                ...(answerHistory.length > 0 ? [{
-                    text: 'Xem lại câu sai',
-                    className: 'btn-info',
-                    closeOnClick: false,
-                    onClick: () => ReviewOverlay.show(answerHistory),
-                }] : []),
                 {
-                    text: 'Về trang chủ',
+                    text: 'Chơi lại',
                     className: 'btn-primary',
                     onClick: () => {
-                        Utils.stopAllSounds();
+                        const mode = this.currentSession.mode;
                         this.cleanupCurrentMode();
                         this.cleanupKeyboardShortcuts();
                         this.currentSession = null;
                         Modal.close();
-                        UI.showScreen('home-screen');
+                        this.start(mode);
                     }
                 }
             ]
