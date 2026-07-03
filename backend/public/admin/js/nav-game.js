@@ -199,7 +199,8 @@ function _renderQuests(defs) {
         '<td><span class="badge ' + (d.type === 'daily' ? 'success' : 'neutral') + '">' + d.type + '</span></td>' +
         '<td>' + (d.mode || 'any') + '</td>' +
         '<td>' + d.target + '</td>' +
-        '<td style="font-size:12px">XP:' + (d.rewardXp||0) + ' 🪙' + (d.rewardCoins||0) + '</td>' +
+        '<td style="font-size:12px">XP:' + (d.rewardXp||0) + ' 🪙' + (d.rewardCoins||0) +
+          ((d.rewardItems && d.rewardItems.length) ? ' 🎁' + d.rewardItems.map(function(i){return i.itemId+'×'+(i.quantity||1);}).join(',') : '') + '</td>' +
         '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
         '<td>' +
           '<button class="btn btn-ghost btn-sm btn-quest-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
@@ -253,6 +254,8 @@ function openQuestModal(data) {
     document.getElementById('quest-weight').value = data.weight || 1;
     document.getElementById('quest-xp').value = data.rewardXp || 0;
     document.getElementById('quest-coins').value = data.rewardCoins || 0;
+    document.getElementById('quest-items').value = (data.rewardItems || [])
+        .map(function (i) { return i.itemId + ':' + (i.quantity || 1); }).join(', ');
     document.getElementById('quest-active').checked = data.isActive !== false;
     document.getElementById('quest-modal').style.display = 'flex';
 }
@@ -306,6 +309,17 @@ function initQuestModal() {
             weight: Number(document.getElementById('quest-weight').value),
             rewardXp: Number(document.getElementById('quest-xp').value),
             rewardCoins: Number(document.getElementById('quest-coins').value),
+            rewardItems: (function () {
+                // "spin-ticket:1, hint:5" → [{itemId, quantity}]
+                var raw = (document.getElementById('quest-items').value || '').trim();
+                if (!raw) return [];
+                return raw.split(',').map(function (part) {
+                    var kv = part.split(':');
+                    var itemId = (kv[0] || '').trim();
+                    if (!itemId) return null;
+                    return { itemId: itemId, quantity: Math.max(1, parseInt(kv[1], 10) || 1) };
+                }).filter(Boolean);
+            })(),
             isActive: document.getElementById('quest-active').checked,
         };
         const url = id ? API_URL + '/admin/quests/' + id : API_URL + '/admin/quests';

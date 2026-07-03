@@ -4,12 +4,25 @@ import { EventBus, GameEvents } from '@game/eventBus.js';
 import { InventoryAPI } from '@api/inventory.js';
 import { BACKGROUNDS, bgStyle } from '@game/backgrounds.js';
 import { Notification } from '@ui/Toaster.jsx';
+import { Modal } from '@ui/Modal.jsx';
 
 const CATS = [
-    { key: 'cosmetic', label: 'Trang bị', icon: 'fa-shirt' },
+    { key: 'active', label: 'Đang hiệu lực', icon: 'fa-fire' },
     { key: 'consumable', label: 'Tiêu hao', icon: 'fa-flask' },
-    { key: 'boost', label: 'Tăng tốc', icon: 'fa-bolt' },
+    { key: 'boost', label: 'Thẻ tăng tốc', icon: 'fa-bolt' },
+    { key: 'cosmetic', label: 'Trang bị', icon: 'fa-shirt' },
 ];
+
+// Thời gian còn lại tới khi hết hạn (vd nền VIP). null nếu vĩnh viễn.
+function fmtLeft(exp) {
+    if (!exp) return null;
+    const ms = new Date(exp).getTime() - Date.now();
+    if (ms <= 0) return 'Hết hạn';
+    const d = Math.floor(ms / 86400000);
+    const h = Math.floor((ms % 86400000) / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    return d > 0 ? `${d} ngày ${h}h` : (h > 0 ? `${h}h ${m}m` : `${m}m`);
+}
 
 const CONSUMABLE_META = {
     hint: { name: 'Gợi ý', icon: 'fa-lightbulb', color: '#f59e0b', desc: 'Dùng khi luyện tập', field: 'hints' },
@@ -18,7 +31,7 @@ const CONSUMABLE_META = {
 };
 
 export default function InventoryWardrobe() {
-    const [cat, setCat] = useState('cosmetic');
+    const [cat, setCat] = useState('active');
     const [inv, setInv] = useState([]);
     const [equipped, setEquipped] = useState({});
     const [selected, setSelected] = useState(null);
@@ -55,6 +68,8 @@ export default function InventoryWardrobe() {
                     slot: i.definition?.effect?.slot || 'background',
                     equipped: equipped[i.definition?.effect?.slot || 'background'] === i.itemId,
                     rarity: i.definition?.rarity,
+                    expiresAt: i.expiresAt || null,
+                    left: fmtLeft(i.expiresAt),
                 }));
         }
         if (cat === 'consumable') {
@@ -74,7 +89,17 @@ export default function InventoryWardrobe() {
                 }));
             return [...fromStats, ...fromInv];
         }
-        // boost
+        // Thẻ tăng tốc — thẻ boost SỞ HỮU (on_use), kích hoạt được.
+        if (cat === 'boost') {
+            return inv
+                .filter(i => i.definition?.type === 'boost' && i.quantity > 0)
+                .map(i => ({
+                    id: i.itemId, kind: 'boost-card', name: i.definition.name,
+                    icon: i.definition.icon || 'fa-bolt', color: '#8b5cf6',
+                    desc: i.definition.description, count: i.quantity,
+                }));
+        }
+        // Đang hiệu lực — buff ĐANG CHẠY (VIP + boost x2), chỉ xem đếm ngược.
         const list = [];
         const xp = boostLeft(b.xp), co = boostLeft(b.coins);
         const vip = GameState.state?.vip;
@@ -106,6 +131,36 @@ export default function InventoryWardrobe() {
         }
     };
 
+    // Dùng vật phẩm tiêu hao: vé quay → mở Vòng quay; hint/dừng giờ → về trang chủ (dùng khi luyện tập).
+    const useConsumable = (item) => {
+        Modal.close(); // đóng túi đồ
+        if (item.id === 'spin-ticket') {
+            window._openSpinWheel?.();
+        } else {
+            window.UI?.showScreen?.('home-screen');
+        }
+    };
+
+    // Kích hoạt thẻ boost (on_use): tiêu 1 + bật boost trong state.
+    const activate = async (item) => {
+        if (busy) return;
+        setBusy(true);
+        const res = await InventoryAPI.use(item.id);
+        setBusy(false);
+        if (res?.success) {
+            if (res.boosts && GameState.state?.boosts) {
+                if (res.boosts.xp) GameState.state.boosts.xp = res.boosts.xp;
+                if (res.boosts.coins) GameState.state.boosts.coins = res.boosts.coins;
+            }
+            EventBus.emit(GameEvents.STATE_CHANGED);
+            await reload();
+            setSelected(null);
+            Notification.show({ type: 'success', message: `Đã kích hoạt "${item.name}"`, duration: 1600 });
+        } else {
+            Notification.error(res?.message || 'Không kích hoạt được');
+        }
+    };
+
     return (
         <div className="wardrobe">
             {/* Sidebar category */}
@@ -125,7 +180,12 @@ export default function InventoryWardrobe() {
             {/* Lưới item */}
             <div className="wardrobe-grid">
                 {items.length === 0 ? (
-                    <div className="wardrobe-empty">Chưa có vật phẩm ở mục này</div>
+                    <div className="wardrobe-empty">
+                        {cat === 'active' ? 'Không có hiệu lực nào đang chạy'
+                            : cat === 'boost' ? 'Chưa có thẻ tăng tốc — mua ở cửa hàng'
+                            : cat === 'cosmetic' ? 'Chưa có trang bị'
+                            : 'Chưa có vật phẩm ở mục này'}
+                    </div>
                 ) : items.map(it => (
                     <button
                         key={it.id}
@@ -133,13 +193,17 @@ export default function InventoryWardrobe() {
                         onClick={() => setSelected(it)}
                     >
                         {it.kind === 'cosmetic' && it.bg ? (
-                            <span className="cell-thumb" style={bgStyle(it.id) || undefined}></span>
+                            <span className="cell-thumb" style={bgStyle(it.id) || undefined}>
+                                {it.left && <span className="cell-expiry">{it.left}</span>}
+                            </span>
                         ) : (
-                            <span className="cell-thumb cell-thumb--icon"><i className={`fas ${it.icon}`} style={{ color: it.color }}></i></span>
+                            <span className="cell-thumb cell-thumb--icon">
+                                <i className={`fas ${it.icon}`} style={{ color: it.color }}></i>
+                                {(it.kind === 'consumable' || it.kind === 'boost-card') && <span className="cell-count">{it.count}</span>}
+                                {it.kind === 'boost' && it.left && <span className="cell-expiry">{it.left}</span>}
+                            </span>
                         )}
                         <span className="cell-name">{it.name}</span>
-                        {it.kind === 'consumable' && <span className="cell-badge">×{it.count}</span>}
-                        {it.kind === 'boost' && it.left && <span className="cell-badge">{it.left}</span>}
                         {it.equipped && <span className="cell-equipped"><i className="fas fa-check"></i></span>}
                     </button>
                 ))}
@@ -156,8 +220,19 @@ export default function InventoryWardrobe() {
                         </div>
                         <div className="preview-name">{selected.name}</div>
                         {selected.desc && <div className="preview-desc">{selected.desc}</div>}
-                        {selected.kind === 'consumable' && <div className="preview-desc">Số lượng: ×{selected.count}</div>}
+                        {(selected.kind === 'consumable' || selected.kind === 'boost-card') && <div className="preview-desc">Số lượng: ×{selected.count}</div>}
                         {selected.kind === 'boost' && selected.left && <div className="preview-desc">Còn lại: {selected.left}</div>}
+                        {selected.kind === 'cosmetic' && selected.left && <div className="preview-desc"><i className="fas fa-clock"></i> Còn lại: {selected.left}</div>}
+                        {selected.kind === 'boost-card' && (
+                            <button className="btn btn-primary btn-sm preview-btn" disabled={busy} onClick={() => activate(selected)}>
+                                <i className="fas fa-bolt"></i> Kích hoạt
+                            </button>
+                        )}
+                        {selected.kind === 'consumable' && (
+                            <button className="btn btn-primary btn-sm preview-btn" onClick={() => useConsumable(selected)}>
+                                <i className="fas fa-play"></i> Sử dụng
+                            </button>
+                        )}
                         {selected.kind === 'cosmetic' && (
                             selected.equipped ? (
                                 <button className="btn btn-secondary btn-sm preview-btn" disabled><i className="fas fa-check"></i> Đang dùng</button>

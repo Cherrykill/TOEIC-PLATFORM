@@ -291,8 +291,8 @@ export const API = {
      * Shop endpoints
      */
     shop: {
-        async purchase(itemId) {
-            return Http.post('/shop/purchase', { itemId });
+        async purchase(itemId, quantity = 1) {
+            return Http.post('/shop/purchase', { itemId, quantity });
         }
     },
 

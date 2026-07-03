@@ -10,6 +10,7 @@ export const BACKGROUNDS = {
         // Gradient dự phòng khi chưa có/ảnh lỗi — cùng tông header VIP.
         gradient: 'linear-gradient(120deg,#241150 0%,#5b21b6 42%,#b45309 100%)',
         dark: true,
+        requiresVip: true, // hết VIP → tự revert về nền mặc định
     },
     // Ví dụ thêm nền sau này:
     // 'bg-ocean': { label: 'Đại dương', image: '/backgrounds/bg-ocean.jpg', gradient: 'linear-gradient(120deg,#0ea5e9,#1e3a8a)', dark: true },
@@ -18,9 +19,12 @@ export const BACKGROUNDS = {
 // Chọn key nền cho 1 user: ưu tiên cosmetic đang TRANG BỊ (equipped.background),
 // rồi tới VIP mặc định (khi chưa migrate/chưa trang bị).
 export function bgKeyForUser(data = {}) {
-    if (data.background && BACKGROUNDS[data.background]) return data.background;
-    if (data.isVip || data.vip) return 'bg-vip-week';
-    return null;
+    const vip = !!(data.isVip || data.vip);
+    let key = (data.background && BACKGROUNDS[data.background]) ? data.background : null;
+    if (!key && vip) key = 'bg-vip-week';
+    // Nền yêu cầu VIP mà đã hết VIP → về nền mặc định.
+    if (key && BACKGROUNDS[key].requiresVip && !vip) return null;
+    return key;
 }
 
 // Style nền để gắn inline (ảnh phủ trên gradient dự phòng; nền tối thêm lớp

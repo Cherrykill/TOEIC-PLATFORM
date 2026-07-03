@@ -6,8 +6,10 @@ const mongoose = require('mongoose');
  */
 const prizeSchema = new mongoose.Schema(
     {
-        type: { type: String, enum: ['coins', 'gems', 'xp', 'energy', 'hints'], required: true },
+        type: { type: String, enum: ['coins', 'gems', 'xp', 'energy', 'hints', 'item'], required: true },
         amount: { type: Number, required: true },
+        // Khi type = 'item': itemId của vật phẩm inventory (spin-ticket, boost-xp-card, bg-vip-week…).
+        itemId: { type: String, default: '' },
         label: { type: String, required: true },
         icon: { type: String, default: '🎁' },
         color: { type: String, default: '#888888' },

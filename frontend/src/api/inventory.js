@@ -21,6 +21,15 @@ export const InventoryAPI = {
             .catch(() => ({ success: false, data: [] }));
     },
 
+    /** Dùng / kích hoạt đồ (vd thẻ boost on_use). */
+    async use(itemId) {
+        return fetch('/api/inventory/use', {
+            method: 'POST',
+            headers: { ...JSON_HEADERS, ...authHeaders() },
+            body: JSON.stringify({ itemId }),
+        }).then(r => r.json()).catch(() => ({ success: false }));
+    },
+
     /** Trang bị cosmetic. */
     async equip(itemId) {
         return fetch('/api/inventory/equip', {

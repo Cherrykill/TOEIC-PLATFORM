@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
 const ItemDefinition = require('../models/ItemDefinition');
+const UserStats = require('../models/UserStats');
 const Inventory = require('../services/inventoryService');
+const { applyShopEffect } = require('../services/shopEffects');
 
 // Catalog công khai — danh sách item đang bật.
 router.get('/items', async (req, res, next) => {
@@ -23,14 +25,32 @@ router.get('/', protect, async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-// Dùng đồ tiêu hao.
+// Dùng / kích hoạt đồ. on_use (thẻ boost) → tiêu 1 + áp hiệu ứng vào UserStats.
 router.post('/use', protect, async (req, res, next) => {
     try {
-        const { itemId, quantity = 1 } = req.body;
+        const { itemId } = req.body;
         if (!itemId) return res.status(400).json({ success: false, message: 'Thiếu itemId' });
-        const ok = await Inventory.consume(req.user.id, itemId, quantity);
-        if (!ok) return res.status(400).json({ success: false, message: 'Không đủ số lượng' });
-        res.json({ success: true });
+
+        const def = await ItemDefinition.findOne({ itemId }).lean();
+        if (!def) return res.status(404).json({ success: false, message: 'Item không tồn tại' });
+
+        const ok = await Inventory.consume(req.user.id, itemId, 1);
+        if (!ok) return res.status(400).json({ success: false, message: 'Bạn không có vật phẩm này' });
+
+        // Kích hoạt on_use có hiệu ứng (vd thẻ boost) → áp vào UserStats.
+        let boosts = null;
+        if (def.durationType === 'on_use' && def.effect && def.effect.type) {
+            const stats = await UserStats.findOne({ userId: req.user.id });
+            if (stats) {
+                applyShopEffect(stats, def.effect);
+                await stats.save();
+                boosts = {
+                    xp: { active: stats.xpBoostActive, multiplier: stats.xpBoostMultiplier, expiresAt: stats.xpBoostExpiresAt },
+                    coins: { active: stats.coinsBoostActive, multiplier: stats.coinsBoostMultiplier, expiresAt: stats.coinsBoostExpiresAt },
+                };
+            }
+        }
+        res.json({ success: true, boosts });
     } catch (err) { next(err); }
 });
 

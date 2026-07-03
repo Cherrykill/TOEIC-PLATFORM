@@ -13,8 +13,12 @@ const ITEMS = [
     { itemId: 'time-freeze', name: 'Dừng thời gian', description: 'Tạm dừng đồng hồ khi luyện tập', icon: 'fa-pause', type: 'consumable', rarity: 'rare', stackable: true, effect: { type: 'time_freeze' }, order: 3 },
     { itemId: 'spin-ticket', name: 'Vé quay may mắn', description: 'Dùng để quay Vòng quay may mắn (không tốn lượt/xu)', icon: 'fa-ticket', type: 'consumable', rarity: 'epic', stackable: true, effect: { type: 'spin' }, order: 4 },
 
+    // ===== Boost (thẻ kích hoạt — on_use, 2 ngày) =====
+    { itemId: 'boost-xp-card', name: 'Thẻ x2 XP', description: 'Kích hoạt để nhân đôi XP trong 24 giờ', icon: 'fa-bolt', type: 'boost', rarity: 'epic', stackable: true, durationType: 'on_use', durationSec: 86400, effect: { type: 'boost', boostType: 'xp', multiplier: 2, duration: 86400 }, order: 10 },
+    { itemId: 'boost-coins-card', name: 'Thẻ x2 Coins', description: 'Kích hoạt để nhân đôi Coins trong 24 giờ', icon: 'fa-coins', type: 'boost', rarity: 'epic', stackable: true, durationType: 'on_use', durationSec: 86400, effect: { type: 'boost', boostType: 'coins', multiplier: 2, duration: 86400 }, order: 11 },
+
     // ===== Cosmetic — nền =====
-    { itemId: 'bg-vip-week', name: 'Nền Hoàng gia VIP', description: 'Nền hồ sơ & bảng xếp hạng dành cho VIP', icon: 'fa-crown', type: 'cosmetic_background', rarity: 'legendary', stackable: false, effect: { slot: 'background', key: 'vip-royal' }, order: 1 },
+    { itemId: 'bg-vip-week', name: 'Nền Hoàng gia VIP', description: 'Nền hồ sơ & bảng xếp hạng dành cho VIP', icon: 'fa-crown', type: 'cosmetic_background', rarity: 'legendary', stackable: false, durationType: 'from_grant', durationSec: 604800, effect: { slot: 'background', key: 'vip-royal' }, order: 1 },
 ];
 
 (async () => {

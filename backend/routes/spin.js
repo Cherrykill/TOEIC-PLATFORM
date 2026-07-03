@@ -34,7 +34,7 @@ function pickPrizeIndex(prizes, mode) {
 
 // Chỉ gửi field hiển thị ra client (giấu tỷ lệ).
 function publicPrize(p) {
-    return { type: p.type, amount: p.amount, label: p.label, icon: p.icon, color: p.color };
+    return { type: p.type, amount: p.amount, itemId: p.itemId, label: p.label, icon: p.icon, color: p.color };
 }
 
 function msUntilMidnight() {
@@ -142,6 +142,15 @@ router.post('/', protect, async (req, res) => {
 
         await UserStats.findOneAndUpdate({ userId }, rewardUpdate);
 
+        // Phần thưởng là VẬT PHẨM inventory (dùng chung kho với shop/quest).
+        if (prize.type === 'item' && prize.itemId) {
+            try {
+                await Inventory.grant(userId, prize.itemId, prize.amount || 1, { source: 'spin' });
+            } catch (e) {
+                logger.error('Spin item grant failed:', e.message);
+            }
+        }
+
         if (mode === 'free') {
             await UserSpin.findOneAndUpdate(
                 { userId },
@@ -183,6 +192,7 @@ router.put('/config', admin, async (req, res, next) => {
             cfg.prizes = prizes.map(p => ({
                 type: p.type,
                 amount: Number(p.amount) || 0,
+                itemId: p.type === 'item' ? String(p.itemId || '') : '',
                 label: String(p.label || ''),
                 icon: p.icon || '🎁',
                 color: p.color || '#888888',

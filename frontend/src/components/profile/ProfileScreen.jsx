@@ -126,6 +126,10 @@ export default function ProfileScreen({ active }) {
 
     const vip = GameState.state?.vip;
     const vipActive = !!(vip?.active && vip.expiresAt && Date.now() < vip.expiresAt);
+    const boosts = GameState.state?.boosts || {};
+    const boostOn = (bx) => !!(bx?.active && bx.expiresAt && new Date(bx.expiresAt).getTime() > Date.now());
+    const xpBoostOn = boostOn(boosts.xp);
+    const coinsBoostOn = boostOn(boosts.coins);
     const bgKey = bgKeyForUser({ isVip: vipActive, background: GameState.state?.equipped?.background });
     const headerStyle = bgStyle(bgKey);
 
@@ -243,6 +247,16 @@ export default function ProfileScreen({ active }) {
                                 <i className="fas fa-bolt" style={{ color: '#fde047' }}></i>
                                 {totalXp.toLocaleString('vi-VN')} XP
                             </span>
+                            {xpBoostOn && (
+                                <span className="profile-boost-badge" title="Đang nhân đôi XP">
+                                    <i className="fas fa-bolt"></i> x2 XP
+                                </span>
+                            )}
+                            {coinsBoostOn && (
+                                <span className="profile-boost-badge coins" title="Đang nhân đôi Coins">
+                                    <i className="fas fa-coins"></i> x2 Coins
+                                </span>
+                            )}
                             {user?.role === 'admin' && (
                                 <span style={{ fontSize: '0.75em', background: '#ef4444', color: '#fff', padding: '1px 8px', borderRadius: 10, fontWeight: 600 }}>Admin</span>
                             )}

@@ -348,6 +348,9 @@
               <a href="#" class="sidebar-link" data-main-tab="shop">
                 <i class="fas fa-store"></i><span>Cửa hàng</span>
               </a>
+              <a href="#" class="sidebar-link" data-main-tab="spin">
+                <i class="fas fa-dharmachakra"></i><span>Vòng quay</span>
+              </a>
             </div>
           </div>
 
@@ -525,41 +528,6 @@
                 <div style="grid-column:1/-1;display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
                   <button class="btn btn-primary" id="season-save-btn"><i class="fas fa-save"></i> Lưu cấu hình</button>
                   <button class="btn btn-danger" id="season-reset-btn"><i class="fas fa-bomb"></i> Reset mùa ngay</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Spin wheel config -->
-            <div class="card" style="margin-bottom:20px">
-              <div class="card-header">
-                <h2><i class="fas fa-dharmachakra"></i> Vòng quay — Phần thưởng &amp; tỷ lệ</h2>
-                <span id="spin-config-status" style="font-size:13px;color:var(--text-secondary)"></span>
-              </div>
-              <div style="padding:16px">
-                <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
-                  <div>
-                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Chi phí Xu / lượt</label>
-                    <input type="number" id="spin-cost-coin" style="width:120px;padding:7px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
-                  </div>
-                  <div>
-                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Chi phí Đá / lượt</label>
-                    <input type="number" id="spin-cost-gem" style="width:120px;padding:7px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
-                  </div>
-                </div>
-                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">
-                  <i class="fas fa-info-circle"></i> Tỷ lệ là <b>trọng số</b> (không cần cộng = 1) — hệ thống tự chuẩn hoá theo từng chế độ (Free / Xu / Đá).
-                </div>
-                <div style="overflow-x:auto">
-                  <table class="data-table" id="spin-config-table" style="font-size:13px">
-                    <thead><tr>
-                      <th>Màu</th><th>Icon</th><th>Nhãn</th><th>Loại</th><th>SL</th>
-                      <th>TL Free</th><th>TL Xu</th><th>TL Đá</th>
-                    </tr></thead>
-                    <tbody id="spin-config-rows"></tbody>
-                  </table>
-                </div>
-                <div style="display:flex;justify-content:flex-end;margin-top:12px">
-                  <button class="btn btn-primary" id="spin-config-save"><i class="fas fa-save"></i> Lưu cấu hình</button>
                 </div>
               </div>
             </div>
@@ -1690,6 +1658,43 @@
                     <tr><td colspan="9" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== VÒNG QUAY TAB ===== -->
+          <div id="main-tab-spin" class="main-tab-content">
+            <div class="card" style="margin-bottom:20px">
+              <div class="card-header">
+                <h2><i class="fas fa-dharmachakra"></i> Vòng quay — Phần thưởng &amp; tỷ lệ</h2>
+                <span id="spin-config-status" style="font-size:13px;color:var(--text-secondary)"></span>
+              </div>
+              <div style="padding:16px">
+                <div style="display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap">
+                  <div>
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Chi phí Xu / lượt</label>
+                    <input type="number" id="spin-cost-coin" style="width:120px;padding:7px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
+                  </div>
+                  <div>
+                    <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Chi phí Đá / lượt</label>
+                    <input type="number" id="spin-cost-gem" style="width:120px;padding:7px 10px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
+                  </div>
+                </div>
+                <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">
+                  <i class="fas fa-info-circle"></i> Tỷ lệ là <b>trọng số</b> (không cần cộng = 1) — hệ thống tự chuẩn hoá theo từng chế độ (Free / Xu / Đá).
+                </div>
+                <div style="overflow-x:auto">
+                  <table class="data-table" id="spin-config-table" style="font-size:13px">
+                    <thead><tr>
+                      <th>Màu</th><th>Icon</th><th>Nhãn</th><th>Loại</th><th>SL</th>
+                      <th>TL Free</th><th>TL Xu</th><th>TL Đá</th>
+                    </tr></thead>
+                    <tbody id="spin-config-rows"></tbody>
+                  </table>
+                </div>
+                <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                  <button class="btn btn-primary" id="spin-config-save"><i class="fas fa-save"></i> Lưu cấu hình</button>
+                </div>
               </div>
             </div>
           </div>
@@ -4130,6 +4135,7 @@
             <div><label>Weight (xác suất)</label><input type="number" id="quest-weight" value="1" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Thưởng XP</label><input type="number" id="quest-xp" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Thưởng Coins</label><input type="number" id="quest-coins" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
+            <div style="grid-column:1/-1"><label>Thưởng vật phẩm <span style="color:var(--text-tertiary,#94a3b8);font-weight:400">(vd: spin-ticket:1, hint:5 — để trống nếu không có)</span></label><input type="text" id="quest-items" placeholder="itemId:sốlượng, itemId:sốlượng" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div style="display:flex;align-items:center;gap:8px;margin-top:16px">
               <input type="checkbox" id="quest-active" checked style="width:16px;height:16px">
               <label for="quest-active">Kích hoạt</label>
@@ -4359,9 +4365,9 @@
     <script src="/admin/js/modules/monitor.js?v=1"></script>
     <script src="/admin/js/modules/tabs.js?v=2"></script>
     <script src="/admin/js/modules/season-admin.js?v=1"></script>
-    <script src="/admin/js/modules/spin-admin.js?v=1"></script>
+    <script src="/admin/js/modules/spin-admin.js?v=2"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
-    <script src="/admin/js/modules/ui-init.js?v=2"></script>
-    <script src="/admin/js/nav-game.js?v=3"></script>
+    <script src="/admin/js/modules/ui-init.js?v=3"></script>
+    <script src="/admin/js/nav-game.js?v=4"></script>
   </body>
 </html>

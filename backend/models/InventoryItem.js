@@ -18,8 +18,10 @@ const inventoryItemSchema = new mongoose.Schema(
         acquiredAt: { type: Date, default: Date.now },
         source: { type: String, default: 'system' }, // shop | reward | vip | quest | admin | system
 
-        // Đồ có hạn (VIP background, boost…); null = vĩnh viễn. TTL tự dọn.
+        // Đồ có hạn (VIP background, boost…); null = vĩnh viễn / chưa kích hoạt. TTL tự dọn.
         expiresAt: { type: Date, default: null },
+        // on_use: mốc kích hoạt (null = chưa dùng). Khi kích hoạt → set expiresAt.
+        activatedAt: { type: Date, default: null },
 
         // Cosmetic đang trang bị (nguồn chân lý cho slot ở UserProfile.equipped).
         equipped: { type: Boolean, default: false },

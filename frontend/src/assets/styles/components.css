@@ -7646,14 +7646,15 @@ mark {
 .translate-input.result { font-weight: 700; color: var(--primary-color, #E11D48); }
 
 /* ===== Tủ đồ (Wardrobe) — sidebar category + lưới + preview ===== */
-.wardrobe { display: grid; grid-template-columns: 128px 1fr 200px; gap: 14px; min-height: 340px; max-height: 62vh; }
+.wardrobe { display: grid; grid-template-columns: 128px 1fr 200px; gap: 14px; min-height: 260px; }
 .wardrobe-cats { display: flex; flex-direction: column; gap: 6px; }
 .wardrobe-cat { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 12px 6px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 600; transition: all .15s; }
 .wardrobe-cat i { font-size: 18px; }
 .wardrobe-cat:hover { border-color: var(--primary-color); }
 .wardrobe-cat.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
 
-.wardrobe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 10px; align-content: start; overflow-y: auto; padding-right: 4px; }
+.wardrobe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(94px, 1fr)); gap: 10px; align-content: start; }
+.cell-expiry { position: absolute; top: 5px; right: 5px; background: rgba(0,0,0,.72); color: #fde68a; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 8px; white-space: nowrap; }
 .wardrobe-empty { grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 46px 0; }
 .wardrobe-cell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border: 1.5px solid var(--border-color); border-radius: 12px; background: var(--bg-secondary); cursor: pointer; transition: all .15s; }
 .wardrobe-cell:hover { border-color: var(--primary-color); transform: translateY(-2px); }
@@ -7662,8 +7663,10 @@ mark {
 .wardrobe-cell.rarity-legendary { border-color: #f59e0b; }
 .wardrobe-cell.rarity-epic { border-color: #a855f7; }
 .wardrobe-cell.rarity-rare { border-color: #3b82f6; }
-.cell-thumb { width: 100%; aspect-ratio: 1; border-radius: 8px; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; }
+.cell-thumb { position: relative; width: 100%; aspect-ratio: 1; border-radius: 8px; background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; }
 .cell-thumb--icon { background: var(--bg-tertiary, #eef); font-size: 26px; }
+/* Số lượng ở góc dưới-phải trong ô vuông */
+.cell-count { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.7); color: #fff; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 8px; line-height: 1.4; }
 .cell-name { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.2; color: var(--text-primary); }
 .cell-badge { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.72); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 10px; }
 .cell-equipped { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 50%; background: #16a34a; color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; }
@@ -7681,3 +7684,38 @@ mark {
   .wardrobe-cats { flex-direction: row; overflow-x: auto; }
   .wardrobe-cat { flex: 1 0 auto; }
 }
+
+/* ===== Popup xác nhận mua (có bộ chọn số lượng) ===== */
+.buy-confirm { display: flex; flex-direction: column; gap: 12px; }
+.buy-confirm p { margin: 0; }
+.buy-qty { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.buy-qty > span { color: var(--text-secondary); font-size: 0.92rem; }
+.buy-qty-stepper { display: inline-flex; align-items: center; gap: 8px; }
+.buy-qty-stepper button {
+    width: 34px; height: 34px; border-radius: 8px;
+    border: 1.5px solid var(--border-color); background: var(--bg-secondary);
+    color: var(--text-primary); font-size: 18px; font-weight: 700; cursor: pointer;
+}
+.buy-qty-stepper button:disabled { opacity: 0.4; cursor: default; }
+.buy-qty-stepper input {
+    width: 60px; text-align: center; padding: 7px; border-radius: 8px;
+    border: 1.5px solid var(--border-color); background: var(--bg-primary);
+    color: var(--text-primary); font-size: 1rem; font-weight: 700;
+}
+.buy-total { font-size: 1.02rem; }
+.buy-total strong { color: var(--primary-color); }
+.buy-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Tiền tệ cùng dòng tiêu đề Túi đồ */
+.inventory-currency-inline { display: inline-flex; align-items: center; gap: 16px; font-weight: 700; font-size: 0.95rem; }
+.inventory-currency-inline > span { display: inline-flex; align-items: center; gap: 5px; }
+@media (max-width: 560px) { .inventory-currency-inline { gap: 10px; font-size: 0.85rem; } }
+
+/* Badge boost đang chạy trên header Hồ sơ */
+.profile-boost-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.75em; font-weight: 800; padding: 2px 9px; border-radius: 10px;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+}
+.profile-boost-badge.coins { background: linear-gradient(135deg, #f59e0b, #d97706); }

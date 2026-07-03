@@ -89,4 +89,15 @@ router.patch('/quests', updateQuests);
 router.post('/xp', addXp);
 router.post('/achievement', unlockAchievement);
 
+// Lịch sử giao dịch (collection riêng, mới nhất trước).
+router.get('/transactions', async (req, res, next) => {
+    try {
+        const Transaction = require('../models/Transaction');
+        const limit = Math.min(parseInt(req.query.limit, 10) || 100, 200);
+        const data = await Transaction.find({ userId: req.user.id })
+            .sort({ at: -1 }).limit(limit).lean();
+        res.json({ success: true, data });
+    } catch (err) { next(err); }
+});
+
 module.exports = router;

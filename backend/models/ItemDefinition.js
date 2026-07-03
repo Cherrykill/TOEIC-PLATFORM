@@ -32,6 +32,17 @@ const itemDefinitionSchema = new mongoose.Schema(
         stackable: { type: Boolean, default: true },
         maxStack: { type: Number, default: null },
 
+        // Cơ chế hạn dùng:
+        //  - 'permanent'  : không hết hạn (cosmetic mua đứt)
+        //  - 'from_grant' : đếm từ lúc NHẬN (dùng hay không cũng hết) — vd nền VIP
+        //  - 'on_use'     : nằm túi vô hạn; KÍCH HOẠT mới bắt đầu đếm — vd thẻ x2 XP
+        durationType: {
+            type: String,
+            enum: ['permanent', 'from_grant', 'on_use'],
+            default: 'permanent',
+        },
+        durationSec: { type: Number, default: 0 }, // dùng cho from_grant / on_use
+
         // Ngữ nghĩa hiệu ứng (vd { slot:'background', key:'vip-royal' }
         // hoặc { boostType:'xp', multiplier:2, duration:604800 }).
         effect: { type: mongoose.Schema.Types.Mixed, default: {} },

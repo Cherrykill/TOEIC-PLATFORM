@@ -12,6 +12,7 @@ const UserStats = require('../models/UserStats');
 const logger = require('../utils/logger');
 const { applyShopEffect } = require('../services/shopEffects');
 const Inventory = require('../services/inventoryService');
+const Transaction = require('../models/Transaction');
 
 // Grant vật phẩm inventory từ effect (đệ quy qua combo). Dùng chung: shop + quest.
 async function grantItemsFromEffect(userId, effect, source = 'shop') {
@@ -26,6 +27,9 @@ async function grantItemsFromEffect(userId, effect, source = 'shop') {
 // Vật phẩm giới hạn theo chu kỳ: itemId → số ngày phải chờ giữa 2 lần mua.
 // (Cũng tôn trọng item.cooldownDays nếu được đặt trong DB.)
 const COOLDOWN_DAYS = { 'shields-pack': 7 };
+
+// Số thẻ boost x2 (mỗi loại) tặng kèm khi mua VIP.
+const VIP_BOOST_CARDS = 3;
 
 exports.getShopItems = async (req, res, next) => {
     try {
@@ -78,6 +82,10 @@ exports.purchaseItem = async (req, res, next) => {
 
         // Giới hạn mua theo chu kỳ (vd Gói Khiên Bảo Vệ: 1 lần/tuần).
         const cooldownDays = item.cooldownDays || COOLDOWN_DAYS[itemId] || 0;
+
+        // Số lượng mua (1–99). Vật phẩm có cooldown → ép về 1.
+        let quantity = Math.max(1, Math.min(99, parseInt(req.body.quantity, 10) || 1));
+        if (cooldownDays > 0) quantity = 1;
         if (cooldownDays > 0) {
             const last = stats.shopCooldowns?.get(itemId);
             if (last) {
@@ -93,21 +101,23 @@ exports.purchaseItem = async (req, res, next) => {
             }
         }
 
-        const effectivePrice = item.discountPercent > 0
+        const unitPrice = item.discountPercent > 0
             ? Math.floor(item.price * (1 - item.discountPercent / 100))
             : item.price;
+        const totalPrice = unitPrice * quantity;
 
-        if (item.currency === 'coins' && stats.coins < effectivePrice) {
+        if (item.currency === 'coins' && stats.coins < totalPrice) {
             return res.status(400).json({ success: false, message: 'Not enough coins' });
         }
-        if (item.currency === 'gems' && stats.gems < effectivePrice) {
+        if (item.currency === 'gems' && stats.gems < totalPrice) {
             return res.status(400).json({ success: false, message: 'Not enough gems' });
         }
 
-        if (item.currency === 'coins') stats.coins -= effectivePrice;
-        else stats.gems -= effectivePrice;
+        if (item.currency === 'coins') stats.coins -= totalPrice;
+        else stats.gems -= totalPrice;
 
-        applyShopEffect(stats, item.effect);
+        // Áp hiệu ứng theo số lượng (consumable cộng dồn; VIP cộng dồn hạn).
+        for (let i = 0; i < quantity; i++) applyShopEffect(stats, item.effect);
 
         // Ghi mốc thời gian mua để áp cooldown cho lần sau.
         if (cooldownDays > 0) {
@@ -117,9 +127,9 @@ exports.purchaseItem = async (req, res, next) => {
 
         await stats.save();
 
-        // Grant vật phẩm inventory (effect type 'item' hoặc trong combo) — vd Vé quay.
+        // Grant vật phẩm inventory theo số lượng (effect type 'item' / combo) — vd Vé quay.
         try {
-            await grantItemsFromEffect(req.user.id, item.effect);
+            for (let i = 0; i < quantity; i++) await grantItemsFromEffect(req.user.id, item.effect);
         } catch (e) {
             logger.error('Grant inventory item failed:', e.message);
         }
@@ -133,9 +143,30 @@ exports.purchaseItem = async (req, res, next) => {
                     expiresAt: stats.vipExpiresAt || null,
                 });
                 await Inventory.equip(req.user.id, 'bg-vip-week');
+                // Thay auto-boost: phát thẻ x2 XP + x2 Coins (on_use) — tự kích hoạt.
+                await Inventory.grant(req.user.id, 'boost-xp-card', VIP_BOOST_CARDS, { source: 'vip' });
+                await Inventory.grant(req.user.id, 'boost-coins-card', VIP_BOOST_CARDS, { source: 'vip' });
             } catch (e) {
-                logger.error('VIP cosmetic grant failed:', e.message);
+                logger.error('VIP grant failed:', e.message);
             }
+        }
+
+        // Ghi lịch sử giao dịch (collection riêng, không giới hạn).
+        let txn = null;
+        try {
+            const isExchange = item.category === 'exchange';
+            const doc = await Transaction.create({
+                userId: req.user.id,
+                type: isExchange ? 'exchange' : 'purchase',
+                name: `${isExchange ? '' : 'Mua '}${item.name}${quantity > 1 ? ` ×${quantity}` : ''}`,
+                itemId,
+                amount: totalPrice,
+                currency: item.currency,
+                balanceAfter: item.currency === 'coins' ? stats.coins : stats.gems,
+            });
+            txn = { at: doc.at, name: doc.name, amount: doc.amount, currency: doc.currency, balanceAfter: doc.balanceAfter };
+        } catch (e) {
+            logger.error('Transaction log failed:', e.message);
         }
 
         res.json({
@@ -146,6 +177,7 @@ exports.purchaseItem = async (req, res, next) => {
             // (vd khiên: DB +3 nhưng local cũ → saveState ghi đè về 0).
             data: {
                 item,
+                transaction: txn,
                 newBalance: {
                     coins: stats.coins,
                     gems: stats.gems,
