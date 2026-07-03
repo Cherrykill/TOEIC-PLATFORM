@@ -3,6 +3,7 @@ import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { InventoryAPI } from '@api/inventory.js';
 import { BACKGROUNDS, bgStyle } from '@game/backgrounds.js';
+import { FRAMES, frameStyle } from '@game/frames.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
 
@@ -63,8 +64,9 @@ export default function InventoryWardrobe() {
                 .map(i => ({
                     id: i.itemId,
                     kind: 'cosmetic',
-                    name: BACKGROUNDS[i.itemId]?.label || i.definition?.name || i.itemId,
+                    name: BACKGROUNDS[i.itemId]?.label || FRAMES[i.itemId]?.label || i.definition?.name || i.itemId,
                     bg: BACKGROUNDS[i.itemId] || null,
+                    frame: FRAMES[i.itemId] || null,
                     slot: i.definition?.effect?.slot || 'background',
                     equipped: equipped[i.definition?.effect?.slot || 'background'] === i.itemId,
                     rarity: i.definition?.rarity,
@@ -196,6 +198,12 @@ export default function InventoryWardrobe() {
                             <span className="cell-thumb" style={bgStyle(it.id) || undefined}>
                                 {it.left && <span className="cell-expiry">{it.left}</span>}
                             </span>
+                        ) : it.kind === 'cosmetic' && it.frame ? (
+                            <span className="cell-thumb cell-thumb--icon">
+                                <span className="frame-dot" style={frameStyle(it.id) || undefined}>
+                                    <i className="fas fa-user"></i>
+                                </span>
+                            </span>
                         ) : (
                             <span className="cell-thumb cell-thumb--icon">
                                 <i className={`fas ${it.icon}`} style={{ color: it.color }}></i>
@@ -215,8 +223,10 @@ export default function InventoryWardrobe() {
                     <div className="wardrobe-preview-empty"><i className="fas fa-hand-pointer"></i><p>Chọn một vật phẩm</p></div>
                 ) : (
                     <>
-                        <div className="preview-visual" style={selected.kind === 'cosmetic' ? (bgStyle(selected.id) || undefined) : undefined}>
-                            {selected.kind !== 'cosmetic' && <i className={`fas ${selected.icon}`} style={{ color: selected.color }}></i>}
+                        <div className="preview-visual" style={selected.kind === 'cosmetic' && selected.bg ? (bgStyle(selected.id) || undefined) : undefined}>
+                            {selected.kind === 'cosmetic' && selected.frame
+                                ? <span className="frame-dot frame-dot--lg" style={frameStyle(selected.id) || undefined}><i className="fas fa-user"></i></span>
+                                : selected.kind !== 'cosmetic' && <i className={`fas ${selected.icon}`} style={{ color: selected.color }}></i>}
                         </div>
                         <div className="preview-name">{selected.name}</div>
                         {selected.desc && <div className="preview-desc">{selected.desc}</div>}

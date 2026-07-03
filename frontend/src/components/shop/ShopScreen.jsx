@@ -8,6 +8,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
 import InventoryWardrobe from '@components/inventory/InventoryWardrobe.jsx';
+import { InventoryAPI } from '@api/inventory.js';
 import { authHeaders } from '@/auth/token.js';
 
 // Gộp 6 category trong DB thành 5 tab cho gọn. `cats` = các category map vào tab.
@@ -16,6 +17,7 @@ const SHOP_TABS = [
     { key: 'items',    label: 'Vật phẩm', icon: 'fa-box',  cats: ['energy', 'resource'] },
     { key: 'boost',    label: 'Tăng tốc', icon: 'fa-bolt', cats: ['boost'] },
     { key: 'exchange', label: 'Quy đổi',  icon: 'fa-gem',  cats: ['exchange'] },
+    { key: 'cosmetic', label: 'Giao diện',icon: 'fa-shirt',cats: ['cosmetic'] },
     { key: 'premium',  label: 'Gói & VIP',icon: 'fa-crown',cats: ['bundle', 'vip'] },
 ];
 
@@ -24,10 +26,22 @@ export default function ShopScreen({ active }) {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
+    // itemId các cosmetic user đã sở hữu — để hiện "Đã mua" & khoá nút mua.
+    const [ownedCosmetics, setOwnedCosmetics] = useState(() => new Set());
 
     useEffect(() => {
-        if (active) loadItems();
+        if (active) { loadItems(); loadOwned(); }
     }, [active]);
+
+    async function loadOwned() {
+        const res = await InventoryAPI.get().catch(() => null);
+        const owned = new Set(
+            (res?.data || [])
+                .filter(i => String(i.definition?.type || '').startsWith('cosmetic'))
+                .map(i => i.itemId)
+        );
+        setOwnedCosmetics(owned);
+    }
 
     async function loadItems() {
         setLoading(true);
@@ -90,6 +104,7 @@ export default function ShopScreen({ active }) {
                 Notification.success(`Mua ${item.name}${qty > 1 ? ` ×${qty}` : ''} thành công!`);
                 syncFromState();
                 loadItems();
+                loadOwned();
             } else {
                 Notification.error(res.message || res.data?.message || res.error || 'Mua thất bại');
             }
@@ -213,9 +228,11 @@ export default function ShopScreen({ active }) {
                     const cdMs = item.nextAvailableAt ? new Date(item.nextAvailableAt).getTime() - Date.now() : 0;
                     const onCooldown = cdMs > 0;
                     const cdDaysLeft = onCooldown ? Math.ceil(cdMs / 86400000) : 0;
-                    const disabled = onCooldown || !canAfford(item);
+                    // Cosmetic mua 1 lần — đã sở hữu thì hiện "Đã mua" & khoá nút.
+                    const owned = item.category === 'cosmetic' && ownedCosmetics.has(item.effect?.itemId);
+                    const disabled = owned || onCooldown || !canAfford(item);
                     return (
-                        <div key={item.id} className={`shop-item${onSale ? ' on-sale' : ''}`}>
+                        <div key={item.id} className={`shop-item${onSale ? ' on-sale' : ''}${owned ? ' owned' : ''}`}>
                             {onSale && <div className="sale-ribbon">SALE</div>}
                             <div className="shop-item-icon">{item.icon}</div>
                             <div className="shop-item-title">{item.name}</div>
@@ -234,12 +251,12 @@ export default function ShopScreen({ active }) {
                                 )}
                             </div>
                             <button
-                                className={`buy-btn${disabled ? ' disabled' : ''}`}
+                                className={`buy-btn${disabled ? ' disabled' : ''}${owned ? ' owned' : ''}`}
                                 disabled={disabled}
                                 onClick={() => handleBuy(item)}
-                                title={onCooldown ? `Có thể mua lại sau ${cdDaysLeft} ngày` : undefined}
+                                title={owned ? 'Đã sở hữu — trang bị trong Túi đồ' : (onCooldown ? `Có thể mua lại sau ${cdDaysLeft} ngày` : undefined)}
                             >
-                                {onCooldown ? `Chờ ${cdDaysLeft} ngày` : 'Mua ngay'}
+                                {owned ? <><i className="fas fa-check"></i> Đã mua</> : onCooldown ? `Chờ ${cdDaysLeft} ngày` : 'Mua ngay'}
                             </button>
                         </div>
                     );

@@ -7719,3 +7719,20 @@ mark {
   box-shadow: 0 1px 4px rgba(0,0,0,.2);
 }
 .profile-boost-badge.coins { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+/* Khung avatar (cosmetic_frame) — vòng tròn demo trong Túi đồ */
+.frame-dot {
+    width: 46px; height: 46px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: #334155; color: #cbd5e1; font-size: 18px;
+}
+.frame-dot--lg { width: 88px; height: 88px; font-size: 34px; }
+
+/* Cosmetic đã sở hữu trong cửa hàng */
+.shop-item.owned { opacity: .92; }
+.buy-btn.owned,
+.buy-btn.owned.disabled {
+    background: #16a34a; color: #fff;
+    opacity: 1; cursor: default;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}

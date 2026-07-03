@@ -6,6 +6,7 @@ import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
+import { frameStyle } from '@game/frames.js';
 
 export default function ProfileScreen({ active }) {
     const { showScreen, user, resources, streak, syncFromState } = useGame();
@@ -132,6 +133,7 @@ export default function ProfileScreen({ active }) {
     const coinsBoostOn = boostOn(boosts.coins);
     const bgKey = bgKeyForUser({ isVip: vipActive, background: GameState.state?.equipped?.background });
     const headerStyle = bgStyle(bgKey);
+    const avatarFrameStyle = frameStyle(GameState.state?.equipped?.frame);
 
     const unlockedCount = achievements.filter(a => a.unlocked).length;
 
@@ -184,6 +186,7 @@ export default function ProfileScreen({ active }) {
                         className="profile-avatar profile-avatar--clickable"
                         onClick={() => avatarInputRef.current?.click()}
                         title="Đổi ảnh đại diện"
+                        style={avatarFrameStyle || undefined}
                     >
                         {user?.avatar && (user.avatar.startsWith('data:image') || user.avatar.startsWith('http') || user.avatar.startsWith('/'))
                             ? <img src={user.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />

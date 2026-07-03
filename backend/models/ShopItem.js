@@ -13,7 +13,7 @@ const shopItemSchema = new mongoose.Schema(
         icon: { type: String, default: '' },
         category: {
             type: String,
-            enum: ['energy', 'resource', 'boost', 'exchange', 'bundle', 'vip'],
+            enum: ['energy', 'resource', 'boost', 'exchange', 'bundle', 'vip', 'cosmetic'],
             required: true,
         },
         price: { type: Number, required: true },

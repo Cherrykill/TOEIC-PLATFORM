@@ -12,8 +12,19 @@ export const BACKGROUNDS = {
         dark: true,
         requiresVip: true, // hết VIP → tự revert về nền mặc định
     },
-    // Ví dụ thêm nền sau này:
-    // 'bg-ocean': { label: 'Đại dương', image: '/backgrounds/bg-ocean.jpg', gradient: 'linear-gradient(120deg,#0ea5e9,#1e3a8a)', dark: true },
+    // Nền mua ở cửa hàng — hiện dùng gradient (ảnh tùy chọn, thả vào /backgrounds/ sau).
+    'bg-ocean': {
+        label: 'Đại dương',
+        image: '/backgrounds/bg-ocean.jpg',
+        gradient: 'linear-gradient(120deg,#0ea5e9 0%,#0369a1 50%,#1e3a8a 100%)',
+        dark: true,
+    },
+    'bg-neon': {
+        label: 'Neon',
+        image: '/backgrounds/bg-neon.jpg',
+        gradient: 'linear-gradient(120deg,#7c3aed 0%,#db2777 45%,#0ea5e9 100%)',
+        dark: true,
+    },
 };
 
 // Chọn key nền cho 1 user: ưu tiên cosmetic đang TRANG BỊ (equipped.background),

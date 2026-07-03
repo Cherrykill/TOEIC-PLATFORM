@@ -107,6 +107,7 @@ router.get('/:period?', async (req, res) => {
                 isVip: !!(s.vipExpiresAt && new Date(s.vipExpiresAt).getTime() > Date.now()),
                 _vipExpiresAt: s.vipExpiresAt || null, // recalc isVip khi serve từ cache
                 background: p.equipped?.background || null, // cosmetic nền đang trang bị
+                frame: p.equipped?.frame || null, // cosmetic khung avatar đang trang bị
             };
         });
 
