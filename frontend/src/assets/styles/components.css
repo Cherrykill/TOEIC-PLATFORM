@@ -1135,6 +1135,33 @@
   color: #f39c12;
 }
 
+/* Thanh điều hướng câu (khi tắt tự động chuyển câu) */
+.practice-nav-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+}
+.practice-nav-btn {
+  flex: 1;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  background: var(--bg-secondary, #f8fafc);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+.practice-nav-btn:hover:not(:disabled) { border-color: var(--primary-color, #E11D48); }
+.practice-nav-btn.primary { background: var(--primary-color, #E11D48); border-color: var(--primary-color, #E11D48); color: #fff; }
+.practice-nav-btn:disabled { opacity: 0.4; cursor: default; }
+
 .sentence-with-blank {
   font-size: 1.5rem;
   line-height: 2;
@@ -1147,6 +1174,24 @@
   color: var(--text-primary);
   text-align: left;
 }
+/* Sau khi trả lời: đáp án được điền thẳng vào câu */
+.sentence-with-blank.answered { border-left-color: #16a34a; }
+.sentence-with-blank .filled-answer {
+  color: #16a34a;
+  font-weight: 700;
+  padding: 0 4px;
+  border-bottom: 2px solid #16a34a;
+}
+/* Bản dịch tiếng Việt cả câu, ngay dưới câu ví dụ */
+.sentence-with-blank .sentence-translation {
+  margin-top: 10px;
+  font-size: 1rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.sentence-with-blank .sentence-translation.translation-success { color: var(--text-primary); }
 
 .options-grid {
   display: grid;

@@ -1,10 +1,11 @@
-import { GameLogic } from '@game/gameLogic.js';
+import { GameLogic, wordPk, ttsLang } from '@game/gameLogic.js';
 import { GameState } from '@game/state.js';
 import { Config } from '@game/config.js';
 import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const FillBlank = {
     config: null,
@@ -70,6 +71,12 @@ export const FillBlank = {
         PracticeManager.setCurrentWord(question.word);
 
         this.render(question);
+
+        // Phát âm từ ngay khi hiện câu mới (chỉ khi từ tiếng Anh đang hiển thị —
+        // chiều EN→VN; chiều đảo VN→EN không đọc để khỏi lộ đáp án).
+        if (GameState.state.settings.soundEnabled && !question.reversed) {
+            setTimeout(() => GameLogic.speakWord(wordPk(question.word), ttsLang()), 300);
+        }
     },
 
     render(question) {
@@ -159,12 +166,6 @@ export const FillBlank = {
                 title: 'Chính xác!',
                 message: `Đáp án: ${question.correctAnswer}`,
             });
-
-            if (GameState.state.settings.soundEnabled) {
-                setTimeout(() => {
-                    GameLogic.speakWord(question.correctAnswer, 'en-US');
-                }, 500);
-            }
         } else {
             input.classList.add('wrong');
             PracticeManager.recordAnswer(false, question.word);
@@ -178,20 +179,11 @@ export const FillBlank = {
                 title: 'Sai rồi!',
                 message: `Đáp án đúng: ${question.correctAnswer}`,
             });
-
-            if (GameState.state.settings.soundEnabled) {
-                setTimeout(() => {
-                    GameLogic.speakWord(question.correctAnswer, 'en-US');
-                }, 500);
-            }
         }
 
         // Không hiện panel ví dụ (lộ đáp án trong câu) sau khi trả lời nữa —
         // toast đã báo "Đáp án đúng: ..." rồi.
-        const delay = 1200;
-        setTimeout(() => {
-            this.nextQuestion();
-        }, delay);
+        afterAnswer(this, 'fill-blank');
     },
 
     nextQuestion() {

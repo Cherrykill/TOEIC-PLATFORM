@@ -170,6 +170,7 @@ export const PracticeManager = {
             completed: false,
             wrongWordsInSession: [],
             answerHistory: [],
+            answeredIndices: new Set(), // chống tính điểm lặp khi quay lại câu (manual nav)
         };
 
         UI.showScreen('practice-screen');
@@ -233,6 +234,15 @@ export const PracticeManager = {
         };
 
         this.startTimer(actualTimeLimit);
+
+        // Tham chiếu mode đang chạy — dùng cho điều hướng thủ công + chống tính
+        // điểm lặp (đọc currentIndex khi tắt tự động chuyển câu).
+        this.activeModeObj = {
+            'multiple-choice': MultipleChoice, 'fill-blank': FillBlank, 'listening': Listening,
+            'synonym-check': SynonymCheck, 'word-type-check': WordTypeCheck,
+            'example-fill-blank': ExampleFillBlank, 'review-mistakes': ReviewMistakes,
+            'sentence-listening': SentenceListening, 'phonetic-quiz': PhoneticQuiz,
+        }[mode] || null;
 
         switch (mode) {
             case 'multiple-choice':
@@ -476,6 +486,13 @@ export const PracticeManager = {
 
     recordAnswer(isCorrect, word, meta = {}) {
         if (!this.currentSession) return;
+
+        // Manual nav: quay lại câu đã trả lời rồi trả lời lại → KHÔNG tính điểm lần 2.
+        const idx = this.activeModeObj?.currentIndex;
+        if (typeof idx === 'number') {
+            if (this.currentSession.answeredIndices?.has(idx)) return;
+            this.currentSession.answeredIndices?.add(idx);
+        }
 
         this.currentSession.answerHistory.push({
             word,

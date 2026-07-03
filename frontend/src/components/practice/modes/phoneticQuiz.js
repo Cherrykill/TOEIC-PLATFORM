@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const PhoneticQuiz = {
 
@@ -192,8 +193,7 @@ export const PhoneticQuiz = {
 
         this.showResult(question, isCorrect);
 
-        const delay = question.word.example ? 2000 : 1500;
-        setTimeout(() => this.nextQuestion(), delay);
+        afterAnswer(this, 'phonetic-quiz');
     },
 
     showResult(question, isCorrect) {

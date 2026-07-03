@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const WordTypeCheck = {
 
@@ -191,10 +192,7 @@ export const WordTypeCheck = {
 
         this.showWordInfo(question.word);
 
-        const delay = question.word.example ? 2000 : 1000;
-        setTimeout(() => {
-            this.nextQuestion();
-        }, delay);
+        afterAnswer(this, 'word-type-check');
     },
 
     showWordInfo(word) {

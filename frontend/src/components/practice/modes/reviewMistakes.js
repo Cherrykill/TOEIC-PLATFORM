@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { WrongWordsManager } from '@components/vocab/wrongWords/wrongWordsManager.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const ReviewMistakes = {
 
@@ -195,10 +196,7 @@ export const ReviewMistakes = {
 
         this.showWordInfo(question.word);
 
-        const delay = question.word.example ? 4500 : 2500;
-        setTimeout(() => {
-            this.nextQuestion();
-        }, delay);
+        afterAnswer(this, 'review-mistakes');
     },
 
     showWordInfo(word) {

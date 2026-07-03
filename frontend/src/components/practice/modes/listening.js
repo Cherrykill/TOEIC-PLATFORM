@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const Listening = {
 
@@ -186,10 +187,7 @@ export const Listening = {
 
         // Không hiện panel reveal đáp án ở dưới nữa (trùng với câu ví dụ đã
         // hiển thị sẵn ở phần câu hỏi). Chỉ cần highlight đúng/sai rồi qua câu.
-        const delay = 1200;
-        setTimeout(() => {
-            this.nextQuestion();
-        }, delay);
+        afterAnswer(this, 'listening');
     },
 
     nextQuestion() {

@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const SynonymCheck = {
 
@@ -185,8 +186,7 @@ export const SynonymCheck = {
 
         this.showWordInfo(question.word);
 
-        const delay = question.word.example ? 2200 : 1100;
-        setTimeout(() => this.nextQuestion(), delay);
+        afterAnswer(this, 'synonym-check');
     },
 
     showWordInfo(word) {

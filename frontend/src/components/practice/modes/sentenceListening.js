@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const SentenceListening = {
 
@@ -208,7 +209,7 @@ export const SentenceListening = {
         }
 
         this.showResult(question, correctCount);
-        setTimeout(() => this.nextQuestion(), 2500);
+        afterAnswer(this, 'sentence-listening');
     },
 
     showResult(question, correctCount) {

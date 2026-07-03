@@ -5,6 +5,7 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
 
 export const MultipleChoice = {
 
@@ -201,11 +202,7 @@ export const MultipleChoice = {
             }
         }
 
-        // Ví dụ đã đọc được trong lúc chọn → rút ngắn thời gian chờ sang câu sau.
-        const delay = question.word.example ? 1200 : 800;
-        setTimeout(() => {
-            this.nextQuestion();
-        }, delay);
+        afterAnswer(this, 'multiple-choice');
     },
 
     // Che từ khoá trong câu ví dụ (chế độ đảo chiều để khỏi lộ đáp án).

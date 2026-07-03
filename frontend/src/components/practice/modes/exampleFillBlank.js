@@ -5,6 +5,17 @@ import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { afterAnswer } from '@components/practice/practiceNav.js';
+
+// Dịch cả câu sang tiếng Việt qua Google Translate (gtx) — cùng API popup Dịch nhanh,
+// không cần backend/API key.
+async function translateToVi(text) {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('translate failed');
+    const data = await res.json();
+    return (data[0] || []).map(seg => seg[0]).filter(Boolean).join('');
+}
 
 export const ExampleFillBlank = {
 
@@ -184,12 +195,25 @@ export const ExampleFillBlank = {
             }, 300);
         }
 
+        // Điền đáp án đúng vào chính câu ở trên (highlight) + chỗ chờ bản dịch —
+        // người dùng không phải cuộn xuống xem câu đầy đủ.
+        const filled = question.sentence.split('______').join(
+            `<strong class="filled-answer">${question.correctAnswer}</strong>`
+        );
+        const sentenceEl = document.querySelector('.sentence-with-blank');
+        if (sentenceEl) {
+            sentenceEl.classList.add('answered');
+            sentenceEl.innerHTML = `${filled}
+                <div class="sentence-translation" id="sentence-translation">
+                    <i class="fas fa-spinner fa-spin"></i> Đang dịch...
+                </div>`;
+        }
+
+        // Feedback gọn: chỉ báo đúng/sai (câu đầy đủ đã nằm ở trên).
         feedbackArea.innerHTML = `
             <div class="feedback ${isCorrect ? 'correct' : 'wrong'}">
                 <i class="fas fa-${isCorrect ? 'check' : 'times'}-circle"></i>
                 <span>${isCorrect ? 'Chính xác!' : `Sai rồi! Đáp án đúng là: <strong>${question.correctAnswer}</strong>`}</span>
-                <div class="full-sentence">${question.originalExample}</div>
-                <div class="translation-loading"><i class="fas fa-spinner fa-spin"></i> Đang dịch...</div>
             </div>
         `;
 
@@ -216,39 +240,36 @@ export const ExampleFillBlank = {
             }
         }
 
-        const READ_DELAY = 2500;
+        // Chờ dịch xong (tối đa 5s) rồi mới chuyển câu / hiện nút điều hướng.
         let done = false;
-
-        const fallback = setTimeout(() => {
+        const finishStep = () => {
             if (done) return;
             done = true;
-            const d = feedbackArea.querySelector('.translation-loading');
+            afterAnswer(this, 'example-fill-blank');
+        };
+        const fallback = setTimeout(() => {
+            const d = document.getElementById('sentence-translation');
             if (d) d.innerHTML = '';
-            this.nextQuestion();
+            finishStep();
         }, 5000);
 
         try {
-            const translation = await AiAPI.translate(question.originalExample);
-            const translationDiv = feedbackArea.querySelector('.translation-loading');
-
-            if (translation && translationDiv) {
-                translationDiv.innerHTML = `<div class="translation"><i class="fas fa-language"></i> ${translation}</div>`;
-                translationDiv.classList.remove('translation-loading');
-                translationDiv.classList.add('translation-success');
-            } else if (translationDiv) {
-                translationDiv.innerHTML = '';
+            const translation = await translateToVi(question.originalExample);
+            const d = document.getElementById('sentence-translation');
+            if (translation && d) {
+                d.innerHTML = `<i class="fas fa-language"></i> ${translation}`;
+                d.classList.add('translation-success');
+            } else if (d) {
+                d.innerHTML = '';
             }
         } catch (error) {
             console.error('Translation error:', error);
-            const d = feedbackArea.querySelector('.translation-loading');
+            const d = document.getElementById('sentence-translation');
             if (d) d.innerHTML = '';
         }
 
-        if (!done) {
-            done = true;
-            clearTimeout(fallback);
-            setTimeout(() => this.nextQuestion(), READ_DELAY);
-        }
+        clearTimeout(fallback);
+        finishStep();
     },
 
     nextQuestion() {

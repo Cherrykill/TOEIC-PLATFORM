@@ -1,13 +1,37 @@
 // "Practice" panel. Presentational — state/handlers passed from SettingsScreen.
 import { useState } from 'react';
 import Toggle from './Toggle.jsx';
+import { TRANSITION_MODES, getTransitionDefault } from '@components/practice/transitionDelay.js';
 
 const GOAL_PRESETS = [10, 15, 30, 60, 90, 120, 180];
+const TIME_OPTIONS = [500, 1000, 1500, 2000, 3000, 4000];
+const fmtDelay = (ms) => `${ms / 1000}s`;
 
 export default function PracticePanel({ s, handleQPS, updateSetting, handleDifficulty }) {
     const goalVal = s.dailyStudyGoalMin ?? 15;
     const [goalCustom, setGoalCustom] = useState(false);
     const isGoalCustom = goalCustom || !GOAL_PRESETS.includes(goalVal);
+
+    // Thời gian chuyển câu (per-mode). Select 1 chọn chế độ ("all" = toàn bộ).
+    const [tmMode, setTmMode] = useState('all');
+    const qt = s.questionTransition || {};
+    const effDelay = (id) => (typeof qt[id] === 'number' ? qt[id] : getTransitionDefault(id));
+    const firstDelay = effDelay(TRANSITION_MODES[0].id);
+    const allSame = TRANSITION_MODES.every(m => effDelay(m.id) === firstDelay) ? firstDelay : null;
+    const tmVal = tmMode === 'all' ? (allSame ?? '') : effDelay(tmMode);
+    const tmOptions = (typeof tmVal === 'number' && !TIME_OPTIONS.includes(tmVal))
+        ? [tmVal, ...TIME_OPTIONS] : TIME_OPTIONS;
+    const applyTmTime = (msStr) => {
+        const ms = parseInt(msStr);
+        if (!Number.isFinite(ms)) return;
+        if (tmMode === 'all') {
+            const next = {};
+            TRANSITION_MODES.forEach(m => { next[m.id] = ms; });
+            updateSetting('questionTransition', next);
+        } else {
+            updateSetting('questionTransition', { ...qt, [tmMode]: ms });
+        }
+    };
 
     return (
         <div className="settings-section">
@@ -34,6 +58,44 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                 <select value={s.timePerQuestion || 30} onChange={e => updateSetting('timePerQuestion', parseInt(e.target.value))}>
                     {[10, 15, 20, 30, 45, 60].map(n => <option key={n} value={n}>{n}s</option>)}
                 </select>
+            </div>
+            <div className="setting-item">
+                <div className="setting-info">
+                    <h4>Tự động chuyển câu</h4>
+                    <p>Tắt để tự bấm ← Trước / Tiếp → sau mỗi câu</p>
+                </div>
+                <Toggle checked={s.autoAdvance !== false} onChange={v => updateSetting('autoAdvance', v)} />
+            </div>
+            <div className="setting-item" style={{ display: s.autoAdvance !== false ? 'block' : 'none' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div className="setting-info">
+                        <h4>Thời gian chuyển câu</h4>
+                        <p>Thời gian chờ trước khi sang câu tiếp (theo từng chế độ)</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <select value={tmMode} onChange={e => setTmMode(e.target.value)}>
+                            <option value="all">Toàn bộ</option>
+                            {TRANSITION_MODES.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                        </select>
+                        <select value={tmVal} onChange={e => applyTmTime(e.target.value)}>
+                            {tmVal === '' && <option value="" disabled>— chọn —</option>}
+                            {tmOptions.map(ms => <option key={ms} value={ms}>{fmtDelay(ms)}</option>)}
+                        </select>
+                    </div>
+                </div>
+                <div style={{ marginTop: 10, borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
+                    {TRANSITION_MODES.map(m => {
+                        const isDef = typeof qt[m.id] !== 'number';
+                        return (
+                            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '3px 0', color: 'var(--text-secondary)' }}>
+                                <span>{m.name}</span>
+                                <span style={{ color: isDef ? 'var(--text-tertiary, #94a3b8)' : 'var(--primary-color)', fontWeight: 600 }}>
+                                    {fmtDelay(effDelay(m.id))}{isDef ? ' (mặc định)' : ''}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
             <div className="setting-item">
                 <label>Mục tiêu thời gian học mỗi ngày</label>
