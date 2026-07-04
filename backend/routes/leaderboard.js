@@ -74,6 +74,8 @@ router.get('/:period?', async (req, res) => {
                 e.isOnline = e._lastLogin && new Date(e._lastLogin) >= onlineThreshold;
                 e.isVip = !!(e._vipExpiresAt && new Date(e._vipExpiresAt).getTime() > nowMs);
             });
+            // Avatar/nền/khung cosmetic realtime — không đợi cache 5 phút hết hạn.
+            await applyLiveCosmetics(cached);
             return res.json({ success: true, period, sortBy: sortField, count: cached.length, data: cached, _cached: true });
         }
 
@@ -242,6 +244,28 @@ router.get('/stats/:period?', async (req, res) => {
 async function fetchProfileMap(userIds) {
     const profiles = await UserProfile.find({ userId: { $in: userIds } }).lean();
     return new Map(profiles.map(p => [p.userId.toString(), p]));
+}
+
+// Cập nhật avatar/nền/khung cosmetic của các entry theo DB hiện tại (dùng khi serve
+// từ cache) → đổi cosmetic hiện ngay, không đợi cache 5 phút. 2 query nhẹ (index userId).
+async function applyLiveCosmetics(entries) {
+    const ids = entries.map(e => e.id).filter(Boolean);
+    if (!ids.length) return;
+    const profiles = await UserProfile.find({ userId: { $in: ids } }).select('userId avatar equipped').lean();
+    const pById = new Map(profiles.map(p => [p.userId.toString(), p]));
+    const avatarIds = [...new Set(profiles.map(p => p.equipped?.avatar).filter(Boolean))];
+    let imgById = new Map();
+    if (avatarIds.length) {
+        const defs = await ItemDefinition.find({ itemId: { $in: avatarIds } }).select('itemId image').lean();
+        imgById = new Map(defs.map(d => [d.itemId, d.image || '']));
+    }
+    for (const e of entries) {
+        const p = pById.get(String(e.id)) || {};
+        e.avatar = p.avatar || '';
+        e.avatarImage = imgById.get(p.equipped?.avatar) || null;
+        e.background = p.equipped?.background || null;
+        e.frame = p.equipped?.frame || null;
+    }
 }
 
 module.exports = router;
