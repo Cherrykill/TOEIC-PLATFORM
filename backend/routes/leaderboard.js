@@ -104,7 +104,7 @@ router.get('/:period?', async (req, res) => {
                 rank: i + 1,
                 id: s.userId,
                 username: p.username || '—',
-                avatar: p.avatar || '?',
+                avatar: p.avatar || '',
                 level: p.level || 1,
                 xp: s.xp || 0,
                 totalXp: s.totalXp || 0,

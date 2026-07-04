@@ -1,27 +1,27 @@
 // Registry nền cosmetic (dùng chung cho header Hồ sơ + dòng Bảng xếp hạng).
-// Thêm nền mới: thêm 1 entry ở đây + đặt file ảnh vào frontend/public/backgrounds/.
+// Ảnh động để ở BE: backend/public/uploads/background/ → phục vụ tại /uploads/background/.
 // `dark: true` → nền tối, dùng chữ sáng cho dễ đọc.
 // Key = itemId của cosmetic (khớp item_definitions.itemId ở backend) → nền chạy
 // theo đồ đang trang bị (equipped.background).
 export const BACKGROUNDS = {
     'bg-vip-week': {
         label: 'Hoàng gia VIP',
-        image: '/backgrounds/bg-vip-week.png',
+        image: '/uploads/background/bg-vip-week.png',
         // Gradient dự phòng khi chưa có/ảnh lỗi — cùng tông header VIP.
         gradient: 'linear-gradient(120deg,#241150 0%,#5b21b6 42%,#b45309 100%)',
         dark: true,
         requiresVip: true, // hết VIP → tự revert về nền mặc định
     },
-    // Nền mua ở cửa hàng — hiện dùng gradient (ảnh tùy chọn, thả vào /backgrounds/ sau).
+    // Nền mua ở cửa hàng — hiện dùng gradient (ảnh tùy chọn, đặt ở /uploads/background/).
     'bg-ocean': {
         label: 'Đại dương',
-        image: '/backgrounds/bg-ocean.jpg',
+        image: '/uploads/background/bg-ocean.jpg',
         gradient: 'linear-gradient(120deg,#0ea5e9 0%,#0369a1 50%,#1e3a8a 100%)',
         dark: true,
     },
     'bg-neon': {
         label: 'Neon',
-        image: '/backgrounds/bg-neon.jpg',
+        image: '/uploads/background/bg-neon.jpg',
         gradient: 'linear-gradient(120deg,#7c3aed 0%,#db2777 45%,#0ea5e9 100%)',
         dark: true,
     },

@@ -136,7 +136,7 @@ export default function LeaderboardScreen({ active }) {
                                 <div className="leaderboard-avatar" style={frameStyle(entry.frame) || undefined}>
                                     {resolveAvatarSrc(entry.avatarImage, entry.avatar)
                                         ? <img src={resolveAvatarSrc(entry.avatarImage, entry.avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                                        : (entry.avatar || entry.username?.charAt(0)?.toUpperCase() || 'P')
+                                        : (entry.username?.charAt(0)?.toUpperCase() || 'P')
                                     }
                                 </div>
                                 {entry.isOnline && <span className="online-dot online-dot--on" />}
@@ -164,7 +164,7 @@ export default function LeaderboardScreen({ active }) {
                         <div className="player-popup-avatar" style={frameStyle(selected.frame) || undefined}>
                             {resolveAvatarSrc(selected.avatarImage, selected.avatar)
                                 ? <img src={resolveAvatarSrc(selected.avatarImage, selected.avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                                : (selected.avatar || selected.username?.[0]?.toUpperCase() || '?')
+                                : (selected.username?.[0]?.toUpperCase() || '?')
                             }
                         </div>
                         <h3 className="player-popup-name">{selected.username || 'Ẩn danh'}</h3>

@@ -27,10 +27,10 @@ const ITEMS = [
     { itemId: 'frame-gold', name: 'Khung Vàng', description: 'Khung avatar viền vàng sang trọng', icon: 'fa-crown', type: 'cosmetic_frame', rarity: 'epic', stackable: false, durationType: 'permanent', effect: { slot: 'frame', key: 'frame-gold' }, order: 10 },
     { itemId: 'frame-neon', name: 'Khung Neon', description: 'Khung avatar phát sáng neon', icon: 'fa-circle-notch', type: 'cosmetic_frame', rarity: 'rare', stackable: false, durationType: 'permanent', effect: { slot: 'frame', key: 'frame-neon' }, order: 11 },
 
-    // ===== Cosmetic — avatar (ảnh tĩnh /avatar/<key>.png) =====
-    { itemId: 'avatar-cat', name: 'Avatar Mèo phi hành gia', description: 'Ảnh đại diện mèo phi hành gia', icon: 'fa-user-astronaut', image: '/avatar/avt-cat-990.png', type: 'cosmetic_avatar', rarity: 'epic', stackable: false, durationType: 'permanent', effect: { slot: 'avatar', key: 'avatar-cat' }, order: 20 },
-    { itemId: 'avatar-fox', name: 'Avatar Cáo', description: 'Ảnh đại diện cáo', icon: 'fa-paw', image: '/avatar/avt-fox-990.png', type: 'cosmetic_avatar', rarity: 'rare', stackable: false, durationType: 'permanent', effect: { slot: 'avatar', key: 'avatar-fox' }, order: 21 },
-    { itemId: 'avatar-robot', name: 'Avatar Robot', description: 'Ảnh đại diện robot', icon: 'fa-robot', image: '/avatar/avt-robot-990.png', type: 'cosmetic_avatar', rarity: 'rare', stackable: false, durationType: 'permanent', effect: { slot: 'avatar', key: 'avatar-robot' }, order: 22 },
+    // ===== Cosmetic — avatar (ảnh /uploads/avatar/<key>.png — admin sửa được) =====
+    { itemId: 'avatar-cat', name: 'Avatar Mèo phi hành gia', description: 'Ảnh đại diện mèo phi hành gia', icon: 'fa-user-astronaut', image: '/uploads/avatar/avt-cat-990.png', type: 'cosmetic_avatar', rarity: 'epic', stackable: false, durationType: 'permanent', effect: { slot: 'avatar', key: 'avatar-cat' }, order: 20 },
+    { itemId: 'avatar-fox', name: 'Avatar Cáo', description: 'Ảnh đại diện cáo', icon: 'fa-paw', image: '/uploads/avatar/avt-fox-990.png', type: 'cosmetic_avatar', rarity: 'rare', stackable: false, durationType: 'permanent', effect: { slot: 'avatar', key: 'avatar-fox' }, order: 21 },
+    { itemId: 'avatar-robot', name: 'Avatar Robot', description: 'Ảnh đại diện robot', icon: 'fa-robot', image: '/uploads/avatar/avt-robot-990.png', type: 'cosmetic_avatar', rarity: 'rare', stackable: false, durationType: 'permanent', effect: { slot: 'avatar', key: 'avatar-robot' }, order: 22 },
 ];
 
 (async () => {
