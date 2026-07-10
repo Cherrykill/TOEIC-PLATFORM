@@ -6,7 +6,9 @@
 // (useCallback deps were []), so this is a pure move. A proper React
 // rewrite of this modal is a later, separate effort.
 
+import { createElement } from 'react';
 import { Modal } from '@ui/Modal.jsx';
+import TabbedModalBody from './TabbedModalBody.jsx';
 import { UploadVocabAPI } from '@api/uploadVocab.js';
 import { normalizeVocabItem } from '@/services/vocabUpload.js';
 import { downloadWords } from '@/services/vocabExport.js';
@@ -117,15 +119,6 @@ export function openUploadModal({ tab } = {}) {
                 style="width:100%;padding:10px;border:1px solid var(--border-color);border-radius:6px;font-size:12px;font-family:monospace;background:var(--bg-tertiary,var(--bg-secondary));color:var(--text-primary);resize:vertical;margin-bottom:10px"></textarea>
             <button id="json-submit-btn" class="btn btn-primary" style="width:100%"><i class="fas fa-upload"></i> Gửi JSON vào hệ thống</button>
             <div id="json-tab-result"></div>`;
-
-        const styleTabBtns = (active) => {
-            ['add','manage','json'].forEach(name => {
-                const btn = document.getElementById(`upload-tab-${name}`);
-                if (!btn) return;
-                btn.style.background = name === active ? 'var(--primary-color)' : 'var(--bg-secondary)';
-                btn.style.color = name === active ? '#fff' : 'var(--text-primary)';
-            });
-        };
 
         const saveAddTabState = () => {
             const src = document.getElementById('vocab-source')?.value.trim();
@@ -382,50 +375,26 @@ Danh sách từ vựng cần chuyển:
             } catch (err) { alert(err.message); }
         };
 
-        const modalContent = `
-<div style="padding:0">
-    <div style="display:flex;border-bottom:1px solid var(--border-color);margin-bottom:0">
-        <button type="button" id="upload-tab-add" style="flex:1;padding:10px;border:none;background:var(--primary-color);color:#fff;cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
-            <i class="fas fa-plus"></i> Thêm từ mới
-        </button>
-        <button type="button" id="upload-tab-json" style="flex:1;padding:10px;border:none;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:13px;font-weight:600;border-radius:0">
-            <i class="fas fa-code"></i> Thêm JSON
-        </button>
-    </div>
-    <div id="upload-tab-content" style="padding:16px">${addTabHtml()}</div>
-</div>`;
+        // "Quản lý từ vựng" ở header → đổi tab qua sự kiện (component React lắng nghe).
+        const manageBtnHtml = `<button type="button" id="upload-tab-manage" onclick="document.dispatchEvent(new CustomEvent('upload-set-tab',{detail:'manage'}))" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-list"></i> Quản lý từ vựng</button>`;
 
-        // "Quản lý từ vựng" tách khỏi tab bar → nút riêng nằm cạnh nút Đóng (X).
-        const manageBtnHtml = `<button type="button" id="upload-tab-manage" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:12px;font-weight:600;white-space:nowrap"><i class="fas fa-list"></i> Quản lý từ vựng</button>`;
-
-        // Chuyển tab: thay nội dung + tô nút + gắn lại handler nội bộ của tab đó.
-        const showTab = (name) => {
-            const content = document.getElementById('upload-tab-content');
-            if (!content) return;
-            if (name === 'add') { saveJsonTabState(); content.innerHTML = addTabHtml(); styleTabBtns('add'); attachAddHandlers(); }
-            else if (name === 'json') { saveAddTabState(); content.innerHTML = jsonTabHtml(); styleTabBtns('json'); attachJsonHandlers(); }
-            else if (name === 'manage') { saveAddTabState(); content.innerHTML = manageTabHtml(); styleTabBtns('manage'); loadMyTopics(); }
-        };
-
-        // Uỷ quyền sự kiện trên document → nút tab LUÔN hoạt động, kể cả khi React
-        // dựng lại subtree modal (dangerouslySetInnerHTML) làm handler gắn trực tiếp
-        // bị mất → trước đây gây "kẹt" ở tab đầu khi bấm Thêm JSON.
-        const onDocClick = (e) => {
-            if (!document.getElementById('upload-tab-content')) return; // modal đã đóng
-            if (e.target.closest('#upload-tab-add')) showTab('add');
-            else if (e.target.closest('#upload-tab-json')) showTab('json');
-            else if (e.target.closest('#upload-tab-manage')) showTab('manage');
-        };
-
-        Modal.show({
-            title: '☁️ Từ vựng riêng', content: modalContent, headerActionHtml: manageBtnHtml, wide: true,
-            onClose: () => document.removeEventListener('click', onDocClick),
+        const contentJsx = createElement(TabbedModalBody, {
+            tabs: [
+                { key: 'add', label: 'Thêm từ mới', icon: 'fa-plus' },
+                { key: 'json', label: 'Thêm JSON', icon: 'fa-code' },
+            ],
+            initialTab: tab === 'manage' ? 'manage' : 'add',
+            renderBody: (t) => (t === 'add' ? addTabHtml() : t === 'json' ? jsonTabHtml() : manageTabHtml()),
+            onEnterTab: (t) => {
+                if (t === 'add') attachAddHandlers();
+                else if (t === 'json') attachJsonHandlers();
+                else if (t === 'manage') loadMyTopics();
+            },
+            onLeaveTab: (t) => {
+                if (t === 'add') saveAddTabState();
+                else if (t === 'json') saveJsonTabState();
+            },
         });
-        document.addEventListener('click', onDocClick);
 
-        setTimeout(() => {
-            attachAddHandlers();
-            // Mở thẳng tab quản lý nếu được yêu cầu (vd từ popup Dịch nhanh).
-            if (tab === 'manage') showTab('manage');
-        }, 80);
+        Modal.show({ title: '☁️ Từ vựng riêng', contentJsx, headerActionHtml: manageBtnHtml, wide: true });
 }

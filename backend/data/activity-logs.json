@@ -1,5 +1,18 @@
 [
   {
+    "id": "1783611943052",
+    "timestamp": "2026-07-09T15:45:43.052Z",
+    "type": "vocabulary",
+    "action": "filter-delete",
+    "admin": "Admin",
+    "data": {
+      "conditions": {
+        "part": "ETS26T02-P6"
+      },
+      "deleted": 30
+    }
+  },
+  {
     "id": "1779856970698",
     "timestamp": "2026-05-27T04:42:50.698Z",
     "type": "vocabulary",
