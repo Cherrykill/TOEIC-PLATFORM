@@ -9,6 +9,8 @@ import { resolveAvatarSrc } from '@game/avatars.js';
 export default function LeaderboardScreen({ active }) {
     const { showScreen } = useGame();
     const [period, setPeriod] = useState('daily');
+    const [sortBy, setSortBy] = useState('totalXp'); // tiêu chí xếp hạng
+    const [order, setOrder] = useState('desc');       // thứ tự tăng/giảm
     const [entries, setEntries] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -35,17 +37,18 @@ export default function LeaderboardScreen({ active }) {
 
     useEffect(() => {
         if (active) loadLeaderboard(period);
-    }, [active, period]);
+    }, [active, period, sortBy, order]);
 
     async function loadLeaderboard(p) {
         setLoading(true);
         setFallbackNotice('');
-        const res = await RankingsAPI.byPeriod(p);
+        const opts = { sortBy, order };
+        const res = await RankingsAPI.byPeriod(p, opts);
         const data = res.success ? (res.data || []) : [];
 
         // If daily/weekly returns empty, auto-fallback to all-time
         if (data.length === 0 && p !== 'all-time') {
-            const fallback = await RankingsAPI.byPeriod('all-time');
+            const fallback = await RankingsAPI.byPeriod('all-time', opts);
             const fallbackData = fallback.success ? (fallback.data || []) : [];
             setEntries(fallbackData);
             if (fallbackData.length > 0) {
@@ -69,6 +72,25 @@ export default function LeaderboardScreen({ active }) {
     });
     const onlineCount = entries.filter(e => e.isOnline).length;
     const totalCount = entries.length;
+
+    // Thông tin metric theo tiêu chí đang chọn (dùng để hiện đúng giá trị ở mỗi dòng).
+    const fmtDur = (s) => {
+        s = s || 0; const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+        return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    };
+    const METRICS = {
+        totalXp:  { label: 'XP',            get: e => e.totalXp || 0,   fmt: v => `${v.toLocaleString()} XP` },
+        streak:   { label: 'Streak',        get: e => e.streak || 0,    fmt: v => `${v} 🔥` },
+        accuracy: { label: 'Tỷ lệ đúng',    get: e => e.accuracy || 0,  fmt: v => `${v}%` },
+        playtime: { label: 'Thời gian học', get: e => e.studyTime || 0, fmt: v => fmtDur(v) },
+    };
+    const metric = METRICS[sortBy] || METRICS.totalXp;
+    // Cùng kiểu với ô tìm kiếm (pill + viền box-shadow) để 3 control đồng bộ, cùng chiều cao.
+    const selStyle = {
+        padding: '8px 12px', border: '2px solid transparent', borderRadius: 20,
+        boxShadow: '0 0 0 1.5px var(--border-color)', background: 'var(--card-bg, var(--bg-primary, #fff))',
+        color: 'var(--text-primary)', fontSize: 'var(--font-size-sm)', cursor: 'pointer', outline: 'none',
+    };
 
     return (
         <div id="leaderboard-screen" className={`screen ${active ? 'active' : ''}`}>
@@ -94,15 +116,27 @@ export default function LeaderboardScreen({ active }) {
                     </button>
                 ))}
             </div>
-            <div className="search-bar" style={{ margin: '0 0 var(--spacing-md)' }}>
-                <i className="fas fa-search"></i>
-                <input
-                    type="text"
-                    id="leaderboard-search-input"
-                    placeholder="Tìm theo tên hoặc ID người chơi..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                />
+            <div style={{ display: 'flex', gap: 8, margin: '0 0 var(--spacing-md)', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div className="search-bar" style={{ margin: 0, flex: 1, minWidth: 180, maxWidth: 'none' }}>
+                    <i className="fas fa-search"></i>
+                    <input
+                        type="text"
+                        id="leaderboard-search-input"
+                        placeholder="Tìm theo tên hoặc ID người chơi..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                    />
+                </div>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={selStyle} title="Xếp hạng theo">
+                    <option value="totalXp">🏆 XP</option>
+                    <option value="streak">🔥 Streak</option>
+                    <option value="accuracy">🎯 Tỷ lệ đúng</option>
+                    <option value="playtime">⏱️ Thời gian học</option>
+                </select>
+                <select value={order} onChange={e => setOrder(e.target.value)} style={selStyle} title="Thứ tự">
+                    <option value="desc">↓ Giảm dần</option>
+                    <option value="asc">↑ Tăng dần</option>
+                </select>
             </div>
             {fallbackNotice && (
                 <div style={{ textAlign: 'center', padding: '8px 16px', color: 'var(--text-secondary)', fontSize: '0.85em', fontStyle: 'italic' }}>
@@ -149,7 +183,7 @@ export default function LeaderboardScreen({ active }) {
                                 </div>
                                 <div className="leaderboard-level"><i className="fas fa-star"></i> Level {entry.level || 1}</div>
                             </div>
-                            <span className="leaderboard-score">{(entry.totalXp || entry.xp || entry.score || 0).toLocaleString()} XP</span>
+                            <span className="leaderboard-score">{metric.fmt(metric.get(entry))}</span>
                         </div>
                     );
                 })}

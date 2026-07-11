@@ -7,6 +7,8 @@ const Notification = require('../models/Notification');
 const User = require('../models/User');
 const logger = require('../utils/logger');
 const { buildFullState, applyEnergyRegen, applyLevelUp } = require('../utils/userStateHelper');
+const Inventory = require('../services/inventoryService');
+const ItemDefinition = require('../models/ItemDefinition');
 
 function expireBoosts(stats) {
     const now = Date.now();
@@ -245,12 +247,28 @@ exports.unlockAchievement = async (req, res, next) => {
         if (def.rewardXp) { stats.xp += def.rewardXp; stats.totalXp += def.rewardXp; }
         if (def.rewardGems) stats.gems += def.rewardGems;
 
+        // Vật phẩm thưởng (từ catalog) → cấp vào túi đồ + kèm icon/ảnh cho popup.
+        const rewardItems = Array.isArray(def.rewardItems) ? def.rewardItems : [];
+        const itemsDetailed = [];
+        if (rewardItems.length) {
+            const ids = rewardItems.map(i => i && i.itemId).filter(Boolean);
+            const idefs = await ItemDefinition.find({ itemId: { $in: ids } }).select('itemId name icon image').lean();
+            const dmap = new Map(idefs.map(d => [d.itemId, d]));
+            for (const it of rewardItems) {
+                if (!it || !it.itemId) continue;
+                const qty = Number(it.quantity) || 1;
+                await Inventory.grant(userId, it.itemId, qty, { source: 'achievement' });
+                const d = dmap.get(it.itemId) || {};
+                itemsDetailed.push({ itemId: it.itemId, quantity: qty, name: d.name || it.itemId, icon: d.icon || '', image: d.image || '' });
+            }
+        }
+
         const [userAch] = await Promise.all([
             UserAchievement.create({
                 userId,
                 achievementDefinitionId: def._id,
                 code: achievementId,
-                claimedRewards: { xp: def.rewardXp, coins: def.rewardCoins, gems: def.rewardGems },
+                claimedRewards: { xp: def.rewardXp, coins: def.rewardCoins, gems: def.rewardGems, items: rewardItems },
             }),
             stats.save(),
             Notification.create({
@@ -267,7 +285,7 @@ exports.unlockAchievement = async (req, res, next) => {
             message: 'Achievement unlocked!',
             data: {
                 achievement: { id: def.code, name: def.name, description: def.description, icon: def.icon },
-                rewards: { coins: def.rewardCoins, xp: def.rewardXp, gems: def.rewardGems },
+                rewards: { coins: def.rewardCoins, xp: def.rewardXp, gems: def.rewardGems, items: itemsDetailed },
             },
         });
     } catch (error) {

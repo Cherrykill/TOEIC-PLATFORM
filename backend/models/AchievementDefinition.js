@@ -26,6 +26,8 @@ const achievementDefinitionSchema = new mongoose.Schema(
         rewardCoins: { type: Number, default: 0 },
         rewardXp: { type: Number, default: 0 },
         rewardGems: { type: Number, default: 0 },
+        // Vật phẩm thưởng khi mở khoá — [{ itemId, quantity }], grant qua InventoryService.
+        rewardItems: { type: [mongoose.Schema.Types.Mixed], default: [] },
 
         isActive: { type: Boolean, default: true },
         order: { type: Number, default: 0 },

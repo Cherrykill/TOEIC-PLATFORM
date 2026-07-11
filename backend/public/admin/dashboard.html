@@ -339,20 +339,20 @@
               <i class="fas fa-chevron-down nav-arrow"></i>
             </div>
             <div class="nav-group-items" id="nav-group-game">
-              <a href="#" class="sidebar-link" data-main-tab="achievements">
-                <i class="fas fa-trophy"></i><span>Thành tích</span>
-              </a>
-              <a href="#" class="sidebar-link" data-main-tab="quests">
-                <i class="fas fa-tasks"></i><span>Nhiệm vụ</span>
+              <a href="#" class="sidebar-link" data-main-tab="items">
+                <i class="fas fa-cubes"></i><span>Vật phẩm (catalog)</span>
               </a>
               <a href="#" class="sidebar-link" data-main-tab="shop">
                 <i class="fas fa-store"></i><span>Cửa hàng</span>
               </a>
-              <a href="#" class="sidebar-link" data-main-tab="items">
-                <i class="fas fa-cubes"></i><span>Vật phẩm (catalog)</span>
-              </a>
               <a href="#" class="sidebar-link" data-main-tab="spin">
                 <i class="fas fa-dharmachakra"></i><span>Vòng quay</span>
+              </a>
+              <a href="#" class="sidebar-link" data-main-tab="quests">
+                <i class="fas fa-tasks"></i><span>Nhiệm vụ</span>
+              </a>
+              <a href="#" class="sidebar-link" data-main-tab="achievements">
+                <i class="fas fa-trophy"></i><span>Thành tích</span>
               </a>
             </div>
           </div>
@@ -4088,6 +4088,11 @@
               <label for="ach-active">Kích hoạt</label>
             </div>
           </div>
+          <div style="margin-top:14px">
+            <label>Thưởng vật phẩm <span style="color:var(--text-tertiary,#94a3b8);font-weight:400">(chọn từ catalog + số lượng — để trống nếu không có)</span></label>
+            <div id="ach-items-rows" style="margin-top:6px;display:flex;flex-direction:column;gap:6px"></div>
+            <button type="button" id="ach-items-add" class="btn btn-secondary btn-sm" style="margin-top:8px"><i class="fas fa-plus"></i> Thêm vật phẩm</button>
+          </div>
           <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
             <button type="button" id="btn-ach-cancel" class="btn btn-ghost">Hủy</button>
             <button type="submit" class="btn btn-primary">Lưu</button>
@@ -4172,7 +4177,11 @@
             <div><label>Weight (xác suất)</label><input type="number" id="quest-weight" value="1" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Thưởng XP</label><input type="number" id="quest-xp" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
             <div><label>Thưởng Coins</label><input type="number" id="quest-coins" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
-            <div style="grid-column:1/-1"><label>Thưởng vật phẩm <span style="color:var(--text-tertiary,#94a3b8);font-weight:400">(vd: spin-ticket:1, hint:5 — để trống nếu không có)</span></label><input type="text" id="quest-items" placeholder="itemId:sốlượng, itemId:sốlượng" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px"></div>
+            <div style="grid-column:1/-1">
+              <label>Thưởng vật phẩm <span style="color:var(--text-tertiary,#94a3b8);font-weight:400">(chọn từ catalog + số lượng — để trống nếu không có)</span></label>
+              <div id="quest-items-rows" style="margin-top:6px;display:flex;flex-direction:column;gap:6px"></div>
+              <button type="button" id="quest-items-add" class="btn btn-secondary btn-sm" style="margin-top:8px"><i class="fas fa-plus"></i> Thêm vật phẩm</button>
+            </div>
             <div style="display:flex;align-items:center;gap:8px;margin-top:16px">
               <input type="checkbox" id="quest-active" checked style="width:16px;height:16px">
               <label for="quest-active">Kích hoạt</label>
@@ -4357,6 +4366,13 @@
                 style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace;font-size:12px;resize:vertical;background:var(--bg-primary,white)"></textarea>
               <div id="eff-bundle-err" style="color:var(--danger);font-size:12px;margin-top:4px"></div>
             </div>
+            <div id="effect-cosmetic" class="effect-section" style="display:none">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Vật phẩm nhận khi mua (chọn từ catalog) *</label>
+              <select id="eff-cosmetic-itemid" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,#fff);color:var(--text-primary)">
+                <option value="">— chọn vật phẩm —</option>
+              </select>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Mua sẽ cấp 1 vật phẩm này vào túi đồ (effect <code>type: "item"</code>).</div>
+            </div>
           </div>
 
           <!-- Row 6: order + active -->
@@ -4523,6 +4539,6 @@
     <script src="/admin/js/modules/item-defs-admin.js?v=1"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
     <script src="/admin/js/modules/ui-init.js?v=4"></script>
-    <script src="/admin/js/nav-game.js?v=5"></script>
+    <script src="/admin/js/nav-game.js?v=9"></script>
   </body>
 </html>

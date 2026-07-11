@@ -8,6 +8,7 @@ import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { showRewardPopup } from '@ui/RewardPopup.jsx';
 
 const CATEGORIES = [
     { key: 'all',      label: 'Tất cả',    icon: 'fa-star' },
@@ -155,7 +156,13 @@ export default function AchievementsScreen({ active }) {
                 if (i >= 0) gs[i] = { ...gs[i], unlocked: true, unlockedAt: now };
             }
             Utils.playSound(Config.sounds.achievement, 0.6, { ignoreSettings: true });
-            Notification.success('Nhận thưởng thành công!');
+            const ach = achievements.find(a => (a.id || a._id) === achievementId);
+            const hasReward = rewards.coins || rewards.xp || rewards.gems || (rewards.items && rewards.items.length);
+            if (hasReward) {
+                showRewardPopup({ subtitle: ach ? `Mở khoá: ${ach.name}` : undefined, rewards });
+            } else {
+                Notification.success('Nhận thưởng thành công!');
+            }
             EventBus.emit(GameEvents.ACHIEVEMENT_UNLOCKED, { achievementId });
             syncFromState();
         } else {

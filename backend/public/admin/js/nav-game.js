@@ -83,7 +83,7 @@ function _setupAchSearch() {
     if (sel) sel.addEventListener('change', filter);
 }
 
-function openAchievementModal(data) {
+async function openAchievementModal(data) {
     data = data || {};
     document.getElementById('ach-id').value = data._id || '';
     document.getElementById('ach-modal-title').textContent = data._id ? 'Sửa thành tích' : 'Thêm thành tích';
@@ -111,6 +111,8 @@ function openAchievementModal(data) {
     document.getElementById('ach-gems').value = data.rewardGems || 0;
     document.getElementById('ach-order').value = data.order || 0;
     document.getElementById('ach-active').checked = data.isActive !== false;
+    await _loadQuestItemCatalog();
+    _renderItemRows('ach-items-rows', data.rewardItems || []);
     document.getElementById('achievement-modal').style.display = 'flex';
 }
 
@@ -140,6 +142,9 @@ function initAchievementModal() {
     const btnCancel = document.getElementById('btn-ach-cancel');
     if (btnCancel) btnCancel.addEventListener('click', function() { document.getElementById('achievement-modal').style.display = 'none'; });
 
+    const btnAddItem = document.getElementById('ach-items-add');
+    if (btnAddItem) btnAddItem.addEventListener('click', async function() { await _loadQuestItemCatalog(); _addItemRow('ach-items-rows', '', 1); });
+
     const form = document.getElementById('achievement-form');
     if (form) form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -156,6 +161,7 @@ function initAchievementModal() {
             rewardXp: Number(document.getElementById('ach-xp').value),
             rewardCoins: Number(document.getElementById('ach-coins').value),
             rewardGems: Number(document.getElementById('ach-gems').value),
+            rewardItems: _collectItemRows('ach-items-rows'),
             order: Number(document.getElementById('ach-order').value),
             isActive: document.getElementById('ach-active').checked,
         };
@@ -233,7 +239,7 @@ function _setupQuestSearch() {
     if (selMode) selMode.addEventListener('change', filter);
 }
 
-function openQuestModal(data) {
+async function openQuestModal(data) {
     data = data || {};
     document.getElementById('quest-id').value = data._id || '';
     document.getElementById('quest-modal-title').textContent = data._id ? 'Sửa nhiệm vụ' : 'Thêm nhiệm vụ';
@@ -254,10 +260,59 @@ function openQuestModal(data) {
     document.getElementById('quest-weight').value = data.weight || 1;
     document.getElementById('quest-xp').value = data.rewardXp || 0;
     document.getElementById('quest-coins').value = data.rewardCoins || 0;
-    document.getElementById('quest-items').value = (data.rewardItems || [])
-        .map(function (i) { return i.itemId + ':' + (i.quantity || 1); }).join(', ');
     document.getElementById('quest-active').checked = data.isActive !== false;
+    await _loadQuestItemCatalog();
+    _renderItemRows('quest-items-rows', data.rewardItems || []);
     document.getElementById('quest-modal').style.display = 'flex';
+}
+
+// ── Builder thưởng vật phẩm (chọn từ catalog thay vì gõ tay) ──────
+var QUEST_ITEM_CATALOG = null; // [{itemId,name}]
+async function _loadQuestItemCatalog() {
+    if (QUEST_ITEM_CATALOG) return QUEST_ITEM_CATALOG;
+    try {
+        var r = await fetch(API_URL + '/inventory/items');
+        var j = await r.json();
+        QUEST_ITEM_CATALOG = (j.success ? j.data : []).map(function (d) { return { itemId: d.itemId, name: d.name, type: d.type }; });
+    } catch (_) { QUEST_ITEM_CATALOG = []; }
+    return QUEST_ITEM_CATALOG;
+}
+function _questItemOptions(selected) {
+    var opts = '<option value="">— chọn vật phẩm —</option>';
+    (QUEST_ITEM_CATALOG || []).forEach(function (c) {
+        opts += '<option value="' + c.itemId + '"' + (c.itemId === selected ? ' selected' : '') + '>' + c.name + ' (' + c.itemId + ')</option>';
+    });
+    return opts;
+}
+// Builder chung (dùng cho Nhiệm vụ + Thành tích): wrapId là id của container dòng.
+function _addItemRow(wrapId, itemId, qty) {
+    var wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    var row = document.createElement('div');
+    row.className = 'reward-item-row';
+    row.style.cssText = 'display:flex;gap:6px;align-items:center';
+    row.innerHTML =
+        '<select class="qi-item" style="flex:1;padding:8px;border:1.5px solid var(--border-color);border-radius:8px;background:var(--bg-primary,#fff);color:var(--text-primary)">' + _questItemOptions(itemId || '') + '</select>' +
+        '<input class="qi-qty" type="number" min="1" value="' + (qty || 1) + '" title="Số lượng" style="width:80px;padding:8px;border:1.5px solid var(--border-color);border-radius:8px">' +
+        '<button type="button" class="qi-del" title="Xóa" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:7px 10px;cursor:pointer"><i class="fas fa-times"></i></button>';
+    row.querySelector('.qi-del').onclick = function () { row.remove(); };
+    wrap.appendChild(row);
+}
+function _renderItemRows(wrapId, items) {
+    var wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    (items || []).forEach(function (i) { _addItemRow(wrapId, i.itemId, i.quantity || 1); });
+}
+function _collectItemRows(wrapId) {
+    var out = [];
+    document.querySelectorAll('#' + wrapId + ' .reward-item-row').forEach(function (row) {
+        var itemId = row.querySelector('.qi-item').value.trim();
+        if (!itemId) return;
+        var qty = Math.max(1, parseInt(row.querySelector('.qi-qty').value, 10) || 1);
+        out.push({ itemId: itemId, quantity: qty });
+    });
+    return out;
 }
 
 function attachQuestListeners() {
@@ -286,6 +341,9 @@ function initQuestModal() {
     const btnCancel = document.getElementById('btn-quest-cancel');
     if (btnCancel) btnCancel.addEventListener('click', function() { document.getElementById('quest-modal').style.display = 'none'; });
 
+    const btnAddItem = document.getElementById('quest-items-add');
+    if (btnAddItem) btnAddItem.addEventListener('click', async function() { await _loadQuestItemCatalog(); _addItemRow('quest-items-rows', '', 1); });
+
     const form = document.getElementById('quest-form');
     if (form) form.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -309,17 +367,7 @@ function initQuestModal() {
             weight: Number(document.getElementById('quest-weight').value),
             rewardXp: Number(document.getElementById('quest-xp').value),
             rewardCoins: Number(document.getElementById('quest-coins').value),
-            rewardItems: (function () {
-                // "spin-ticket:1, hint:5" → [{itemId, quantity}]
-                var raw = (document.getElementById('quest-items').value || '').trim();
-                if (!raw) return [];
-                return raw.split(',').map(function (part) {
-                    var kv = part.split(':');
-                    var itemId = (kv[0] || '').trim();
-                    if (!itemId) return null;
-                    return { itemId: itemId, quantity: Math.max(1, parseInt(kv[1], 10) || 1) };
-                }).filter(Boolean);
-            })(),
+            rewardItems: _collectItemRows('quest-items-rows'),
             isActive: document.getElementById('quest-active').checked,
         };
         const url = id ? API_URL + '/admin/quests/' + id : API_URL + '/admin/quests';
@@ -458,9 +506,22 @@ function _setupShopSearch() {
 
 function _shopShowEffectSection(category) {
     document.querySelectorAll('.effect-section').forEach(function(el) { el.style.display = 'none'; });
-    var map = { energy:'effect-energy', resource:'effect-resource', boost:'effect-boost', exchange:'effect-exchange', bundle:'effect-bundle', vip:'effect-vip' };
+    var map = { energy:'effect-energy', resource:'effect-resource', boost:'effect-boost', exchange:'effect-exchange', bundle:'effect-bundle', vip:'effect-vip', cosmetic:'effect-cosmetic' };
     var target = document.getElementById(map[category]);
     if (target) target.style.display = 'block';
+    if (category === 'cosmetic') _shopPopulateCosmeticSelect(document.getElementById('eff-cosmetic-itemid').value || '');
+}
+
+// Đổ danh sách cosmetic (avatar/nền/khung) vào select ở effect Giao diện.
+function _shopPopulateCosmeticSelect(selected) {
+    var sel = document.getElementById('eff-cosmetic-itemid');
+    if (!sel) return;
+    var opts = '<option value="">— chọn vật phẩm —</option>';
+    (QUEST_ITEM_CATALOG || [])
+        .filter(function (c) { return String(c.type || '').indexOf('cosmetic') === 0; })
+        .forEach(function (c) { opts += '<option value="' + c.itemId + '"' + (c.itemId === selected ? ' selected' : '') + '>' + c.name + ' (' + c.itemId + ')</option>'; });
+    sel.innerHTML = opts;
+    sel.value = selected || '';
 }
 
 function _shopUpdatePricePreview() {
@@ -489,6 +550,11 @@ function _shopBuildEffect(category) {
                      duration: Math.round(Number(document.getElementById('eff-boost-hours').value) * 3600) };
         case 'exchange':
             return { type: 'gems', amount: Number(document.getElementById('eff-exchange-amount').value) };
+        case 'cosmetic': {
+            var cosId = document.getElementById('eff-cosmetic-itemid').value.trim();
+            if (!cosId) { showToast('Nhập itemId vật phẩm nhận khi mua', 'error'); return null; }
+            return { type: 'item', itemId: cosId, amount: 1 };
+        }
         case 'vip':
             return { type: 'vip', duration: Number(document.getElementById('eff-vip-days').value) * 86400 };
         case 'bundle': {
@@ -524,6 +590,9 @@ function _shopFillEffectFields(category, effect) {
         case 'exchange':
             document.getElementById('eff-exchange-amount').value = effect.amount || 10;
             break;
+        case 'cosmetic':
+            document.getElementById('eff-cosmetic-itemid').value = effect.itemId || '';
+            break;
         case 'vip':
             document.getElementById('eff-vip-days').value = effect.duration ? Math.round(effect.duration / 86400) : 7;
             break;
@@ -533,8 +602,9 @@ function _shopFillEffectFields(category, effect) {
     }
 }
 
-function openShopModal(data) {
+async function openShopModal(data) {
     data = data || {};
+    await _loadQuestItemCatalog(); // dùng chung cho dropdown cosmetic
     var isEdit = !!data._id;
     document.getElementById('shop-id').value              = data._id || '';
     document.getElementById('shop-modal-title').textContent = isEdit ? 'Sửa item' : 'Thêm item';

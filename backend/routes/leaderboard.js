@@ -6,7 +6,7 @@ const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
 const ItemDefinition = require('../models/ItemDefinition');
 
-const SORT_FIELD_MAP = { score: 'highestScore', xp: 'xp', totalXp: 'totalXp' };
+const SORT_FIELD_MAP = { score: 'highestScore', xp: 'xp', totalXp: 'totalXp', streak: 'streakCurrent', accuracy: 'accuracy', playtime: 'totalPlayTime' };
 const ONLINE_THRESHOLD_MS = 15 * 60 * 1000;
 
 // In-memory cache — tránh query MongoDB mỗi giây khi nhiều user load bảng xếp hạng
@@ -60,12 +60,13 @@ router.get('/online-count', async (req, res) => {
 router.get('/:period?', async (req, res) => {
     try {
         const { period = 'all-time' } = req.params;
-        const { limit = 100, sortBy = 'totalXp' } = req.query;
+        const { limit = 100, sortBy = 'totalXp', order = 'desc' } = req.query;
         const limitNum = Math.min(parseInt(limit) || 100, 100);
         const sortField = SORT_FIELD_MAP[sortBy] || 'totalXp';
+        const dir = order === 'asc' ? 1 : -1;
         const onlineThreshold = new Date(Date.now() - ONLINE_THRESHOLD_MS);
 
-        const cacheKey = `lb:${period}:${sortField}:${limitNum}`;
+        const cacheKey = `lb:${period}:${sortField}:${dir}:${limitNum}`;
         const cached = getCache(cacheKey);
         if (cached) {
             // Cập nhật isOnline + isVip realtime (thay đổi theo thời gian, không cache)
@@ -84,10 +85,18 @@ router.get('/:period?', async (req, res) => {
         const eligibleIds = eligibleUsers.map(u => u._id);
         const lastLoginMap = new Map(eligibleUsers.map(u => [u._id.toString(), u.lastLoginAt]));
 
-        const topStats = await UserStats.find({ userId: { $in: eligibleIds } })
-            .sort({ [sortField]: -1 })
-            .limit(limitNum)
-            .lean();
+        // Aggregation: tính accuracy (đúng/(đúng+sai)) rồi sort theo field + hướng chọn.
+        const topStats = await UserStats.aggregate([
+            { $match: { userId: { $in: eligibleIds } } },
+            { $addFields: {
+                accuracy: { $let: {
+                    vars: { tot: { $add: [{ $ifNull: ['$totalCorrectAnswers', 0] }, { $ifNull: ['$totalWrongAnswers', 0] }] } },
+                    in: { $cond: [{ $gt: ['$$tot', 0] }, { $divide: [{ $ifNull: ['$totalCorrectAnswers', 0] }, '$$tot'] }, 0] },
+                } },
+            } },
+            { $sort: { [sortField]: dir, _id: 1 } },
+            { $limit: limitNum },
+        ]);
 
         const profileMap = await fetchProfileMap(topStats.map(s => s.userId));
 
@@ -112,6 +121,8 @@ router.get('/:period?', async (req, res) => {
                 totalXp: s.totalXp || 0,
                 score: s.highestScore || 0,
                 streak: s.streakCurrent || 0,
+                accuracy: Math.round((s.accuracy || 0) * 100), // %
+                studyTime: s.totalPlayTime || 0, // giây
                 gamesPlayed: s.totalGamesPlayed || 0,
                 isOnline: lastLogin && new Date(lastLogin) >= onlineThreshold,
                 _lastLogin: lastLogin, // giữ để recalc isOnline khi serve từ cache

@@ -164,17 +164,17 @@ export default function ShopScreen({ active }) {
                 <button
                     className="inventory-btn"
                     style={{ marginLeft: 'auto' }}
-                    title="Túi đồ — vật phẩm đang có"
-                    onClick={openInventory}
-                >
-                    <i className="fas fa-briefcase"></i> Túi đồ
-                </button>
-                <button
-                    className="inventory-btn"
                     title="Lịch sử giao dịch"
                     onClick={openHistory}
                 >
                     <i className="fas fa-receipt"></i> Lịch sử
+                </button>
+                <button
+                    className="inventory-btn"
+                    title="Túi đồ — vật phẩm đang có"
+                    onClick={openInventory}
+                >
+                    <i className="fas fa-briefcase"></i> Túi đồ
                 </button>
                 <button
                     className="checkin-trigger-btn"
