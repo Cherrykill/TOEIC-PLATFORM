@@ -1,5 +1,7 @@
 const UserUpload = require('../models/UserUpload');
 const User = require('../models/User');
+const UserStats = require('../models/UserStats');
+const { logTxn } = require('../utils/economyLog');
 
 // Private uploads: user picks retention at upload time.
 const ALLOWED_RETENTION_DAYS = [3, 7, 14, 30];
@@ -8,6 +10,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Days until a private source is considered "expiring soon" (force export).
 const EXPIRY_WARN_DAYS = 3;
+
+// Giới hạn tổng số từ vựng riêng / người (bảo vệ DB Atlas M0). Chỉ tính khi THÊM MỚI.
+const MAX_UPLOAD_WORDS = 500;
+
+// Phí gia hạn +30 ngày = số từ × giá này (coins). VIP miễn phí.
+const EXTEND_COST_PER_WORD = 100;
 
 /** Resolve a valid retention (in days) from the request, fallback to default. */
 function resolveRetentionDays(raw) {
@@ -63,6 +71,17 @@ exports.uploadVocabulary = async (req, res, next) => {
     const filter = { ownerEmail: email, source: sourceL, en: enL };
     const existing = await UserUpload.findOne(filter).select('_id').lean();
 
+    // Chặn khi vượt giới hạn (chỉ tính lúc thêm từ MỚI, update không tính).
+    if (!existing) {
+      const count = await UserUpload.countDocuments({ ownerEmail: email });
+      if (count >= MAX_UPLOAD_WORDS) {
+        return res.status(400).json({
+          success: false, limitReached: true,
+          message: `Đã đạt giới hạn ${MAX_UPLOAD_WORDS} từ vựng riêng. Hãy xoá bớt (hoặc xuất file) trước khi thêm.`,
+        });
+      }
+    }
+
     const doc = await UserUpload.findOneAndUpdate(
       filter,
       {
@@ -104,6 +123,7 @@ exports.getMyTopics = async (req, res, next) => {
   try {
     const userDoc = await User.findById(req.user.id).select('email').lean();
     const email = userDoc?.email;
+    const soonThreshold = new Date(Date.now() + EXPIRY_WARN_DAYS * DAY_MS);
     const topics = await UserUpload.aggregate([
       { $match: { ownerEmail: email } },
       {
@@ -111,6 +131,11 @@ exports.getMyTopics = async (req, res, next) => {
           _id: '$source',
           wordCount: { $sum: 1 },
           lastUpload: { $max: '$createdAt' },
+          // Số từ sắp hết hạn (≤ EXPIRY_WARN_DAYS ngày) + hạn gần nhất.
+          expiringSoon: {
+            $sum: { $cond: [{ $and: [{ $ne: ['$expiresAt', null] }, { $lte: ['$expiresAt', soonThreshold] }] }, 1, 0] },
+          },
+          nearestExpiry: { $min: '$expiresAt' },
         },
       },
       { $sort: { lastUpload: -1 } },
@@ -120,6 +145,8 @@ exports.getMyTopics = async (req, res, next) => {
           source: '$_id',
           wordCount: 1,
           lastUpload: 1,
+          expiringSoon: 1,
+          nearestExpiry: 1,
         },
       },
     ]);
@@ -208,22 +235,46 @@ exports.extendMySource = async (req, res, next) => {
     const email = userDoc?.email;
     const { source } = req.params;
 
+    // Phí gia hạn = số từ × EXTEND_COST_PER_WORD (coins). VIP miễn phí.
+    const wordCount = await UserUpload.countDocuments({ ownerEmail: email, source });
+    if (!wordCount) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy nguồn hoặc bạn không có quyền' });
+    }
+    const stats = await UserStats.findOne({ userId: req.user.id });
+    const isVip = !!(stats?.vipExpiresAt && new Date(stats.vipExpiresAt).getTime() > Date.now());
+    const cost = isVip ? 0 : wordCount * EXTEND_COST_PER_WORD;
+
+    if (cost > 0) {
+      if ((stats?.coins || 0) < cost) {
+        return res.status(400).json({
+          success: false, notEnough: true, cost, coins: stats?.coins || 0,
+          message: `Cần ${cost} xu để gia hạn ${wordCount} từ (bạn có ${stats?.coins || 0}).`,
+        });
+      }
+      stats.coins -= cost;
+      await stats.save();
+    }
+
     const newExpiresAt = new Date(Date.now() + DEFAULT_RETENTION_DAYS * DAY_MS);
     const result = await UserUpload.updateMany(
       { ownerEmail: email, source },
       { $set: { expiresAt: newExpiresAt } }
     );
 
-    if (!result.matchedCount) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy nguồn hoặc bạn không có quyền' });
+    if (cost > 0) {
+      logTxn(req.user.id, { type: 'extend', direction: 'out', name: `Gia hạn "${source}" (${wordCount} từ)`, amount: cost, currency: 'coins', balanceAfter: stats.coins });
     }
 
     res.json({
       success: true,
-      message: `Đã gia hạn "${source}" thêm ${DEFAULT_RETENTION_DAYS} ngày`,
+      message: cost > 0
+        ? `Đã gia hạn "${source}" thêm ${DEFAULT_RETENTION_DAYS} ngày (−${cost} xu)`
+        : `Đã gia hạn "${source}" thêm ${DEFAULT_RETENTION_DAYS} ngày (VIP miễn phí)`,
       extendedCount: result.modifiedCount,
       expiresAt: newExpiresAt,
       retentionDays: DEFAULT_RETENTION_DAYS,
+      cost,
+      newBalance: stats?.coins || 0,
     });
   } catch (err) {
     console.error('extendMySource error:', err);

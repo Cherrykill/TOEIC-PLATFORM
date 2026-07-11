@@ -1,57 +1,76 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { UploadVocabAPI } from '@api/uploadVocab.js';
 import { downloadWords } from '@/services/vocabExport.js';
 import { Notification } from '@ui/Toaster.jsx';
+import { GameState } from '@game/state.js';
+import { EventBus, GameEvents } from '@game/eventBus.js';
 
-const DISMISS_KEY = 'expiryNoticeDismissed'; // per-session (sessionStorage)
+// Ghi nhớ các nguồn đã "xử lý" (đóng/xuất) theo chữ ký nguồn+hạn → không nhắc lại
+// khi F5. Chỉ hiện lại khi có nguồn mới sắp hết hạn hoặc hạn đổi (vd sau gia hạn).
+const HANDLED_KEY = 'expiryHandledSigs';
+const sigOf = (s) => `${s.source}:${new Date(s.expiresAt).getTime()}`;
+const loadHandled = () => { try { return new Set(JSON.parse(localStorage.getItem(HANDLED_KEY)) || []); } catch { return new Set(); } };
+const saveHandled = (set) => { try { localStorage.setItem(HANDLED_KEY, JSON.stringify([...set])); } catch { /* ignore */ } };
 
 /**
- * Non-blocking notice: when the logged-in user has private vocab sources
- * expiring soon, show a dismissible banner letting them either EXPORT
- * (JSON/Excel — no deletion) or EXTEND (+renew the retention). The app
- * stays fully usable; this only nudges, it does not block.
+ * Nhắc (không chặn) khi từ vựng riêng sắp hết hạn: cho XUẤT (JSON/Excel — không
+ * xoá) hoặc GIA HẠN. Đóng/Xuất = ngừng nhắc cho nguồn đó tới khi tình huống đổi.
  */
 export default function ExpiryNotice() {
     const { isLoggedIn } = useAuth();
     const [sources, setSources] = useState([]); // [{source,wordCount,expiresAt,daysLeft}]
     const [busy, setBusy] = useState('');
-    const [dismissed, setDismissed] = useState(
-        () => sessionStorage.getItem(DISMISS_KEY) === '1'
-    );
+    const [handled, setHandled] = useState(loadHandled);
 
     useEffect(() => {
         if (!isLoggedIn) { setSources([]); return; }
         let alive = true;
         UploadVocabAPI.expiring().then(res => {
-            if (alive && res?.success && Array.isArray(res.data)) {
-                const now = Date.now();
-                setSources(res.data.map(s => ({
-                    ...s,
-                    daysLeft: Math.max(0, Math.ceil(
-                        (new Date(s.expiresAt).getTime() - now) / (24 * 60 * 60 * 1000)
-                    )),
-                })));
-            }
+            if (!alive || !res?.success || !Array.isArray(res.data)) return;
+            const now = Date.now();
+            const list = res.data.map(s => ({
+                ...s,
+                daysLeft: Math.max(0, Math.ceil((new Date(s.expiresAt).getTime() - now) / (24 * 60 * 60 * 1000))),
+            }));
+            setSources(list);
+            // Dọn chữ ký cũ không còn trong danh sách (giữ localStorage gọn).
+            setHandled(prev => {
+                const valid = new Set(list.map(sigOf));
+                const next = new Set([...prev].filter(sig => valid.has(sig)));
+                if (next.size !== prev.size) saveHandled(next);
+                return next;
+            });
         });
         return () => { alive = false; };
     }, [isLoggedIn]);
 
-    const handleExport = useCallback(async (source, fmt) => {
+    // Chỉ hiện nguồn CHƯA xử lý.
+    const visible = useMemo(() => sources.filter(s => !handled.has(sigOf(s))), [sources, handled]);
+
+    const markHandled = useCallback((s) => {
+        setHandled(prev => { const next = new Set(prev); next.add(sigOf(s)); saveHandled(next); return next; });
+    }, []);
+
+    // Tải từ 1 lần rồi tải xuống theo (các) định dạng.
+    const doExport = useCallback(async (s, fmts) => {
         if (busy) return;
-        setBusy(source);
+        setBusy(s.source);
         try {
-            const res = await UploadVocabAPI.myVocabulary(source);
+            const res = await UploadVocabAPI.myVocabulary(s.source);
             if (!res.success) throw new Error(res.message || 'Không tải được từ vựng');
-            const n = downloadWords(source, res.data || [], fmt);
+            const data = res.data || [];
+            let n = 0;
+            for (const fmt of fmts) n = downloadWords(s.source, data, fmt);
             if (n === 0) throw new Error('Nguồn rỗng, không có gì để xuất');
-            Notification.success(`Đã xuất "${source}" (${n} từ). Dữ liệu vẫn còn tới hạn.`);
+            markHandled(s); // đã lưu → ngừng nhắc nguồn này
+            Notification.success(`Đã xuất "${s.source}" (${n} từ, ${fmts.map(f => f === 'csv' ? 'Excel' : 'JSON').join(' + ')}).`);
         } catch (err) {
             Notification.error(err.message || 'Lỗi khi xuất file');
         } finally {
             setBusy('');
         }
-    }, [busy]);
+    }, [busy, markHandled]);
 
     const handleExtend = useCallback(async (source) => {
         if (busy) return;
@@ -59,6 +78,10 @@ export default function ExpiryNotice() {
         try {
             const res = await UploadVocabAPI.extendSource(source);
             if (!res.success) throw new Error(res.message || 'Gia hạn thất bại');
+            if (typeof res.newBalance === 'number' && GameState.state?.resources) {
+                GameState.state.resources.coins = res.newBalance;
+                EventBus.emit(GameEvents.STATE_CHANGED);
+            }
             Notification.success(res.message || `Đã gia hạn "${source}"`);
             setSources(prev => prev.filter(s => s.source !== source));
         } catch (err) {
@@ -68,12 +91,17 @@ export default function ExpiryNotice() {
         }
     }, [busy]);
 
+    // Đóng = đánh dấu tất cả nguồn đang hiện là đã xử lý (không nhắc lại khi F5).
     const close = () => {
-        sessionStorage.setItem(DISMISS_KEY, '1');
-        setDismissed(true);
+        setHandled(prev => {
+            const next = new Set(prev);
+            visible.forEach(s => next.add(sigOf(s)));
+            saveHandled(next);
+            return next;
+        });
     };
 
-    if (!isLoggedIn || dismissed || sources.length === 0) return null;
+    if (!isLoggedIn || visible.length === 0) return null;
 
     return (
         <div style={{
@@ -94,14 +122,14 @@ export default function ExpiryNotice() {
                         Xuất để lưu lại, hoặc gia hạn để khỏi mất.
                     </div>
                 </div>
-                <button onClick={close} title="Đóng"
+                <button onClick={close} title="Đóng (không nhắc lại tới khi có thay đổi)"
                     style={{ background: 'none', border: 'none', color: 'var(--text-secondary,#888)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>
                     <i className="fas fa-times"></i>
                 </button>
             </div>
 
             <div style={{ maxHeight: 320, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {sources.map(s => (
+                {visible.map(s => (
                     <div key={s.source} style={{
                         border: '1px solid var(--border-color,#333)', borderRadius: 8,
                         padding: '10px 12px', background: 'var(--bg-tertiary,var(--bg-secondary))',
@@ -112,16 +140,16 @@ export default function ExpiryNotice() {
                         </div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             <button className="btn btn-secondary btn-sm" disabled={busy === s.source}
-                                onClick={() => handleExport(s.source, 'json')}>
-                                <i className="fas fa-file-code"></i> JSON
-                            </button>
-                            <button className="btn btn-secondary btn-sm" disabled={busy === s.source}
-                                onClick={() => handleExport(s.source, 'csv')}>
-                                <i className="fas fa-file-excel"></i> Excel
+                                onClick={() => doExport(s, ['json', 'csv'])}>
+                                <i className="fas fa-file-export"></i> {busy === s.source ? 'Đang xuất…' : 'Xuất (JSON + Excel)'}
                             </button>
                             <button className="btn btn-primary btn-sm" disabled={busy === s.source}
                                 onClick={() => handleExtend(s.source)}>
-                                <i className="fas fa-clock-rotate-left"></i> {busy === s.source ? 'Đang xử lý…' : 'Gia hạn +30 ngày'}
+                                <i className="fas fa-clock-rotate-left"></i> {busy === s.source
+                                    ? 'Đang xử lý…'
+                                    : (GameState.state?.vip?.active
+                                        ? 'Gia hạn +30 ngày (VIP miễn phí)'
+                                        : `Gia hạn +30 ngày (${(s.wordCount || 0) * 100} 🪙)`)}
                             </button>
                         </div>
                     </div>

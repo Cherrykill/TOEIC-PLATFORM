@@ -9,12 +9,24 @@ import { afterAnswer } from '@components/practice/practiceNav.js';
 
 // Dịch cả câu sang tiếng Việt qua Google Translate (gtx) — cùng API popup Dịch nhanh,
 // không cần backend/API key.
+const _trCache = new Map(); // cache dịch trong phiên → khỏi gọi lại gtx cho câu đã dịch
 async function translateToVi(text) {
+    if (_trCache.has(text)) return _trCache.get(text);
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=vi&dt=t&q=${encodeURIComponent(text)}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('translate failed');
-    const data = await res.json();
-    return (data[0] || []).map(seg => seg[0]).filter(Boolean).join('');
+    // Hủy request nếu quá 4s → tránh fetch treo tích luỹ khi gtx bị rate-limit.
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 4000);
+    try {
+        const res = await fetch(url, { signal: ctrl.signal });
+        if (!res.ok) throw new Error('translate failed');
+        const data = await res.json();
+        const out = (data[0] || []).map(seg => seg[0]).filter(Boolean).join('');
+        if (_trCache.size > 300) _trCache.clear(); // chặn cache phình
+        _trCache.set(text, out);
+        return out;
+    } finally {
+        clearTimeout(to);
+    }
 }
 
 export const ExampleFillBlank = {

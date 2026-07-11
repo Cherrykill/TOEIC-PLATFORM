@@ -2,6 +2,7 @@ import { Http } from '@api/http.js';
 import { getVocabLang, normalizeVocabularyWords, VocabularyAPI } from '@api/vocabulary.js';
 import { TtsAPI } from '@api/tts.js';
 import { GameState } from './state.js';
+import { EventBus } from '@game/eventBus.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { Notification } from '@ui/Toaster.jsx';
@@ -40,6 +41,7 @@ export const GameLogic = {
 
         this.vocabularyData = normalizeVocabularyWords(result.data);
         console.log(`Loaded ${this.vocabularyData.length} vocabulary words`);
+        EventBus.emit('vocab:loaded');
         return true;
     },
 
@@ -53,6 +55,7 @@ export const GameLogic = {
             }
             this.vocabularyData = normalizeVocabularyWords(words);
             console.log(`✅ GameLogic: Loaded ${this.vocabularyData.length} words (source: ${source})`);
+            EventBus.emit('vocab:loaded');
             return true;
         } catch (err) {
             console.error(`❌ Failed to load source "${source}":`, err);

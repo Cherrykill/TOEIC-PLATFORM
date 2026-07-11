@@ -6,6 +6,7 @@ const UserStats = require('../models/UserStats');
 const SpinConfig = require('../models/SpinConfig');
 const Inventory = require('../services/inventoryService');
 const logger = require('../utils/logger');
+const { logTxn } = require('../utils/economyLog');
 
 const SPIN_TICKET = 'spin-ticket';
 
@@ -140,7 +141,13 @@ router.post('/', protect, async (req, res) => {
             rewardUpdate.$inc = { ...(rewardUpdate.$inc || {}), gems: (rewardUpdate.$inc?.gems || 0) - cost.gem };
         }
 
-        await UserStats.findOneAndUpdate({ userId }, rewardUpdate);
+        const upStats = await UserStats.findOneAndUpdate({ userId }, rewardUpdate, { new: true }).lean();
+
+        // Log kinh tế: chi phí quay (out) + tiền thắng (in).
+        if (mode === 'coin' && cost.coin) logTxn(userId, { type: 'spin', direction: 'out', name: 'Vòng quay (xu)', amount: cost.coin, currency: 'coins', balanceAfter: upStats?.coins || 0 });
+        if (mode === 'gem' && cost.gem)  logTxn(userId, { type: 'spin', direction: 'out', name: 'Vòng quay (đá)', amount: cost.gem, currency: 'gems', balanceAfter: upStats?.gems || 0 });
+        if (prize.type === 'coins') logTxn(userId, { type: 'spin', direction: 'in', name: 'Trúng Vòng quay', amount: prize.amount, currency: 'coins', balanceAfter: upStats?.coins || 0 });
+        if (prize.type === 'gems')  logTxn(userId, { type: 'spin', direction: 'in', name: 'Trúng Vòng quay', amount: prize.amount, currency: 'gems', balanceAfter: upStats?.gems || 0 });
 
         // Phần thưởng là VẬT PHẨM inventory (dùng chung kho với shop/quest).
         if (prize.type === 'item' && prize.itemId) {

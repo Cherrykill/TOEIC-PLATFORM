@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 const { buildFullState, applyEnergyRegen, applyLevelUp } = require('../utils/userStateHelper');
 const Inventory = require('../services/inventoryService');
 const ItemDefinition = require('../models/ItemDefinition');
+const { logTxn } = require('../utils/economyLog');
 
 function expireBoosts(stats) {
     const now = Date.now();
@@ -246,6 +247,9 @@ exports.unlockAchievement = async (req, res, next) => {
         if (def.rewardCoins) stats.coins += def.rewardCoins;
         if (def.rewardXp) { stats.xp += def.rewardXp; stats.totalXp += def.rewardXp; }
         if (def.rewardGems) stats.gems += def.rewardGems;
+        const achName = `Thành tích: ${def.name}`;
+        if (def.rewardCoins) logTxn(userId, { type: 'achievement', direction: 'in', name: achName, amount: def.rewardCoins, currency: 'coins', balanceAfter: stats.coins });
+        if (def.rewardGems)  logTxn(userId, { type: 'achievement', direction: 'in', name: achName, amount: def.rewardGems, currency: 'gems', balanceAfter: stats.gems });
 
         // Vật phẩm thưởng (từ catalog) → cấp vào túi đồ + kèm icon/ảnh cho popup.
         const rewardItems = Array.isArray(def.rewardItems) ? def.rewardItems : [];

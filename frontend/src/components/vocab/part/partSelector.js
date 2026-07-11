@@ -11,6 +11,7 @@ export const PartSelector = {
     selectedPart: null,
     practiceMode: 'sequential',
     partCounts: {},
+    partStats: {},
     retryWords: null,
     pendingMode: null,
 
@@ -23,15 +24,24 @@ export const PartSelector = {
     async loadParts() {
         try {
             const vocabulary = GameLogic.vocabularyData || [];
-            const partSet = new Set();
-            vocabulary.forEach(w => { if (w.part) partSet.add(w.part); });
-            this.parts = Array.from(partSet).sort();
+            // Gộp count + phân bố level (A/B/C) trong MỘT vòng lặp O(N) — trước đây
+            // filter toàn bộ vocab cho mỗi part (O(part × từ)) → đơ khi source lớn.
+            const stats = {};
+            for (const w of vocabulary) {
+                if (!w.part) continue;
+                let s = stats[w.part];
+                if (!s) s = stats[w.part] = { count: 0, a: 0, b: 0, c: 0 };
+                s.count++;
+                const lv = (w.level || '')[0];
+                if (lv === 'A') s.a++; else if (lv === 'B') s.b++; else if (lv === 'C') s.c++;
+            }
+            this.partStats = stats;
+            this.parts = Object.keys(stats).sort();
             this.partCounts = {};
-            this.parts.forEach(part => {
-                this.partCounts[part] = vocabulary.filter(w => w.part === part).length;
-            });
+            this.parts.forEach(part => { this.partCounts[part] = stats[part].count; });
         } catch {
             this.parts = [];
+            this.partStats = {};
         }
     },
 
@@ -58,12 +68,11 @@ export const PartSelector = {
         let searchQuery = '';
 
         const getLevelBar = (part) => {
-            const words = (GameLogic.vocabularyData || []).filter(w => w.part === part);
-            const total = words.length;
+            const s = this.partStats?.[part];
+            if (!s) return '';
+            const total = s.count;
             if (!total) return '';
-            const a = words.filter(w => w.level?.startsWith('A')).length;
-            const b = words.filter(w => w.level?.startsWith('B')).length;
-            const c = words.filter(w => w.level?.startsWith('C')).length;
+            const { a, b, c } = s;
             const pA = Math.round(a / total * 100);
             const pB = Math.round(b / total * 100);
             const pC = 100 - pA - pB;
@@ -123,15 +132,29 @@ export const PartSelector = {
                             ? `<p class="pmode-hint pmode-hint--warn"><i class="fas fa-triangle-exclamation"></i> Chưa chọn Part — sẽ lấy ngẫu nhiên toàn bộ</p>`
                             : `<p class="pmode-hint"><i class="fas fa-info-circle"></i> Chọn Part bên dưới để áp dụng</p>`}
                     <div class="topics-grid ${currentMode === 'random-all' ? 'topics-grid--disabled' : ''}">
-                        ${partsHTML || '<p style="text-align:center;color:#999">Không có Parts</p>'}
+                        ${(GameLogic.vocabularyData?.length || 0) === 0
+                            ? `<div style="grid-column:1/-1;text-align:center;color:var(--text-secondary);padding:28px 0">
+                                    <i class="fas fa-book-open" style="font-size:32px;opacity:.4;display:block;margin-bottom:10px"></i>
+                                    <p style="margin:0 0 12px">Chưa có từ vựng — vui lòng chọn đề luyện tập trước.</p>
+                                    <button class="btn btn-primary" id="part-choose-topic"><i class="fas fa-list"></i> Chọn đề luyện tập</button>
+                               </div>`
+                            : (partsHTML || '<p style="text-align:center;color:#999">Không có Parts</p>')}
                     </div>
                 </div>`;
         };
 
+        // Khi vocab tải xong (nếu modal mở trước lúc nạp xong) → dựng lại lưới Part.
+        const onVocabLoaded = () => {
+            this.loadParts();
+            const body = document.querySelector('.modal-body');
+            if (body) { body.innerHTML = renderModal(); setupHeaderSearch(); attachListeners(); }
+        };
+        const unsubVocab = EventBus.on('vocab:loaded', onVocabLoaded);
+
         Modal.show({
             title: '📚 Chọn Part để luyện tập',
             content: renderModal(),
-            onClose: () => { this.pendingMode = null; },
+            onClose: () => { this.pendingMode = null; unsubVocab(); },
         });
 
         const applyPartFilter = () => {
@@ -205,6 +228,13 @@ export const PartSelector = {
                     }
                     this.selectPart(card.dataset.part);
                 });
+            });
+
+            // Chưa có từ vựng → nút mở popup chọn đề (giữ pendingMode để quay lại luyện tập).
+            document.getElementById('part-choose-topic')?.addEventListener('click', () => {
+                const mode = this.pendingMode;
+                Modal.close();
+                EventBus.emit(GameEvents.TOPIC_MODAL_REQUESTED, { pendingMode: mode });
             });
         };
 

@@ -44,6 +44,7 @@ function initMainTabs() {
         shop:                'Quản lý Cửa hàng',
         items:               'Catalog vật phẩm (item_definitions)',
         spin:                'Vòng quay — Phần thưởng & tỷ lệ',
+        economy:             'Bảng kinh tế (faucet / sink)',
         monitor:             'Giám sát hệ thống',
         broadcast:           'Gửi thông báo',
         'upload-management': 'Nội dung người dùng',
@@ -95,6 +96,8 @@ function initMainTabs() {
             window.loadItemDefs?.();
         } else if (tab === 'spin') {
             window.initSpinAdmin?.();
+        } else if (tab === 'economy') {
+            window.loadEconomy?.();
         } else if (tab === 'monitor') {
             startMetricsPolling();
             initApiReference();

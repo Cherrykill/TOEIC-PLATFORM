@@ -2,6 +2,7 @@ const Notification = require('../models/Notification');
 const UserStats    = require('../models/UserStats');
 const Inventory    = require('../services/inventoryService');
 const ItemDefinition = require('../models/ItemDefinition');
+const { logTxn }   = require('../utils/economyLog');
 
 const TAB_TYPES = {
     system:      ['system', 'reminder', 'reward'],
@@ -131,6 +132,8 @@ exports.claimGift = async (req, res, next) => {
             if (gems)  stats.gems  += gems;
             if (xp) { stats.xp += xp; stats.totalXp = (stats.totalXp || 0) + xp; }
             await stats.save();
+            if (coins) logTxn(req.user.id, { type: 'gift', direction: 'in', name: 'Quà thông báo', amount: coins, currency: 'coins', balanceAfter: stats.coins });
+            if (gems)  logTxn(req.user.id, { type: 'gift', direction: 'in', name: 'Quà thông báo', amount: gems, currency: 'gems', balanceAfter: stats.gems });
         }
 
         // Vật phẩm tặng kèm → cấp vào túi đồ + kèm icon/ảnh cho popup.

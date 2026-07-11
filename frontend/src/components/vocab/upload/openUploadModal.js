@@ -280,22 +280,32 @@ Danh sách từ vựng cần chuyển:
                     <div style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">${res.data.length} nguồn từ vựng — nhấn để xem từ</div>
                     <div id="topic-list">${res.data.map(t => {
                         const date = t.lastUpload ? new Date(t.lastUpload).toLocaleDateString('vi-VN') : '';
-                        return `<div class="topic-row" data-source="${t.source}" data-count="${t.wordCount}"
-                            style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-color);border-radius:8px;margin-bottom:6px;background:var(--bg-secondary)">
+                        const soon = t.expiringSoon || 0;
+                        // Số ngày còn lại tới hạn gần nhất (làm tròn lên).
+                        const daysLeft = t.nearestExpiry
+                            ? Math.max(0, Math.ceil((new Date(t.nearestExpiry).getTime() - Date.now()) / 86400000))
+                            : null;
+                        const expInfo = soon > 0
+                            ? ` · <span style="color:#dc2626;font-weight:700"><i class="fas fa-triangle-exclamation"></i> ${soon} từ sắp hết hạn${daysLeft != null ? ` (còn ${daysLeft} ngày)` : ''}</span>`
+                            : '';
+                        return `<div class="topic-item" style="margin-bottom:6px">
+                          <div class="topic-row${soon > 0 ? ' topic-row--expiring' : ''}" data-source="${t.source}" data-count="${t.wordCount}"
+                            style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-secondary)">
                             <div style="flex:1;min-width:0">
                                 <div style="font-weight:600;font-size:13px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.source}</div>
-                                <div style="font-size:11px;color:var(--text-secondary)">${t.wordCount} từ · ${date}</div>
+                                <div style="font-size:11px;color:var(--text-secondary)">${t.wordCount} từ · ${date}${expInfo}</div>
                             </div>
-                            <button class="topic-expand-btn btn btn-secondary" style="padding:4px 10px;font-size:12px;white-space:nowrap"><i class="fas fa-eye"></i> Xem</button>
+                            <button class="topic-expand-btn btn btn-secondary" style="padding:4px 10px;font-size:12px;white-space:nowrap"><i class="fas fa-chevron-down"></i> Xem</button>
                             <button class="topic-export-json btn btn-secondary" title="Xuất JSON" style="padding:4px 10px;font-size:12px;white-space:nowrap"><i class="fas fa-file-code"></i> JSON</button>
                             <button class="topic-export-excel btn btn-secondary" title="Xuất Excel (CSV)" style="padding:4px 10px;font-size:12px;white-space:nowrap"><i class="fas fa-file-excel"></i> Excel</button>
                             <button class="topic-delete-all-btn btn" style="padding:4px 10px;font-size:12px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;white-space:nowrap"><i class="fas fa-trash"></i> Xóa tất</button>
+                          </div>
+                          <div class="topic-words" data-source="${t.source}" style="display:none;margin-top:4px"></div>
                         </div>`;
-                    }).join('')}</div>
-                    <div id="word-list-panel" style="margin-top:12px"></div>`;
+                    }).join('')}</div>`;
 
                 container.querySelectorAll('.topic-row').forEach(row => {
-                    row.querySelector('.topic-expand-btn')?.addEventListener('click', () => loadWords(row.dataset.source));
+                    row.querySelector('.topic-expand-btn')?.addEventListener('click', () => toggleWords(row));
                     row.querySelector('.topic-export-json')?.addEventListener('click', () => exportSource(row.dataset.source, 'json'));
                     row.querySelector('.topic-export-excel')?.addEventListener('click', () => exportSource(row.dataset.source, 'csv'));
                     row.querySelector('.topic-delete-all-btn')?.addEventListener('click', () => deleteSource(row.dataset.source, row.dataset.count));
@@ -303,19 +313,34 @@ Danh sách từ vựng cần chuyển:
             } catch (err) { container.innerHTML = `<p style="color:#dc2626;font-size:13px">Lỗi: ${err.message}</p>`; }
         };
 
-        const loadWords = async (source) => {
-            const panel = document.getElementById('word-list-panel');
+        // Mở/đóng danh sách từ ngay dưới nguồn (dropdown). Mở lần đầu mới tải.
+        const toggleWords = (row) => {
+            const item = row.closest('.topic-item');
+            const panel = item?.querySelector('.topic-words');
+            const icon = row.querySelector('.topic-expand-btn i');
             if (!panel) return;
-            panel.innerHTML = `<p style="font-size:13px;color:var(--text-secondary)"><i class="fas fa-spinner fa-spin"></i> Đang tải "${source}"...</p>`;
+            if (panel.dataset.open === '1') {
+                panel.style.display = 'none';
+                panel.innerHTML = '';
+                delete panel.dataset.open;
+                if (icon) icon.className = 'fas fa-chevron-down';
+            } else {
+                panel.style.display = '';
+                panel.dataset.open = '1';
+                if (icon) icon.className = 'fas fa-chevron-up';
+                loadWords(row.dataset.source, panel);
+            }
+        };
+
+        const loadWords = async (source, panel) => {
+            if (!panel) return;
+            panel.innerHTML = `<p style="font-size:13px;color:var(--text-secondary);padding:6px 0"><i class="fas fa-spinner fa-spin"></i> Đang tải "${source}"...</p>`;
             try {
                 const res = await UploadVocabAPI.myVocabulary(source);
                 if (!res.success) throw new Error(res.message);
                 if (!res.data.length) { panel.innerHTML = `<p style="font-size:13px;color:var(--text-secondary);padding:8px 0">Không có từ nào trong "${source}".</p>`; return; }
                 panel.innerHTML = `
-                    <div style="font-weight:600;font-size:13px;color:var(--text-primary);margin-bottom:8px;border-top:1px solid var(--border-color);padding-top:10px">
-                        <i class="fas fa-list"></i> ${source} — ${res.data.length} từ
-                    </div>
-                    <div style="max-height:260px;overflow-y:auto">
+                    <div style="max-height:260px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px">
                         <table style="width:100%;border-collapse:collapse;font-size:12px">
                             <thead><tr style="background:var(--bg-tertiary,var(--bg-secondary))">
                                 <th style="padding:6px 8px;text-align:left;color:var(--text-secondary);font-weight:600;border-bottom:1px solid var(--border-color)">English</th>
@@ -358,7 +383,7 @@ Danh sách từ vựng cần chuyển:
                     const newCount = parseInt(topicRow.dataset.count, 10) - 1;
                     topicRow.dataset.count = newCount;
                     topicRow.querySelector('div:first-child div:last-child').textContent = `${newCount} từ`;
-                    if (newCount <= 0) topicRow.remove();
+                    if (newCount <= 0) (topicRow.closest('.topic-item') || topicRow).remove();
                 }
             } catch (err) { alert(err.message); }
         };
@@ -368,9 +393,8 @@ Danh sách từ vựng cần chuyển:
             try {
                 const res = await UploadVocabAPI.deleteSource(source);
                 if (!res.success) throw new Error(res.message);
-                document.querySelector(`.topic-row[data-source="${source}"]`)?.remove();
-                const panel = document.getElementById('word-list-panel');
-                if (panel) panel.innerHTML = '';
+                const row = document.querySelector(`.topic-row[data-source="${source}"]`);
+                (row?.closest('.topic-item') || row)?.remove();
                 if (!document.querySelectorAll('.topic-row').length) loadMyTopics();
             } catch (err) { alert(err.message); }
         };

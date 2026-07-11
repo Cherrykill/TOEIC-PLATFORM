@@ -49,7 +49,14 @@ export function useFavorites(isLoggedIn) {
         setWords(next);
         writeLocalFavorites(next);
         if (isLoggedIn) {
-            await FavoritesAPI.add(entry);
+            const res = await FavoritesAPI.add(entry);
+            // Bị chặn (đạt giới hạn) → hoàn lại trạng thái local + báo.
+            if (res && res.success === false && res.limitReached) {
+                const reverted = words.filter(w => (w.en || w.word) !== entry.en);
+                setWords(reverted);
+                writeLocalFavorites(reverted);
+                window._reactNotification?.error?.(res.message || 'Đã đạt giới hạn từ yêu thích');
+            }
         }
     }, [words, isLoggedIn]);
 

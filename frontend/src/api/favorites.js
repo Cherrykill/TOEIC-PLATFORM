@@ -20,13 +20,13 @@ export const FavoritesAPI = {
             .catch(() => ({ success: false }));
     },
 
-    /** Fire-and-forget add; errors are swallowed (offline-tolerant). */
+    /** Thêm; trả {success,message,limitReached?}. Không ném lỗi (offline-tolerant). */
     async add(entry) {
-        await fetch('/api/vocabulary/favorites', {
+        return fetch('/api/vocabulary/favorites', {
             method: 'POST',
             headers: { ...JSON_HEADERS, ...authHeaders() },
             body: JSON.stringify({ word: entry }),
-        }).catch(() => {});
+        }).then(r => r.json()).catch(() => ({ success: false }));
     },
 
     /** Fire-and-forget remove; errors are swallowed (offline-tolerant). */

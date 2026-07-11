@@ -2,6 +2,7 @@ import { useEffect, lazy, Suspense } from 'react';
 import { GameProvider, useGame } from '@game/GameContext.jsx';
 import { AuthProvider, useAuth } from '@components/auth/AuthContext.jsx';
 import { applyUiTheme, applySavedColorTheme } from '@/services/theme.js';
+import { startLeakMonitor } from '@lib/leakMonitor.js';
 import { STORAGE_KEYS } from '@/constants/storageKeys.js';
 import './assets/styles/index.css';
 
@@ -58,6 +59,7 @@ function AppInner() {
     const { validateToken, isServerSynced } = useAuth();
 
     useEffect(() => {
+        startLeakMonitor(); // chỉ chạy khi bật cờ ?debug=leaks / localStorage.debugLeaks
         const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
         applyUiTheme(savedTheme);
         applySavedColorTheme();

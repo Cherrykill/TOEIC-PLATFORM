@@ -7,6 +7,9 @@
 
 const User = require('../models/User');
 
+// Giới hạn số từ yêu thích / người (mảng trên User doc — tránh phình).
+const MAX_FAVORITES = 100;
+
 exports.getFavorites = async (req, res, next) => {
     try {
         const user = await User.findById(req.user.id).select('favoriteWords');
@@ -27,6 +30,16 @@ exports.addFavorite = async (req, res, next) => {
             synonyms: word.synonyms || '',
             part: word.part || '',
         };
+        // Chặn khi đạt giới hạn (chỉ tính khi thêm từ MỚI, đánh dấu lại từ cũ thì không).
+        const user = await User.findById(req.user.id).select('favoriteWords');
+        const list = user?.favoriteWords || [];
+        const already = list.some(w => w.en === word.en);
+        if (!already && list.length >= MAX_FAVORITES) {
+            return res.status(400).json({
+                success: false, limitReached: true,
+                message: `Đã đạt giới hạn ${MAX_FAVORITES} từ yêu thích. Bỏ bớt trước khi thêm từ mới.`,
+            });
+        }
         await User.findByIdAndUpdate(req.user.id, { $pull: { favoriteWords: { en: word.en } } });
         await User.findByIdAndUpdate(req.user.id, { $push: { favoriteWords: entry } });
         res.json({ success: true });

@@ -5,6 +5,8 @@ const AchievementDefinition = require('../models/AchievementDefinition');
 const QuestDefinition = require('../models/QuestDefinition');
 const ShopItem = require('../models/ShopItem');
 const ItemDefinition = require('../models/ItemDefinition');
+const Transaction = require('../models/Transaction');
+const UserStats = require('../models/UserStats');
 const adminCtrl = require('../controllers/adminController');
 const { uploadShopImage, SHOP_IMAGE_ROLES } = require('../middleware/upload');
 
@@ -155,6 +157,46 @@ router.delete('/shop-items/:id', admin, async (req, res) => {
     const data = await ShopItem.findByIdAndDelete(req.params.id);
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
     res.json({ success: true, message: 'Đã xóa item' });
+});
+
+// ── Bảng kinh tế: thu/chi (faucet/sink) theo currency + nguồn ───
+router.get('/economy', admin, async (req, res) => {
+    try {
+        const days = Math.min(Math.max(parseInt(req.query.days, 10) || 7, 1), 365);
+        const since = new Date(Date.now() - days * 86400000);
+        // Loại admin/tài khoản nội bộ (role != 'user') khỏi thống kê — tránh nhiễu
+        // (vd admin nạp sẵn 999.999 xu/đá để test).
+        const nonPlayers = (await require('../models/User').find({ role: { $ne: 'user' } }).select('_id').lean()).map(u => u._id);
+        const rows = await Transaction.aggregate([
+            { $match: { at: { $gte: since }, currency: { $in: ['coins', 'gems'] }, userId: { $nin: nonPlayers } } },
+            { $group: { _id: { type: '$type', direction: '$direction', currency: '$currency' }, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+        ]);
+        const cur = { coins: { in: 0, out: 0 }, gems: { in: 0, out: 0 } };
+        const bySource = [];
+        rows.forEach(r => {
+            const { type, direction, currency } = r._id;
+            if (cur[currency] && (direction === 'in' || direction === 'out')) cur[currency][direction] += r.total;
+            bySource.push({ type, direction: direction || 'out', currency, total: r.total, count: r.count });
+        });
+        bySource.sort((a, b) => b.total - a.total);
+        // Tổng tiền đang lưu hành (money supply) — chỉ player thật, tăng đều = lạm phát.
+        const supplyAgg = await UserStats.aggregate([
+            { $match: { userId: { $nin: nonPlayers } } },
+            { $group: { _id: null, coins: { $sum: '$coins' }, gems: { $sum: '$gems' } } },
+        ]);
+        const supply = supplyAgg[0] || { coins: 0, gems: 0 };
+        res.json({
+            success: true, days,
+            currencies: {
+                coins: { in: cur.coins.in, out: cur.coins.out, net: cur.coins.in - cur.coins.out },
+                gems: { in: cur.gems.in, out: cur.gems.out, net: cur.gems.in - cur.gems.out },
+            },
+            bySource,
+            supply: { coins: supply.coins || 0, gems: supply.gems || 0 },
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
 });
 
 // ── Catalog vật phẩm (item_definitions) — CRUD ───────────────

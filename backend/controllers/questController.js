@@ -7,6 +7,7 @@ const { getPeriodKey, getNextReset } = require('../services/questPeriod');
 // Phase B: evaluator chạy server-side đọc UserStats/DB (không phụ thuộc client emit).
 const { captureSnapshot, parsePeriodStart, refreshDoc } = require('../services/questEvaluators');
 const Inventory = require('../services/inventoryService');
+const { logTxn } = require('../utils/economyLog');
 
 // How many quests to assign per type. Phase A: cấp nhiều hơn để bớt cảm
 // giác "ai cũng giống nhau" — kết hợp với pool defaults mở rộng (xem
@@ -287,6 +288,9 @@ const claimReward = async (req, res, next) => {
             stats.totalXp += q.rewardXp;
             stats.gems  += q.rewardGems;
             await stats.save();
+            const qName = `Nhiệm vụ: ${q.name || q.code || ''}`.trim();
+            if (q.rewardCoins) logTxn(userId, { type: 'quest', direction: 'in', name: qName, amount: q.rewardCoins, currency: 'coins', balanceAfter: stats.coins });
+            if (q.rewardGems)  logTxn(userId, { type: 'quest', direction: 'in', name: qName, amount: q.rewardGems, currency: 'gems', balanceAfter: stats.gems });
         }
 
         // Thưởng thêm vật phẩm inventory (vd vé quay). Best-effort — lỗi grant
