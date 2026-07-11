@@ -1045,14 +1045,15 @@ async function sendBroadcast() {
     const giftGems =
       parseInt(document.getElementById("bc-gift-gems")?.value) || 0;
     const giftXp = parseInt(document.getElementById("bc-gift-xp")?.value) || 0;
+    const giftItems = (typeof _collectItemRows === "function") ? _collectItemRows("bc-gift-items-rows") : [];
 
     const payload = { title, body, type };
     if (target === "one") {
       if (userId) payload.userId = userId;
       if (userEmail) payload.userEmail = userEmail;
     }
-    if (giftCoins || giftGems || giftXp)
-      payload.gift = { coins: giftCoins, gems: giftGems, xp: giftXp };
+    if (giftCoins || giftGems || giftXp || giftItems.length)
+      payload.gift = { coins: giftCoins, gems: giftGems, xp: giftXp, items: giftItems };
 
     const res = await fetch("/api/admin/notifications/broadcast", {
       method: "POST",
@@ -1076,6 +1077,7 @@ async function sendBroadcast() {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
+    if (typeof _renderItemRows === "function") _renderItemRows("bc-gift-items-rows", []);
     const lbl = document.getElementById("bc-user-selected");
     if (lbl) lbl.style.display = "none";
     loadNotifHistory();
@@ -1155,13 +1157,15 @@ function _renderNotifList() {
           : ' · <span style="color:#f59e0b">Chưa đọc</span>'
         : "";
       const g = n.gift || {};
-      const hasGift = g.coins > 0 || g.gems > 0 || g.xp > 0;
+      const gItems = Array.isArray(g.items) ? g.items : [];
+      const hasGift = g.coins > 0 || g.gems > 0 || g.xp > 0 || gItems.length > 0;
       const giftHtml = hasGift
         ? `
             <div style="display:flex;gap:10px;margin-top:6px;font-size:12px;flex-wrap:wrap">
                 ${g.coins > 0 ? `<span>🪙 <b>${g.coins}</b> coins</span>` : ""}
                 ${g.gems > 0 ? `<span>💎 <b>${g.gems}</b> gems</span>` : ""}
                 ${g.xp > 0 ? `<span>⭐ <b>${g.xp}</b> XP</span>` : ""}
+                ${gItems.map(function(i){return '<span>📦 <b>'+i.itemId+'</b>×'+(i.quantity||1)+'</span>';}).join("")}
             </div>`
         : "";
       return `

@@ -4,6 +4,8 @@ import { NotificationsAPI } from '@api/notifications.js';
 import { GameState } from '@game/state.js';
 import { useGame } from '@game/GameContext.jsx';
 import { Notification as Toast } from '@ui/Toaster.jsx';
+import { showRewardPopup } from '@ui/RewardPopup.jsx';
+import ItemThumb from '@ui/ItemThumb.jsx';
 
 const TABS = [
     { key: 'all',         label: 'Tất cả',    icon: 'fa-list' },
@@ -60,11 +62,11 @@ export default function NotificationPanel({ isLoggedIn }) {
         const res = await NotificationsAPI.claimGift(id);
         setClaimingGift(false);
         if (res.success) {
-            const { coins = 0, gems = 0, xp = 0 } = res.reward || {};
+            const { coins = 0, gems = 0, xp = 0, items = [] } = res.reward || {};
             GameState.creditServerRewards({ coins, gems, xp });
             syncFromState();
             window.Utils?.playSound?.(window.Config?.sounds?.reward || 'assets/sounds/achieve.mp3', 0.8);
-            Toast.success(`Đã nhận: ${[coins && `+${coins} Coins`, gems && `+${gems} Gems`, xp && `+${xp} XP`].filter(Boolean).join(', ')}`);
+            showRewardPopup({ subtitle: 'Quà tặng từ hệ thống', rewards: { coins, gems, xp, items } });
             await loadBadge();
         } else {
             Toast.error(res.message || 'Không thể nhận quà');
@@ -77,7 +79,7 @@ export default function NotificationPanel({ isLoggedIn }) {
 
         const unclaimed = items.filter(n => {
             const g = n.gift;
-            return g && (g.coins || g.gems || g.xp) && !n.giftClaimed;
+            return g && (g.coins || g.gems || g.xp || (g.items && g.items.length)) && !n.giftClaimed;
         });
 
         if (unclaimed.length > 0) {
@@ -122,7 +124,7 @@ export default function NotificationPanel({ isLoggedIn }) {
     const unclaimedGiftCount = useMemo(
         () => items.filter(n => {
             const g = n.gift;
-            return g && (g.coins || g.gems || g.xp) && !n.giftClaimed;
+            return g && (g.coins || g.gems || g.xp || (g.items && g.items.length)) && !n.giftClaimed;
         }).length,
         [items],
     );
@@ -179,7 +181,8 @@ export default function NotificationPanel({ isLoggedIn }) {
                                         </div>
                                         {(() => {
                                             const g = selected.gift;
-                                            if (!g || (!g.coins && !g.gems && !g.xp)) return null;
+                                            const gItems = (g && Array.isArray(g.items)) ? g.items : [];
+                                            if (!g || (!g.coins && !g.gems && !g.xp && !gItems.length)) return null;
                                             return (
                                                 <div className="notif-gift-box">
                                                     <div className="notif-gift-label">
@@ -190,6 +193,16 @@ export default function NotificationPanel({ isLoggedIn }) {
                                                         {g.coins > 0 && <span className="notif-gift-item"><i className="fas fa-coins"></i> {g.coins}</span>}
                                                         {g.gems  > 0 && <span className="notif-gift-item"><i className="fas fa-gem"></i> {g.gems}</span>}
                                                         {g.xp    > 0 && <span className="notif-gift-item"><i className="fas fa-star"></i> {g.xp} XP</span>}
+                                                        {gItems.map((it, i) => (
+                                                            <span key={i} className="gift-slot" title={it.name}>
+                                                                <span className="gift-slot-box">
+                                                                    <ItemThumb image={it.image} imgClassName="gift-slot-img">
+                                                                        {it.icon && it.icon.startsWith('fa-') ? <i className={`fas ${it.icon}`}></i> : <span>{it.icon || '🎁'}</span>}
+                                                                    </ItemThumb>
+                                                                    {it.quantity > 1 && <span className="gift-slot-count">×{it.quantity}</span>}
+                                                                </span>
+                                                            </span>
+                                                        ))}
                                                     </div>
                                                 </div>
                                             );
@@ -207,7 +220,7 @@ export default function NotificationPanel({ isLoggedIn }) {
                                             </button>
                                             {(() => {
                                                 const g = selected.gift;
-                                                if (!g || (!g.coins && !g.gems && !g.xp) || selected.giftClaimed) return null;
+                                                if (!g || (!g.coins && !g.gems && !g.xp && !(g.items && g.items.length)) || selected.giftClaimed) return null;
                                                 return (
                                                     <button
                                                         className="btn btn-primary btn-sm"

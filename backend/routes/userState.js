@@ -100,4 +100,47 @@ router.get('/transactions', async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
+// ── Like hồ sơ người khác (mỗi tài khoản 1 like/người, bấm lại = bỏ like) ──
+const ProfileLike = require('../models/ProfileLike');
+const UserProfileModel = require('../models/UserProfile');
+
+// Trạng thái like + tổng số like của 1 người.
+router.get('/like/:targetId', async (req, res, next) => {
+    try {
+        const targetId = req.params.targetId;
+        const [mine, profile] = await Promise.all([
+            ProfileLike.findOne({ likerId: req.user.id, targetId }).lean(),
+            UserProfileModel.findOne({ userId: targetId }).select('likeCount').lean(),
+        ]);
+        res.json({ success: true, liked: !!mine, likeCount: profile?.likeCount || 0 });
+    } catch (err) { next(err); }
+});
+
+// Toggle like.
+router.post('/like/:targetId', async (req, res, next) => {
+    try {
+        const targetId = req.params.targetId;
+        if (String(targetId) === String(req.user.id)) {
+            return res.status(400).json({ success: false, message: 'Không thể tự like chính mình' });
+        }
+        const existing = await ProfileLike.findOne({ likerId: req.user.id, targetId });
+        let liked;
+        if (existing) {
+            await ProfileLike.deleteOne({ _id: existing._id });
+            await UserProfileModel.updateOne({ userId: targetId, likeCount: { $gt: 0 } }, { $inc: { likeCount: -1 } });
+            liked = false;
+        } else {
+            await ProfileLike.create({ likerId: req.user.id, targetId });
+            await UserProfileModel.updateOne({ userId: targetId }, { $inc: { likeCount: 1 } });
+            liked = true;
+        }
+        const profile = await UserProfileModel.findOne({ userId: targetId }).select('likeCount').lean();
+        res.json({ success: true, liked, likeCount: profile?.likeCount || 0 });
+    } catch (err) {
+        // Trùng key do double-click → coi như đã like.
+        if (err && err.code === 11000) return res.json({ success: true, liked: true });
+        next(err);
+    }
+});
+
 module.exports = router;

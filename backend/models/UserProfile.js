@@ -59,6 +59,9 @@ const userProfileSchema = new mongoose.Schema(
         // Cosmetic đang trang bị theo slot: { background: itemId, frame: itemId, ... }
         equipped: { type: mongoose.Schema.Types.Mixed, default: {} },
 
+        // Số lượt like nhận được (denormalized để hiện nhanh ở BXH/popup).
+        likeCount: { type: Number, default: 0 },
+
         settings: { type: settingsSchema, default: () => ({}) },
     },
     {

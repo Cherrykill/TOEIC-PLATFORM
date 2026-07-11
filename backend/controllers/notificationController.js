@@ -1,5 +1,7 @@
 const Notification = require('../models/Notification');
 const UserStats    = require('../models/UserStats');
+const Inventory    = require('../services/inventoryService');
+const ItemDefinition = require('../models/ItemDefinition');
 
 const TAB_TYPES = {
     system:      ['system', 'reminder', 'reward'],
@@ -30,6 +32,21 @@ exports.list = async (req, res, next) => {
         ]);
 
         const notifications = raw.map(n => ({ ...n, isGlobal: n.userId == null }));
+
+        // Gắn icon/ảnh cho vật phẩm trong quà tặng → frontend hiện preview trước khi nhận.
+        const giftItemIds = [...new Set(notifications.flatMap(n => (n.gift?.items || []).map(i => i.itemId)).filter(Boolean))];
+        if (giftItemIds.length) {
+            const defs = await ItemDefinition.find({ itemId: { $in: giftItemIds } }).select('itemId name icon image').lean();
+            const dmap = new Map(defs.map(d => [d.itemId, d]));
+            notifications.forEach(n => {
+                if (n.gift?.items?.length) {
+                    n.gift = { ...n.gift, items: n.gift.items.map(it => {
+                        const d = dmap.get(it.itemId) || {};
+                        return { itemId: it.itemId, quantity: it.quantity || 1, name: d.name || it.itemId, icon: d.icon || '', image: d.image || '' };
+                    }) };
+                }
+            });
+        }
 
         // Map counts per tab (chỉ đếm notif cá nhân — broadcast không tính
         // vào unread badge để khỏi kẹt số "1" mãi cho mọi user).
@@ -103,8 +120,9 @@ exports.claimGift = async (req, res, next) => {
         const notif = await Notification.findOne({ _id: req.params.id, userId: req.user.id });
         if (!notif) return res.status(404).json({ success: false, message: 'Notification not found' });
 
-        const { coins = 0, gems = 0, xp = 0 } = notif.gift || {};
-        if (!coins && !gems && !xp) return res.status(400).json({ success: false, message: 'No gift attached' });
+        const { coins = 0, gems = 0, xp = 0, items = [] } = notif.gift || {};
+        const itemList = Array.isArray(items) ? items.filter(i => i && i.itemId) : [];
+        if (!coins && !gems && !xp && !itemList.length) return res.status(400).json({ success: false, message: 'No gift attached' });
         if (notif.giftClaimed) return res.status(400).json({ success: false, message: 'Gift already claimed' });
 
         const stats = await UserStats.findOne({ userId: req.user.id });
@@ -115,11 +133,24 @@ exports.claimGift = async (req, res, next) => {
             await stats.save();
         }
 
+        // Vật phẩm tặng kèm → cấp vào túi đồ + kèm icon/ảnh cho popup.
+        const itemsDetailed = [];
+        if (itemList.length) {
+            const defs = await ItemDefinition.find({ itemId: { $in: itemList.map(i => i.itemId) } }).select('itemId name icon image').lean();
+            const dmap = new Map(defs.map(d => [d.itemId, d]));
+            for (const it of itemList) {
+                const qty = Number(it.quantity) || 1;
+                await Inventory.grant(req.user.id, it.itemId, qty, { source: 'notification' });
+                const d = dmap.get(it.itemId) || {};
+                itemsDetailed.push({ itemId: it.itemId, quantity: qty, name: d.name || it.itemId, icon: d.icon || '', image: d.image || '' });
+            }
+        }
+
         notif.giftClaimed   = true;
         notif.giftClaimedAt = new Date();
         await notif.save();
 
-        res.json({ success: true, reward: { coins, gems, xp } });
+        res.json({ success: true, reward: { coins, gems, xp, items: itemsDetailed } });
     } catch (err) {
         next(err);
     }

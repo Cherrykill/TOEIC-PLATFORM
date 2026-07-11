@@ -26,6 +26,8 @@ const notificationSchema = new mongoose.Schema(
             coins: { type: Number, default: 0 },
             gems:  { type: Number, default: 0 },
             xp:    { type: Number, default: 0 },
+            // Vật phẩm tặng kèm — [{ itemId, quantity }], grant qua InventoryService khi nhận.
+            items: { type: [mongoose.Schema.Types.Mixed], default: [] },
         },
         giftClaimed:   { type: Boolean, default: false },
         giftClaimedAt: { type: Date, default: null },

@@ -133,8 +133,11 @@ exports.broadcastNotification = async (req, res, next) => {
         const { title, body, type = 'system', userId, userEmail, gift } = req.body;
         if (!title) return res.status(400).json({ success: false, message: 'title required' });
 
-        const cleanGift = { coins: Number(gift?.coins) || 0, gems: Number(gift?.gems) || 0, xp: Number(gift?.xp) || 0 };
-        const hasGift = cleanGift.coins > 0 || cleanGift.gems > 0 || cleanGift.xp > 0;
+        const cleanItems = Array.isArray(gift?.items)
+            ? gift.items.filter(i => i && i.itemId).map(i => ({ itemId: i.itemId, quantity: Number(i.quantity) || 1 }))
+            : [];
+        const cleanGift = { coins: Number(gift?.coins) || 0, gems: Number(gift?.gems) || 0, xp: Number(gift?.xp) || 0, items: cleanItems };
+        const hasGift = cleanGift.coins > 0 || cleanGift.gems > 0 || cleanGift.xp > 0 || cleanItems.length > 0;
 
         // Gửi 1 user cụ thể → tạo 1 doc gắn userId.
         if (userId || userEmail) {

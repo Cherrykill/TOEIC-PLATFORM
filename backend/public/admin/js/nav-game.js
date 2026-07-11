@@ -42,6 +42,28 @@ async function loadAchievements() {
     }
 }
 
+// ── Nút "Xuất bản" (bật/tắt isActive ngay ở dòng) — dùng chung 3 bảng ─────
+function _publishBtnHtml(kind, id, active) {
+    return '<button class="btn btn-sm btn-publish" data-kind="' + kind + '" data-id="' + id + '" data-active="' + (active ? 1 : 0) + '"' +
+        ' title="' + (active ? 'Đang hiển thị trên giao diện — bấm để ẩn' : 'Đang ẩn — bấm để xuất bản') + '"' +
+        ' style="background:' + (active ? '#dcfce7' : '#f1f5f9') + ';color:' + (active ? '#16a34a' : '#64748b') + ';border:1px solid ' + (active ? '#86efac' : '#cbd5e1') + ';border-radius:6px;padding:4px 9px;margin-right:4px">' +
+        '<i class="fas ' + (active ? 'fa-eye' : 'fa-eye-slash') + '"></i></button>';
+}
+function _bindPublishButtons() {
+    document.querySelectorAll('.btn-publish').forEach(function (btn) {
+        btn.onclick = async function () {
+            var kind = btn.dataset.kind, id = btn.dataset.id, next = btn.dataset.active !== '1';
+            var res = await fetch(API_URL + '/admin/' + kind + '/' + id, {
+                method: 'PUT', headers: { Authorization: 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: next }),
+            });
+            var j = await res.json();
+            showToast(j.success ? (next ? 'Đã xuất bản (hiện trên giao diện)' : 'Đã ẩn khỏi giao diện') : (j.message || 'Lỗi'), j.success ? 'success' : 'error');
+            if (j.success) { if (kind === 'shop-items') loadShopItems(); else if (kind === 'quests') loadQuests(); else if (kind === 'achievements') loadAchievements(); }
+        };
+    });
+}
+
 function _renderAchievements(defs) {
     const tbody = document.getElementById('achievements-tbody');
     if (!defs.length) {
@@ -57,6 +79,7 @@ function _renderAchievements(defs) {
         '<td style="font-size:12px">XP:' + (d.rewardXp||0) + ' 🪙' + (d.rewardCoins||0) + ' 💎' + (d.rewardGems||0) + '</td>' +
         '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
         '<td>' +
+          _publishBtnHtml('achievements', d._id, d.isActive) +
           '<button class="btn btn-ghost btn-sm btn-ach-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
           '<button class="btn btn-danger btn-sm btn-ach-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
         '</td></tr>'
@@ -117,6 +140,7 @@ async function openAchievementModal(data) {
 }
 
 function attachAchievementListeners() {
+    _bindPublishButtons();
     document.querySelectorAll('.btn-ach-edit').forEach(function(btn) {
         btn.onclick = async function() {
             const res = await fetch(API_URL + '/admin/achievements/' + btn.dataset.id, { headers: { Authorization: 'Bearer ' + getToken() } });
@@ -209,6 +233,7 @@ function _renderQuests(defs) {
           ((d.rewardItems && d.rewardItems.length) ? ' 🎁' + d.rewardItems.map(function(i){return i.itemId+'×'+(i.quantity||1);}).join(',') : '') + '</td>' +
         '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
         '<td>' +
+          _publishBtnHtml('quests', d._id, d.isActive) +
           '<button class="btn btn-ghost btn-sm btn-quest-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
           '<button class="btn btn-danger btn-sm btn-quest-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
         '</td></tr>'
@@ -316,6 +341,7 @@ function _collectItemRows(wrapId) {
 }
 
 function attachQuestListeners() {
+    _bindPublishButtons();
     document.querySelectorAll('.btn-quest-edit').forEach(function(btn) {
         btn.onclick = async function() {
             const res = await fetch(API_URL + '/admin/quests/' + btn.dataset.id, { headers: { Authorization: 'Bearer ' + getToken() } });
@@ -457,6 +483,7 @@ function _renderShopItems(items) {
                 '<td style="text-align:center">' + (d.order || 0) + '</td>' +
                 '<td>' + (d.isActive ? '<span class="badge success">Bật</span>' : '<span class="badge neutral">Tắt</span>') + '</td>' +
                 '<td>' +
+                  _publishBtnHtml('shop-items', d._id, d.isActive) +
                   '<button class="btn btn-ghost btn-sm btn-shop-edit" data-id="' + d._id + '" title="Sửa"><i class="fas fa-edit"></i></button> ' +
                   '<button class="btn btn-danger btn-sm btn-shop-delete" data-id="' + d._id + '" data-name="' + d.name + '" title="Xóa"><i class="fas fa-trash"></i></button>' +
                 '</td></tr>';
@@ -658,6 +685,7 @@ async function _uploadShopImage(file, role) {
 }
 
 function attachShopListeners() {
+    _bindPublishButtons();
     document.querySelectorAll('.btn-shop-edit').forEach(function(btn) {
         btn.onclick = async function() {
             var res = await fetch(API_URL + '/admin/shop-items/' + btn.dataset.id, { headers: { Authorization: 'Bearer ' + getToken() } });

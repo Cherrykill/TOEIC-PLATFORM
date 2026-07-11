@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Broadcast tab
     document.getElementById('bc-send-btn')?.addEventListener('click', sendBroadcast);
     document.getElementById('bc-history-refresh-btn')?.addEventListener('click', loadNotifHistory);
+    document.getElementById('bc-gift-items-add')?.addEventListener('click', async function () {
+        if (typeof _loadQuestItemCatalog === 'function') { await _loadQuestItemCatalog(); _addItemRow('bc-gift-items-rows', '', 1); }
+    });
     _initBcEmailSearch();
 
     // User Stats tab

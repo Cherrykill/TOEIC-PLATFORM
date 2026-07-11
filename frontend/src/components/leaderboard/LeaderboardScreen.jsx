@@ -5,6 +5,7 @@ import { RankingsAPI } from '@api/rankings.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
 import { frameStyle } from '@game/frames.js';
 import { resolveAvatarSrc } from '@game/avatars.js';
+import { authHeaders } from '@/auth/token.js';
 
 export default function LeaderboardScreen({ active }) {
     const { showScreen } = useGame();
@@ -16,6 +17,7 @@ export default function LeaderboardScreen({ active }) {
     const [search, setSearch] = useState('');
     const [fallbackNotice, setFallbackNotice] = useState('');
     const [selected, setSelected] = useState(null);  // entry để hiện popup chi tiết
+    const [likeInfo, setLikeInfo] = useState({ liked: false, count: 0, busy: false });
 
     // ESC để đóng popup
     useEffect(() => {
@@ -24,6 +26,35 @@ export default function LeaderboardScreen({ active }) {
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
     }, [selected]);
+
+    // Lấy trạng thái like khi mở popup người chơi.
+    useEffect(() => {
+        if (!selected) return;
+        const targetId = selected.id || selected.userId;
+        if (!targetId) return;
+        let alive = true;
+        setLikeInfo({ liked: false, count: 0, busy: false });
+        fetch(`/api/user/like/${targetId}`, { headers: authHeaders() })
+            .then(r => r.json())
+            .then(res => { if (alive && res.success) setLikeInfo({ liked: !!res.liked, count: res.likeCount || 0, busy: false }); })
+            .catch(() => {});
+        return () => { alive = false; };
+    }, [selected]);
+
+    async function toggleLike(targetId) {
+        if (!targetId || likeInfo.busy) return;
+        setLikeInfo(li => ({ ...li, busy: true }));
+        try {
+            const res = await fetch(`/api/user/like/${targetId}`, { method: 'POST', headers: authHeaders() }).then(r => r.json());
+            if (res.success) {
+                setLikeInfo(li => ({
+                    liked: !!res.liked,
+                    count: typeof res.likeCount === 'number' ? res.likeCount : Math.max(0, li.count + (res.liked ? 1 : -1)),
+                    busy: false,
+                }));
+            } else setLikeInfo(li => ({ ...li, busy: false }));
+        } catch { setLikeInfo(li => ({ ...li, busy: false })); }
+    }
 
     async function copyId(id) {
         if (!id) return;
@@ -207,6 +238,18 @@ export default function LeaderboardScreen({ active }) {
                             <button className="player-popup-copy" onClick={() => copyId(selected.id || selected.userId)} title="Sao chép ID">
                                 <i className="fas fa-copy"></i>
                             </button>
+                            {String(selected.id || selected.userId) !== String(GameState.state.user?.id || GameState.state.user?._id) && (
+                                <button
+                                    className="player-popup-copy player-popup-like"
+                                    onClick={() => toggleLike(selected.id || selected.userId)}
+                                    disabled={likeInfo.busy}
+                                    title={likeInfo.liked ? 'Bỏ thích' : 'Thích'}
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: likeInfo.liked ? '#ef4444' : undefined }}
+                                >
+                                    <i className="fas fa-heart"></i>
+                                    <span style={{ fontSize: '0.8em', fontWeight: 700 }}>{likeInfo.count}</span>
+                                </button>
+                            )}
                         </div>
                         <div className="player-popup-stats">
                             <div className="player-stat">
