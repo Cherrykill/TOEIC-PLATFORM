@@ -11,13 +11,8 @@ const achievementDefinitionSchema = new mongoose.Schema(
         name: { type: String, required: true, trim: true },
         description: { type: String, default: '' },
         icon: { type: String, default: '' },
-        category: {
-            type: String,
-            // Khớp với 5 tab hiển thị frontend: learning→Học tập,
-            // practice/speed/skill→Luyện tập, social→Xã hội, streak→Đặc biệt.
-            enum: ['learning', 'practice', 'streak', 'skill', 'speed', 'social'],
-            required: true,
-        },
+        // Tham chiếu Category.key (domain 'achievement') — admin tự quản, không enum cứng.
+        category: { type: String, required: true, trim: true },
 
         conditionType: { type: String, required: true },
         conditionValue: { type: Number, required: true },

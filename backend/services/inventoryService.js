@@ -1,6 +1,7 @@
 const InventoryItem = require('../models/InventoryItem');
 const ItemDefinition = require('../models/ItemDefinition');
 const UserProfile = require('../models/UserProfile');
+const UserStats = require('../models/UserStats');
 
 /**
  * InventoryService — MỘT CỬA duy nhất cho túi đồ. Mọi nơi (shop, reward, quest,
@@ -24,6 +25,14 @@ async function getInventory(userId) {
 async function grant(userId, itemId, quantity = 1, opts = {}) {
     const def = await ItemDefinition.findOne({ itemId }).lean();
     if (!def) throw new Error(`Unknown item: ${itemId}`);
+
+    // Vật phẩm "tài nguyên" (hint/shield/time-freeze) lưu ở counter UserStats,
+    // KHÔNG phải inventory_items → định tuyến về đúng field. Nhờ vậy mọi kênh
+    // (shop/quest/spin/gift) cấp bằng itemId đều cộng đúng, không tạo row rác.
+    if (def.effect?.type === 'resource' && def.effect.field) {
+        await UserStats.updateOne({ userId }, { $inc: { [def.effect.field]: quantity } });
+        return { resource: def.effect.field, quantity };
+    }
 
     const set = {};
     if (opts.source) set.source = opts.source;

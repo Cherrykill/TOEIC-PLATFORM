@@ -38,6 +38,7 @@ export default function InventoryWardrobe() {
     const [equipped, setEquipped] = useState({});
     const [selected, setSelected] = useState(null);
     const [busy, setBusy] = useState(false);
+    const [defMap, setDefMap] = useState({}); // itemId → catalog def (lấy ảnh/icon/tên)
 
     const reload = async () => {
         const res = await InventoryAPI.get();
@@ -45,6 +46,14 @@ export default function InventoryWardrobe() {
         setEquipped(res.equipped || GameState.state?.equipped || {});
     };
     useEffect(() => { reload(); }, []);
+    // Catalog để hint/shield/time-freeze (từ UserStats, không có definition) lấy được ảnh.
+    useEffect(() => {
+        InventoryAPI.items().then(res => {
+            const map = {};
+            (res.data || []).forEach(d => { map[d.itemId] = d; });
+            setDefMap(map);
+        });
+    }, []);
 
     const r = GameState.state?.resources || {};
     const b = GameState.state?.boosts || {};
@@ -78,11 +87,19 @@ export default function InventoryWardrobe() {
                 }));
         }
         if (cat === 'consumable') {
-            // Từ UserStats (hint/shield/timeFreeze)
-            const fromStats = Object.entries(CONSUMABLE_META).map(([id, m]) => ({
-                id, kind: 'consumable', name: m.name, icon: m.icon, color: m.color, desc: m.desc,
-                count: r[m.field] || 0,
-            })).filter(x => x.count > 0);
+            // Từ UserStats (hint/shield/timeFreeze) — lấy ảnh/icon/tên từ catalog nếu có.
+            const fromStats = Object.entries(CONSUMABLE_META).map(([id, m]) => {
+                const d = defMap[id] || {};
+                return {
+                    id, kind: 'consumable',
+                    name: d.name || m.name,
+                    icon: d.icon || m.icon,
+                    image: d.image || '',
+                    color: m.color,
+                    desc: d.description || m.desc,
+                    count: r[m.field] || 0,
+                };
+            }).filter(x => x.count > 0);
             // Từ inventory (vd vé quay) — các consumable không nằm trong UserStats
             const known = new Set(Object.keys(CONSUMABLE_META));
             const fromInv = inv
@@ -116,7 +133,7 @@ export default function InventoryWardrobe() {
         if (xp) list.push({ id: 'xp', kind: 'boost', name: `x${b.xp.multiplier} XP`, icon: 'fa-bolt', color: '#8b5cf6', desc: 'Nhân đôi XP', left: xp });
         if (co) list.push({ id: 'coins', kind: 'boost', name: `x${b.coins.multiplier} Coins`, icon: 'fa-coins', color: '#f59e0b', desc: 'Nhân đôi Coins', left: co });
         return list;
-    }, [cat, inv, equipped, r, b, now]);
+    }, [cat, inv, equipped, r, b, now, defMap]);
 
     const equip = async (item) => {
         if (busy || item.equipped) return;

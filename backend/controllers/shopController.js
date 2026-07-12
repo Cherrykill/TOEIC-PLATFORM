@@ -7,12 +7,20 @@
 // these from here now.
 
 const jwt = require('jsonwebtoken');
-const ShopItem = require('../models/ShopItem');
 const UserStats = require('../models/UserStats');
 const logger = require('../utils/logger');
 const { applyShopEffect } = require('../services/shopEffects');
 const Inventory = require('../services/inventoryService');
 const Transaction = require('../models/Transaction');
+const ItemDefinition = require('../models/ItemDefinition');
+const ChannelConfig = require('../models/ChannelConfig');
+
+// Cửa hàng đọc THẲNG từ catalog (item_definitions): sản phẩm = item đã xuất bản,
+// có giá (>0), thuộc danh mục mà kênh 'shop' đã chọn. Engine mua giữ nguyên.
+async function shopCategories() {
+    const cfg = await ChannelConfig.findOne({ channel: 'shop' }).lean();
+    return cfg?.categories || [];
+}
 
 // Grant vật phẩm inventory từ effect (đệ quy qua combo). Dùng chung: shop + quest.
 async function grantItemsFromEffect(userId, effect, source = 'shop') {
@@ -24,6 +32,26 @@ async function grantItemsFromEffect(userId, effect, source = 'shop') {
     }
 }
 
+// Đơn giá sau giảm (1 đơn vị). Tổng giá 1 gói = perUnit × quantity.
+function unitPriceAfterDiscount(item) {
+    return item.discountPercent > 0
+        ? Math.floor(item.price * (1 - item.discountPercent / 100))
+        : item.price;
+}
+
+// Hết hạn "lười": tới hạn thì tự áp afterExpiry (persist DB). Trả về item đã điều chỉnh
+// (published/discountPercent/saleEndsAt) để dùng ngay. Không hết hạn → trả nguyên.
+async function resolveExpiry(item) {
+    if (!item.saleEndsAt || Date.now() < new Date(item.saleEndsAt).getTime()) return item;
+    if (item.afterExpiry === 'revert') {
+        await ItemDefinition.updateOne({ _id: item._id }, { $set: { discountPercent: 0, saleEndsAt: null } });
+        return { ...item, discountPercent: 0, saleEndsAt: null };
+    }
+    // 'unpublish' — đóng xuất bản
+    await ItemDefinition.updateOne({ _id: item._id }, { $set: { published: false, saleEndsAt: null } });
+    return { ...item, published: false, saleEndsAt: null };
+}
+
 // Vật phẩm giới hạn theo chu kỳ: itemId → số ngày phải chờ giữa 2 lần mua.
 // (Cũng tôn trọng item.cooldownDays nếu được đặt trong DB.)
 const COOLDOWN_DAYS = { 'shields-pack': 7 };
@@ -33,7 +61,23 @@ const VIP_BOOST_CARDS = 3;
 
 exports.getShopItems = async (req, res, next) => {
     try {
-        const items = await ShopItem.find({ isActive: true }).sort({ order: 1 }).lean();
+        const cats = await shopCategories();
+        let items = cats.length
+            ? await ItemDefinition.find({
+                published: true, isActive: true,
+                price: { $gt: 0 }, category: { $in: cats },
+            }).sort({ order: 1 }).lean()
+            : [];
+
+        // Áp hết hạn "lười": item tới hạn → tự unpublish/revert. Bỏ item vừa bị unpublish.
+        items = (await Promise.all(items.map(resolveExpiry))).filter(it => it.published !== false);
+
+        // Đính tổng giá gói (quantity × đơn giá sau giảm) để client hiển thị.
+        items = items.map(it => ({
+            ...it,
+            unitPrice: unitPriceAfterDiscount(it),
+            totalPrice: unitPriceAfterDiscount(it) * (it.quantity || 1),
+        }));
 
         // Route /items công khai (không bắt buộc đăng nhập). Nếu có token hợp lệ
         // thì đọc cooldown của user để client vô hiệu hoá nút + đếm ngược.
@@ -62,6 +106,20 @@ exports.getShopItems = async (req, res, next) => {
             return { ...it, cooldownDays: days, nextAvailableAt };
         });
 
+        // Ảnh CATALOG thắng: item bán 1 vật phẩm (effect type 'item') → lấy ảnh từ
+        // ItemDefinition. Vật phẩm chỉ set ảnh 1 chỗ (Catalog), thẻ shop tự khớp.
+        const grantIds = [...new Set(withCd.map(it => it.effect?.type === 'item' && it.effect.itemId).filter(Boolean))];
+        if (grantIds.length) {
+            const defs = await ItemDefinition.find({ itemId: { $in: grantIds } }).select('itemId image').lean();
+            const dmap = new Map(defs.map(d => [d.itemId, d]));
+            withCd.forEach(it => {
+                if (it.effect?.type === 'item' && it.effect.itemId) {
+                    const img = dmap.get(it.effect.itemId)?.image;
+                    if (img) it.image = img; // catalog thắng ảnh shop
+                }
+            });
+        }
+
         res.json({ success: true, items: withCd });
     } catch (error) {
         logger.error('Error in getShopItems:', error);
@@ -74,8 +132,10 @@ exports.purchaseItem = async (req, res, next) => {
         const { itemId } = req.body;
         if (!itemId) return res.status(400).json({ success: false, message: 'Item ID is required' });
 
-        const item = await ShopItem.findOne({ itemId, isActive: true }).lean();
+        let item = await ItemDefinition.findOne({ itemId, isActive: true, published: true, price: { $gt: 0 } }).lean();
         if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
+        item = await resolveExpiry(item); // tới hạn khuyến mãi → unpublish/revert ngay
+        if (item.published === false) return res.status(410).json({ success: false, message: 'Sản phẩm đã hết hạn bày bán' });
 
         const stats = await UserStats.findOne({ userId: req.user.id });
         if (!stats) return res.status(404).json({ success: false, message: 'User not found' });
@@ -83,9 +143,12 @@ exports.purchaseItem = async (req, res, next) => {
         // Giới hạn mua theo chu kỳ (vd Gói Khiên Bảo Vệ: 1 lần/tuần).
         const cooldownDays = item.cooldownDays || COOLDOWN_DAYS[itemId] || 0;
 
-        // Số lượng mua (1–99). Vật phẩm có cooldown → ép về 1.
+        // Số gói mua (1–99). Vật phẩm có cooldown → ép về 1.
         let quantity = Math.max(1, Math.min(99, parseInt(req.body.quantity, 10) || 1));
         if (cooldownDays > 0) quantity = 1;
+        // Số đơn vị/gói (bundle) → tổng đơn vị nhận = bundle × số gói. Nhân cả giá lẫn đồ.
+        const bundle = item.quantity || 1;
+        const units = bundle * quantity;
         if (cooldownDays > 0) {
             const last = stats.shopCooldowns?.get(itemId);
             if (last) {
@@ -101,10 +164,9 @@ exports.purchaseItem = async (req, res, next) => {
             }
         }
 
-        const unitPrice = item.discountPercent > 0
-            ? Math.floor(item.price * (1 - item.discountPercent / 100))
-            : item.price;
-        const totalPrice = unitPrice * quantity;
+        // Tổng giá = đơn giá sau giảm × tổng đơn vị (bundle × số gói).
+        const unitPrice = unitPriceAfterDiscount(item);
+        const totalPrice = unitPrice * units;
 
         if (item.currency === 'coins' && stats.coins < totalPrice) {
             return res.status(400).json({ success: false, message: 'Not enough coins' });
@@ -116,8 +178,8 @@ exports.purchaseItem = async (req, res, next) => {
         if (item.currency === 'coins') stats.coins -= totalPrice;
         else stats.gems -= totalPrice;
 
-        // Áp hiệu ứng theo số lượng (consumable cộng dồn; VIP cộng dồn hạn).
-        for (let i = 0; i < quantity; i++) applyShopEffect(stats, item.effect);
+        // Áp hiệu ứng theo TỔNG đơn vị (consumable cộng dồn; VIP cộng dồn hạn).
+        for (let i = 0; i < units; i++) applyShopEffect(stats, item.effect);
 
         // Ghi mốc thời gian mua để áp cooldown cho lần sau.
         if (cooldownDays > 0) {
@@ -127,11 +189,22 @@ exports.purchaseItem = async (req, res, next) => {
 
         await stats.save();
 
-        // Grant vật phẩm inventory theo số lượng (effect type 'item' / combo) — vd Vé quay.
+        // Grant vật phẩm inventory theo TỔNG đơn vị (effect type 'item' / combo) — vd Vé quay.
         try {
-            for (let i = 0; i < quantity; i++) await grantItemsFromEffect(req.user.id, item.effect);
+            for (let i = 0; i < units; i++) await grantItemsFromEffect(req.user.id, item.effect);
         } catch (e) {
             logger.error('Grant inventory item failed:', e.message);
+        }
+
+        // Vật phẩm con (combo mới) — grant child.quantity × tổng đơn vị.
+        if (Array.isArray(item.children) && item.children.length) {
+            try {
+                for (const c of item.children) {
+                    if (c.itemId) await Inventory.grant(req.user.id, c.itemId, (c.quantity || 1) * units, { source: 'shop' });
+                }
+            } catch (e) {
+                logger.error('Grant combo children failed:', e.message);
+            }
         }
 
         // VIP → grant + tự trang bị nền cosmetic (hạn = VIP). Best-effort:
@@ -169,22 +242,26 @@ exports.purchaseItem = async (req, res, next) => {
             logger.error('Transaction log failed:', e.message);
         }
 
+        // Đọc lại tài nguyên SAU khi grant (item 'resource' như hint/shield được
+        // cộng qua Inventory.grant → updateOne, không nằm trên `stats` in-memory).
+        const fresh = await UserStats.findOne({ userId: req.user.id })
+            .select('coins gems energy hints shields timeFreezes').lean() || stats;
+
         res.json({
             success: true,
             message: 'Item purchased successfully',
             // Trả về ĐẦY ĐỦ tài nguyên sau khi áp hiệu ứng, để client đồng bộ
-            // local — tránh save() sau đó ghi đè số cũ làm mất đồ vừa mua
-            // (vd khiên: DB +3 nhưng local cũ → saveState ghi đè về 0).
+            // local — tránh save() sau đó ghi đè số cũ làm mất đồ vừa mua.
             data: {
                 item,
                 transaction: txn,
                 newBalance: {
-                    coins: stats.coins,
-                    gems: stats.gems,
-                    energy: stats.energy,
-                    hints: stats.hints,
-                    shields: stats.shields,
-                    timeFreezes: stats.timeFreezes,
+                    coins: fresh.coins,
+                    gems: fresh.gems,
+                    energy: fresh.energy,
+                    hints: fresh.hints,
+                    shields: fresh.shields,
+                    timeFreezes: fresh.timeFreezes,
                 },
             },
         });

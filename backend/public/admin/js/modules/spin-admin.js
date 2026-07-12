@@ -3,7 +3,8 @@
   const hdr = () => ({ Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' });
   const TYPES = ['coins', 'gems', 'xp', 'energy', 'hints', 'item'];
   let inited = false;
-  let CATALOG = []; // [{ itemId, name }] cho type='item'
+  let CATALOG = []; // [{ itemId, name, image }] cho type='item'
+  const catImg = (id) => (CATALOG.find(c => c.itemId === id) || {}).image || '';
 
   const inp = (cls, val, w, extra = '') =>
     `<input class="${cls}" value="${String(val ?? '').replace(/"/g, '&quot;')}" ${extra}
@@ -19,14 +20,13 @@
 
   function rowHtml(p) {
     const opts = TYPES.map(t => `<option value="${t}"${p.type === t ? ' selected' : ''}>${t}</option>`).join('');
-    const imgUrl = (p.image || '').replace(/"/g, '&quot;');
+    const initImg = (p.type === 'item' ? catImg(p.itemId) : '').replace(/"/g, '&quot;');
     return `<tr>
       <td><input type="color" class="sc-color" value="${p.color || '#888888'}" style="width:34px;height:30px;padding:2px;border:1px solid var(--border-color);border-radius:5px;cursor:pointer"></td>
       <td>${inp('sc-icon', p.icon || '🎁', 44)}</td>
-      <td>
-        <input type="hidden" class="sc-image" value="${imgUrl}">
-        <img class="sc-img-preview" ${p.image ? `src="${imgUrl}"` : ''} style="width:30px;height:30px;object-fit:cover;border-radius:5px;vertical-align:middle;${p.image ? '' : 'display:none'}">
-        <input type="file" class="sc-img-file" accept="image/*" style="width:86px;font-size:10px">
+      <td style="text-align:center">
+        <img class="sc-img-preview" ${initImg ? `src="${initImg}"` : ''} style="width:30px;height:30px;object-fit:cover;border-radius:5px;vertical-align:middle;${initImg ? '' : 'display:none'}">
+        <div class="sc-img-note" style="font-size:9px;color:var(--text-secondary)">${p.type === 'item' ? 'từ item' : 'icon'}</div>
       </td>
       <td>${inp('sc-label', p.label || '', 110)}</td>
       <td><select class="sc-type" style="padding:5px;border:1px solid var(--border-color);border-radius:5px;background:var(--bg-secondary);color:var(--text-primary)">${opts}</select><br>${itemSelect(p)}</td>
@@ -42,40 +42,28 @@
     if (el) { el.textContent = msg; el.style.color = ok ? '#22c55e' : '#ef4444'; }
   }
 
-  // Upload ảnh cho từng phần thưởng (lưu vào /uploads/spin/).
-  function bindImageUploads() {
-    document.querySelectorAll('#spin-config-rows .sc-img-file').forEach(inpf => {
-      inpf.onchange = async () => {
-        const file = inpf.files && inpf.files[0];
-        if (!file) return;
-        const fd = new FormData();
-        fd.append('image', file);
-        setStatus('Đang tải ảnh...', true);
-        try {
-          const r = await fetch(`${API_URL}/admin/upload-image?role=spin`, {
-            method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd,
-          });
-          const j = await r.json();
-          if (j.success) {
-            const td = inpf.closest('td');
-            td.querySelector('.sc-image').value = j.url;
-            const img = td.querySelector('.sc-img-preview');
-            img.src = j.url; img.style.display = '';
-            setStatus('✅ Đã tải ảnh', true);
-          } else setStatus('❌ ' + (j.message || 'Lỗi tải ảnh'), false);
-        } catch (e) { setStatus('❌ ' + e.message, false); }
-        inpf.value = '';
-      };
-    });
+  // Ảnh prize kiểu 'item' lấy TỪ CATALOG (không tải riêng). Cập nhật preview theo item chọn.
+  function updatePreview(tr) {
+    const type = tr.querySelector('.sc-type').value;
+    const id = tr.querySelector('.sc-itemid')?.value || '';
+    const img = tr.querySelector('.sc-img-preview');
+    const note = tr.querySelector('.sc-img-note');
+    const src = type === 'item' ? catImg(id) : '';
+    if (src) { img.src = src; img.style.display = ''; } else { img.removeAttribute('src'); img.style.display = 'none'; }
+    if (note) note.textContent = type === 'item' ? 'từ item' : 'icon';
   }
 
-  // Hiện/ẩn ô chọn item khi đổi Loại.
-  function bindTypeToggles() {
-    document.querySelectorAll('#spin-config-rows .sc-type').forEach(sel => {
-      sel.onchange = () => {
-        const idSel = sel.parentElement.querySelector('.sc-itemid');
-        if (idSel) idSel.style.display = sel.value === 'item' ? 'inline-block' : 'none';
+  // Hiện/ẩn ô chọn item khi đổi Loại + đồng bộ preview ảnh.
+  function bindRowToggles() {
+    document.querySelectorAll('#spin-config-rows tr').forEach(tr => {
+      const typeSel = tr.querySelector('.sc-type');
+      const idSel = tr.querySelector('.sc-itemid');
+      const onChange = () => {
+        if (idSel) idSel.style.display = typeSel.value === 'item' ? 'inline-block' : 'none';
+        updatePreview(tr);
       };
+      if (typeSel) typeSel.onchange = onChange;
+      if (idSel) idSel.onchange = onChange;
     });
   }
 
@@ -83,7 +71,7 @@
     try {
       const r = await fetch(`${API_URL}/inventory/items`);
       const j = await r.json();
-      CATALOG = (j.success ? j.data : []).map(d => ({ itemId: d.itemId, name: d.name }));
+      CATALOG = (j.success ? j.data : []).map(d => ({ itemId: d.itemId, name: d.name, image: d.image || '' }));
     } catch (_) { CATALOG = []; }
   }
 
@@ -97,7 +85,7 @@
       const cc = document.getElementById('spin-cost-coin'); if (cc) cc.value = cfg.costs?.coin ?? 100;
       const cg = document.getElementById('spin-cost-gem'); if (cg) cg.value = cfg.costs?.gem ?? 5;
       const tbody = document.getElementById('spin-config-rows');
-      if (tbody) { tbody.innerHTML = (cfg.prizes || []).map(rowHtml).join(''); bindTypeToggles(); bindImageUploads(); }
+      if (tbody) { tbody.innerHTML = (cfg.prizes || []).map(rowHtml).join(''); bindRowToggles(); }
     } catch (_) {}
   }
 
@@ -109,7 +97,7 @@
       return {
         color: tr.querySelector('.sc-color').value,
         icon: tr.querySelector('.sc-icon').value,
-        image: tr.querySelector('.sc-image')?.value || '',
+        image: '', // ảnh item lấy từ catalog khi hiển thị — không lưu ảnh riêng
         label: tr.querySelector('.sc-label').value,
         type,
         itemId: type === 'item' ? (tr.querySelector('.sc-itemid')?.value || '') : '',

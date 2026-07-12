@@ -3,7 +3,7 @@
   let inited = false;
 
   const fmt = (n) => (n || 0).toLocaleString('vi-VN');
-  const SRC = { purchase: 'Cửa hàng', exchange: 'Đổi tiền', spin: 'Vòng quay', quest: 'Nhiệm vụ', achievement: 'Thành tích', gift: 'Quà thông báo', extend: 'Gia hạn từ vựng', other: 'Khác' };
+  const SRC = { purchase: 'Cửa hàng', exchange: 'Đổi tiền', spin: 'Vòng quay', quest: 'Nhiệm vụ', achievement: 'Thành tích', gift: 'Quà thông báo', extend: 'Gia hạn từ vựng', practice: 'Luyện tập', checkin: 'Điểm danh', toeic: 'Bài TOEIC', other: 'Khác' };
 
   function card(title, cur, d) {
     const c = cur === 'coins' ? '🪙' : '💎';

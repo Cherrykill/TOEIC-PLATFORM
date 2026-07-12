@@ -4,6 +4,7 @@ const ToeicAttempt = require('../models/ToeicAttempt');
 const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
 const { getScoreInterpretation } = require('../utils/toeicScoreConverter');
+const { logTxn } = require('../utils/economyLog');
 
 // ===================================
 // TEST TAKING
@@ -421,6 +422,8 @@ exports.submitAttempt = async (req, res, next) => {
             if (attempt.gemsEarned > 0) toeicStats.gems += attempt.gemsEarned;
             if (toeicProfile) applyLevelUp(toeicProfile, toeicStats);
             await Promise.all([toeicStats.save(), toeicProfile?.save()]);
+            if (attempt.coinsEarned) logTxn(req.user.id, { type: 'toeic', direction: 'in', name: 'Thưởng bài TOEIC', amount: attempt.coinsEarned, currency: 'coins', balanceAfter: toeicStats.coins });
+            if (attempt.gemsEarned)  logTxn(req.user.id, { type: 'toeic', direction: 'in', name: 'Thưởng bài TOEIC', amount: attempt.gemsEarned, currency: 'gems', balanceAfter: toeicStats.gems });
         }
 
         await attempt.save();

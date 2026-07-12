@@ -53,18 +53,18 @@ function drawWheel(canvas, rotationDeg, prizes = PRIZES, imgs = {}) {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(start + Math.PI / n);
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 3;
+        // Chỉ hiển thị ẢNH (hoặc icon emoji) — không còn chữ nhãn.
         const img = prize.image ? imgs[prize.image] : null;
         if (img && img.complete && img.naturalWidth) {
-            const size = 22;
-            ctx.drawImage(img, R - 10 - size, -size / 2, size, size);
-            ctx.fillText(prize.label, R - 10 - size - 4, 5);
+            const size = 42;
+            ctx.drawImage(img, R - 18 - size, -size / 2, size, size);
         } else {
-            ctx.fillText(prize.icon + ' ' + prize.label, R - 10, 5);
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.font = '32px sans-serif';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 3;
+            ctx.fillText(prize.icon, R - 18, 0);
         }
         ctx.restore();
     });

@@ -134,7 +134,7 @@ async function openAchievementModal(data) {
     document.getElementById('ach-gems').value = data.rewardGems || 0;
     document.getElementById('ach-order').value = data.order || 0;
     document.getElementById('ach-active').checked = data.isActive !== false;
-    await _loadQuestItemCatalog();
+    await _loadRewardCatalog('achievement');
     _renderItemRows('ach-items-rows', data.rewardItems || []);
     document.getElementById('achievement-modal').style.display = 'flex';
 }
@@ -167,7 +167,7 @@ function initAchievementModal() {
     if (btnCancel) btnCancel.addEventListener('click', function() { document.getElementById('achievement-modal').style.display = 'none'; });
 
     const btnAddItem = document.getElementById('ach-items-add');
-    if (btnAddItem) btnAddItem.addEventListener('click', async function() { await _loadQuestItemCatalog(); _addItemRow('ach-items-rows', '', 1); });
+    if (btnAddItem) btnAddItem.addEventListener('click', async function() { await _loadRewardCatalog('achievement'); _addItemRow('ach-items-rows', '', 1); });
 
     const form = document.getElementById('achievement-form');
     if (form) form.addEventListener('submit', async function(e) {
@@ -286,7 +286,7 @@ async function openQuestModal(data) {
     document.getElementById('quest-xp').value = data.rewardXp || 0;
     document.getElementById('quest-coins').value = data.rewardCoins || 0;
     document.getElementById('quest-active').checked = data.isActive !== false;
-    await _loadQuestItemCatalog();
+    await _loadRewardCatalog('quest');
     _renderItemRows('quest-items-rows', data.rewardItems || []);
     document.getElementById('quest-modal').style.display = 'flex';
 }
@@ -302,11 +302,32 @@ async function _loadQuestItemCatalog() {
     } catch (_) { QUEST_ITEM_CATALOG = []; }
     return QUEST_ITEM_CATALOG;
 }
+// Catalog phần thưởng LỌC THEO KÊNH: chỉ item đã xuất bản & thuộc danh mục mà
+// kênh (quest/achievement) đã tick. Dùng /categories/channel/:channel.
+var _rewardCatalogByChannel = {};
+var _activeRewardCatalog = [];
+async function _loadRewardCatalog(channel) {
+    if (!_rewardCatalogByChannel[channel]) {
+        try {
+            var r = await fetch(API_URL + '/categories/channel/' + channel);
+            var j = await r.json();
+            var items = (j.success && j.data ? j.data.items : []) || [];
+            _rewardCatalogByChannel[channel] = items.map(function (d) { return { itemId: d.itemId, name: d.name }; });
+        } catch (_) { _rewardCatalogByChannel[channel] = []; }
+    }
+    _activeRewardCatalog = _rewardCatalogByChannel[channel];
+    return _activeRewardCatalog;
+}
 function _questItemOptions(selected) {
     var opts = '<option value="">— chọn vật phẩm —</option>';
-    (QUEST_ITEM_CATALOG || []).forEach(function (c) {
-        opts += '<option value="' + c.itemId + '"' + (c.itemId === selected ? ' selected' : '') + '>' + c.name + ' (' + c.itemId + ')</option>';
+    var found = false;
+    (_activeRewardCatalog || []).forEach(function (c) {
+        var sel = c.itemId === selected;
+        if (sel) found = true;
+        opts += '<option value="' + c.itemId + '"' + (sel ? ' selected' : '') + '>' + c.name + ' (' + c.itemId + ')</option>';
     });
+    // Item đã lưu nhưng nay không thuộc danh mục kênh → vẫn giữ để không mất dữ liệu.
+    if (selected && !found) opts += '<option value="' + selected + '" selected>' + selected + ' (ngoài danh mục)</option>';
     return opts;
 }
 // Builder chung (dùng cho Nhiệm vụ + Thành tích): wrapId là id của container dòng.
@@ -368,7 +389,7 @@ function initQuestModal() {
     if (btnCancel) btnCancel.addEventListener('click', function() { document.getElementById('quest-modal').style.display = 'none'; });
 
     const btnAddItem = document.getElementById('quest-items-add');
-    if (btnAddItem) btnAddItem.addEventListener('click', async function() { await _loadQuestItemCatalog(); _addItemRow('quest-items-rows', '', 1); });
+    if (btnAddItem) btnAddItem.addEventListener('click', async function() { await _loadRewardCatalog('quest'); _addItemRow('quest-items-rows', '', 1); });
 
     const form = document.getElementById('quest-form');
     if (form) form.addEventListener('submit', async function(e) {
@@ -408,6 +429,22 @@ function initQuestModal() {
 // SHOP ITEMS CRUD
 // ============================================================
 var SHOP_CAT = { energy:'⚡ Năng lượng', resource:'🎒 Tài nguyên', boost:'🚀 Tăng tốc', exchange:'💱 Đổi gems', bundle:'🎁 Combo', vip:'👑 VIP' };
+
+// Danh mục shop động (từ Category) → đổ vào select #shop-category + map nhãn bảng.
+var SHOP_CATS = null;
+async function _loadShopCatSelect(selected) {
+    if (!SHOP_CATS) {
+        try { var r = await fetch(API_URL + '/categories?domain=shop'); var j = await r.json(); SHOP_CATS = j.success ? j.data : []; }
+        catch (_) { SHOP_CATS = []; }
+        SHOP_CATS.forEach(function (c) { SHOP_CAT[c.key] = (c.icon || '') + ' ' + c.label; });
+    }
+    var sel = document.getElementById('shop-category');
+    if (!sel) return;
+    sel.innerHTML = (SHOP_CATS || []).map(function (c) {
+        return '<option value="' + c.key + '">' + (c.icon || '') + ' ' + c.label + '</option>';
+    }).join('');
+    if (selected) sel.value = selected;
+}
 
 function _shopPriceHtml(d) {
     var icon = d.currency === 'gems' ? '💎' : '🪙';
@@ -570,7 +607,8 @@ function _shopBuildEffect(category) {
         case 'energy':
             return { type: 'energy', amount: Number(document.getElementById('eff-energy-amount').value) };
         case 'resource':
-            return { type: document.getElementById('eff-res-type').value, amount: Number(document.getElementById('eff-res-amount').value) };
+            // Tham chiếu vật phẩm catalog (hint/shield/time-freeze) → grant định tuyến về counter.
+            return { type: 'item', itemId: document.getElementById('eff-res-type').value, amount: Number(document.getElementById('eff-res-amount').value) };
         case 'boost':
             return { type: 'boost', boostType: document.getElementById('eff-boost-type').value,
                      multiplier: Number(document.getElementById('eff-boost-mult').value),
@@ -605,10 +643,13 @@ function _shopFillEffectFields(category, effect) {
         case 'energy':
             document.getElementById('eff-energy-amount').value = effect.amount || 100;
             break;
-        case 'resource':
-            document.getElementById('eff-res-type').value   = effect.type || 'hints';
+        case 'resource': {
+            // effect mới = {type:'item', itemId}; cũ = {type:'hints'/'shield'/'timeFreeze'}.
+            var legacy = { hints: 'hint', shield: 'shield', timeFreeze: 'time-freeze' };
+            document.getElementById('eff-res-type').value   = effect.itemId || legacy[effect.type] || 'hint';
             document.getElementById('eff-res-amount').value = effect.amount || 10;
             break;
+        }
         case 'boost':
             document.getElementById('eff-boost-type').value  = effect.boostType || 'xp';
             document.getElementById('eff-boost-mult').value  = effect.multiplier || 2;
@@ -648,7 +689,7 @@ async function openShopModal(data) {
     document.getElementById('shop-active').checked        = data.isActive !== false;
 
     var category = data.category || 'resource';
-    document.getElementById('shop-category').value = category;
+    await _loadShopCatSelect(category); // đổ danh mục động từ Category
     _shopShowEffectSection(category);
     _shopFillEffectFields(category, data.effect || null);
     _shopUpdatePricePreview();
@@ -667,11 +708,15 @@ function _shopSetImage(url) {
     else { img.removeAttribute('src'); img.style.display = 'none'; }
 }
 
-// Gợi ý thư mục lưu theo danh mục (cosmetic → background/frame; còn lại → item).
+// Danh mục Giao diện (bán vật phẩm catalog) → ẩn ô ảnh, ảnh lấy từ Catalog.
 function _shopSyncImageRole(category) {
     var sel = document.getElementById('shop-image-role');
-    if (!sel) return;
-    sel.value = category === 'cosmetic' ? 'background' : 'item';
+    if (sel) sel.value = category === 'cosmetic' ? 'background' : 'item';
+    var isItem = category === 'cosmetic';
+    var row = document.getElementById('shop-image-row');
+    var note = document.getElementById('shop-image-fromcatalog');
+    if (row) row.style.display = isItem ? 'none' : '';
+    if (note) note.style.display = isItem ? '' : 'none';
 }
 
 // Upload 1 ảnh lên server theo role → trả url.

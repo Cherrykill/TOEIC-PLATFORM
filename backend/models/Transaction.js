@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const transactionSchema = new mongoose.Schema(
     {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-        type: { type: String, enum: ['purchase', 'exchange', 'spin', 'quest', 'achievement', 'gift', 'extend', 'other'], default: 'purchase' },
+        type: { type: String, enum: ['purchase', 'exchange', 'spin', 'quest', 'achievement', 'gift', 'extend', 'practice', 'checkin', 'toeic', 'other'], default: 'purchase' },
         // Hướng dòng tiền: 'out' = tiêu (sink), 'in' = nhận (faucet). Dùng cho bảng kinh tế.
         direction: { type: String, enum: ['in', 'out'], default: 'out' },
         name: { type: String, required: true },       // vd "Mua Gói Gợi Ý ×3"

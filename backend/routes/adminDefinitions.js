@@ -7,16 +7,19 @@ const ShopItem = require('../models/ShopItem');
 const ItemDefinition = require('../models/ItemDefinition');
 const Transaction = require('../models/Transaction');
 const UserStats = require('../models/UserStats');
+const Category = require('../models/Category');
+const ChannelConfig = require('../models/ChannelConfig');
 const adminCtrl = require('../controllers/adminController');
-const { uploadShopImage, SHOP_IMAGE_ROLES } = require('../middleware/upload');
+const { uploadShopImage, sanitizeRole } = require('../middleware/upload');
+const { removeIfOrphan } = require('../utils/uploadCleanup');
 
 const admin = [protect, authorize('admin')];
 
-// ── Upload ảnh cosmetic/shop/vòng quay (lưu theo role-folder) ────────
-// POST /api/admin/upload-image?role=background|avatar|frame|item|spin  (field: image)
+// ── Upload ảnh vật phẩm — lưu theo KEY danh mục (role = category, vd consumable). ──
+// POST /api/admin/upload-image?role=<category-key>  (field: image). Folder tự tạo.
 router.post('/upload-image', admin, uploadShopImage.single('image'), (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'Thiếu file ảnh' });
-    const role = SHOP_IMAGE_ROLES.includes(req.query.role) ? req.query.role : 'item';
+    const role = sanitizeRole(req.query.role);
     const url = `/uploads/${role}/${req.file.filename}`;
     res.json({ success: true, url, role });
 });
@@ -141,12 +144,15 @@ router.put('/shop-items/:id', admin, async (req, res) => {
         if (fields.discountPercent !== undefined) fields.discountPercent = Number(fields.discountPercent) || 0;
         if (fields.price !== undefined) fields.price = Number(fields.price);
         if (fields.order !== undefined) fields.order = Number(fields.order);
+        const before = await ShopItem.findById(req.params.id).select('image').lean();
         const data = await ShopItem.findByIdAndUpdate(
             req.params.id,
             { $set: fields },
             { new: true, runValidators: true }
         );
         if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+        // Đổi ảnh → xoá file cũ nếu không còn ai dùng (chống rác tích luỹ).
+        if (before?.image && before.image !== data.image) removeIfOrphan(before.image);
         res.json({ success: true, message: 'Đã cập nhật item', data });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
@@ -156,6 +162,7 @@ router.put('/shop-items/:id', admin, async (req, res) => {
 router.delete('/shop-items/:id', admin, async (req, res) => {
     const data = await ShopItem.findByIdAndDelete(req.params.id);
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+    if (data.image) removeIfOrphan(data.image);
     res.json({ success: true, message: 'Đã xóa item' });
 });
 
@@ -199,6 +206,32 @@ router.get('/economy', admin, async (req, res) => {
     }
 });
 
+// ── Danh mục (shop/quest/achievement) — CRUD ────────────────
+router.get('/categories', admin, async (req, res) => {
+    const q = req.query.domain ? { domain: req.query.domain } : {};
+    const data = await Category.find(q).sort({ domain: 1, order: 1 }).lean();
+    res.json({ success: true, data });
+});
+router.post('/categories', admin, async (req, res) => {
+    try {
+        const data = await Category.create(req.body);
+        res.status(201).json({ success: true, message: 'Đã tạo danh mục', data });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+router.put('/categories/:id', admin, async (req, res) => {
+    try {
+        const { _id, __v, domain, key, ...fields } = req.body; // không đổi domain/key
+        const data = await Category.findByIdAndUpdate(req.params.id, { $set: fields }, { new: true, runValidators: true });
+        if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+        res.json({ success: true, message: 'Đã cập nhật danh mục', data });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+router.delete('/categories/:id', admin, async (req, res) => {
+    const data = await Category.findByIdAndDelete(req.params.id);
+    if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, message: 'Đã xóa danh mục' });
+});
+
 // ── Catalog vật phẩm (item_definitions) — CRUD ───────────────
 router.get('/item-defs', admin, async (req, res) => {
     const data = await ItemDefinition.find().sort({ order: 1, itemId: 1 }).lean();
@@ -209,8 +242,13 @@ router.get('/item-defs/:id', admin, async (req, res) => {
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
     res.json({ success: true, data });
 });
+// Suy `type` từ category — avatar/background/frame → cosmetic_* (giữ logic trang bị theo slot).
+const COSMETIC_TYPE = { avatar: 'cosmetic_avatar', background: 'cosmetic_background', frame: 'cosmetic_frame' };
+const deriveType = (category) => COSMETIC_TYPE[category] || 'item';
+
 router.post('/item-defs', admin, async (req, res) => {
     try {
+        req.body.type = deriveType(req.body.category);
         const data = await ItemDefinition.create(req.body);
         res.status(201).json({ success: true, message: 'Đã tạo vật phẩm', data });
     } catch (err) {
@@ -220,10 +258,13 @@ router.post('/item-defs', admin, async (req, res) => {
 router.put('/item-defs/:id', admin, async (req, res) => {
     try {
         const { itemId, _id, __v, ...fields } = req.body;
+        if (fields.category !== undefined) fields.type = deriveType(fields.category); // đồng bộ type theo category
         if (fields.durationSec !== undefined) fields.durationSec = Number(fields.durationSec) || 0;
         if (fields.order !== undefined) fields.order = Number(fields.order) || 0;
+        const before = await ItemDefinition.findById(req.params.id).select('image').lean();
         const data = await ItemDefinition.findByIdAndUpdate(req.params.id, { $set: fields }, { new: true, runValidators: true });
         if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+        if (before?.image && before.image !== data.image) removeIfOrphan(before.image);
         res.json({ success: true, message: 'Đã cập nhật vật phẩm', data });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
@@ -232,6 +273,7 @@ router.put('/item-defs/:id', admin, async (req, res) => {
 router.delete('/item-defs/:id', admin, async (req, res) => {
     const data = await ItemDefinition.findByIdAndDelete(req.params.id);
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+    if (data.image) removeIfOrphan(data.image);
     res.json({ success: true, message: 'Đã xóa vật phẩm' });
 });
 
@@ -351,6 +393,36 @@ router.get('/ai-usage', admin, async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// ===== Channel config: mỗi kênh chọn danh mục vật phẩm nào để hiển thị =====
+const VALID_CHANNELS = ['shop', 'spin', 'quest', 'achievement'];
+
+router.get('/channel-config/:channel', admin, async (req, res) => {
+    try {
+        const { channel } = req.params;
+        if (!VALID_CHANNELS.includes(channel)) return res.status(400).json({ success: false, message: 'Kênh không hợp lệ' });
+        const cfg = await ChannelConfig.findOne({ channel }).lean();
+        res.json({ success: true, data: { channel, categories: cfg?.categories || [] } });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+router.put('/channel-config/:channel', admin, async (req, res) => {
+    try {
+        const { channel } = req.params;
+        if (!VALID_CHANNELS.includes(channel)) return res.status(400).json({ success: false, message: 'Kênh không hợp lệ' });
+        const categories = Array.isArray(req.body.categories) ? req.body.categories.map(String) : [];
+        const cfg = await ChannelConfig.findOneAndUpdate(
+            { channel },
+            { $set: { categories } },
+            { new: true, upsert: true }
+        );
+        res.json({ success: true, message: 'Đã lưu danh mục kênh', data: { channel, categories: cfg.categories } });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
     }
 });
 

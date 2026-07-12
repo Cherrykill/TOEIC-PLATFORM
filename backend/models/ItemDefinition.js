@@ -13,18 +13,36 @@ const itemDefinitionSchema = new mongoose.Schema(
         // Ảnh vật phẩm — ưu tiên hơn icon khi hiển thị (túi đồ, vòng quay…).
         image: { type: String, default: '' },
 
-        type: {
-            type: String,
-            enum: [
-                'consumable',            // hint, shield, time-freeze
-                'boost',                 // x2 XP/Coins có hạn
-                'cosmetic_background',   // nền hồ sơ / leaderboard
-                'cosmetic_avatar',
-                'cosmetic_frame',
-                'currency',              // (không dùng cho ví chính; dự phòng)
-            ],
-            required: true,
+        // Danh mục (Category.key domain 'item') — GỐC phân loại: các kênh
+        // (cửa hàng / vòng quay / nhiệm vụ / thành tích) lọc/hiển thị theo đây.
+        category: { type: String, default: '', trim: true },
+
+        // Giá & giảm giá — NGUỒN DUY NHẤT. Cửa hàng lấy thẳng giá này (không tự đặt);
+        // vòng quay tính kiểu riêng (trọng số), không dùng giá. price=0 ⇒ không bán.
+        // Giá theo GÓI: price = giá gốc 1 đơn vị, quantity = số đơn vị trong gói.
+        // Tổng giá = quantity × price × (1 − discountPercent/100). Mua 1 gói → nhận
+        // quantity đơn vị (nhân cả hiệu ứng lẫn vật phẩm con).
+        price: { type: Number, default: 0 },
+        quantity: { type: Number, default: 1, min: 1 },
+        currency: { type: String, enum: ['coins', 'gems'], default: 'coins' },
+        discountPercent: { type: Number, default: 0, min: 0, max: 100 }, // % giảm (0 = không giảm)
+        // Hết hạn khuyến mãi/listing: tới hạn thì tự áp `afterExpiry` (đánh giá lười khi đọc/mua).
+        saleEndsAt: { type: Date, default: null },
+        afterExpiry: { type: String, enum: ['unpublish', 'revert'], default: 'unpublish' },
+        // Giới hạn mua theo chu kỳ (ngày). 0 = không giới hạn. (vd Gói Khiên: 7)
+        cooldownDays: { type: Number, default: 0 },
+        // Vật phẩm con (combo) — mua grant tất cả con × quantity. Grant qua Inventory.
+        children: {
+            type: [new mongoose.Schema(
+                { itemId: { type: String, required: true, trim: true }, quantity: { type: Number, default: 1, min: 1 } },
+                { _id: false }
+            )],
+            default: [],
         },
+
+        // Nhãn kỹ thuật — KHÔNG nhập tay nữa; tự suy từ category (cosmetic_* cho
+        // avatar/background/frame để giữ logic trang bị theo slot). Mặc định 'item'.
+        type: { type: String, default: 'item', trim: true },
         rarity: {
             type: String,
             enum: ['common', 'rare', 'epic', 'legendary'],
@@ -50,6 +68,9 @@ const itemDefinitionSchema = new mongoose.Schema(
         effect: { type: mongoose.Schema.Types.Mixed, default: {} },
 
         tradable: { type: Boolean, default: false }, // dự phòng tương lai
+        // Xuất bản: chỉ item published=true mới được các kênh (cửa hàng/vòng quay/
+        // nhiệm vụ/thành tích) hiển thị ra giao diện. isActive vẫn là công tắc "sống/chết".
+        published: { type: Boolean, default: true },
         isActive: { type: Boolean, default: true },
         order: { type: Number, default: 0 },
     },

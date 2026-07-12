@@ -9,6 +9,7 @@ import { Config } from '@game/config.js';
 import { GameState } from '@game/state.js';
 import CheckinModal from '@components/checkin/CheckinModal.jsx';
 import { CheckinAPI } from '@api/checkin.js';
+import { showRewardPopup } from '@ui/RewardPopup.jsx';
 
 // Nhãn hiển thị cho vật phẩm thưởng (itemId → emoji + tên). Thêm item mới thì
 // bổ sung 1 dòng ở đây (khớp item_definitions.itemId).
@@ -143,18 +144,19 @@ export default function QuestScreen({ active }) {
         if (!code || claimedCodes.has(code) || claimingRef.current.has(code)) return;
         claimingRef.current.add(code);
 
+        const items = quest.rewardItems || quest.reward?.items || [];
         const reward = {
             coins: quest.rewardCoins || quest.reward?.coins || 0,
             xp:    quest.rewardXp    || quest.reward?.xp    || 0,
             gems:  quest.rewardGems  || quest.reward?.gems  || 0,
         };
 
-        // OPTIMISTIC: phản hồi NGAY (nút "Đã nhận" + thưởng + âm thanh + thông
-        // báo), không đợi 3 round-trip mạng (save → flush → claim) → hết delay.
+        // OPTIMISTIC: phản hồi NGAY (nút "Đã nhận" + thưởng + âm thanh + popup),
+        // không đợi 3 round-trip mạng (save → flush → claim) → hết delay.
         setClaimedCodes(prev => new Set([...prev, code]));
         GameState.creditServerRewards(reward);
         Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
-        Notification.success('Nhận thưởng thành công!');
+        showRewardPopup({ subtitle: quest.name || quest.title, rewards: { ...reward, items } });
         syncFromState();
 
         // Đồng bộ server chạy nền; nếu thất bại thì HOÀN TÁC.
@@ -190,6 +192,7 @@ export default function QuestScreen({ active }) {
                             coins: q.rewardCoins || q.reward?.coins || 0,
                             xp:    q.rewardXp    || q.reward?.xp    || 0,
                             gems:  q.rewardGems  || q.reward?.gems  || 0,
+                            items: q.rewardItems || q.reward?.items || [],
                         },
                     });
                 }
@@ -212,12 +215,19 @@ export default function QuestScreen({ active }) {
             xp:    s.xp    + q.reward.xp,
             gems:  s.gems  + q.reward.gems,
         }), { coins: 0, xp: 0, gems: 0 });
+        // Gom vật phẩm theo itemId (cộng dồn số lượng) để hiện 1 popup tổng.
+        const itemMap = new Map();
+        toClaim.forEach(q => (q.reward.items || []).forEach(it => {
+            const prev = itemMap.get(it.itemId) || { ...it, quantity: 0 };
+            itemMap.set(it.itemId, { ...prev, quantity: prev.quantity + (it.quantity || 1) });
+        }));
+        const totalItems = [...itemMap.values()];
         const codes = toClaim.map(q => q.code);
 
         setClaimedCodes(prev => new Set([...prev, ...codes]));
         GameState.creditServerRewards(total);
         Utils.playSound(Config.sounds.quest, 0.6, { ignoreSettings: true });
-        Notification.success(`Đã nhận thưởng ${toClaim.length} nhiệm vụ!`);
+        showRewardPopup({ subtitle: `Đã nhận ${toClaim.length} nhiệm vụ`, rewards: { ...total, items: totalItems } });
         syncFromState();
 
         // Đồng bộ server chạy NỀN (tuần tự để tránh đụng save/flush). Quest nào

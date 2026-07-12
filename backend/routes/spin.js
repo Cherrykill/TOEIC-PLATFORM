@@ -4,11 +4,51 @@ const { protect, authorize } = require('../middleware/auth');
 const UserSpin = require('../models/UserSpin');
 const UserStats = require('../models/UserStats');
 const SpinConfig = require('../models/SpinConfig');
+const ItemDefinition = require('../models/ItemDefinition');
+const ChannelConfig = require('../models/ChannelConfig');
 const Inventory = require('../services/inventoryService');
 const logger = require('../utils/logger');
 const { logTxn } = require('../utils/economyLog');
 
 const SPIN_TICKET = 'spin-ticket';
+
+// Cổng lọc: prize kiểu 'item' chỉ SỐNG nếu item đã xuất bản & danh mục thuộc
+// danh mục kênh 'spin' đã tick. Tiền tệ (coins/gems/xp/energy/hints) luôn giữ.
+// Cache TTL 30s để admin đổi published/danh mục là áp dụng nhanh, không cần restart.
+let _gate = { at: 0, cats: null, itemMap: null };
+async function getGate() {
+    if (_gate.cats && Date.now() - _gate.at < 30000) return _gate;
+    const [cfg, items] = await Promise.all([
+        ChannelConfig.findOne({ channel: 'spin' }).lean(),
+        ItemDefinition.find({}, 'itemId published category image').lean(),
+    ]);
+    _gate = {
+        at: Date.now(),
+        cats: new Set(cfg?.categories || []),
+        itemMap: new Map(items.map(i => [i.itemId, i])),
+    };
+    return _gate;
+}
+
+// publicPrize + resolve ẢNH cho prize kiểu 'item' TỪ CATALOG (không dùng ảnh tải riêng).
+// Tiền tệ dùng icon → không ảnh.
+async function publicPrizesResolved(prizes) {
+    const { itemMap } = await getGate();
+    return prizes.map(p => {
+        const base = publicPrize(p);
+        base.image = (p.type === 'item' && p.itemId) ? (itemMap.get(p.itemId)?.image || '') : '';
+        return base;
+    });
+}
+async function livePrizes(prizes) {
+    const { cats, itemMap } = await getGate();
+    const live = prizes.filter(p => {
+        if (p.type !== 'item') return true;
+        const it = itemMap.get(p.itemId);
+        return it && it.published !== false && cats.has(it.category);
+    });
+    return live.length ? live : prizes; // đề phòng lọc sạch → giữ nguyên
+}
 
 const admin = [protect, authorize('admin')];
 
@@ -74,7 +114,7 @@ router.get('/status', protect, async (req, res) => {
             gems: stats?.gems || 0,
             tickets,
             costs: cfg.costs,
-            prizes: cfg.prizes.map(publicPrize),
+            prizes: await publicPrizesResolved(await livePrizes(cfg.prizes)),
         });
     } catch (err) {
         logger.error('Spin status error:', err);
@@ -93,7 +133,7 @@ router.post('/', protect, async (req, res) => {
             getCfg(),
         ]);
         const cost = cfg.costs;
-        const prizes = cfg.prizes;
+        const prizes = await livePrizes(cfg.prizes); // cùng danh sách với /status
 
         if (mode === 'free') {
             if (spin?.lastSpinAt) {
@@ -169,7 +209,8 @@ router.post('/', protect, async (req, res) => {
         }
 
         const nextSpinAt = mode === 'free' ? new Date(Date.now() + msUntilMidnight()) : null;
-        res.json({ success: true, prizeIndex, prize: publicPrize(prize), mode, nextSpinAt });
+        const [prizeResolved] = await publicPrizesResolved([prize]);
+        res.json({ success: true, prizeIndex, prize: prizeResolved, mode, nextSpinAt });
     } catch (err) {
         logger.error('Spin error:', err);
         res.status(500).json({ success: false, message: 'Lỗi quay thưởng' });

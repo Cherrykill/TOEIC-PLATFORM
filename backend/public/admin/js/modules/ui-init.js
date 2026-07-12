@@ -43,6 +43,7 @@ function initMainTabs() {
         quests:              'Quản lý Nhiệm vụ',
         shop:                'Quản lý Cửa hàng',
         items:               'Catalog vật phẩm (item_definitions)',
+        categories:          'Danh mục (Cửa hàng / Thành tích / Nhiệm vụ)',
         spin:                'Vòng quay — Phần thưởng & tỷ lệ',
         economy:             'Bảng kinh tế (faucet / sink)',
         monitor:             'Giám sát hệ thống',
@@ -88,14 +89,20 @@ function initMainTabs() {
             loadReportStats();
         } else if (tab === 'achievements') {
             loadAchievements();
+            window.initChannelCatPicker?.('achievement');
         } else if (tab === 'quests') {
             loadQuests();
+            window.initChannelCatPicker?.('quest');
         } else if (tab === 'shop') {
             loadShopItems();
-        } else if (tab === 'items') {
-            window.loadItemDefs?.();
+            window.initChannelCatPicker?.('shop');
         } else if (tab === 'spin') {
             window.initSpinAdmin?.();
+            window.initChannelCatPicker?.('spin');
+        } else if (tab === 'items') {
+            window.loadItemDefs?.();
+        } else if (tab === 'categories') {
+            window.loadCategories?.();
         } else if (tab === 'economy') {
             window.loadEconomy?.();
         } else if (tab === 'monitor') {

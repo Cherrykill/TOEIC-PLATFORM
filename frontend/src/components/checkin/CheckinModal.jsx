@@ -6,6 +6,7 @@ import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { showRewardPopup } from '@ui/RewardPopup.jsx';
 
 const DAY_LABELS = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
 
@@ -61,8 +62,18 @@ export default function CheckinModal({ open, onClose }) {
         const res = await CheckinAPI.claim();
         if (res.success) {
             Utils.playSound?.(Config.sounds?.achievement, 0.6, { ignoreSettings: true });
-            GameState.creditServerRewards(res.data?.reward || {});
-            Notification.success(`Điểm danh thành công! ${res.data?.reward?.label || ''}`);
+            const rw = res.data?.reward || {};
+            GameState.creditServerRewards(rw);
+            showRewardPopup({
+                title: '📅 Điểm danh thành công',
+                subtitle: rw.label,
+                rewards: {
+                    coins: rw.coins || (rw.type === 'coins' ? rw.amount : 0),
+                    xp:    rw.xp    || (rw.type === 'xp'    ? rw.amount : 0),
+                    gems:  rw.gems  || (rw.type === 'gems'  ? rw.amount : 0),
+                    items: rw.items || [],
+                },
+            });
             syncFromState();
             // Báo cho badge hamburger (useMenuBadges) tính lại — điểm danh hôm
             // nay đã nhận nên +1 "đến hạn điểm danh" phải biến mất.

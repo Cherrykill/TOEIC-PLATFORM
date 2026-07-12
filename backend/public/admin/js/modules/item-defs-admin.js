@@ -2,6 +2,64 @@
 // Dùng chung ô upload ảnh với shop (POST /admin/upload-image?role=...).
 (function () {
   let ALL = [];
+  let ITEM_CATS = null; // danh mục domain 'item' (đổ vào #itemdef-category)
+
+  async function fillCategorySelect(selected) {
+    const sel = document.getElementById('itemdef-category');
+    if (!sel) return;
+    if (!ITEM_CATS) {
+      try { const r = await fetch(`${API_URL}/categories?domain=item`); const j = await r.json(); ITEM_CATS = j.success ? j.data : []; }
+      catch (_) { ITEM_CATS = []; }
+    }
+    sel.innerHTML = '<option value="">— Chưa phân loại —</option>' +
+      ITEM_CATS.map(c => `<option value="${c.key}">${c.icon || ''} ${c.label}</option>`).join('');
+    sel.value = selected || '';
+  }
+
+  // ── Vật phẩm con (combo) ──
+  const childOptions = (sel) => '<option value="">— chọn vật phẩm —</option>' +
+    ALL.map(d => `<option value="${d.itemId}" ${d.itemId === sel ? 'selected' : ''}>${d.name} (${d.itemId})</option>`).join('');
+  function addChildRow(itemId, qty) {
+    const wrap = document.getElementById('itemdef-children');
+    const row = document.createElement('div');
+    row.className = 'itemdef-child-row';
+    row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px';
+    row.innerHTML = `<select class="child-id" style="flex:1;padding:7px;border:1.5px solid var(--border-color);border-radius:6px">${childOptions(itemId || '')}</select>
+      <input type="number" class="child-qty" min="1" value="${qty || 1}" style="width:80px;padding:7px;border:1.5px solid var(--border-color);border-radius:6px">
+      <button type="button" class="btn btn-sm child-del" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5"><i class="fas fa-times"></i></button>`;
+    row.querySelector('.child-del').onclick = () => row.remove();
+    wrap.appendChild(row);
+  }
+  function renderChildren(children) {
+    const wrap = document.getElementById('itemdef-children');
+    wrap.innerHTML = '';
+    (children || []).forEach(c => addChildRow(c.itemId, c.quantity || 1));
+  }
+  const collectChildren = () => [...document.querySelectorAll('#itemdef-children .itemdef-child-row')]
+    .map(r => ({ itemId: r.querySelector('.child-id').value, quantity: Number(r.querySelector('.child-qty').value) || 1 }))
+    .filter(c => c.itemId);
+
+  // Tổng giá = floor(giá × (1−giảm%)) × số lượng.
+  function updateTotal() {
+    const q = Number(document.getElementById('itemdef-quantity').value) || 1;
+    const p = Number(document.getElementById('itemdef-price').value) || 0;
+    const d = Number(document.getElementById('itemdef-discount').value) || 0;
+    const cur = document.getElementById('itemdef-currency').value === 'gems' ? '💎' : '🪙';
+    document.getElementById('itemdef-total-price').textContent = `${Math.floor(p * (1 - d / 100)) * q} ${cur}`;
+  }
+  // Thư mục lưu ảnh = key danh mục (rỗng → item).
+  function updateRoleHint() {
+    const cat = document.getElementById('itemdef-category')?.value || 'item';
+    const hint = document.getElementById('itemdef-image-role-hint');
+    if (hint) hint.textContent = `/uploads/${cat}/`;
+  }
+
+  // Date → giá trị input datetime-local (giờ địa phương).
+  const toLocalInput = (iso) => {
+    if (!iso) return '';
+    const dt = new Date(iso); const pad = n => String(n).padStart(2, '0');
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+  };
 
   const iconCell = (d) => {
     if (d.image) return `<img src="${d.image}" alt="" style="width:30px;height:30px;object-fit:contain;border-radius:6px">`;
@@ -30,8 +88,8 @@
     if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:20px">Không có vật phẩm</td></tr>'; return; }
     tbody.innerHTML = rows.map(d => `<tr>
       <td style="text-align:center">${iconCell(d)}</td>
-      <td><strong>${d.name || ''}</strong><br><small style="color:var(--text-secondary);font-family:monospace">${d.itemId}</small></td>
-      <td><span class="badge neutral">${d.type}</span></td>
+      <td><strong>${d.name || ''}</strong> ${d.published === false ? '<span class="badge neutral" title="Chưa xuất bản — kênh không hiển thị">🚫 nháp</span>' : ''}<br><small style="color:var(--text-secondary);font-family:monospace">${d.itemId}</small></td>
+      <td><span class="badge neutral">${d.type}</span>${d.category ? `<br><small style="color:var(--text-secondary)">📁 ${d.category}</small>` : ''}${d.price ? `<br><small style="color:var(--warning,#d97706)">${d.currency === 'gems' ? '💎' : '🪙'} ${d.price}${d.discountPercent ? ` −${d.discountPercent}%` : ''}</small>` : ''}</td>
       <td>${d.rarity || 'common'}</td>
       <td style="font-size:12px">${fmtDuration(d)}</td>
       <td>${d.order || 0}</td>
@@ -85,7 +143,16 @@
     const idInp = document.getElementById('itemdef-item-id');
     idInp.value = data.itemId || '';
     idInp.readOnly = isEdit; idInp.style.opacity = isEdit ? '0.6' : '1';
-    document.getElementById('itemdef-type').value = data.type || 'consumable';
+    fillCategorySelect(data.category || '');
+    updateRoleHint();
+    document.getElementById('itemdef-price').value = data.price || 0;
+    document.getElementById('itemdef-quantity').value = data.quantity || 1;
+    document.getElementById('itemdef-currency').value = data.currency || 'coins';
+    document.getElementById('itemdef-discount').value = data.discountPercent || 0;
+    document.getElementById('itemdef-sale-ends').value = toLocalInput(data.saleEndsAt);
+    document.getElementById('itemdef-after-expiry').value = data.afterExpiry || 'unpublish';
+    renderChildren(data.children);
+    updateTotal();
     document.getElementById('itemdef-rarity').value = data.rarity || 'common';
     document.getElementById('itemdef-duration-type').value = data.durationType || 'permanent';
     document.getElementById('itemdef-duration-sec').value = data.durationSec || 0;
@@ -95,6 +162,7 @@
     document.getElementById('itemdef-stackable').checked = data.stackable !== false;
     document.getElementById('itemdef-tradable').checked = !!data.tradable;
     document.getElementById('itemdef-active').checked = data.isActive !== false;
+    document.getElementById('itemdef-published').checked = data.published !== false;
     setImage(data.image || '');
     document.getElementById('itemdef-modal').style.display = 'flex';
   }
@@ -104,12 +172,16 @@
     document.getElementById('btn-itemdef-cancel')?.addEventListener('click', () => { document.getElementById('itemdef-modal').style.display = 'none'; });
     document.getElementById('itemdef-search')?.addEventListener('input', render);
     document.getElementById('itemdef-filter-type')?.addEventListener('change', render);
+    document.getElementById('itemdef-add-child')?.addEventListener('click', () => addChildRow('', 1));
+    document.getElementById('itemdef-category')?.addEventListener('change', updateRoleHint);
+    ['itemdef-quantity', 'itemdef-price', 'itemdef-discount', 'itemdef-currency'].forEach(id =>
+      document.getElementById(id)?.addEventListener('input', updateTotal));
 
     // Upload ảnh
     document.getElementById('itemdef-image-file')?.addEventListener('change', async function () {
       const file = this.files && this.files[0];
       if (!file) return;
-      const role = document.getElementById('itemdef-image-role').value || 'item';
+      const role = document.getElementById('itemdef-category').value || 'item';
       const fd = new FormData(); fd.append('image', file);
       showToast('Đang tải ảnh...', 'info');
       try {
@@ -134,7 +206,15 @@
         description: document.getElementById('itemdef-desc').value.trim(),
         icon: document.getElementById('itemdef-icon').value.trim(),
         image: document.getElementById('itemdef-image').value.trim(),
-        type: document.getElementById('itemdef-type').value,
+        category: document.getElementById('itemdef-category').value,
+        price: Number(document.getElementById('itemdef-price').value) || 0,
+        quantity: Number(document.getElementById('itemdef-quantity').value) || 1,
+        currency: document.getElementById('itemdef-currency').value,
+        discountPercent: Number(document.getElementById('itemdef-discount').value) || 0,
+        saleEndsAt: document.getElementById('itemdef-sale-ends').value
+          ? new Date(document.getElementById('itemdef-sale-ends').value).toISOString() : null,
+        afterExpiry: document.getElementById('itemdef-after-expiry').value,
+        children: collectChildren(),
         rarity: document.getElementById('itemdef-rarity').value,
         stackable: document.getElementById('itemdef-stackable').checked,
         tradable: document.getElementById('itemdef-tradable').checked,
@@ -142,6 +222,7 @@
         durationSec: Number(document.getElementById('itemdef-duration-sec').value) || 0,
         order: Number(document.getElementById('itemdef-order').value) || 0,
         isActive: document.getElementById('itemdef-active').checked,
+        published: document.getElementById('itemdef-published').checked,
       };
       if (effect !== undefined) payload.effect = effect;
       const url = id ? `${API_URL}/admin/item-defs/${id}` : `${API_URL}/admin/item-defs`;

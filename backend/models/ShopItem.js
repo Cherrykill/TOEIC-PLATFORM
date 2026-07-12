@@ -13,11 +13,8 @@ const shopItemSchema = new mongoose.Schema(
         icon: { type: String, default: '' },
         // Ảnh vật phẩm — nếu có sẽ ưu tiên hiển thị thay cho icon (emoji/FA).
         image: { type: String, default: '' },
-        category: {
-            type: String,
-            enum: ['energy', 'resource', 'boost', 'exchange', 'bundle', 'vip', 'cosmetic'],
-            required: true,
-        },
+        // Tham chiếu Category.key (domain 'shop') — admin tự quản, không enum cứng.
+        category: { type: String, required: true, trim: true },
         price: { type: Number, required: true },
         currency: { type: String, enum: ['coins', 'gems'], required: true },
         discountPercent: { type: Number, default: 0, min: 0, max: 100 },

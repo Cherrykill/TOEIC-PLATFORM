@@ -309,6 +309,7 @@ app.use('/api/reports', require('./routes/reports')); // User reports / feedback
 app.use('/api/topics', require('./routes/topics'));   // Vocabulary topic/dataset management
 app.use('/api/upload', require('./routes/uploadRoutes')); // User vocabulary uploads with admin management
 app.use('/api/admin', require('./routes/adminDefinitions')); // Achievement + Quest definitions (admin)
+app.use('/api/categories', require('./routes/categories')); // Danh mục (public GET để dựng tab)
 app.use('/api/admin/db', require('./routes/adminDb'));       // MongoDB collection manager (admin)
 app.use('/api/quests', require('./routes/quests'));          // Quest system (daily/weekly/monthly/special)
 app.use('/api/checkin', require('./routes/checkin'));        // Weekly check-in (điểm danh hằng tuần)

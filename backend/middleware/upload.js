@@ -141,9 +141,13 @@ const uploadAvatar = multer({
 // ===================================
 const SHOP_IMAGE_ROLES = ['background', 'avatar', 'frame', 'item', 'spin'];
 
+// Role = thư mục lưu ảnh, nay khớp KEY danh mục (consumable/boost/…). Sanitize để
+// chỉ nhận ký tự an toàn cho tên folder; rỗng → 'item'. Folder tự tạo khi upload.
+const sanitizeRole = (r) => String(r || 'item').toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'item';
+
 const shopImageStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const role = SHOP_IMAGE_ROLES.includes(req.query.role) ? req.query.role : 'item';
+        const role = sanitizeRole(req.query.role);
         const dir = path.join(__dirname, '../public/uploads', role);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         cb(null, dir);
@@ -168,4 +172,5 @@ module.exports = {
     uploadAvatar,
     uploadShopImage,
     SHOP_IMAGE_ROLES,
+    sanitizeRole,
 };

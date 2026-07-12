@@ -6,6 +6,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "optimize-images": "node scripts/optimize-images.js",
+    "clean-uploads": "node scripts/clean-uploads.js",
     "seed": "node utils/seedDatabase.js",
     "seed:vocab": "node utils/seedVocabulary.js",
     "seed:vocab:dry": "node utils/seedVocabulary.js --dry-run",

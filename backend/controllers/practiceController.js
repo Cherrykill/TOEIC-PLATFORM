@@ -2,6 +2,7 @@ const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
 const PracticeSession = require('../models/PracticeSession');
 const { applyLevelUp } = require('../utils/userStateHelper');
+const { logTxn } = require('../utils/economyLog');
 
 const MAX_XP_PER_Q = 100;
 const MAX_COINS_PER_Q = 30;
@@ -194,6 +195,11 @@ exports.submitSession = async (req, res, next) => {
         }
 
         await Promise.all([profile.save(), stats.save()]);
+
+        // Log kinh tế: thưởng luyện tập (nguồn thu lớn nhất).
+        const rewardCoins = finalCoins + (levelUpResult.leveledUp ? levelUpResult.coinsReward : 0);
+        if (rewardCoins) logTxn(req.user.id, { type: 'practice', direction: 'in', name: 'Thưởng luyện tập', amount: rewardCoins, currency: 'coins', balanceAfter: stats.coins });
+        if (finalXp) logTxn(req.user.id, { type: 'practice', direction: 'in', name: 'Thưởng luyện tập', amount: finalXp, currency: 'xp', balanceAfter: stats.totalXp });
 
         const accuracy = questionsCount > 0 ? Math.round((correctAnswers / questionsCount) * 100) : 0;
         let performance = 'poor';

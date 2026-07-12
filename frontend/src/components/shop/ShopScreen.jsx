@@ -12,27 +12,40 @@ import ItemThumb from '@ui/ItemThumb.jsx';
 import { InventoryAPI } from '@api/inventory.js';
 import { authHeaders } from '@/auth/token.js';
 
-// Gộp 6 category trong DB thành 5 tab cho gọn. `cats` = các category map vào tab.
-const SHOP_TABS = [
-    { key: 'all',      label: 'Tất cả',   icon: 'fa-store' },
-    { key: 'items',    label: 'Vật phẩm', icon: 'fa-box',  cats: ['energy', 'resource'] },
-    { key: 'boost',    label: 'Tăng tốc', icon: 'fa-bolt', cats: ['boost'] },
-    { key: 'exchange', label: 'Quy đổi',  icon: 'fa-gem',  cats: ['exchange'] },
-    { key: 'cosmetic', label: 'Giao diện',icon: 'fa-shirt',cats: ['cosmetic'] },
-    { key: 'premium',  label: 'Gói & VIP',icon: 'fa-crown',cats: ['bundle', 'vip'] },
-];
+// Tab mặc định khi chưa tải được danh mục từ server.
+const DEFAULT_TABS = [{ key: 'all', label: 'Tất cả', icon: '🏪' }];
+
+// Icon danh mục có thể là FA class ('fa-store') hoặc emoji ('🏪').
+function CatIcon({ icon }) {
+    if (icon && icon.startsWith('fa-')) return <i className={`fas ${icon}`}></i>;
+    return <span>{icon || '🏷️'}</span>;
+}
 
 export default function ShopScreen({ active }) {
     const { showScreen, resources, syncFromState } = useGame();
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('all');
+    const [tabs, setTabs] = useState(DEFAULT_TABS); // danh mục động từ Category
     // itemId các cosmetic user đã sở hữu — để hiện "Đã mua" & khoá nút mua.
     const [ownedCosmetics, setOwnedCosmetics] = useState(() => new Set());
 
     useEffect(() => {
         if (active) { loadItems(); loadOwned(); }
     }, [active]);
+
+    // Danh mục shop = danh mục vật phẩm mà kênh 'shop' đã tick (admin tự quản). Tải 1 lần.
+    useEffect(() => {
+        fetch('/api/categories/channel/shop')
+            .then(r => r.json())
+            .then(res => {
+                const cats = res.success ? (res.data?.categories || []) : [];
+                if (cats.length) {
+                    setTabs([{ key: 'all', label: 'Tất cả', icon: '🏪' }, ...cats.map(c => ({ key: c.key, label: c.label, icon: c.icon }))]);
+                }
+            })
+            .catch(() => {});
+    }, []);
 
     async function loadOwned() {
         const res = await InventoryAPI.get().catch(() => null);
@@ -63,12 +76,14 @@ export default function ShopScreen({ active }) {
         setLoading(false);
     }
 
+    // Giá TỔNG của gói = đơn giá (sau giảm) × số lượng.
     function effectivePrice(item) {
+        const q = item.quantity || 1;
         if (item.discountPercent > 0) {
-            return Math.floor(item.price * (1 - item.discountPercent / 100));
+            return Math.floor(item.price * (1 - item.discountPercent / 100)) * q;
         }
         // Legacy: Config.shopItems có thể đặt originalPrice + price (price = sale).
-        return item.price;
+        return item.price * q;
     }
 
     async function handleBuy(item) {
@@ -131,11 +146,10 @@ export default function ShopScreen({ active }) {
         return resources.coins >= p;
     };
 
-    // Lọc theo tab đang chọn (client-side, dùng field category từ API).
-    const activeTabDef = SHOP_TABS.find(t => t.key === activeTab);
-    const visibleItems = (!activeTabDef || activeTab === 'all')
+    // Lọc theo tab đang chọn — mỗi tab = 1 danh mục (key === category).
+    const visibleItems = activeTab === 'all'
         ? items
-        : items.filter(it => activeTabDef.cats?.includes(it.category));
+        : items.filter(it => it.category === activeTab);
 
     // Túi đồ: bố cục tủ đồ (sidebar category + lưới + preview/trang bị).
     function openInventory() {
@@ -189,13 +203,13 @@ export default function ShopScreen({ active }) {
             </div>
 
             <div className="shop-tabs">
-                {SHOP_TABS.map(tab => (
+                {tabs.map(tab => (
                     <button
                         key={tab.key}
                         className={`shop-tab ${activeTab === tab.key ? 'active' : ''}`}
                         onClick={() => setActiveTab(tab.key)}
                     >
-                        <i className={`fas ${tab.icon}`}></i> {tab.label}
+                        <CatIcon icon={tab.icon} /> {tab.label}
                     </button>
                 ))}
             </div>
@@ -213,13 +227,12 @@ export default function ShopScreen({ active }) {
                     // → giá hiển thị bị gạch = item.price; giá sale = price*(1-%).
                     // (2) Legacy Config.shopItems set originalPrice + price
                     // (price là giá sale rồi). Ưu tiên (1) — khớp backend.
+                    const q = item.quantity || 1;
                     const adminDiscount = item.discountPercent > 0;
                     const legacyOriginal = item.originalPrice && item.originalPrice > item.price;
                     const onSale = adminDiscount || legacyOriginal;
-                    const originalPriceDisplay = adminDiscount ? item.price : item.originalPrice;
-                    const salePriceDisplay = adminDiscount
-                        ? Math.floor(item.price * (1 - item.discountPercent / 100))
-                        : item.price;
+                    const originalPriceDisplay = (adminDiscount ? item.price : item.originalPrice) * q;
+                    const salePriceDisplay = effectivePrice(item);
                     const discountPct = adminDiscount
                         ? item.discountPercent
                         : (legacyOriginal ? Math.round((1 - item.price / item.originalPrice) * 100) : 0);
@@ -249,9 +262,10 @@ export default function ShopScreen({ active }) {
                                     </>
                                 ) : (
                                     <>
-                                        <span className={`price-amount ${item.currency === 'gems' ? 'gems' : 'coins'}`}>{currIcon}{item.price}</span>
+                                        <span className={`price-amount ${item.currency === 'gems' ? 'gems' : 'coins'}`}>{currIcon}{effectivePrice(item)}</span>
                                     </>
                                 )}
+                                {q > 1 && <span className="shop-item-qty" style={{ fontSize: '11px', opacity: 0.7, marginLeft: 6 }}>×{q}</span>}
                             </div>
                             <button
                                 className={`buy-btn${disabled ? ' disabled' : ''}${owned ? ' owned' : ''}`}

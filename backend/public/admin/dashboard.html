@@ -5,10 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/admin/favicon-admin.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TOEIC Learning Platform - Admin Dashboard</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+    <!-- FontAwesome self-host (bỏ cdnjs → hết Tracking Prevention chặn) -->
+    <link rel="stylesheet" href="/admin/vendor/fontawesome/css/all.min.css?v=6.4.0" />
     <link rel="stylesheet" href="/admin/css/dashboard.css?v=15" />
     <style>
       /* Login modal */
@@ -339,6 +337,9 @@
               <i class="fas fa-chevron-down nav-arrow"></i>
             </div>
             <div class="nav-group-items" id="nav-group-game">
+              <a href="#" class="sidebar-link" data-main-tab="categories">
+                <i class="fas fa-tags"></i><span>Danh mục</span>
+              </a>
               <a href="#" class="sidebar-link" data-main-tab="items">
                 <i class="fas fa-cubes"></i><span>Vật phẩm (catalog)</span>
               </a>
@@ -1526,6 +1527,7 @@
 
           <!-- ===== ACHIEVEMENT DEFINITIONS TAB ===== -->
           <div id="main-tab-achievements" class="main-tab-content">
+            <div class="channel-cat-picker" data-channel="achievement"></div>
             <div class="card">
               <div class="card-header">
                 <h2><i class="fas fa-trophy"></i> Quản lý Thành tích</h2>
@@ -1568,6 +1570,7 @@
 
           <!-- ===== QUEST DEFINITIONS TAB ===== -->
           <div id="main-tab-quests" class="main-tab-content">
+            <div class="channel-cat-picker" data-channel="quest"></div>
             <div class="card">
               <div class="card-header">
                 <h2><i class="fas fa-tasks"></i> Quản lý Nhiệm vụ hàng ngày</h2>
@@ -1618,9 +1621,15 @@
 
           <!-- ===== SHOP ITEMS TAB ===== -->
           <div id="main-tab-shop" class="main-tab-content">
+            <div class="channel-cat-picker" data-channel="shop"></div>
+            <div class="card" style="border:1.5px solid #f59e0b;background:#fffbeb">
+              <div style="padding:12px 16px;font-size:13px;color:#92400e">
+                <b>⚠️ Khu vực cũ (chỉ để tham khảo).</b> Cửa hàng nay lấy sản phẩm từ <b>Catalog (tab Vật phẩm)</b> — chỉnh giá/giảm giá/xuất bản/danh mục ở đó, và chọn danh mục hiển thị bằng checkbox phía trên. Bảng dưới đây <b>không còn ảnh hưởng</b> tới cửa hàng thật.
+              </div>
+            </div>
             <div class="card">
               <div class="card-header">
-                <h2><i class="fas fa-store"></i> Quản lý Cửa hàng</h2>
+                <h2><i class="fas fa-store"></i> Quản lý Cửa hàng (cũ)</h2>
                 <div class="card-header-actions">
                   <button class="btn btn-success btn-sm" id="btn-add-shop-item">
                     <i class="fas fa-plus"></i> Thêm item
@@ -1668,6 +1677,31 @@
             </div>
           </div>
 
+          <!-- ===== DANH MỤC TAB ===== -->
+          <div id="main-tab-categories" class="main-tab-content">
+            <div class="card">
+              <div class="card-header">
+                <h2><i class="fas fa-tags"></i> Danh mục</h2>
+                <div class="card-header-actions">
+                  <select id="cat-domain" class="filter-select" style="width:auto">
+                    <option value="item">📦 Vật phẩm (gốc — các kênh lọc theo)</option>
+                    <option value="shop">🏪 Cửa hàng</option>
+                    <option value="achievement">🏆 Thành tích</option>
+                    <option value="quest">✅ Nhiệm vụ (chu kỳ — chỉ sửa nhãn/icon)</option>
+                  </select>
+                  <button class="btn btn-success btn-sm" id="btn-add-cat"><i class="fas fa-plus"></i> Thêm danh mục</button>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">💡 Shop/Thành tích thêm/xoá thoải mái. Nhiệm vụ chỉ nên đổi nhãn/icon/thứ tự (key gắn với logic chu kỳ).</div>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr><th>Icon</th><th>Nhãn</th><th>Key</th><th>Thứ tự</th><th>Bật</th><th>Thao tác</th></tr></thead>
+                  <tbody id="cat-tbody"><tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- ===== ITEM CATALOG TAB ===== -->
           <div id="main-tab-items" class="main-tab-content">
             <div class="card">
@@ -1704,6 +1738,7 @@
 
           <!-- ===== VÒNG QUAY TAB ===== -->
           <div id="main-tab-spin" class="main-tab-content">
+            <div class="channel-cat-picker" data-channel="spin"></div>
             <div class="card" style="margin-bottom:20px">
               <div class="card-header">
                 <h2><i class="fas fa-dharmachakra"></i> Vòng quay — Phần thưởng &amp; tỷ lệ</h2>
@@ -4250,7 +4285,10 @@
           </div>
 
           <!-- Row 1b: ảnh (ưu tiên hơn icon) -->
-          <div style="margin-bottom:12px">
+          <div id="shop-image-fromcatalog" style="display:none;margin-bottom:12px;padding:9px 12px;border:1px dashed var(--border-color);border-radius:8px;font-size:12px;color:var(--text-secondary)">
+            <i class="fas fa-circle-info"></i> Ảnh lấy từ <b>Catalog vật phẩm</b> — sửa ảnh ở tab Vật phẩm (catalog), thẻ shop tự khớp.
+          </div>
+          <div id="shop-image-row" style="margin-bottom:12px">
             <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Ảnh (tùy chọn — có ảnh sẽ ưu tiên hơn icon)</label>
             <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
               <img id="shop-image-preview" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border-color);display:none;background:#f1f5f9">
@@ -4337,12 +4375,12 @@
             <div id="effect-resource" class="effect-section" style="display:none;display:none">
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
                 <div>
-                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Loại tài nguyên</label>
+                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Vật phẩm (từ Catalog)</label>
                   <select id="eff-res-type"
                     style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-                    <option value="hints">💡 Gợi ý (hints)</option>
-                    <option value="shield">🛡️ Khiên (shields)</option>
-                    <option value="timeFreeze">⏸️ Dừng thời gian</option>
+                    <option value="hint">💡 Gợi ý (hint)</option>
+                    <option value="shield">🛡️ Khiên (shield)</option>
+                    <option value="time-freeze">⏸️ Dừng thời gian (time-freeze)</option>
                   </select>
                 </div>
                 <div>
@@ -4458,6 +4496,52 @@
       </div>
     </div>
 
+    <!-- Modal: Danh mục -->
+    <div id="cat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+      <div style="background:var(--bg-primary,white);border-radius:14px;padding:28px;max-width:480px;width:94%">
+        <h3 style="margin-bottom:20px;color:var(--primary)"><i class="fas fa-tag"></i> <span id="cat-modal-title">Thêm danh mục</span></h3>
+        <form id="cat-form">
+          <input type="hidden" id="cat-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Domain *</label>
+              <select id="cat-domain-f" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="item">item</option>
+                <option value="shop">shop</option>
+                <option value="achievement">achievement</option>
+                <option value="quest">quest</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Key (unique) *</label>
+              <input type="text" id="cat-key" required placeholder="vd: cosmetic" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:110px 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Icon (emoji/FA)</label>
+              <input type="text" id="cat-icon" placeholder="🎨 / fa-store" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;text-align:center">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Nhãn *</label>
+              <input type="text" id="cat-label" required placeholder="vd: Giao diện" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;align-items:center;margin-bottom:18px">
+            <div style="flex:0 0 120px">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Thứ tự</label>
+              <input type="number" id="cat-order" value="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+            <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;margin-top:18px"><input type="checkbox" id="cat-active" checked> đang bật</label>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px">
+            <button type="button" id="btn-cat-cancel" class="btn btn-secondary">Hủy</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Modal: Catalog vật phẩm (item_definitions) -->
     <div id="itemdef-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
       <div style="background:var(--bg-primary,white);border-radius:14px;padding:28px;max-width:620px;width:94%;max-height:92vh;overflow-y:auto">
@@ -4478,33 +4562,63 @@
             <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Ảnh (có ảnh sẽ ưu tiên hơn icon)</label>
             <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
               <img id="itemdef-image-preview" alt="" style="width:46px;height:46px;object-fit:contain;border-radius:8px;border:1.5px solid var(--border-color);display:none;background:#f1f5f9">
-              <select id="itemdef-image-role" title="Thư mục lưu theo vai trò" style="padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
-                <option value="item">📦 item</option>
-                <option value="background">🖼️ background</option>
-                <option value="frame">🔲 frame</option>
-                <option value="avatar">🙂 avatar</option>
-              </select>
               <input type="file" id="itemdef-image-file" accept="image/*" style="flex:1;font-size:13px">
               <button type="button" id="itemdef-image-clear" class="btn btn-sm btn-secondary" style="white-space:nowrap">Xóa ảnh</button>
             </div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Lưu vào thư mục theo danh mục: <b id="itemdef-image-role-hint">/uploads/item/</b></div>
             <input type="hidden" id="itemdef-image">
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Item ID (unique) *</label>
+            <input type="text" id="itemdef-item-id" required placeholder="vd: boost-xp-card" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace">
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Danh mục (dùng để cửa hàng / vòng quay / nhiệm vụ / thành tích lọc &amp; hiển thị)</label>
+            <select id="itemdef-category" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+              <option value="">— Chưa phân loại —</option>
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:0.7fr 1fr 1fr 0.8fr;gap:12px;margin-bottom:6px">
             <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Item ID (unique) *</label>
-              <input type="text" id="itemdef-item-id" required placeholder="vd: boost-xp-card" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Số lượng</label>
+              <input type="number" id="itemdef-quantity" min="1" value="1" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
             </div>
             <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Loại *</label>
-              <select id="itemdef-type" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
-                <option value="consumable">consumable</option>
-                <option value="boost">boost</option>
-                <option value="cosmetic_background">cosmetic_background</option>
-                <option value="cosmetic_avatar">cosmetic_avatar</option>
-                <option value="cosmetic_frame">cosmetic_frame</option>
-                <option value="currency">currency</option>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Giá gốc (1 cái)</label>
+              <input type="number" id="itemdef-price" min="0" placeholder="0 = không bán" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Tiền tệ</label>
+              <select id="itemdef-currency" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="coins">🪙 Xu</option>
+                <option value="gems">💎 Đá</option>
               </select>
             </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Giảm (%)</label>
+              <input type="number" id="itemdef-discount" min="0" max="100" placeholder="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Tổng giá: <b id="itemdef-total-price">—</b></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Hết hạn khuyến mãi (tùy chọn)</label>
+              <input type="datetime-local" id="itemdef-sale-ends" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Sau khi hết hạn</label>
+              <select id="itemdef-after-expiry" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+                <option value="unpublish">Đóng xuất bản</option>
+                <option value="revert">Về giá gốc (bỏ giảm)</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;border:1.5px dashed var(--border-color);border-radius:8px;padding:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Vật phẩm con (combo) — mua grant tất cả × số lượng</label>
+              <button type="button" id="itemdef-add-child" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Thêm</button>
+            </div>
+            <div id="itemdef-children"></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
             <div>
@@ -4547,6 +4661,7 @@
             <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="itemdef-stackable" checked> stackable</label>
             <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="itemdef-tradable"> tradable</label>
             <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="itemdef-active" checked> đang bật</label>
+            <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;font-weight:600;color:var(--success)"><input type="checkbox" id="itemdef-published" checked> 🚀 xuất bản (kênh mới hiển thị)</label>
           </div>
           <div style="display:flex;justify-content:flex-end;gap:10px">
             <button type="button" id="btn-itemdef-cancel" class="btn btn-secondary">Hủy</button>
@@ -4568,11 +4683,13 @@
     <script src="/admin/js/modules/monitor.js?v=2"></script>
     <script src="/admin/js/modules/tabs.js?v=3"></script>
     <script src="/admin/js/modules/season-admin.js?v=1"></script>
-    <script src="/admin/js/modules/spin-admin.js?v=3"></script>
-    <script src="/admin/js/modules/item-defs-admin.js?v=1"></script>
-    <script src="/admin/js/modules/economy-admin.js?v=1"></script>
+    <script src="/admin/js/modules/spin-admin.js?v=4"></script>
+    <script src="/admin/js/modules/item-defs-admin.js?v=6"></script>
+    <script src="/admin/js/modules/category-admin.js?v=1"></script>
+    <script src="/admin/js/modules/channel-config-admin.js?v=1"></script>
+    <script src="/admin/js/modules/economy-admin.js?v=2"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
-    <script src="/admin/js/modules/ui-init.js?v=5"></script>
-    <script src="/admin/js/nav-game.js?v=10"></script>
+    <script src="/admin/js/modules/ui-init.js?v=7"></script>
+    <script src="/admin/js/nav-game.js?v=14"></script>
   </body>
 </html>
