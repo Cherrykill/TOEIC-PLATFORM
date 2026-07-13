@@ -358,28 +358,13 @@ export const Utils = {
         }
     },
 
+    // Dừng mọi âm đang phát + huỷ đọc TTS (speechSynthesis).
     stopAllSounds() {
         this.activeSounds.forEach(audio => {
             try { audio.pause(); audio.currentTime = 0; } catch (_) {}
         });
         this.activeSounds = [];
         if (window.speechSynthesis) window.speechSynthesis.cancel();
-    },
-
-    /**
-     * Stop all currently playing sounds
-     */
-    stopAllSounds() {
-        try {
-            this.activeSounds.forEach(audio => {
-                audio.pause();
-                audio.currentTime = 0;
-            });
-            this.activeSounds = [];
-            console.log('All sounds stopped');
-        } catch (err) {
-            console.warn('Failed to stop sounds:', err);
-        }
     },
 
     /**

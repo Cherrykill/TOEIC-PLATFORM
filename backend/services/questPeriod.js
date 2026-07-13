@@ -36,13 +36,9 @@ function getNextReset(type, now = new Date()) {
         d.setDate(d.getDate() + daysUntilMonday);
         d.setHours(0, 0, 0, 0);
     } else if (type === 'monthly') {
-        // Reset on the same day of month next month
-        const dayOfMonth = d.getDate();
-        d.setMonth(d.getMonth() + 1);
-        // Handle months where the day doesn't exist (e.g. Jan 31 → Mar 3) →
-        // clamp to last day of target month instead.
-        const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-        d.setDate(Math.min(dayOfMonth, maxDay));
+        // Reset lúc 00:00 ngày 1 tháng sau — khớp getPeriodKey (YYYY-MM = tháng lịch),
+        // mọi nhiệm vụ tháng reset cùng lúc. setMonth(+1, 1) tránh tràn ngày.
+        d.setMonth(d.getMonth() + 1, 1);
         d.setHours(0, 0, 0, 0);
     } else {
         return null;
