@@ -63,28 +63,6 @@ export const GameLogic = {
         }
     },
 
-    async loadVocabularyFromFile(filePath) {
-        console.log(`🔄 GameLogic: Loading vocabulary from ${filePath}...`);
-
-        const result = await Http.loadJSON(filePath);
-
-        if (!result || !result.success || !Array.isArray(result.data)) {
-            console.error("❌ Invalid vocabulary file:", filePath, result);
-            return false;
-        }
-
-        this.vocabularyData = [];
-        this.vocabularyData = normalizeVocabularyWords(result.data);
-
-        console.log(`✅ GameLogic: Loaded ${this.vocabularyData.length} words from ${filePath}`);
-
-        if (this.vocabularyData.length > 0) {
-            console.log('📋 Sample words:', this.vocabularyData.slice(0, 3).map(w => w.en));
-        }
-
-        return true;
-    },
-
     getVocabulary() {
         return [...this.vocabularyData];
     },

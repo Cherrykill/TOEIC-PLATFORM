@@ -131,35 +131,6 @@ export const Http = {
         return this.request(url, { ...options, method: 'DELETE' });
     },
 
-    /**
-     * Load JSON file (từ frontend folder)
-     */
-    async loadJSON(path) {
-        try {
-            // Add cache-busting parameter to avoid stale data
-            const cacheBuster = `?_t=${Date.now()}`;
-            const url = path + cacheBuster;
-
-            console.log(`📂 Loading JSON: ${path}`);
-
-            const response = await fetch(url, {
-                cache: 'no-store' // Force fresh request
-            });
-
-            if (!response.ok) {
-                throw new Error(`Failed to load ${path}: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log(`✅ Loaded ${path}: ${Array.isArray(data) ? data.length + ' items' : 'object'}`);
-            return { success: true, data };
-
-        } catch (error) {
-            console.error('JSON Load Error:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
     async loadVocabulary() {
         // Load all vocabulary from MongoDB — no JSON fallback
         const res = await fetch(`/api/vocabulary?limit=9999&page=1&lang=${getVocabLang()}`);

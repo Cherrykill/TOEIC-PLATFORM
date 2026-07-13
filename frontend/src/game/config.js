@@ -487,10 +487,8 @@ export const Config = {
         autoSaveInterval: 30000 // Auto save every 30 seconds
     },
 
-    // Data paths
+    // Data paths (từ vựng nạp từ MongoDB qua /api/vocabulary — không còn file JSON local)
     data: {
-        vocabulary: 'data/vocabulary.json', // Default file
-        vocabularyFolder: 'data/', // Folder chứa các file vocabulary
         userProgress: 'userProgress',
         gameState: 'gameState'
     },
