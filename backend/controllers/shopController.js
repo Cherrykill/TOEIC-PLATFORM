@@ -14,6 +14,7 @@ const Inventory = require('../services/inventoryService');
 const Transaction = require('../models/Transaction');
 const ItemDefinition = require('../models/ItemDefinition');
 const ChannelConfig = require('../models/ChannelConfig');
+const { getGameConfig } = require('../services/gameConfig');
 
 // Cửa hàng đọc THẲNG từ catalog (item_definitions): sản phẩm = item đã xuất bản,
 // có giá (>0), thuộc danh mục mà kênh 'shop' đã chọn. Engine mua giữ nguyên.
@@ -55,9 +56,6 @@ async function resolveExpiry(item) {
 // Vật phẩm giới hạn theo chu kỳ: itemId → số ngày phải chờ giữa 2 lần mua.
 // (Cũng tôn trọng item.cooldownDays nếu được đặt trong DB.)
 const COOLDOWN_DAYS = { 'shields-pack': 7 };
-
-// Số thẻ boost x2 (mỗi loại) tặng kèm khi mua VIP.
-const VIP_BOOST_CARDS = 3;
 
 exports.getShopItems = async (req, res, next) => {
     try {
@@ -217,6 +215,7 @@ exports.purchaseItem = async (req, res, next) => {
                 });
                 await Inventory.equip(req.user.id, 'bg-vip-week');
                 // Thay auto-boost: phát thẻ x2 XP + x2 Coins (on_use) — tự kích hoạt.
+                const VIP_BOOST_CARDS = (await getGameConfig()).vipBoostCards;
                 await Inventory.grant(req.user.id, 'boost-xp-card', VIP_BOOST_CARDS, { source: 'vip' });
                 await Inventory.grant(req.user.id, 'boost-coins-card', VIP_BOOST_CARDS, { source: 'vip' });
             } catch (e) {

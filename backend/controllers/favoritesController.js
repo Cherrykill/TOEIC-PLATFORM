@@ -6,9 +6,7 @@
 // behaviour unchanged; routes/vocabulary.js now imports these from here.
 
 const User = require('../models/User');
-
-// Giới hạn số từ yêu thích / người (mảng trên User doc — tránh phình).
-const MAX_FAVORITES = 100;
+const { getGameConfig } = require('../services/gameConfig');
 
 exports.getFavorites = async (req, res, next) => {
     try {
@@ -31,6 +29,7 @@ exports.addFavorite = async (req, res, next) => {
             part: word.part || '',
         };
         // Chặn khi đạt giới hạn (chỉ tính khi thêm từ MỚI, đánh dấu lại từ cũ thì không).
+        const MAX_FAVORITES = (await getGameConfig()).maxFavorites;
         const user = await User.findById(req.user.id).select('favoriteWords');
         const list = user?.favoriteWords || [];
         const already = list.some(w => w.en === word.en);

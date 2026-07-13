@@ -24,21 +24,19 @@ function RewardContent({ subtitle, rewards }) {
                 </div>
             )}
             {items.length > 0 && (
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, 1fr)`, gap: 12, justifyItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                     {items.map((it, i) => {
                         const iconNode = it.icon && it.icon.startsWith('fa-')
-                            ? <i className={`fas ${it.icon}`} style={{ fontSize: 28, color: '#8b5cf6' }}></i>
-                            : <span style={{ fontSize: 28 }}>{it.icon || '🎁'}</span>;
+                            ? <i className={`fas ${it.icon}`}></i>
+                            : <span>{it.icon || '🎁'}</span>;
                         return (
-                            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 84 }}>
-                                <div style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--bg-secondary)', display: 'grid', placeItems: 'center', position: 'relative' }}>
-                                    <ItemThumb image={it.image} imgClassName="cell-img">{iconNode}</ItemThumb>
-                                    {it.quantity > 1 && (
-                                        <span style={{ position: 'absolute', right: -4, bottom: -4, background: '#111827', color: '#fff', borderRadius: 10, fontSize: 11, fontWeight: 700, padding: '1px 6px' }}>×{it.quantity}</span>
-                                    )}
-                                </div>
-                                <span style={{ fontSize: '0.75em', color: 'var(--text-secondary)', lineHeight: 1.2 }}>{it.name}</span>
-                            </div>
+                            <span key={i} className="gift-slot" title={it.name}>
+                                <span className="gift-slot-box">
+                                    <ItemThumb image={it.image} imgClassName="gift-slot-img">{iconNode}</ItemThumb>
+                                    {it.quantity > 1 && <span className="gift-slot-count">×{it.quantity}</span>}
+                                </span>
+                                {it.name && <span className="gift-slot-name">{it.name}</span>}
+                            </span>
                         );
                     })}
                 </div>

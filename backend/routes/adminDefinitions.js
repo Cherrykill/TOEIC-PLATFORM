@@ -9,6 +9,8 @@ const Transaction = require('../models/Transaction');
 const UserStats = require('../models/UserStats');
 const Category = require('../models/Category');
 const ChannelConfig = require('../models/ChannelConfig');
+const GameConfig = require('../models/GameConfig');
+const { clearGameConfigCache } = require('../services/gameConfig');
 const adminCtrl = require('../controllers/adminController');
 const { uploadShopImage, sanitizeRole } = require('../middleware/upload');
 const { removeIfOrphan } = require('../utils/uploadCleanup');
@@ -421,6 +423,35 @@ router.put('/channel-config/:channel', admin, async (req, res) => {
             { new: true, upsert: true }
         );
         res.json({ success: true, message: 'Đã lưu danh mục kênh', data: { channel, categories: cfg.categories } });
+    } catch (err) {
+        res.status(400).json({ success: false, message: err.message });
+    }
+});
+
+// ===== Hằng số game (GameConfig singleton) =====
+const GAME_CONFIG_FIELDS = ['maxUploadWords', 'maxFavorites', 'extendCostPerWord', 'vipBoostCards'];
+
+router.get('/game-config', admin, async (req, res) => {
+    try {
+        const cfg = await GameConfig.getConfig();
+        res.json({ success: true, data: cfg });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+router.put('/game-config', admin, async (req, res) => {
+    try {
+        const cfg = await GameConfig.getConfig();
+        GAME_CONFIG_FIELDS.forEach(f => {
+            if (req.body[f] !== undefined) {
+                const n = Number(req.body[f]);
+                if (Number.isFinite(n) && n >= 0) cfg[f] = n;
+            }
+        });
+        await cfg.save();
+        clearGameConfigCache();
+        res.json({ success: true, message: 'Đã lưu hằng số game (áp dụng ngay)', data: cfg });
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }

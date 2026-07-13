@@ -10,6 +10,8 @@ import { GameState } from '@game/state.js';
 import CheckinModal from '@components/checkin/CheckinModal.jsx';
 import { CheckinAPI } from '@api/checkin.js';
 import { showRewardPopup } from '@ui/RewardPopup.jsx';
+import ItemThumb from '@ui/ItemThumb.jsx';
+import { InventoryAPI } from '@api/inventory.js';
 
 // Nhãn hiển thị cho vật phẩm thưởng (itemId → emoji + tên). Thêm item mới thì
 // bổ sung 1 dòng ở đây (khớp item_definitions.itemId).
@@ -79,6 +81,21 @@ export default function QuestScreen({ active }) {
     const [checkinOpen, setCheckinOpen] = useState(false);
     const [checkinDue, setCheckinDue] = useState(false);
     const [claimingAll, setClaimingAll] = useState(false);
+    const [defMap, setDefMap] = useState({}); // itemId → catalog def (ảnh vật phẩm thưởng)
+
+    useEffect(() => {
+        InventoryAPI.items().then(res => {
+            const map = {};
+            (res.data || []).forEach(d => { map[d.itemId] = d; });
+            setDefMap(map);
+        });
+    }, []);
+
+    // Gắn ảnh/tên/icon từ catalog vào danh sách vật phẩm thưởng (dùng cho popup).
+    const enrichItems = (arr) => (arr || []).map(it => {
+        const d = defMap[it.itemId];
+        return d ? { ...it, name: d.name, icon: d.icon, image: d.image } : it;
+    });
 
     const readFromQuestModule = useCallback((type) => {
         const data = Quest?.getQuests?.(type);
@@ -144,7 +161,7 @@ export default function QuestScreen({ active }) {
         if (!code || claimedCodes.has(code) || claimingRef.current.has(code)) return;
         claimingRef.current.add(code);
 
-        const items = quest.rewardItems || quest.reward?.items || [];
+        const items = enrichItems(quest.rewardItems || quest.reward?.items);
         const reward = {
             coins: quest.rewardCoins || quest.reward?.coins || 0,
             xp:    quest.rewardXp    || quest.reward?.xp    || 0,
@@ -221,7 +238,7 @@ export default function QuestScreen({ active }) {
             const prev = itemMap.get(it.itemId) || { ...it, quantity: 0 };
             itemMap.set(it.itemId, { ...prev, quantity: prev.quantity + (it.quantity || 1) });
         }));
-        const totalItems = [...itemMap.values()];
+        const totalItems = enrichItems([...itemMap.values()]);
         const codes = toClaim.map(q => q.code);
 
         setClaimedCodes(prev => new Set([...prev, ...codes]));
@@ -344,8 +361,17 @@ export default function QuestScreen({ active }) {
                                         {!quest.rewardXp && quest.reward?.xp > 0 && <span><i className="fas fa-star"></i> {quest.reward.xp} XP</span>}
                                         {!quest.rewardGems && quest.reward?.gems > 0 && <span><i className="fas fa-gem"></i> {quest.reward.gems}</span>}
                                         {Array.isArray(quest.rewardItems) && quest.rewardItems.map((it, k) => {
+                                            const def = defMap[it.itemId] || {};
                                             const m = ITEM_REWARD_META[it.itemId] || { icon: '🎁', label: it.itemId };
-                                            return <span key={k} className="quest-reward-item">{m.icon} {(it.quantity > 1 ? it.quantity + ' ' : '') + m.label}</span>;
+                                            const iconNode = (def.icon || m.icon || '').startsWith('fa-')
+                                                ? <i className={`fas ${def.icon || m.icon}`}></i>
+                                                : <span>{m.icon}</span>;
+                                            return (
+                                                <span key={k} className="quest-reward-item">
+                                                    <ItemThumb image={def.image} imgClassName="quest-reward-img">{iconNode}</ItemThumb>
+                                                    {(it.quantity > 1 ? it.quantity + ' ' : '') + (def.name || m.label)}
+                                                </span>
+                                            );
                                         })}
                                     </div>
                                 </div>

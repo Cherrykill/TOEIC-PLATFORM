@@ -1416,6 +1416,3 @@ function loadAchievements() {
 function loadQuests() {
   console.warn("loadQuests: not implemented");
 }
-function loadShopItems() {
-  console.warn("loadShopItems: not implemented");
-}

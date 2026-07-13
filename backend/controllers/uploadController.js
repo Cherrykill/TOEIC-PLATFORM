@@ -2,6 +2,7 @@ const UserUpload = require('../models/UserUpload');
 const User = require('../models/User');
 const UserStats = require('../models/UserStats');
 const { logTxn } = require('../utils/economyLog');
+const { getGameConfig } = require('../services/gameConfig');
 
 // Private uploads: user picks retention at upload time.
 const ALLOWED_RETENTION_DAYS = [3, 7, 14, 30];
@@ -11,11 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // Days until a private source is considered "expiring soon" (force export).
 const EXPIRY_WARN_DAYS = 3;
 
-// Giới hạn tổng số từ vựng riêng / người (bảo vệ DB Atlas M0). Chỉ tính khi THÊM MỚI.
-const MAX_UPLOAD_WORDS = 500;
-
-// Phí gia hạn +30 ngày = số từ × giá này (coins). VIP miễn phí.
-const EXTEND_COST_PER_WORD = 100;
+// Giới hạn từ vựng riêng & phí gia hạn: đọc từ GameConfig (admin chỉnh được).
 
 /** Resolve a valid retention (in days) from the request, fallback to default. */
 function resolveRetentionDays(raw) {
@@ -73,6 +70,7 @@ exports.uploadVocabulary = async (req, res, next) => {
 
     // Chặn khi vượt giới hạn (chỉ tính lúc thêm từ MỚI, update không tính).
     if (!existing) {
+      const MAX_UPLOAD_WORDS = (await getGameConfig()).maxUploadWords;
       const count = await UserUpload.countDocuments({ ownerEmail: email });
       if (count >= MAX_UPLOAD_WORDS) {
         return res.status(400).json({
@@ -242,6 +240,7 @@ exports.extendMySource = async (req, res, next) => {
     }
     const stats = await UserStats.findOne({ userId: req.user.id });
     const isVip = !!(stats?.vipExpiresAt && new Date(stats.vipExpiresAt).getTime() > Date.now());
+    const EXTEND_COST_PER_WORD = (await getGameConfig()).extendCostPerWord;
     const cost = isVip ? 0 : wordCount * EXTEND_COST_PER_WORD;
 
     if (cost > 0) {

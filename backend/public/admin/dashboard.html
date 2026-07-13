@@ -371,6 +371,9 @@
               <a href="#" class="sidebar-link" data-main-tab="economy">
                 <i class="fas fa-scale-balanced"></i><span>Kinh tế</span>
               </a>
+              <a href="#" class="sidebar-link" data-main-tab="game-config">
+                <i class="fas fa-sliders"></i><span>Hằng số game</span>
+              </a>
               <a href="#" class="sidebar-link" data-main-tab="broadcast">
                 <i class="fas fa-bullhorn"></i><span>Thông báo</span>
               </a>
@@ -1621,60 +1624,12 @@
 
           <!-- ===== SHOP ITEMS TAB ===== -->
           <div id="main-tab-shop" class="main-tab-content">
+            <div class="card" style="margin-bottom:14px">
+              <div style="padding:12px 16px;font-size:13px;color:var(--text-secondary)">
+                <b><i class="fas fa-store"></i> Cửa hàng.</b> Sản phẩm lấy từ <b>Catalog (tab Vật phẩm)</b> — chỉnh giá/giảm giá/xuất bản ở đó. Ở đây chỉ chọn <b>danh mục nào được bày bán</b>:
+              </div>
+            </div>
             <div class="channel-cat-picker" data-channel="shop"></div>
-            <div class="card" style="border:1.5px solid #f59e0b;background:#fffbeb">
-              <div style="padding:12px 16px;font-size:13px;color:#92400e">
-                <b>⚠️ Khu vực cũ (chỉ để tham khảo).</b> Cửa hàng nay lấy sản phẩm từ <b>Catalog (tab Vật phẩm)</b> — chỉnh giá/giảm giá/xuất bản/danh mục ở đó, và chọn danh mục hiển thị bằng checkbox phía trên. Bảng dưới đây <b>không còn ảnh hưởng</b> tới cửa hàng thật.
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-header">
-                <h2><i class="fas fa-store"></i> Quản lý Cửa hàng (cũ)</h2>
-                <div class="card-header-actions">
-                  <button class="btn btn-success btn-sm" id="btn-add-shop-item">
-                    <i class="fas fa-plus"></i> Thêm item
-                  </button>
-                </div>
-              </div>
-              <div style="padding: 0 0 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
-                <input type="text" id="shop-search" class="card-search" placeholder="Tên, mã item, danh mục..." style="flex: 1; margin: 0; min-width: 200px" />
-                <select id="shop-filter-category" class="filter-select" style="width: auto; min-width: 140px; flex-shrink: 0">
-                  <option value="">Tất cả danh mục</option>
-                  <option value="energy">⚡ Năng lượng</option>
-                  <option value="resource">🎁 Tài nguyên</option>
-                  <option value="boost">🚀 Tăng tốc</option>
-                  <option value="exchange">🔄 Đổi điểm</option>
-                  <option value="bundle">📦 Gói</option>
-                  <option value="vip">👑 VIP</option>
-                </select>
-                <select id="shop-filter-discount" class="filter-select" style="width: auto; min-width: 140px; flex-shrink: 0">
-                  <option value="">Có/không giảm giá</option>
-                  <option value="yes">Có giảm giá</option>
-                  <option value="no">Không giảm giá</option>
-                </select>
-                <select id="shop-filter-sort" class="filter-select" style="width: auto; min-width: 160px; flex-shrink: 0">
-                  <option value="">Sắp xếp mặc định</option>
-                  <option value="price-desc">Giá gốc: cao → thấp</option>
-                  <option value="price-asc">Giá gốc: thấp → cao</option>
-                </select>
-              </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
-                <span id="shop-filter-count" style="font-size: 13px; color: var(--text-secondary)"></span>
-                <button id="btn-clear-shop-filters" class="btn btn-ghost btn-sm"><i class="fas fa-times"></i> Xóa lọc</button>
-              </div>
-              <div class="table-container">
-                <table id="shop-table" class="data-table">
-                  <thead><tr>
-                    <th>Icon</th><th>Tên</th><th>Danh mục</th>
-                    <th>Giá gốc</th><th>Giá giảm</th><th>Hiệu ứng</th>
-                    <th>Thứ tự</th><th>Trạng thái</th><th>Thao tác</th>
-                  </tr></thead>
-                  <tbody id="shop-tbody">
-                    <tr><td colspan="9" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
           <!-- ===== DANH MỤC TAB ===== -->
@@ -1770,6 +1725,47 @@
                 <div style="display:flex;justify-content:flex-end;margin-top:12px">
                   <button class="btn btn-primary" id="spin-config-save"><i class="fas fa-save"></i> Lưu cấu hình</button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== HẰNG SỐ GAME TAB ===== -->
+          <div id="main-tab-game-config" class="main-tab-content">
+            <div class="card">
+              <div class="card-header">
+                <h2><i class="fas fa-sliders"></i> Hằng số game</h2>
+                <span style="font-size:13px;color:var(--text-secondary)">Chỉnh không cần deploy — áp dụng ngay sau khi lưu</span>
+              </div>
+              <form id="game-config-form" style="padding:8px 4px;max-width:560px">
+                <div style="display:grid;grid-template-columns:1fr;gap:16px">
+                  <div>
+                    <label style="font-weight:600">📚 Giới hạn từ vựng riêng / người</label>
+                    <div style="font-size:12px;color:var(--text-secondary);margin:2px 0 6px">Số từ tối đa 1 người được lưu (bảo vệ DB).</div>
+                    <input type="number" id="gc-maxUploadWords" min="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+                  </div>
+                  <div>
+                    <label style="font-weight:600">⭐ Giới hạn từ yêu thích / người</label>
+                    <div style="font-size:12px;color:var(--text-secondary);margin:2px 0 6px">Số từ yêu thích tối đa 1 người.</div>
+                    <input type="number" id="gc-maxFavorites" min="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+                  </div>
+                  <div>
+                    <label style="font-weight:600">🪙 Phí gia hạn / từ (xu)</label>
+                    <div style="font-size:12px;color:var(--text-secondary);margin:2px 0 6px">Gia hạn +30 ngày = số từ × phí này. VIP miễn phí.</div>
+                    <input type="number" id="gc-extendCostPerWord" min="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+                  </div>
+                  <div>
+                    <label style="font-weight:600">👑 Thẻ boost tặng kèm khi mua VIP (mỗi loại)</label>
+                    <div style="font-size:12px;color:var(--text-secondary);margin:2px 0 6px">Số thẻ x2 XP + x2 Coins tặng mỗi lần mua VIP.</div>
+                    <input type="number" id="gc-vipBoostCards" min="0" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
+                  </div>
+                </div>
+                <div style="margin-top:18px;display:flex;align-items:center;gap:12px">
+                  <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Lưu hằng số</button>
+                  <span id="game-config-status" style="font-size:13px"></span>
+                </div>
+              </form>
+              <div style="padding:12px 4px;font-size:12px;color:var(--text-secondary)">
+                Ghi chú: giá/giảm giá vật phẩm chỉnh ở tab <b>Vật phẩm</b>; chi phí &amp; tỷ lệ vòng quay ở tab <b>Vòng quay</b>.
               </div>
             </div>
           </div>
@@ -4263,209 +4259,6 @@
       </div>
     </div>
 
-    <!-- Shop modal -->
-    <div id="shop-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
-      <div style="background:var(--bg-primary,white);border-radius:14px;padding:28px;max-width:600px;width:94%;max-height:92vh;overflow-y:auto">
-        <h3 style="margin-bottom:20px;color:var(--primary)"><i class="fas fa-store"></i> <span id="shop-modal-title">Thêm item</span></h3>
-        <form id="shop-form">
-          <input type="hidden" id="shop-id">
-
-          <!-- Row 1: icon + name -->
-          <div style="display:grid;grid-template-columns:80px 1fr;gap:12px;margin-bottom:12px">
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Icon</label>
-              <input type="text" id="shop-icon" placeholder="💡" maxlength="4"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-size:22px;text-align:center">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Tên *</label>
-              <input type="text" id="shop-name" required placeholder="vd: Gói Gợi Ý"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
-            </div>
-          </div>
-
-          <!-- Row 1b: ảnh (ưu tiên hơn icon) -->
-          <div id="shop-image-fromcatalog" style="display:none;margin-bottom:12px;padding:9px 12px;border:1px dashed var(--border-color);border-radius:8px;font-size:12px;color:var(--text-secondary)">
-            <i class="fas fa-circle-info"></i> Ảnh lấy từ <b>Catalog vật phẩm</b> — sửa ảnh ở tab Vật phẩm (catalog), thẻ shop tự khớp.
-          </div>
-          <div id="shop-image-row" style="margin-bottom:12px">
-            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Ảnh (tùy chọn — có ảnh sẽ ưu tiên hơn icon)</label>
-            <div style="display:flex;gap:10px;align-items:center;margin-top:4px">
-              <img id="shop-image-preview" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border-color);display:none;background:#f1f5f9">
-              <select id="shop-image-role" title="Thư mục lưu theo vai trò"
-                style="padding:9px;border:1.5px solid var(--border-color);border-radius:8px">
-                <option value="item">📦 item</option>
-                <option value="background">🖼️ background</option>
-                <option value="frame">🔲 frame</option>
-                <option value="avatar">🙂 avatar</option>
-              </select>
-              <input type="file" id="shop-image-file" accept="image/*" style="flex:1;font-size:13px">
-              <button type="button" id="shop-image-clear" class="btn btn-sm btn-secondary" style="white-space:nowrap">Xóa ảnh</button>
-            </div>
-            <input type="hidden" id="shop-image">
-          </div>
-
-          <!-- Row 2: itemId + category -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Item ID (unique) *</label>
-              <input type="text" id="shop-item-id" required placeholder="vd: hints-pack"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace">
-            </div>
-            <div>
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Danh mục *</label>
-              <select id="shop-category"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
-                <option value="energy">⚡ Năng lượng</option>
-                <option value="resource">🎒 Tài nguyên</option>
-                <option value="boost">🚀 Tăng tốc</option>
-                <option value="exchange">💱 Đổi gems</option>
-                <option value="bundle">🎁 Combo</option>
-                <option value="vip">👑 VIP</option>
-                <option value="cosmetic">🎨 Giao diện</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Row 3: desc -->
-          <div style="margin-bottom:12px">
-            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Mô tả</label>
-            <input type="text" id="shop-desc" placeholder="Mô tả ngắn hiển thị cho người dùng"
-              style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
-          </div>
-
-          <!-- Row 4: price section -->
-          <div style="background:var(--bg-secondary,#f8f9fa);border-radius:10px;padding:14px;margin-bottom:12px">
-            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">💰 Giá bán</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:end">
-              <div>
-                <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Tiền tệ *</label>
-                <select id="shop-currency"
-                  style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-                  <option value="coins">🪙 Coins</option>
-                  <option value="gems">💎 Gems</option>
-                </select>
-              </div>
-              <div>
-                <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Giá gốc *</label>
-                <input type="number" id="shop-price" required min="0" value="100"
-                  style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-              </div>
-              <div>
-                <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Giảm giá %</label>
-                <input type="number" id="shop-discount" min="0" max="100" value="0"
-                  style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-              </div>
-            </div>
-            <div id="shop-price-preview" style="margin-top:10px;font-size:13px;color:var(--text-secondary);min-height:20px"></div>
-          </div>
-
-          <!-- Row 5: effect (dynamic) -->
-          <div style="background:var(--bg-secondary,#f8f9fa);border-radius:10px;padding:14px;margin-bottom:12px">
-            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">✨ Hiệu ứng</div>
-
-            <!-- energy -->
-            <div id="effect-energy" class="effect-section" style="display:none">
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Lượng năng lượng nạp (100 = đầy)</label>
-              <input type="number" id="eff-energy-amount" min="1" max="100" value="100"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-            </div>
-
-            <!-- resource -->
-            <div id="effect-resource" class="effect-section" style="display:none;display:none">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Vật phẩm (từ Catalog)</label>
-                  <select id="eff-res-type"
-                    style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-                    <option value="hint">💡 Gợi ý (hint)</option>
-                    <option value="shield">🛡️ Khiên (shield)</option>
-                    <option value="time-freeze">⏸️ Dừng thời gian (time-freeze)</option>
-                  </select>
-                </div>
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Số lượng</label>
-                  <input type="number" id="eff-res-amount" min="1" value="10"
-                    style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-                </div>
-              </div>
-            </div>
-
-            <!-- boost -->
-            <div id="effect-boost" class="effect-section" style="display:none">
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Loại boost</label>
-                  <select id="eff-boost-type"
-                    style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-                    <option value="xp">🚀 XP</option>
-                    <option value="coins">🪙 Coins</option>
-                  </select>
-                </div>
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Hệ số nhân (x)</label>
-                  <input type="number" id="eff-boost-mult" min="1.1" max="10" step="0.1" value="2"
-                    style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-                </div>
-                <div>
-                  <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Thời gian (giờ)</label>
-                  <input type="number" id="eff-boost-hours" min="0.5" step="0.5" value="3"
-                    style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-                </div>
-              </div>
-            </div>
-
-            <!-- exchange (coins → gems) -->
-            <div id="effect-exchange" class="effect-section" style="display:none">
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Số gems nhận được</label>
-              <input type="number" id="eff-exchange-amount" min="1" value="10"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-            </div>
-
-            <!-- vip -->
-            <div id="effect-vip" class="effect-section" style="display:none">
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Thời hạn VIP (ngày)</label>
-              <input type="number" id="eff-vip-days" min="1" value="7"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,white)">
-            </div>
-
-            <!-- bundle (JSON) -->
-            <div id="effect-bundle" class="effect-section" style="display:none">
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Effect JSON (combo phức tạp)</label>
-              <textarea id="eff-bundle-json" rows="4"
-                placeholder='{"type":"combo","items":[{"type":"hints","amount":20},{"type":"boost","boostType":"xp","multiplier":2,"duration":86400}]}'
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace;font-size:12px;resize:vertical;background:var(--bg-primary,white)"></textarea>
-              <div id="eff-bundle-err" style="color:var(--danger);font-size:12px;margin-top:4px"></div>
-            </div>
-            <div id="effect-cosmetic" class="effect-section" style="display:none">
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Vật phẩm nhận khi mua (chọn từ catalog) *</label>
-              <select id="eff-cosmetic-itemid" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;background:var(--bg-primary,#fff);color:var(--text-primary)">
-                <option value="">— chọn vật phẩm —</option>
-              </select>
-              <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Mua sẽ cấp 1 vật phẩm này vào túi đồ (effect <code>type: "item"</code>).</div>
-            </div>
-          </div>
-
-          <!-- Row 6: order + active -->
-          <div style="display:flex;gap:16px;align-items:center;margin-bottom:20px">
-            <div style="flex:0 0 120px">
-              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Thứ tự hiển thị</label>
-              <input type="number" id="shop-order" value="0"
-                style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-top:20px">
-              <input type="checkbox" id="shop-active" checked style="width:16px;height:16px;cursor:pointer">
-              <label for="shop-active" style="cursor:pointer;font-weight:600">Kích hoạt</label>
-            </div>
-          </div>
-
-          <div style="display:flex;gap:10px;justify-content:flex-end">
-            <button type="button" id="btn-shop-cancel" class="btn btn-ghost">Hủy</button>
-            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
-          </div>
-        </form>
-      </div>
-    </div>
 
     <!-- ===== AI Generate modal (chung cho Thành tích + Nhiệm vụ) ===== -->
     <div id="ai-gen-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
@@ -4653,9 +4446,58 @@
             <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Mô tả</label>
             <input type="text" id="itemdef-desc" placeholder="Mô tả ngắn" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
           </div>
-          <div style="margin-bottom:12px">
-            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Effect (JSON)</label>
-            <textarea id="itemdef-effect" rows="3" placeholder='{"type":"boost","boostType":"xp","multiplier":2,"duration":86400}' style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace;font-size:12px"></textarea>
+          <div style="margin-bottom:12px;border:1.5px solid var(--border-color);border-radius:10px;padding:12px">
+            <label style="font-size:12px;font-weight:700;color:var(--text-secondary)">Hiệu ứng — chỉ số vật phẩm can thiệp vào game</label>
+            <select id="itemdef-eff-type" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:6px">
+              <option value="none">— Không (cosmetic/ảnh: dùng “Cosmetic”) —</option>
+              <option value="resource">Tài nguyên (Gợi ý / Khiên / Dừng thời gian)</option>
+              <option value="energy">Nạp năng lượng</option>
+              <option value="coins">Tặng xu</option>
+              <option value="gems">Tặng đá</option>
+              <option value="boost">Tăng tốc (x2/x3 XP hoặc Coins, có hạn)</option>
+              <option value="vip">VIP</option>
+              <option value="item">Cấp vật phẩm khác</option>
+              <option value="cosmetic">Cosmetic (trang bị theo slot)</option>
+              <option value="spin">Vé quay</option>
+              <option value="raw">Tùy chỉnh (JSON nâng cao)</option>
+            </select>
+            <div class="eff-hint" style="font-size:11px;color:var(--text-secondary);margin:6px 0"></div>
+
+            <div class="eff-fields" data-eff="resource" style="display:none">
+              <select id="eff-resource-field" style="width:100%;padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+                <option value="hints">hints (Gợi ý)</option>
+                <option value="shields">shields (Khiên streak)</option>
+                <option value="timeFreezes">timeFreezes (Dừng thời gian)</option>
+              </select>
+            </div>
+            <div class="eff-fields" data-eff="energy" style="display:none">
+              <input type="number" id="eff-energy-amount" placeholder="Lượng năng lượng (vd 100)" style="width:100%;padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+            </div>
+            <div class="eff-fields" data-eff="coins" style="display:none">
+              <input type="number" id="eff-coins-amount" placeholder="Số xu tặng" style="width:100%;padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+            </div>
+            <div class="eff-fields" data-eff="gems" style="display:none">
+              <input type="number" id="eff-gems-amount" placeholder="Số đá tặng" style="width:100%;padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+            </div>
+            <div class="eff-fields" data-eff="boost" style="display:none;gap:8px;grid-template-columns:1fr 1fr 1fr;display:none">
+              <select id="eff-boost-type" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px"><option value="xp">XP</option><option value="coins">Coins</option></select>
+              <input type="number" id="eff-boost-mult" placeholder="Hệ số (2, 3)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+              <input type="number" id="eff-boost-dur" placeholder="Giây (86400 = 1 ngày)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+            </div>
+            <div class="eff-fields" data-eff="vip" style="display:none">
+              <input type="number" id="eff-vip-dur" placeholder="Thời lượng VIP (giây; 604800 = 7 ngày)" style="width:100%;padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+            </div>
+            <div class="eff-fields" data-eff="item" style="display:none;gap:8px;grid-template-columns:2fr 1fr">
+              <input type="text" id="eff-item-id" placeholder="itemId cấp (vd hint)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace">
+              <input type="number" id="eff-item-amount" placeholder="SL" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+            </div>
+            <div class="eff-fields" data-eff="cosmetic" style="display:none;gap:8px;grid-template-columns:1fr 2fr">
+              <select id="eff-cos-slot" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px"><option value="avatar">avatar</option><option value="background">background</option><option value="frame">frame</option></select>
+              <input type="text" id="eff-cos-key" placeholder="key (vd bg-ocean)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace">
+            </div>
+            <div class="eff-fields" data-eff="raw" style="display:none">
+              <textarea id="itemdef-effect" rows="3" placeholder='{"type":"boost","boostType":"xp","multiplier":2,"duration":86400}' style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace;font-size:12px"></textarea>
+            </div>
           </div>
           <div style="display:flex;gap:18px;margin-bottom:16px;flex-wrap:wrap">
             <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="itemdef-stackable" checked> stackable</label>
@@ -4684,12 +4526,13 @@
     <script src="/admin/js/modules/tabs.js?v=3"></script>
     <script src="/admin/js/modules/season-admin.js?v=1"></script>
     <script src="/admin/js/modules/spin-admin.js?v=4"></script>
-    <script src="/admin/js/modules/item-defs-admin.js?v=6"></script>
+    <script src="/admin/js/modules/item-defs-admin.js?v=7"></script>
     <script src="/admin/js/modules/category-admin.js?v=1"></script>
     <script src="/admin/js/modules/channel-config-admin.js?v=1"></script>
     <script src="/admin/js/modules/economy-admin.js?v=2"></script>
+    <script src="/admin/js/modules/game-config-admin.js?v=1"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
-    <script src="/admin/js/modules/ui-init.js?v=7"></script>
-    <script src="/admin/js/nav-game.js?v=14"></script>
+    <script src="/admin/js/modules/ui-init.js?v=9"></script>
+    <script src="/admin/js/nav-game.js?v=15"></script>
   </body>
 </html>

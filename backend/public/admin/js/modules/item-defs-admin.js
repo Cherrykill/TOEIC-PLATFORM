@@ -47,6 +47,61 @@
     const cur = document.getElementById('itemdef-currency').value === 'gems' ? '💎' : '🪙';
     document.getElementById('itemdef-total-price').textContent = `${Math.floor(p * (1 - d / 100)) * q} ${cur}`;
   }
+  // ── Editor hiệu ứng (thay ô JSON tay) ──
+  const EFF_GRID = new Set(['boost', 'item', 'cosmetic']);
+  const EFF_HINTS = {
+    none: 'Không có hiệu ứng chủ động (ảnh nền/khung: chọn “Cosmetic” nếu trang bị được).',
+    resource: 'Cộng vào kho tài nguyên người dùng (Gợi ý/Khiên/Dừng giờ).',
+    energy: 'Nạp năng lượng khi mua/nhận.',
+    coins: 'Tặng xu.', gems: 'Tặng đá.',
+    boost: 'Bật nhân XP/Coins có thời hạn.',
+    vip: 'Kích hoạt / gia hạn VIP.',
+    item: 'Cấp thêm 1 vật phẩm khác khi mua/nhận.',
+    cosmetic: 'Trang bị được: gán slot avatar / nền / khung.',
+    spin: 'Dùng để quay Vòng quay may mắn.',
+    raw: 'Tự nhập JSON cho trường hợp đặc biệt.',
+  };
+  const _num = (id) => Number(document.getElementById(id).value) || 0;
+  function showEffFields(type) {
+    document.querySelectorAll('.eff-fields').forEach(el => {
+      el.style.display = (el.dataset.eff === type) ? (EFF_GRID.has(type) ? 'grid' : 'block') : 'none';
+    });
+    const h = document.querySelector('.eff-hint');
+    if (h) h.textContent = EFF_HINTS[type] || '';
+  }
+  function setEffFromData(eff) {
+    eff = eff || {};
+    let type = 'none';
+    if (eff.slot) { type = 'cosmetic'; document.getElementById('eff-cos-slot').value = eff.slot; document.getElementById('eff-cos-key').value = eff.key || ''; }
+    else if (eff.type === 'resource') { type = 'resource'; document.getElementById('eff-resource-field').value = eff.field || 'hints'; }
+    else if (eff.type === 'boost') { type = 'boost'; document.getElementById('eff-boost-type').value = eff.boostType || 'xp'; document.getElementById('eff-boost-mult').value = eff.multiplier || 2; document.getElementById('eff-boost-dur').value = eff.duration || 86400; }
+    else if (eff.type === 'vip') { type = 'vip'; document.getElementById('eff-vip-dur').value = eff.duration || 604800; }
+    else if (eff.type === 'item') { type = 'item'; document.getElementById('eff-item-id').value = eff.itemId || ''; document.getElementById('eff-item-amount').value = eff.amount || 1; }
+    else if (eff.type === 'energy') { type = 'energy'; document.getElementById('eff-energy-amount').value = eff.amount || 0; }
+    else if (eff.type === 'coins') { type = 'coins'; document.getElementById('eff-coins-amount').value = eff.amount || 0; }
+    else if (eff.type === 'gems') { type = 'gems'; document.getElementById('eff-gems-amount').value = eff.amount || 0; }
+    else if (eff.type === 'spin') { type = 'spin'; }
+    else if (Object.keys(eff).length) { type = 'raw'; document.getElementById('itemdef-effect').value = JSON.stringify(eff, null, 2); }
+    document.getElementById('itemdef-eff-type').value = type;
+    showEffFields(type);
+  }
+  function buildEffect() {
+    const type = document.getElementById('itemdef-eff-type').value;
+    switch (type) {
+      case 'resource': return { type: 'resource', field: document.getElementById('eff-resource-field').value };
+      case 'energy': return { type: 'energy', amount: _num('eff-energy-amount') };
+      case 'coins': return { type: 'coins', amount: _num('eff-coins-amount') };
+      case 'gems': return { type: 'gems', amount: _num('eff-gems-amount') };
+      case 'boost': return { type: 'boost', boostType: document.getElementById('eff-boost-type').value, multiplier: _num('eff-boost-mult') || 2, duration: _num('eff-boost-dur') || 86400 };
+      case 'vip': return { type: 'vip', duration: _num('eff-vip-dur') || 604800 };
+      case 'item': return { type: 'item', itemId: document.getElementById('eff-item-id').value.trim(), amount: _num('eff-item-amount') || 1 };
+      case 'cosmetic': return { slot: document.getElementById('eff-cos-slot').value, key: document.getElementById('eff-cos-key').value.trim() };
+      case 'spin': return { type: 'spin' };
+      case 'raw': { const raw = document.getElementById('itemdef-effect').value.trim(); return raw ? JSON.parse(raw) : {}; }
+      default: return {};
+    }
+  }
+
   // Thư mục lưu ảnh = key danh mục (rỗng → item).
   function updateRoleHint() {
     const cat = document.getElementById('itemdef-category')?.value || 'item';
@@ -158,7 +213,8 @@
     document.getElementById('itemdef-duration-sec').value = data.durationSec || 0;
     document.getElementById('itemdef-order').value = data.order || 0;
     document.getElementById('itemdef-desc').value = data.description || '';
-    document.getElementById('itemdef-effect').value = data.effect ? JSON.stringify(data.effect, null, 2) : '';
+    document.getElementById('itemdef-effect').value = '';
+    setEffFromData(data.effect);
     document.getElementById('itemdef-stackable').checked = data.stackable !== false;
     document.getElementById('itemdef-tradable').checked = !!data.tradable;
     document.getElementById('itemdef-active').checked = data.isActive !== false;
@@ -174,6 +230,7 @@
     document.getElementById('itemdef-filter-type')?.addEventListener('change', render);
     document.getElementById('itemdef-add-child')?.addEventListener('click', () => addChildRow('', 1));
     document.getElementById('itemdef-category')?.addEventListener('change', updateRoleHint);
+    document.getElementById('itemdef-eff-type')?.addEventListener('change', e => showEffFields(e.target.value));
     ['itemdef-quantity', 'itemdef-price', 'itemdef-discount', 'itemdef-currency'].forEach(id =>
       document.getElementById(id)?.addEventListener('input', updateTotal));
 
@@ -197,9 +254,8 @@
     document.getElementById('itemdef-form')?.addEventListener('submit', async function (e) {
       e.preventDefault();
       const id = document.getElementById('itemdef-id').value;
-      let effect = undefined;
-      const raw = document.getElementById('itemdef-effect').value.trim();
-      if (raw) { try { effect = JSON.parse(raw); } catch { showToast('Effect không phải JSON hợp lệ', 'error'); return; } }
+      let effect;
+      try { effect = buildEffect(); } catch { showToast('Effect JSON (nâng cao) không hợp lệ', 'error'); return; }
       const payload = {
         itemId: document.getElementById('itemdef-item-id').value.trim(),
         name: document.getElementById('itemdef-name').value.trim(),
@@ -224,7 +280,7 @@
         isActive: document.getElementById('itemdef-active').checked,
         published: document.getElementById('itemdef-published').checked,
       };
-      if (effect !== undefined) payload.effect = effect;
+      payload.effect = effect;
       const url = id ? `${API_URL}/admin/item-defs/${id}` : `${API_URL}/admin/item-defs`;
       const r = await fetch(url, { method: id ? 'PUT' : 'POST', headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const j = await r.json();

@@ -6,6 +6,8 @@ import { authHeaders } from '@/auth/token.js';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
+let _itemsPromise = null; // cache catalog cho cả phiên
+
 export const InventoryAPI = {
     /** Túi đồ của tôi + slot đang trang bị. → { success, data, equipped } */
     async get() {
@@ -14,11 +16,15 @@ export const InventoryAPI = {
             .catch(() => ({ success: false, data: [], equipped: {} }));
     },
 
-    /** Catalog item (public). */
-    async items() {
-        return fetch('/api/inventory/items')
-            .then(r => r.json())
-            .catch(() => ({ success: false, data: [] }));
+    /** Catalog item (public). Memoize promise — catalog tĩnh trong 1 phiên,
+     *  nhiều nơi (túi đồ, nhiệm vụ) gọi chung 1 lần fetch. */
+    items() {
+        if (!_itemsPromise) {
+            _itemsPromise = fetch('/api/inventory/items')
+                .then(r => r.json())
+                .catch(() => ({ success: false, data: [] }));
+        }
+        return _itemsPromise;
     },
 
     /** Dùng / kích hoạt đồ (vd thẻ boost on_use). */

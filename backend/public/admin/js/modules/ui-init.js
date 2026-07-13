@@ -46,6 +46,7 @@ function initMainTabs() {
         categories:          'Danh mục (Cửa hàng / Thành tích / Nhiệm vụ)',
         spin:                'Vòng quay — Phần thưởng & tỷ lệ',
         economy:             'Bảng kinh tế (faucet / sink)',
+        'game-config':       'Hằng số game (tinh chỉnh cân bằng)',
         monitor:             'Giám sát hệ thống',
         broadcast:           'Gửi thông báo',
         'upload-management': 'Nội dung người dùng',
@@ -94,7 +95,6 @@ function initMainTabs() {
             loadQuests();
             window.initChannelCatPicker?.('quest');
         } else if (tab === 'shop') {
-            loadShopItems();
             window.initChannelCatPicker?.('shop');
         } else if (tab === 'spin') {
             window.initSpinAdmin?.();
@@ -105,6 +105,8 @@ function initMainTabs() {
             window.loadCategories?.();
         } else if (tab === 'economy') {
             window.loadEconomy?.();
+        } else if (tab === 'game-config') {
+            window.loadGameConfig?.();
         } else if (tab === 'monitor') {
             startMetricsPolling();
             initApiReference();
