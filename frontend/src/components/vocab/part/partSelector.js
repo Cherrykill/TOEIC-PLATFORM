@@ -67,6 +67,12 @@ export const PartSelector = {
         let currentMode = this.practiceMode || 'sequential';
         let searchQuery = '';
 
+        // Tự phục hồi: vocab rỗng nhưng ĐÃ chọn đề trước đó (currentSource) →
+        // nạp lại nguồn thay vì bắt user F5. 'vocab:loaded' sẽ dựng lại lưới Part.
+        if ((GameLogic.vocabularyData?.length || 0) === 0 && GameLogic.currentSource) {
+            GameLogic.loadVocabularyBySource(GameLogic.currentSource).catch(() => {});
+        }
+
         const getLevelBar = (part) => {
             const s = this.partStats?.[part];
             if (!s) return '';
@@ -144,17 +150,27 @@ export const PartSelector = {
         };
 
         // Khi vocab tải xong (nếu modal mở trước lúc nạp xong) → dựng lại lưới Part.
+        // Chỉ đụng DOM khi part-modal VẪN là modal đang mở (tránh listener cũ ghi
+        // đè popup khác → "đơ"). Huỷ subscription cũ trước khi đăng ký mới (chống chồng).
+        this._modalOpen = true;
         const onVocabLoaded = () => {
+            if (!this._modalOpen) return;
             this.loadParts();
-            const body = document.querySelector('.modal-body');
+            const body = document.querySelector('#modal-container .modal-body');
             if (body) { body.innerHTML = renderModal(); setupHeaderSearch(); attachListeners(); }
         };
-        const unsubVocab = EventBus.on('vocab:loaded', onVocabLoaded);
+        this._unsubVocab?.();
+        this._unsubVocab = EventBus.on('vocab:loaded', onVocabLoaded);
 
         Modal.show({
             title: '📚 Chọn Part để luyện tập',
             content: renderModal(),
-            onClose: () => { this.pendingMode = null; unsubVocab(); },
+            onClose: () => {
+                this.pendingMode = null;
+                this._modalOpen = false;
+                this._unsubVocab?.();
+                this._unsubVocab = null;
+            },
         });
 
         const applyPartFilter = () => {
@@ -255,10 +271,13 @@ export const PartSelector = {
         const partWords = GameLogic.getWordsByPart(part) || [];
         this.updatePartBadge();
         await GameState.save();
+        // Chốt pendingMode TRƯỚC khi đóng modal — onClose sẽ xoá nó (timing React
+        // không đảm bảo chạy trước/sau dòng dưới).
+        const pendingMode = this.pendingMode;
         Modal.close();
 
-        if (this.pendingMode) {
-            const mode = this.pendingMode;
+        if (pendingMode) {
+            const mode = pendingMode;
             this.pendingMode = null;
             Notification.success(`Đã chọn ${part} — Bắt đầu luyện tập với ${partWords.length} từ...`);
             setTimeout(() => EventBus.emit(GameEvents.PRACTICE_REQUESTED, { mode }), 300);

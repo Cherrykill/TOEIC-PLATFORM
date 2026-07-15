@@ -12,7 +12,12 @@ export const Modal = {
 export default function ModalContainer() {
     const [modal, setModal] = useState(null);
 
-    const show = useCallback((options) => setModal(options), []);
+    // Mở modal mới đè modal đang mở → PHẢI gọi onClose của modal cũ, nếu không
+    // cleanup (unsubscribe EventBus…) của nó bị bỏ qua → leak listener, popup "đơ".
+    const show = useCallback((options) => setModal(prev => {
+        if (prev?.onClose) prev.onClose();
+        return options;
+    }), []);
     const close = useCallback(() => {
         setModal(prev => {
             if (prev?.onClose) prev.onClose();
