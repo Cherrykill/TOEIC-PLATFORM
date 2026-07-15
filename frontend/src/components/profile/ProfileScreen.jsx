@@ -6,7 +6,7 @@ import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
-import { frameStyle } from '@game/frames.js';
+import { frameStyle, frameOverlayUrl } from '@game/frames.js';
 import { resolveAvatarSrc } from '@game/avatars.js';
 
 export default function ProfileScreen({ active }) {
@@ -90,6 +90,7 @@ export default function ProfileScreen({ active }) {
     const bgKey = bgKeyForUser({ isVip: vipActive, background: GameState.state?.equipped?.background });
     const headerStyle = bgStyle(bgKey);
     const avatarFrameStyle = frameStyle(GameState.state?.equipped?.frame);
+    const avatarFrameImg = frameOverlayUrl(GameState.state?.equipped?.frame);
     const avatarSrc = resolveAvatarSrc(GameState.state?.equippedImages?.avatar, user?.avatar);
 
     const unlockedCount = achievements.filter(a => a.unlocked).length;
@@ -148,6 +149,7 @@ export default function ProfileScreen({ active }) {
                             ? <img src={avatarSrc} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                             : (user?.avatar || 'P')
                         }
+                        {avatarFrameImg && <span className="frame-overlay" style={{ backgroundImage: `url("${avatarFrameImg}")` }} aria-hidden="true" />}
                     </div>
 
                     <div className="profile-details">

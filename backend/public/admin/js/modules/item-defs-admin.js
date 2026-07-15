@@ -72,7 +72,14 @@
   function setEffFromData(eff) {
     eff = eff || {};
     let type = 'none';
-    if (eff.slot) { type = 'cosmetic'; document.getElementById('eff-cos-slot').value = eff.slot; document.getElementById('eff-cos-key').value = eff.key || ''; }
+    if (eff.slot) {
+      type = 'cosmetic';
+      document.getElementById('eff-cos-slot').value = eff.slot;
+      document.getElementById('eff-cos-key').value = eff.key || '';
+      document.getElementById('eff-cos-mode').value = eff.styleMode || 'image';
+      document.getElementById('eff-cos-css').value = eff.css || '';
+      _cosToggleStyleRow(eff.slot);
+    }
     else if (eff.type === 'resource') { type = 'resource'; document.getElementById('eff-resource-field').value = eff.field || 'hints'; }
     else if (eff.type === 'boost') { type = 'boost'; document.getElementById('eff-boost-type').value = eff.boostType || 'xp'; document.getElementById('eff-boost-mult').value = eff.multiplier || 2; document.getElementById('eff-boost-dur').value = eff.duration || 86400; }
     else if (eff.type === 'vip') { type = 'vip'; document.getElementById('eff-vip-dur').value = eff.duration || 604800; }
@@ -85,6 +92,11 @@
     document.getElementById('itemdef-eff-type').value = type;
     showEffFields(type);
   }
+  // Avatar chỉ dùng ảnh → ẩn hàng chọn kiểu (mode + css).
+  function _cosToggleStyleRow(slot) {
+    const row = document.getElementById('eff-cos-style-row');
+    if (row) row.style.display = (slot === 'avatar') ? 'none' : 'grid';
+  }
   function buildEffect() {
     const type = document.getElementById('itemdef-eff-type').value;
     switch (type) {
@@ -95,7 +107,15 @@
       case 'boost': return { type: 'boost', boostType: document.getElementById('eff-boost-type').value, multiplier: _num('eff-boost-mult') || 2, duration: _num('eff-boost-dur') || 86400 };
       case 'vip': return { type: 'vip', duration: _num('eff-vip-dur') || 604800 };
       case 'item': return { type: 'item', itemId: document.getElementById('eff-item-id').value.trim(), amount: _num('eff-item-amount') || 1 };
-      case 'cosmetic': return { slot: document.getElementById('eff-cos-slot').value, key: document.getElementById('eff-cos-key').value.trim() };
+      case 'cosmetic': {
+        const slot = document.getElementById('eff-cos-slot').value;
+        const eff = { slot, key: document.getElementById('eff-cos-key').value.trim() };
+        if (slot !== 'avatar') { // avatar chỉ dùng ảnh
+          eff.styleMode = document.getElementById('eff-cos-mode').value;
+          if (eff.styleMode === 'css') eff.css = document.getElementById('eff-cos-css').value.trim();
+        }
+        return eff;
+      }
       case 'spin': return { type: 'spin' };
       case 'raw': { const raw = document.getElementById('itemdef-effect').value.trim(); return raw ? JSON.parse(raw) : {}; }
       default: return {};
@@ -231,6 +251,7 @@
     document.getElementById('itemdef-add-child')?.addEventListener('click', () => addChildRow('', 1));
     document.getElementById('itemdef-category')?.addEventListener('change', updateRoleHint);
     document.getElementById('itemdef-eff-type')?.addEventListener('change', e => showEffFields(e.target.value));
+    document.getElementById('eff-cos-slot')?.addEventListener('change', e => _cosToggleStyleRow(e.target.value));
     ['itemdef-quantity', 'itemdef-price', 'itemdef-discount', 'itemdef-currency'].forEach(id =>
       document.getElementById(id)?.addEventListener('input', updateTotal));
 

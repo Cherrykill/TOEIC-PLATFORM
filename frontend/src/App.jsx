@@ -3,6 +3,9 @@ import { GameProvider, useGame } from '@game/GameContext.jsx';
 import { AuthProvider, useAuth } from '@components/auth/AuthContext.jsx';
 import { applyUiTheme, applySavedColorTheme } from '@/services/theme.js';
 import { startLeakMonitor } from '@lib/leakMonitor.js';
+import { InventoryAPI } from '@api/inventory.js';
+import { registerFrameCosmetics } from '@game/frames.js';
+import { registerBackgroundCosmetics } from '@game/backgrounds.js';
 import { STORAGE_KEYS } from '@/constants/storageKeys.js';
 import './assets/styles/index.css';
 
@@ -63,6 +66,12 @@ function AppInner() {
         const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
         applyUiTheme(savedTheme);
         applySavedColorTheme();
+        // Nạp cosmetic khung/nền do admin định nghĩa (ảnh/CSS) từ catalog → FRAMES/BACKGROUNDS.
+        InventoryAPI.items().then(res => {
+            const items = res?.data || [];
+            registerFrameCosmetics(items);
+            registerBackgroundCosmetics(items);
+        }).catch(() => {});
     }, []);
 
     useEffect(() => {

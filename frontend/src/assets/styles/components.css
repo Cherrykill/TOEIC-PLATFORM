@@ -7743,6 +7743,18 @@ mark {
 }
 .frame-dot--lg { width: 88px; height: 88px; font-size: 34px; }
 
+/* Khung ảnh: lớp phủ PNG (tâm trong suốt) quanh avatar tròn — phủ rộng hơn avatar,
+   không chặn click. Container avatar cần position:relative (frameStyle trả sẵn). */
+.frame-overlay {
+    position: absolute;
+    inset: -16%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    pointer-events: none;
+    z-index: 2;
+}
+
 /* Cosmetic đã sở hữu trong cửa hàng */
 .shop-item.owned { opacity: .92; }
 .buy-btn.owned,

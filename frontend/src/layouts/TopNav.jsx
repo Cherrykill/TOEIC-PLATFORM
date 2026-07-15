@@ -4,6 +4,7 @@ import { useAuth } from '@components/auth/AuthContext.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { GameState } from '@game/state.js';
 import { resolveAvatarSrc } from '@game/avatars.js';
+import { frameStyle, frameOverlayUrl } from '@game/frames.js';
 import { useMenuBadges } from './useMenuBadges.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import NotificationPanel from '@components/notifications/NotificationPanel.jsx';
@@ -116,6 +117,10 @@ export default function TopNav() {
 
     const avatarSrc = resolveAvatarSrc(GameState.state?.equippedImages?.avatar, user?.avatar);
     const isAvatarImg = !!avatarSrc;
+    // Khung cosmetic đang trang bị — đồng bộ với Hồ sơ / Bảng xếp hạng.
+    const equippedFrame = GameState.state?.equipped?.frame;
+    const avatarFrameStyle = frameStyle(equippedFrame);
+    const frameImg = frameOverlayUrl(equippedFrame);
 
     return (
         <>
@@ -137,11 +142,12 @@ export default function TopNav() {
                 <NotificationPanel isLoggedIn={isLoggedIn} />
 
                 <div className="user-info" onClick={() => showScreen('home-screen')} style={{ cursor: 'pointer' }}>
-                    <div className="avatar-small" id="user-avatar">
+                    <div className="avatar-small" id="user-avatar" style={avatarFrameStyle || undefined}>
                         {isAvatarImg
                             ? <img src={avatarSrc} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                             : (avatarSrc || user?.username?.charAt(0)?.toUpperCase() || 'P')
                         }
+                        {frameImg && <span className="frame-overlay" style={{ backgroundImage: `url("${frameImg}")` }} aria-hidden="true" />}
                     </div>
                     <div className="user-details">
                         <span id="username" className="username">{user?.username || 'Player'}</span>

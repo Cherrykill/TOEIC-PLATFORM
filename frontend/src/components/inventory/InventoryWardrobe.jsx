@@ -3,7 +3,7 @@ import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { InventoryAPI } from '@api/inventory.js';
 import { BACKGROUNDS, bgStyle } from '@game/backgrounds.js';
-import { FRAMES, frameStyle } from '@game/frames.js';
+import { FRAMES, frameStyle, frameOverlayUrl } from '@game/frames.js';
 import ItemThumb from '@ui/ItemThumb.jsx';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
@@ -226,6 +226,7 @@ export default function InventoryWardrobe() {
                             <span className="cell-thumb cell-thumb--icon">
                                 <span className="frame-dot" style={frameStyle(it.id) || undefined}>
                                     <i className="fas fa-user"></i>
+                                    {frameOverlayUrl(it.id) && <span className="frame-overlay" style={{ backgroundImage: `url("${frameOverlayUrl(it.id)}")` }} aria-hidden="true" />}
                                 </span>
                             </span>
                         ) : it.kind === 'cosmetic' && it.avatar ? (
@@ -257,7 +258,7 @@ export default function InventoryWardrobe() {
                     <>
                         <div className="preview-visual" style={selected.kind === 'cosmetic' && selected.bg ? (bgStyle(selected.id) || undefined) : undefined}>
                             {selected.kind === 'cosmetic' && selected.frame
-                                ? <span className="frame-dot frame-dot--lg" style={frameStyle(selected.id) || undefined}><i className="fas fa-user"></i></span>
+                                ? <span className="frame-dot frame-dot--lg" style={frameStyle(selected.id) || undefined}><i className="fas fa-user"></i>{frameOverlayUrl(selected.id) && <span className="frame-overlay" style={{ backgroundImage: `url("${frameOverlayUrl(selected.id)}")` }} aria-hidden="true" />}</span>
                                 : selected.kind === 'cosmetic' && selected.avatar
                                     ? <img src={selected.image} alt="" className="avatar-dot avatar-dot--lg" />
                                     : selected.kind !== 'cosmetic'

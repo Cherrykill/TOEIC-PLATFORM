@@ -3,7 +3,7 @@ import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { RankingsAPI } from '@api/rankings.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
-import { frameStyle } from '@game/frames.js';
+import { frameStyle, frameOverlayUrl } from '@game/frames.js';
 import { resolveAvatarSrc } from '@game/avatars.js';
 import { authHeaders } from '@/auth/token.js';
 
@@ -203,6 +203,7 @@ export default function LeaderboardScreen({ active }) {
                                         ? <img src={resolveAvatarSrc(entry.avatarImage, entry.avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                         : (entry.username?.charAt(0)?.toUpperCase() || 'P')
                                     }
+                                    {frameOverlayUrl(entry.frame) && <span className="frame-overlay" style={{ backgroundImage: `url("${frameOverlayUrl(entry.frame)}")` }} aria-hidden="true" />}
                                 </div>
                                 {entry.isOnline && <span className="online-dot online-dot--on" />}
                             </div>
@@ -231,6 +232,7 @@ export default function LeaderboardScreen({ active }) {
                                 ? <img src={resolveAvatarSrc(selected.avatarImage, selected.avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                                 : (selected.username?.[0]?.toUpperCase() || '?')
                             }
+                            {frameOverlayUrl(selected.frame) && <span className="frame-overlay" style={{ backgroundImage: `url("${frameOverlayUrl(selected.frame)}")` }} aria-hidden="true" />}
                         </div>
                         <h3 className="player-popup-name">{selected.username || 'Ẩn danh'}</h3>
                         <div className="player-popup-id">

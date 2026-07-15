@@ -4491,9 +4491,20 @@
               <input type="text" id="eff-item-id" placeholder="itemId cấp (vd hint)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace">
               <input type="number" id="eff-item-amount" placeholder="SL" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
             </div>
-            <div class="eff-fields" data-eff="cosmetic" style="display:none;gap:8px;grid-template-columns:1fr 2fr">
-              <select id="eff-cos-slot" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px"><option value="avatar">avatar</option><option value="background">background</option><option value="frame">frame</option></select>
-              <input type="text" id="eff-cos-key" placeholder="key (vd bg-ocean)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace">
+            <div class="eff-fields" data-eff="cosmetic" style="display:none">
+              <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px">
+                <select id="eff-cos-slot" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px"><option value="avatar">avatar</option><option value="background">background</option><option value="frame">frame</option></select>
+                <input type="text" id="eff-cos-key" placeholder="key (vd bg-ocean)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace">
+              </div>
+              <!-- Kiểu hiển thị: ảnh (dùng ô Ảnh phía trên) hoặc CSS (gradient/màu). Avatar chỉ ảnh. -->
+              <div id="eff-cos-style-row" style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-top:8px">
+                <select id="eff-cos-mode" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
+                  <option value="image">🖼️ Dùng ảnh (ô Ảnh phía trên)</option>
+                  <option value="css">🎨 Dùng CSS (gradient/màu)</option>
+                </select>
+                <input type="text" id="eff-cos-css" placeholder="CSS: nền → 'linear-gradient(...)'; khung → màu '#f59e0b'" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace">
+              </div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">Avatar: chỉ dùng ảnh (không có CSS). Khung/Nền: chọn ảnh hoặc CSS.</div>
             </div>
             <div class="eff-fields" data-eff="raw" style="display:none">
               <textarea id="itemdef-effect" rows="3" placeholder='{"type":"boost","boostType":"xp","multiplier":2,"duration":86400}' style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;font-family:monospace;font-size:12px"></textarea>
@@ -4526,7 +4537,7 @@
     <script src="/admin/js/modules/tabs.js?v=3"></script>
     <script src="/admin/js/modules/season-admin.js?v=1"></script>
     <script src="/admin/js/modules/spin-admin.js?v=4"></script>
-    <script src="/admin/js/modules/item-defs-admin.js?v=7"></script>
+    <script src="/admin/js/modules/item-defs-admin.js?v=8"></script>
     <script src="/admin/js/modules/category-admin.js?v=1"></script>
     <script src="/admin/js/modules/channel-config-admin.js?v=1"></script>
     <script src="/admin/js/modules/economy-admin.js?v=2"></script>

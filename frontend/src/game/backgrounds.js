@@ -27,6 +27,23 @@ export const BACKGROUNDS = {
     },
 };
 
+// Gộp nền do admin định nghĩa (effect.slot === 'background') từ catalog vào BACKGROUNDS.
+// styleMode 'css' → dùng b.css (gradient/màu); 'image' → dùng ảnh (b.image).
+export function registerBackgroundCosmetics(items) {
+    (items || []).forEach(d => {
+        const eff = d.effect || {};
+        if (eff.slot !== 'background' || !eff.key) return;
+        BACKGROUNDS[eff.key] = {
+            ...(BACKGROUNDS[eff.key] || {}),
+            label: d.name || BACKGROUNDS[eff.key]?.label || eff.key,
+            styleMode: eff.styleMode || BACKGROUNDS[eff.key]?.styleMode || 'image',
+            css: eff.css || BACKGROUNDS[eff.key]?.css || '',
+            image: d.image || BACKGROUNDS[eff.key]?.image || '',
+            dark: BACKGROUNDS[eff.key]?.dark !== undefined ? BACKGROUNDS[eff.key].dark : true,
+        };
+    });
+}
+
 // Chọn key nền cho 1 user: ưu tiên cosmetic đang TRANG BỊ (equipped.background),
 // rồi tới VIP mặc định (khi chưa migrate/chưa trang bị).
 export function bgKeyForUser(data = {}) {
@@ -43,12 +60,15 @@ export function bgKeyForUser(data = {}) {
 export function bgStyle(key) {
     const b = BACKGROUNDS[key];
     if (!b) return null;
-    const overlay = b.dark ? 'linear-gradient(rgba(0,0,0,.32),rgba(0,0,0,.12)), ' : '';
-    return {
-        backgroundImage: `${overlay}url("${b.image}"), ${b.gradient}`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-    };
+    // Nền CSS (gradient/màu do admin nhập) — admin tự lo độ tương phản, không phủ overlay.
+    if (b.styleMode === 'css' && b.css) {
+        return { background: b.css, backgroundSize: 'cover', backgroundPosition: 'center' };
+    }
+    // Nền ẢNH: ảnh phủ trên gradient dự phòng; nền tối thêm lớp tối nhẹ cho chữ sáng dễ đọc.
+    const overlay = b.dark ? 'linear-gradient(rgba(0,0,0,.32),rgba(0,0,0,.12))' : '';
+    const layers = [overlay, b.image ? `url("${b.image}")` : '', b.gradient || '']
+        .filter(Boolean).join(', ');
+    return { backgroundImage: layers, backgroundSize: 'cover', backgroundPosition: 'center' };
 }
 
 export function isDarkBg(key) {
