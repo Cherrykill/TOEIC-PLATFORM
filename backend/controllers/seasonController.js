@@ -63,3 +63,18 @@ exports.getHallOfFame = async (req, res, next) => {
         res.json({ success: true, data: list });
     } catch (e) { next(e); }
 };
+
+/**
+ * Hành trình các mùa của CHÍNH user (tab Hồ sơ).
+ * GET /api/season/my-history
+ */
+exports.getMySeasonHistory = async (req, res, next) => {
+    try {
+        const UserSeasonRecord = require('../models/UserSeasonRecord');
+        const data = await UserSeasonRecord.find({ userId: req.user.id })
+            .sort({ seasonNumber: -1 })
+            .limit(24)
+            .lean();
+        res.json({ success: true, data });
+    } catch (err) { next(err); }
+};

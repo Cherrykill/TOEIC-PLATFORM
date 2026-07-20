@@ -13,6 +13,7 @@ import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { SessionService } from './sessionService.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
+import { authHeaders } from '@/auth/token.js';
 import { ReviewOverlay } from './ReviewOverlay.js';
 import { Flashcard } from './modes/flashcard.js';
 import { MultipleChoice } from './modes/multipleChoice.js';
@@ -691,6 +692,28 @@ export const PracticeManager = {
         EventBus.emit(GameEvents.PRACTICE_COMPLETED, this.currentSession);
     },
 
+    // Nạp xếp hạng "top ..% server" cho chế độ vừa chơi rồi chèn vào popup.
+    // Chạy sau khi popup đã hiện (không chặn), tự ẩn nếu chưa đủ người chơi.
+    async _loadModePercentile(mode) {
+        if (!mode) return;
+        try {
+            const res = await fetch(`/api/practice/percentile/${encodeURIComponent(mode)}`, {
+                headers: authHeaders(),
+            });
+            const j = await res.json();
+            const d = j?.data;
+            if (!j.success || !d?.enough) return;
+
+            const el = document.getElementById('pr-percentile');
+            if (!el) return; // popup đã đóng
+            el.innerHTML = `
+                <i class="fas fa-ranking-star"></i>
+                <span>Bạn thuộc <b>TOP ${d.topPercent}%</b> server ở chế độ này</span>
+                <small>Giỏi hơn ${d.betterThan}% trong ${d.players} người chơi · độ chính xác ${d.accuracy}%</small>`;
+            el.style.display = '';
+        } catch { /* thống kê lỗi không được ảnh hưởng popup */ }
+    },
+
     // opts cho phép mode có ngữ nghĩa riêng (vd Flashcard: "Đã biết/Chưa biết",
     // thêm nút "Ôn lại từ chưa biết" / "Học tiếp") mà VẪN dùng chung layout kết quả.
     showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus = 0, opts = {}) {
@@ -743,6 +766,8 @@ export const PracticeManager = {
                             <i class="fas fa-${isPerfect ? 'trophy' : 'star'}"></i>
                             <span>${stars} ${isPerfect ? 'Hoàn hảo!' : performance.message}</span>
                         </div>
+                        <!-- Xếp hạng theo chế độ — nạp async, ẩn nếu mẫu quá nhỏ. -->
+                        <div class="pr-percentile" id="pr-percentile" style="display:none"></div>
                     </div>
                     <div class="pr-right">
                         <div class="pr-row correct"><span><i class="fas fa-check-circle"></i> ${correctLabel}</span><b>${correct}</b></div>
@@ -801,6 +826,9 @@ export const PracticeManager = {
                 }
             ]
         });
+
+        // Nạp xếp hạng sau khi popup đã render (không chặn việc hiện kết quả).
+        this._loadModePercentile(s.mode);
     },
 
     cleanupMode(mode) {

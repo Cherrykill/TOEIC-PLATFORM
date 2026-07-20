@@ -47,6 +47,7 @@ function initMainTabs() {
         spin:                'Vòng quay — Phần thưởng & tỷ lệ',
         economy:             'Bảng kinh tế (faucet / sink)',
         'game-config':       'Hằng số game (tinh chỉnh cân bằng)',
+        'feature-unlocks':   'Mở khoá theo Level',
         monitor:             'Giám sát hệ thống',
         broadcast:           'Gửi thông báo',
         'upload-management': 'Nội dung người dùng',
@@ -107,6 +108,8 @@ function initMainTabs() {
             window.loadEconomy?.();
         } else if (tab === 'game-config') {
             window.loadGameConfig?.();
+        } else if (tab === 'feature-unlocks') {
+            window.loadFeatureUnlocks?.();
         } else if (tab === 'monitor') {
             startMetricsPolling();
             initApiReference();

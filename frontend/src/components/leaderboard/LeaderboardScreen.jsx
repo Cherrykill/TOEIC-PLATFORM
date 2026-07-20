@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { RankingsAPI } from '@api/rankings.js';
@@ -10,6 +10,8 @@ import { authHeaders } from '@/auth/token.js';
 export default function LeaderboardScreen({ active }) {
     const { showScreen } = useGame();
     const [period, setPeriod] = useState('daily');
+    const [board, setBoard] = useState('vocab');     // 'vocab' | 'toeic'
+    const [part, setPart] = useState(1);             // Part 1..7 khi board = 'toeic'
     const [sortBy, setSortBy] = useState('totalXp'); // tiêu chí xếp hạng
     const [order, setOrder] = useState('desc');       // thứ tự tăng/giảm
     const [entries, setEntries] = useState([]);
@@ -68,11 +70,22 @@ export default function LeaderboardScreen({ active }) {
 
     useEffect(() => {
         if (active) loadLeaderboard(period);
-    }, [active, period, sortBy, order]);
+    }, [active, period, sortBy, order, board, part]);
 
     async function loadLeaderboard(p) {
         setLoading(true);
         setFallbackNotice('');
+
+        // Bảng "Test TOEIC" — xếp theo Part, dùng endpoint riêng.
+        if (board === 'toeic') {
+            const r = await fetch(`/api/leaderboard/toeic/part/${part}`).then(x => x.json()).catch(() => null);
+            const rows = r?.success ? (r.data || []) : [];
+            setEntries(rows);
+            if (rows.length === 0) setFallbackNotice(`Chưa có ai hoàn thành bài thi có Part ${part}`);
+            setLoading(false);
+            return;
+        }
+
         const opts = { sortBy, order };
         const res = await RankingsAPI.byPeriod(p, opts);
         const data = res.success ? (res.data || []) : [];
@@ -115,7 +128,38 @@ export default function LeaderboardScreen({ active }) {
         accuracy: { label: 'Tỷ lệ đúng',    get: e => e.accuracy || 0,  fmt: v => `${v}%` },
         playtime: { label: 'Thời gian học', get: e => e.studyTime || 0, fmt: v => fmtDur(v) },
     };
-    const metric = METRICS[sortBy] || METRICS.totalXp;
+    // Chế độ "Test TOEIC": xếp theo Part, chỉ số hiển thị là số câu đúng + %.
+    const PART_METRIC = {
+        label: 'Điểm Part',
+        get: e => e.partCorrect || 0,
+        fmt: (v, e) => `${v}/${e?.partTotal || 0} · ${e?.partAccuracy || 0}%`,
+    };
+    const metric = board === 'toeic' ? PART_METRIC : (METRICS[sortBy] || METRICS.totalXp);
+
+    // Nhận diện dòng của chính mình (backend trả `id`; giữ `userId`/username làm dự phòng).
+    const isMeEntry = (e) => {
+        const myId = GameState.state.user?.id || GameState.state.user?._id;
+        const myName = GameState.state.user?.username;
+        if (myId && (String(e.id) === String(myId) || String(e.userId) === String(myId))) return true;
+        return !!(myName && e.username === myName);
+    };
+    // Tìm trong `entries` (không phải `filtered`) để ô tìm kiếm không làm mất dòng ghim.
+    const myEntry = entries.find(isMeEntry);
+
+    // Chỉ ghim khi dòng thật của mình ĐÃ CUỘN KHUẤT — đang nhìn thấy thì không
+    // hiện bản sao ở chân trang (tránh trùng lặp như khi danh sách còn ngắn).
+    const meRowRef = useRef(null);
+    const [meVisible, setMeVisible] = useState(true);
+    useEffect(() => {
+        const el = meRowRef.current;
+        if (!el) { setMeVisible(false); return; } // dòng thật bị lọc/ngoài trang → cứ ghim
+        const io = new IntersectionObserver(
+            ([e]) => setMeVisible(e.isIntersecting),
+            { threshold: 0.6 }, // thấy >60% mới coi là "đang nhìn thấy"
+        );
+        io.observe(el);
+        return () => io.disconnect();
+    }, [filtered.length, myEntry?.id, board, part, period, sortBy, loading]);
     // Cùng kiểu với ô tìm kiếm (pill + viền box-shadow) để 3 control đồng bộ, cùng chiều cao.
     const selStyle = {
         padding: '8px 12px', border: '2px solid transparent', borderRadius: 20,
@@ -158,12 +202,25 @@ export default function LeaderboardScreen({ active }) {
                         onChange={e => setSearch(e.target.value)}
                     />
                 </div>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={selStyle} title="Xếp hạng theo">
-                    <option value="totalXp">🏆 XP</option>
-                    <option value="streak">🔥 Streak</option>
-                    <option value="accuracy">🎯 Tỷ lệ đúng</option>
-                    <option value="playtime">⏱️ Thời gian học</option>
+                {/* Chọn bảng: Từ vựng TOEIC (theo XP/Streak…) hay Test TOEIC (theo Part). */}
+                <select value={board} onChange={e => setBoard(e.target.value)} style={selStyle} title="Bảng xếp hạng">
+                    <option value="vocab">📚 Từ vựng TOEIC</option>
+                    <option value="toeic">📝 Test TOEIC</option>
                 </select>
+                {board === 'toeic' ? (
+                    <select value={part} onChange={e => setPart(Number(e.target.value))} style={selStyle} title="Chọn Part">
+                        {[1, 2, 3, 4, 5, 6, 7].map(p => (
+                            <option key={p} value={p}>📄 Part {p}</option>
+                        ))}
+                    </select>
+                ) : (
+                    <select value={sortBy} onChange={e => setSortBy(e.target.value)} style={selStyle} title="Xếp hạng theo">
+                        <option value="totalXp">🏆 XP</option>
+                        <option value="streak">🔥 Streak</option>
+                        <option value="accuracy">🎯 Tỷ lệ đúng</option>
+                        <option value="playtime">⏱️ Thời gian học</option>
+                    </select>
+                )}
                 <select value={order} onChange={e => setOrder(e.target.value)} style={selStyle} title="Thứ tự">
                     <option value="desc">↓ Giảm dần</option>
                     <option value="asc">↑ Tăng dần</option>
@@ -181,9 +238,7 @@ export default function LeaderboardScreen({ active }) {
                     <div className="empty-state">Chưa có dữ liệu</div>
                 ) : filtered.map((entry, i) => {
                     const rank = entry.rank || i + 1;
-                    const myId = GameState.state.user?.id || GameState.state.user?._id;
-                    const myName = GameState.state.user?.username;
-                    const isMe = (myId && entry.userId === myId) || (myName && entry.username === myName);
+                    const isMe = isMeEntry(entry);
                     const myVip = GameState.state?.vip;
                     const myVipActive = !!(myVip?.active && myVip.expiresAt && Date.now() < myVip.expiresAt);
                     const rowVip = entry.isVip || (isMe && myVipActive);
@@ -192,6 +247,7 @@ export default function LeaderboardScreen({ active }) {
                     return (
                         <div
                             key={i}
+                            ref={isMe ? meRowRef : undefined}
                             className={`leaderboard-item${isMe ? ' leaderboard-item--me' : ''}${bgKey ? ' leaderboard-item--custom-bg' : ''}${rowVip ? ' leaderboard-item--vip' : ''}`}
                             onClick={() => setSelected(entry)}
                             style={rowStyle}
@@ -213,13 +269,46 @@ export default function LeaderboardScreen({ active }) {
                                     {rowVip && <span className="leaderboard-vip-badge">👑 VIP</span>}
                                     {isMe && <span className="leaderboard-you-badge">Bạn</span>}
                                 </div>
-                                <div className="leaderboard-level"><i className="fas fa-star"></i> Level {entry.level || 1}</div>
+                                <div className="leaderboard-level">
+                                    <i className="fas fa-star"></i> Level {entry.level || 1}
+                                    <span className="leaderboard-gems" title="Số tim (đá quý)">
+                                        <i className="fas fa-heart"></i> {(entry.gems || 0).toLocaleString()}
+                                    </span>
+                                </div>
                             </div>
-                            <span className="leaderboard-score">{metric.fmt(metric.get(entry))}</span>
+                            <span className="leaderboard-score">{metric.fmt(metric.get(entry), entry)}</span>
                         </div>
                     );
                 })}
             </div>
+
+            {/* Dòng của CHÍNH MÌNH — ghim đáy màn hình để khỏi phải cuộn đi tìm. */}
+            {!loading && myEntry && !meVisible && (
+                <div className="leaderboard-me-pinned" onClick={() => setSelected(myEntry)} title="Vị trí của bạn">
+                    <div className="leaderboard-rank">{myEntry.rank || '—'}</div>
+                    <div className="leaderboard-avatar-wrap">
+                        <div className="leaderboard-avatar" style={frameStyle(myEntry.frame) || undefined}>
+                            {resolveAvatarSrc(myEntry.avatarImage, myEntry.avatar)
+                                ? <img src={resolveAvatarSrc(myEntry.avatarImage, myEntry.avatar)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                                : (myEntry.username?.charAt(0)?.toUpperCase() || 'P')}
+                            {frameOverlayUrl(myEntry.frame) && <span className="frame-overlay" style={{ backgroundImage: `url("${frameOverlayUrl(myEntry.frame)}")` }} aria-hidden="true" />}
+                        </div>
+                    </div>
+                    <div className="leaderboard-info">
+                        <div className="leaderboard-name">
+                            {myEntry.username}
+                            <span className="leaderboard-you-badge">Bạn</span>
+                        </div>
+                        <div className="leaderboard-level">
+                            <i className="fas fa-star"></i> Level {myEntry.level || 1}
+                            <span className="leaderboard-gems" title="Số tim (đá quý)">
+                                <i className="fas fa-heart"></i> {(myEntry.gems || 0).toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                    <span className="leaderboard-score">{metric.fmt(metric.get(myEntry), myEntry)}</span>
+                </div>
+            )}
 
             {selected && (
                 <div className="player-popup-overlay" onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}>

@@ -10,6 +10,8 @@ const UserStats = require('../models/UserStats');
 const Category = require('../models/Category');
 const ChannelConfig = require('../models/ChannelConfig');
 const GameConfig = require('../models/GameConfig');
+const FeatureUnlock = require('../models/FeatureUnlock');
+const { clearUnlockCache } = require('../services/featureUnlock');
 const { clearGameConfigCache } = require('../services/gameConfig');
 const adminCtrl = require('../controllers/adminController');
 const { uploadShopImage, sanitizeRole } = require('../middleware/upload');
@@ -455,6 +457,42 @@ router.put('/game-config', admin, async (req, res) => {
     } catch (err) {
         res.status(400).json({ success: false, message: err.message });
     }
+});
+
+// ===== Mốc mở khoá theo Level (FeatureUnlock) =====
+router.get('/feature-unlocks', admin, async (req, res) => {
+    try {
+        const data = await FeatureUnlock.find().sort({ order: 1, requiredLevel: 1 }).lean();
+        res.json({ success: true, data });
+    } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+router.post('/feature-unlocks', admin, async (req, res) => {
+    try {
+        const data = await FeatureUnlock.create(req.body);
+        clearUnlockCache();
+        res.status(201).json({ success: true, message: 'Đã tạo mốc mở khoá', data });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+
+router.put('/feature-unlocks/:id', admin, async (req, res) => {
+    try {
+        const { _id, __v, ...fields } = req.body;
+        if (fields.requiredLevel !== undefined) fields.requiredLevel = Math.max(1, Number(fields.requiredLevel) || 1);
+        const data = await FeatureUnlock.findByIdAndUpdate(req.params.id, { $set: fields }, { new: true, runValidators: true });
+        if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+        clearUnlockCache();
+        res.json({ success: true, message: 'Đã cập nhật mốc mở khoá', data });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+
+router.delete('/feature-unlocks/:id', admin, async (req, res) => {
+    try {
+        const data = await FeatureUnlock.findByIdAndDelete(req.params.id);
+        if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+        clearUnlockCache();
+        res.json({ success: true, message: 'Đã xóa mốc mở khoá' });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 });
 
 module.exports = router;

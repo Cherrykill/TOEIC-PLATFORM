@@ -109,6 +109,8 @@ export const GameState = {
 
         // Cosmetic đang trang bị (server-authoritative): { background: itemId, ... }
         equipped: {},
+        // Ảnh của cosmetic đang trang bị, server gửi từ DB: { avatar: '/uploads/...', ... }
+        equippedImages: {},
 
         // Lịch sử chi tiêu (cap 50, newest first) — server-authoritative.
         transactions: [],
@@ -895,6 +897,15 @@ export const GameState = {
 
         if (serverData.boosts) {
             this.state.boosts = Utils.deepMerge(this.state.boosts, serverData.boosts);
+        }
+
+        // Cosmetic đang trang bị + ảnh của chúng (server gửi từ DB).
+        // Thiếu 2 dòng này thì sau F5 avatar/khung/nền mất, rơi về chữ cái đầu.
+        if (serverData.equipped) {
+            this.state.equipped = { ...serverData.equipped };
+        }
+        if (serverData.equippedImages) {
+            this.state.equippedImages = { ...serverData.equippedImages };
         }
     }
 

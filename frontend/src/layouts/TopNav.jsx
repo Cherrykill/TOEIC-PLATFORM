@@ -5,6 +5,8 @@ import { EventBus, GameEvents } from '@game/eventBus.js';
 import { GameState } from '@game/state.js';
 import { resolveAvatarSrc } from '@game/avatars.js';
 import { frameStyle, frameOverlayUrl } from '@game/frames.js';
+import { loadUnlocks, lockInfo } from '@game/featureUnlocks.js';
+import { Notification } from '@ui/Toaster.jsx';
 import { useMenuBadges } from './useMenuBadges.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import NotificationPanel from '@components/notifications/NotificationPanel.jsx';
@@ -97,9 +99,43 @@ export default function TopNav() {
     }, []);
 
 
+    // Mốc mở khoá — nạp khi đăng nhập & khi lên cấp (để nút tự mở/khoá).
+    const [unlockTick, setUnlockTick] = useState(0);
+    useEffect(() => {
+        if (!isLoggedIn) return;
+        const reload = () => loadUnlocks(true).then(() => setUnlockTick(t => t + 1));
+        reload();
+        const unsub = EventBus.on(GameEvents.USER_LEVEL_UP, reload);
+        return () => unsub?.();
+    }, [isLoggedIn]);
+    const uploadLock = isLoggedIn ? lockInfo('feature:upload-vocab') : { locked: false };
+    const favLock = isLoggedIn ? lockInfo('feature:favorites') : { locked: false };
+    const translateLock = isLoggedIn ? lockInfo('feature:translate') : { locked: false };
+
+    // Báo mốc còn thiếu (dùng chung cho các nút bị khoá trên nav).
+    const warnLocked = (name, requiredLevel) => Notification.show({
+        type: 'warning',
+        title: `🔒 Cần Level ${requiredLevel}`,
+        message: `${name} mở khi bạn đạt Level ${requiredLevel}.`,
+        duration: 3500,
+    });
+
     // Expose spin opener globally + check availability
     useEffect(() => {
-        window._openSpinWheel = () => { setSpinOpen(true); setSpinAvailable(false); };
+        // Khoá theo Level: chặn mở Vòng quay ở MỌI nơi gọi (Cửa hàng, Túi đồ…).
+        window._openSpinWheel = () => {
+            const lv = lockInfo('feature:spin');
+            if (lv.locked) {
+                Notification.show({
+                    type: 'warning',
+                    title: `🔒 Cần Level ${lv.requiredLevel}`,
+                    message: `Vòng quay mở khi bạn đạt Level ${lv.requiredLevel}.`,
+                    duration: 3500,
+                });
+                return;
+            }
+            setSpinOpen(true); setSpinAvailable(false);
+        };
         return () => { delete window._openSpinWheel; };
     }, []);
 
@@ -186,7 +222,11 @@ export default function TopNav() {
                     <input
                         type="text"
                         id="search-input"
-                        placeholder={isInPractice ? 'Đang luyện tập — tạm khoá tìm kiếm' : 'Tìm từ vựng... (Shift+Enter: dịch Google)'}
+                        placeholder={isInPractice
+                            ? 'Đang luyện tập — tạm khoá tìm kiếm'
+                            : translateLock.locked
+                                ? `Tìm từ vựng... (Dịch nhanh mở ở Level ${translateLock.requiredLevel})`
+                                : 'Tìm từ vựng... (Shift+Enter: dịch Google)'}
                         autoComplete="off"
                         readOnly={searchReadOnly || isInPractice}
                         disabled={isInPractice}
@@ -199,6 +239,7 @@ export default function TopNav() {
                             // Shift+Enter → mở popup dịch nhanh ngay trong app (khi không tìm thấy trong app)
                             if (e.key === 'Enter' && e.shiftKey) {
                                 e.preventDefault();
+                                if (translateLock.locked) return warnLocked('Dịch nhanh', translateLock.requiredLevel);
                                 const q = searchQuery.trim();
                                 if (q) setTranslateText(q);
                             }
@@ -219,11 +260,35 @@ export default function TopNav() {
                 <button id="part-selector-btn" className="icon-btn" title="Chọn Part" onClick={handlePartSelector}>
                     <i className="fas fa-layer-group"></i>
                 </button>
-                <button id="upload-btn" className="icon-btn" title="Tải lên từ vựng" onClick={openUploadModal}>
-                    <i className="fas fa-cloud-upload-alt"></i>
+                <button
+                    id="upload-btn"
+                    className={`icon-btn${uploadLock.locked ? ' icon-btn--locked' : ''}`}
+                    title={uploadLock.locked ? `Mở ở Level ${uploadLock.requiredLevel}` : 'Tải lên từ vựng'}
+                    onClick={() => {
+                        if (uploadLock.locked) {
+                            Notification.show({
+                                type: 'warning',
+                                title: `🔒 Cần Level ${uploadLock.requiredLevel}`,
+                                message: `Từ vựng riêng mở khi bạn đạt Level ${uploadLock.requiredLevel}.`,
+                                duration: 3500,
+                            });
+                            return;
+                        }
+                        openUploadModal();
+                    }}
+                >
+                    <i className={`fas ${uploadLock.locked ? 'fa-lock' : 'fa-cloud-upload-alt'}`}></i>
                 </button>
-                <button id="nav-favorite-btn" className="icon-btn" title="Danh sách từ yêu thích" onClick={() => setFavOpen(true)}>
-                    <i className="fas fa-star"></i>
+                <button
+                    id="nav-favorite-btn"
+                    className={`icon-btn${favLock.locked ? ' icon-btn--locked' : ''}`}
+                    title={favLock.locked ? `Mở ở Level ${favLock.requiredLevel}` : 'Danh sách từ yêu thích'}
+                    onClick={() => {
+                        if (favLock.locked) return warnLocked('Từ vựng yêu thích', favLock.requiredLevel);
+                        setFavOpen(true);
+                    }}
+                >
+                    <i className={`fas ${favLock.locked ? 'fa-lock' : 'fa-star'}`}></i>
                 </button>
                 <button
                     id="theme-toggle-btn"

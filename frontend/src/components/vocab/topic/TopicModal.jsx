@@ -234,6 +234,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                   ) : personal.length === 0 ? (
                     <div
                       style={{
+                        gridColumn: "1 / -1", // span hết lưới, nếu không sẽ lệch về cột đầu
                         textAlign: "center",
                         padding: "30px 20px",
                         color: "var(--text-secondary)",
@@ -318,6 +319,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                   ) : wrong.length === 0 ? (
                     <div
                       style={{
+                        gridColumn: "1 / -1", // span hết lưới, nếu không sẽ lệch về cột đầu
                         textAlign: "center",
                         padding: "30px 20px",
                         color: "var(--text-secondary)",

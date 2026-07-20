@@ -5,9 +5,11 @@ const {
     startSession, submitSession, getHistory,
     getSessionById, getStats, getRecentSessions,
     adminGetHistory, adminGetUsersList, adminDeleteSession,
+    getModePercentile,
 } = require('../controllers/practiceController');
 
 const { protect, authorize } = require('../middleware/auth');
+const { requireLevel } = require('../services/featureUnlock');
 
 router.use(protect);
 
@@ -41,7 +43,7 @@ router.use(protect);
  *                   items:
  *                     $ref: '#/components/schemas/VocabularyItem'
  */
-router.post('/start', startSession);
+router.post('/start', requireLevel(req => (req.body?.mode ? `mode:${req.body.mode}` : null)), startSession);
 
 /**
  * @swagger
@@ -113,6 +115,9 @@ router.get('/history', getHistory);
  *         description: Thống kê luyện tập
  */
 router.get('/stats', getStats);
+
+// Xếp hạng độ chính xác của user trong 1 chế độ so với toàn server.
+router.get('/percentile/:mode', getModePercentile);
 
 /**
  * @swagger

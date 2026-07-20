@@ -17,6 +17,13 @@ export default function ProfileScreen({ active }) {
     const [stats, setStats] = useState(null);
     const [achievements, setAchievements] = useState([]);
     const [showAllAchievements, setShowAllAchievements] = useState(false);
+    const [seasons, setSeasons] = useState([]); // hành trình các mùa đã kết thúc
+
+    useEffect(() => {
+        API.get('/season/my-history')
+            .then(res => { if (res?.success) setSeasons(res.data || []); })
+            .catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (active) {
@@ -295,6 +302,33 @@ export default function ProfileScreen({ active }) {
                                 <div className="profile-stat-label">Streak hiện tại</div>
                                 <small>Dài nhất: {streak.longest}</small>
                             </div>
+                        </div>
+                    </section>
+                )}
+
+                {seasons.length > 0 && (
+                    <section className="profile-section">
+                        <h3><i className="fas fa-flag-checkered"></i> Hành trình các mùa</h3>
+                        <div className="season-history">
+                            {seasons.map(s => (
+                                <div key={s.seasonNumber} className="season-row">
+                                    <div className="season-badge">
+                                        <i className="fas fa-medal"></i>
+                                        <span>Mùa {s.seasonNumber}</span>
+                                    </div>
+                                    <div className="season-figures">
+                                        <span title="Cấp độ cuối mùa"><b>Lv.{s.level}</b></span>
+                                        {s.rank ? <span title="Hạng theo tổng XP">#{s.rank}</span> : null}
+                                        <span title="Tổng XP">{(s.totalXp || 0).toLocaleString()} XP</span>
+                                        <span title="Số từ đã học">{s.wordsLearned} từ</span>
+                                        <span title="Độ chính xác">{s.accuracy}%</span>
+                                        <span title="Thành tích mở khoá">🏆 {s.achievementsUnlocked}</span>
+                                    </div>
+                                    <small className="season-date">
+                                        Kết thúc {new Date(s.endedAt).toLocaleDateString('vi-VN')}
+                                    </small>
+                                </div>
+                            ))}
                         </div>
                     </section>
                 )}

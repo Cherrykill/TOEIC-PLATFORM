@@ -10,6 +10,7 @@ import { Quest } from '@components/quest/quest.js';
 import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { Notification } from '@ui/Toaster.jsx';
+import { loadUnlocks, lockInfo } from '@game/featureUnlocks.js';
 
 // 4 tầng ĐỘ KHÓ (màu = độ khó): 🟢 Dễ < 🔵 Trung bình < 🟣 Khó < 🔴 Thử thách.
 // Trong mỗi tầng, sắp theo cost (dễ → khó).
@@ -200,8 +201,26 @@ export default function HomeScreen({ active }) {
         return () => clearInterval(id);
     }, [active]);
 
+    // Mốc mở khoá theo Level — nạp lại mỗi lần vào Trang chủ (level có thể vừa tăng).
+    const [unlockTick, setUnlockTick] = useState(0);
+    useEffect(() => {
+        if (!active) return;
+        loadUnlocks(true).then(() => setUnlockTick(t => t + 1));
+    }, [active]);
+
     const handleModeClick = (mode) => {
         const modeConfig = gameModes.flatMap(g => g.modes).find(m => m.mode === mode);
+        // Khoá theo Level (server cũng chặn — đây là phản hồi tức thì cho người dùng).
+        const lv = lockInfo(`mode:${mode}`);
+        if (lv.locked) {
+            Notification.show({
+                type: 'warning',
+                title: `🔒 Cần Level ${lv.requiredLevel}`,
+                message: `Chế độ này mở khi bạn đạt Level ${lv.requiredLevel}. Luyện tập thêm để lên cấp!`,
+                duration: 3500,
+            });
+            return;
+        }
         if (modeConfig?.weekendOnly && !isWeekend()) {
             Notification.show({ type: 'warning', title: '🔒 Chế độ cuối tuần', message: 'Chế độ này chỉ mở vào Thứ 7 & Chủ Nhật. Hãy quay lại vào cuối tuần!', duration: 3500 });
             return;
@@ -452,7 +471,11 @@ export default function HomeScreen({ active }) {
                                 <i className={`fas ${group.icon}`}></i> {group.group}
                             </div>
                             {group.modes.map(m => {
-                                const locked = m.weekendOnly && !isWeekend();
+                                // 2 loại khoá: theo LEVEL (ưu tiên) và theo cuối tuần.
+                                const lv = lockInfo(`mode:${m.mode}`);
+                                const levelLocked = lv.locked;
+                                const weekendLocked = m.weekendOnly && !isWeekend();
+                                const locked = levelLocked || weekendLocked;
                                 return (
                                 <div
                                     key={m.mode}
@@ -465,7 +488,11 @@ export default function HomeScreen({ active }) {
                                     </div>
                                     <h3>{m.label}</h3>
                                     <p>{m.desc}</p>
-                                    {locked ? (
+                                    {levelLocked ? (
+                                        <div className="mode-level-badge" title={`Cần đạt Level ${lv.requiredLevel}`}>
+                                            <i className="fas fa-lock"></i> Mở ở <b>Level {lv.requiredLevel}</b>
+                                        </div>
+                                    ) : weekendLocked ? (
                                         <div className="mode-weekend-badge">
                                             <i className="fas fa-lock"></i> Mở sau: <span className="mode-weekend-countdown">{weekendTimer}</span>
                                         </div>

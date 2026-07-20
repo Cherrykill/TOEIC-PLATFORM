@@ -13,6 +13,7 @@ const {
 } = require('../controllers/vocabularyDatasetsController');
 const { scanDuplicates, removeDuplicates } = require('../controllers/vocabularyDedupController');
 const { getFavorites, addFavorite, removeFavorite } = require('../controllers/favoritesController');
+const { requireLevel } = require('../services/featureUnlock');
 const { protect } = require('../middleware/auth');
 
 /**
@@ -167,8 +168,8 @@ router.get('/part/:part', getVocabularyByPart);
 
 // Favorites routes (must be before /:id to avoid route conflict)
 router.get('/favorites', protect, getFavorites);
-router.post('/favorites', protect, addFavorite);
-router.delete('/favorites', protect, removeFavorite);
+router.post('/favorites', protect, requireLevel('feature:favorites'), addFavorite);
+router.delete('/favorites', protect, requireLevel('feature:favorites'), removeFavorite);
 
 /**
  * @swagger

@@ -6,6 +6,9 @@ import { startLeakMonitor } from '@lib/leakMonitor.js';
 import { InventoryAPI } from '@api/inventory.js';
 import { registerFrameCosmetics } from '@game/frames.js';
 import { registerBackgroundCosmetics } from '@game/backgrounds.js';
+import { loadUnlocks } from '@game/featureUnlocks.js';
+import { EventBus, GameEvents } from '@game/eventBus.js';
+import { GameState } from '@game/state.js';
 import { STORAGE_KEYS } from '@/constants/storageKeys.js';
 import './assets/styles/index.css';
 
@@ -13,8 +16,8 @@ import LoadingScreen from '@ui/LoadingScreen.jsx';
 import TopNav from '@layouts/TopNav.jsx';
 import StatusBar from '@layouts/StatusBar.jsx';
 import SideMenu from '@layouts/SideMenu.jsx';
-import Modal from '@ui/Modal.jsx';
-import Toaster from '@ui/Toaster.jsx';
+import Modal, { Modal as UIModal } from '@ui/Modal.jsx';
+import Toaster, { Notification } from '@ui/Toaster.jsx';
 import SearchResults from '@components/search/SearchResults.jsx';
 import AuthModal from '@components/auth/AuthModal.jsx';
 import ExpiryNotice from '@components/vocab/upload/ExpiryNotice.jsx';
@@ -72,6 +75,46 @@ function AppInner() {
             registerFrameCosmetics(items);
             registerBackgroundCosmetics(items);
         }).catch(() => {});
+    }, []);
+
+    // Lên cấp → nạp lại mốc & báo những gì vừa mở khoá.
+    useEffect(() => {
+        const onLevelUp = async ({ level }) => {
+            const data = await loadUnlocks(true).catch(() => null);
+            const just = (data?.unlocks || []).filter(u => u.requiredLevel === level);
+            if (just.length === 0) return;
+
+            const lines = just.map(u => `${u.icon || '🔓'} ${u.label}`).join(' · ');
+            // Đang luyện tập → chỉ toast, không chen popup giữa bài.
+            if (GameState.state?.session?.currentScreen === 'practice-screen') {
+                Notification.show({
+                    type: 'success',
+                    title: `🎉 Level ${level} — Mở khoá mới!`,
+                    message: lines,
+                    duration: 5000,
+                });
+                return;
+            }
+            UIModal.show({
+                title: `🎉 Level ${level} — Mở khoá mới!`,
+                content: `
+                    <div style="text-align:center;padding:6px 0">
+                        <div style="font-size:44px;margin-bottom:10px">🔓</div>
+                        <p style="margin:0 0 14px;color:var(--text-secondary)">Bạn vừa mở khoá:</p>
+                        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+                            ${just.map(u => `
+                                <span style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;
+                                             background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.35);
+                                             color:#fbbf24;font-weight:700;font-size:13px">
+                                    ${u.icon || '🔓'} ${u.label}
+                                </span>`).join('')}
+                        </div>
+                    </div>`,
+                buttons: [{ text: 'Tuyệt vời!', className: 'btn-primary' }],
+            });
+        };
+        const unsub = EventBus.on(GameEvents.USER_LEVEL_UP, onLevelUp);
+        return () => unsub?.();
     }, []);
 
     useEffect(() => {

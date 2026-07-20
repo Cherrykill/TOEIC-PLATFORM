@@ -374,6 +374,9 @@
               <a href="#" class="sidebar-link" data-main-tab="game-config">
                 <i class="fas fa-sliders"></i><span>Hằng số game</span>
               </a>
+              <a href="#" class="sidebar-link" data-main-tab="feature-unlocks">
+                <i class="fas fa-lock-open"></i><span>Mở khoá theo Level</span>
+              </a>
               <a href="#" class="sidebar-link" data-main-tab="broadcast">
                 <i class="fas fa-bullhorn"></i><span>Thông báo</span>
               </a>
@@ -1725,6 +1728,33 @@
                 <div style="display:flex;justify-content:flex-end;margin-top:12px">
                   <button class="btn btn-primary" id="spin-config-save"><i class="fas fa-save"></i> Lưu cấu hình</button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ===== MỞ KHOÁ THEO LEVEL TAB ===== -->
+          <div id="main-tab-feature-unlocks" class="main-tab-content">
+            <div class="card">
+              <div class="card-header">
+                <h2><i class="fas fa-lock-open"></i> Mở khoá theo Level</h2>
+                <div class="card-header-actions">
+                  <button class="btn btn-success btn-sm" id="btn-add-unlock"><i class="fas fa-plus"></i> Thêm mốc</button>
+                </div>
+              </div>
+              <div style="padding:0 4px 12px;font-size:13px;color:var(--text-secondary)">
+                Đặt Level tối thiểu để mở từng chế độ / tính năng. <b>Tắt</b> một mốc = mở cho mọi Level.
+                Server chặn thật (không bypass được từ client).
+              </div>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr>
+                    <th style="width:56px">Icon</th><th>Nhãn</th><th>Key</th>
+                    <th style="width:130px">Level / XP cần</th><th style="width:90px">Bật</th><th style="width:110px">Thao tác</th>
+                  </tr></thead>
+                  <tbody id="unlock-tbody">
+                    <tr><td colspan="6" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -4260,6 +4290,52 @@
     </div>
 
 
+    <!-- Mốc mở khoá theo Level modal -->
+    <div id="unlock-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+      <div style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-color);border-radius:14px;padding:24px;width:min(520px,94vw);max-height:90vh;overflow-y:auto">
+        <h3 id="unlock-modal-title" style="margin:0 0 16px;font-size:18px;color:var(--primary)">Thêm mốc mở khoá</h3>
+        <form id="unlock-form">
+          <input type="hidden" id="unlock-id">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Key * <small>(mode:xxx / feature:xxx)</small></label>
+              <input type="text" id="unlock-key" required placeholder="vd: mode:speed-quiz" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;font-family:monospace">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Nhãn *</label>
+              <input type="text" id="unlock-label" required placeholder="vd: Tốc độ" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px">
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Level yêu cầu *</label>
+              <input type="number" id="unlock-level" min="1" required style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+              <div id="unlock-xp-hint" style="font-size:11px;color:var(--text-secondary);margin-top:4px"></div>
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Icon</label>
+              <input type="text" id="unlock-icon" placeholder="🎰" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;text-align:center">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Thứ tự</label>
+              <input type="number" id="unlock-order" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+            </div>
+          </div>
+          <div style="margin-bottom:12px">
+            <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Mô tả</label>
+            <input type="text" id="unlock-desc" placeholder="Hiện trong màn Lộ trình" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px">
+          </div>
+          <label style="font-size:13px;display:inline-flex;align-items:center;gap:6px;margin-bottom:16px">
+            <input type="checkbox" id="unlock-active" checked> Bật khoá (tắt = mở cho mọi Level)
+          </label>
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button type="button" id="btn-unlock-cancel" class="btn btn-ghost">Hủy</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- ===== AI Generate modal (chung cho Thành tích + Nhiệm vụ) ===== -->
     <div id="ai-gen-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
       <div style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-color);border-radius:14px;padding:24px;width:min(900px,94vw);max-height:90vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.45)">
@@ -4542,8 +4618,9 @@
     <script src="/admin/js/modules/channel-config-admin.js?v=1"></script>
     <script src="/admin/js/modules/economy-admin.js?v=2"></script>
     <script src="/admin/js/modules/game-config-admin.js?v=1"></script>
+    <script src="/admin/js/modules/feature-unlock-admin.js?v=2"></script>
     <script src="/admin/js/modules/db-manager.js?v=3"></script>
-    <script src="/admin/js/modules/ui-init.js?v=9"></script>
+    <script src="/admin/js/modules/ui-init.js?v=10"></script>
     <script src="/admin/js/nav-game.js?v=15"></script>
   </body>
 </html>

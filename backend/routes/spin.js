@@ -9,6 +9,7 @@ const ChannelConfig = require('../models/ChannelConfig');
 const Inventory = require('../services/inventoryService');
 const logger = require('../utils/logger');
 const { logTxn } = require('../utils/economyLog');
+const { requireLevel } = require('../services/featureUnlock');
 
 const SPIN_TICKET = 'spin-ticket';
 
@@ -122,7 +123,7 @@ router.get('/status', protect, async (req, res) => {
     }
 });
 
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, requireLevel('feature:spin'), async (req, res) => {
     try {
         const userId = req.user.id;
         const mode = ['free', 'coin', 'gem', 'ticket'].includes(req.body.mode) ? req.body.mode : 'free';

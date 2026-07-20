@@ -350,3 +350,55 @@ exports.adminDeleteSession = async (req, res, next) => {
         next(error);
     }
 };
+
+/**
+ * Xếp hạng độ chính xác của user trong MỘT chế độ so với toàn server.
+ * Dùng modeStats (correct/total cộng dồn) — bền hơn so 1 lượt chơi may rủi.
+ * Loại tài khoản không phải người chơi (admin) khỏi mẫu để không lệch.
+ * GET /api/practice/percentile/:mode
+ */
+exports.getModePercentile = async (req, res, next) => {
+    try {
+        const mode = String(req.params.mode || '').toLowerCase();
+        // Chặn chèn ký tự lạ vào field path của aggregation.
+        if (!/^[a-z][a-z-]{1,39}$/.test(mode)) {
+            return res.status(400).json({ success: false, message: 'Mode không hợp lệ' });
+        }
+        const path = `modeStats.${mode}`;
+
+        const me = await UserStats.findOne({ userId: req.user.id }).select('modeStats').lean();
+        const mine = me?.modeStats?.[mode];
+        if (!mine || !mine.total) return res.json({ success: true, data: { enough: false } });
+        const myAcc = mine.correct / mine.total;
+
+        const User = require('../models/User');
+        const nonPlayers = (await User.find({ role: { $ne: 'user' } }).select('_id').lean()).map(u => u._id);
+
+        const [agg] = await UserStats.aggregate([
+            { $match: { userId: { $nin: nonPlayers }, [`${path}.total`]: { $gt: 0 } } },
+            { $project: { acc: { $divide: [`$${path}.correct`, `$${path}.total`] } } },
+            { $group: {
+                _id: null,
+                players: { $sum: 1 },
+                below: { $sum: { $cond: [{ $lt: ['$acc', myAcc] }, 1, 0] } },
+            } },
+        ]);
+
+        const players = agg?.players || 0;
+        // Mẫu quá nhỏ → thống kê vô nghĩa, không hiển thị.
+        if (players < 3) return res.json({ success: true, data: { enough: false, players } });
+
+        const betterThan = Math.round((agg.below / players) * 100);
+        res.json({
+            success: true,
+            data: {
+                enough: true,
+                mode,
+                players,
+                accuracy: Math.round(myAcc * 100),
+                betterThan,                                  // giỏi hơn X% người chơi
+                topPercent: Math.max(1, 100 - betterThan),   // thuộc top Y%
+            },
+        });
+    } catch (err) { next(err); }
+};

@@ -6,6 +6,7 @@ import { Utils } from '@lib/utils.js';
 import { Energy } from '@game/energy.js';
 import FlagIcon from '@ui/FlagIcon.jsx';
 import { Notification } from '@ui/Toaster.jsx';
+import { loadUnlocks, lockInfo } from '@game/featureUnlocks.js';
 
 // Cấp độ → dải level thực tế dùng để LỌC từ vựng (phải khớp SettingsScreen).
 const LEVEL_MAP = { easy: ['A1', 'A2'], medium: ['B1', 'B2'], hard: ['C1', 'C2'], adaptive: null };
@@ -52,8 +53,29 @@ export default function StatusBar() {
         }
     });
 
+    // Mốc mở khoá — nạp 1 lần, làm mới khi lên cấp.
+    const [, setUnlockTick] = useState(0);
+    useEffect(() => {
+        const reload = () => loadUnlocks(true).then(() => setUnlockTick(t => t + 1));
+        reload();
+        const unsub = EventBus.on(GameEvents.USER_LEVEL_UP, reload);
+        return () => unsub?.();
+    }, []);
+    const zhLock = lockInfo('feature:lang-zh');
+
     const handleToggleVocabLang = () => {
         const next = vocabLang === 'en' ? 'zh' : 'en';
+        // Chỉ khoá chiều SANG tiếng Trung — luôn cho quay về tiếng Anh
+        // (tránh kẹt nếu đang ở 'zh' mà mốc bị nâng lên).
+        if (next === 'zh' && zhLock.locked) {
+            Notification.show({
+                type: 'warning',
+                title: `🔒 Cần Level ${zhLock.requiredLevel}`,
+                message: `Học tiếng Trung mở khi bạn đạt Level ${zhLock.requiredLevel}.`,
+                duration: 3500,
+            });
+            return;
+        }
         setVocabLang(next);
         try {
             localStorage.setItem('vocabLang', next);
@@ -158,14 +180,22 @@ export default function StatusBar() {
                         <option value="adaptive">Toàn bộ</option>
                     </select>
                 </div>
-                <button
-                    onClick={handleToggleVocabLang}
-                    title={vocabLang === 'en' ? 'Đang học Tiếng Anh — bấm để chuyển Tiếng Trung' : 'Đang học Tiếng Trung — bấm để chuyển Tiếng Anh'}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}
-                >
-                    <FlagIcon lang={vocabLang} size={18} />
-                    <span>{vocabLang === 'en' ? 'Tiếng Anh' : 'Tiếng Trung'}</span>
-                </button>
+                {(() => {
+                    const zhBlocked = vocabLang === 'en' && zhLock.locked; // chỉ khoá chiều sang tiếng Trung
+                    return (
+                        <button
+                            onClick={handleToggleVocabLang}
+                            title={zhBlocked
+                                ? `Học tiếng Trung mở ở Level ${zhLock.requiredLevel}`
+                                : (vocabLang === 'en' ? 'Đang học Tiếng Anh — bấm để chuyển Tiếng Trung' : 'Đang học Tiếng Trung — bấm để chuyển Tiếng Anh')}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: zhBlocked ? 'not-allowed' : 'pointer', opacity: zhBlocked ? 0.55 : 1 }}
+                        >
+                            <FlagIcon lang={vocabLang} size={18} />
+                            <span>{vocabLang === 'en' ? 'Tiếng Anh' : 'Tiếng Trung'}</span>
+                            {zhBlocked && <i className="fas fa-lock" style={{ fontSize: 10, marginLeft: 2 }}></i>}
+                        </button>
+                    );
+                })()}
             </div>
         </div>
     );

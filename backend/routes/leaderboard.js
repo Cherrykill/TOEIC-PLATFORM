@@ -5,6 +5,21 @@ const User = require('../models/User');
 const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
 const ItemDefinition = require('../models/ItemDefinition');
+const ToeicAttempt = require('../models/ToeicAttempt');
+const { requiredLevelFor } = require('../services/featureUnlock');
+
+/**
+ * Chỉ user ĐÃ MỞ KHOÁ bảng xếp hạng mới được lên bảng — người chưa đủ Level
+ * không xuất hiện (tránh lộ tài khoản mới/level 1 làm loãng bảng).
+ * Trả về Set userId hợp lệ, hoặc null nếu mốc không bật (không lọc).
+ */
+async function eligibleByUnlock(userIds) {
+    const need = await requiredLevelFor('feature:leaderboard');
+    if (need <= 1) return null; // không khoá → không lọc
+    const ok = await UserProfile.find({ userId: { $in: userIds }, level: { $gte: need } })
+        .select('userId').lean();
+    return new Set(ok.map(p => String(p.userId)));
+}
 
 const SORT_FIELD_MAP = { score: 'highestScore', xp: 'xp', totalXp: 'totalXp', streak: 'streakCurrent', accuracy: 'accuracy', playtime: 'totalPlayTime' };
 const ONLINE_THRESHOLD_MS = 15 * 60 * 1000;
@@ -57,6 +72,78 @@ router.get('/online-count', async (req, res) => {
     }
 });
 
+/**
+ * Bảng xếp hạng THI TOEIC theo Part (1..7).
+ * Lấy điểm TỐT NHẤT của mỗi user ở part đó (từ các bài đã hoàn thành).
+ * GET /api/leaderboard/toeic/part/:part?limit=100
+ */
+router.get('/toeic/part/:part', async (req, res) => {
+    try {
+        const part = Number(req.params.part);
+        if (!Number.isInteger(part) || part < 1 || part > 7) {
+            return res.status(400).json({ success: false, message: 'Part phải từ 1 đến 7' });
+        }
+        const limit = Math.min(Number(req.query.limit) || 100, 200);
+
+        const rows = await ToeicAttempt.aggregate([
+            { $match: { status: 'completed' } },
+            { $unwind: '$partScores' },
+            { $match: { 'partScores.partNumber': part } },
+            { $project: {
+                userId: 1,
+                correct: '$partScores.correctAnswers',
+                total: '$partScores.totalQuestions',
+                acc: { $cond: [
+                    { $gt: ['$partScores.totalQuestions', 0] },
+                    { $divide: ['$partScores.correctAnswers', '$partScores.totalQuestions'] },
+                    0,
+                ] },
+            } },
+            // Mỗi user lấy lần làm TỐT NHẤT ở part này.
+            { $sort: { acc: -1, correct: -1 } },
+            { $group: { _id: '$userId', acc: { $first: '$acc' }, correct: { $first: '$correct' }, total: { $first: '$total' }, attempts: { $sum: 1 } } },
+            { $sort: { acc: -1, correct: -1 } },
+            { $limit: limit },
+        ]);
+
+        let userIds = rows.map(r => r._id);
+        // Ẩn user chưa mở khoá bảng xếp hạng (cùng luật với bảng chính).
+        const unlockedSet = await eligibleByUnlock(userIds);
+        const visible = unlockedSet ? rows.filter(r => unlockedSet.has(String(r._id))) : rows;
+        userIds = visible.map(r => r._id);
+
+        const [profiles, defs] = await Promise.all([
+            UserProfile.find({ userId: { $in: userIds } }).select('userId username avatar level equipped').lean(),
+            ItemDefinition.find({}).select('itemId image').lean(),
+        ]);
+        const pMap = new Map(profiles.map(p => [String(p.userId), p]));
+        const imgById = new Map(defs.map(d => [d.itemId, d.image]));
+
+        const data = visible.map((r, i) => {
+            const p = pMap.get(String(r._id)) || {};
+            return {
+                rank: i + 1,
+                id: r._id,
+                username: p.username || '—',
+                avatar: p.avatar || '',
+                level: p.level || 1,
+                partCorrect: r.correct || 0,
+                partTotal: r.total || 0,
+                partAccuracy: Math.round((r.acc || 0) * 100),
+                attempts: r.attempts || 0,
+                background: p.equipped?.background || null,
+                frame: p.equipped?.frame || null,
+                avatarImage: imgById.get(p.equipped?.avatar) || null,
+            };
+        });
+
+        res.json({ success: true, part, count: data.length, data });
+    } catch (error) {
+        logger.error('TOEIC part leaderboard error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch TOEIC part leaderboard' });
+    }
+});
+
 router.get('/:period?', async (req, res) => {
     try {
         const { period = 'all-time' } = req.params;
@@ -66,7 +153,8 @@ router.get('/:period?', async (req, res) => {
         const dir = order === 'asc' ? 1 : -1;
         const onlineThreshold = new Date(Date.now() - ONLINE_THRESHOLD_MS);
 
-        const cacheKey = `lb:${period}:${sortField}:${dir}:${limitNum}`;
+        const lbNeed = await requiredLevelFor('feature:leaderboard');
+        const cacheKey = `lb:${period}:${sortField}:${dir}:${limitNum}:lv${lbNeed}`;
         const cached = getCache(cacheKey);
         if (cached) {
             // Cập nhật isOnline + isVip realtime (thay đổi theo thời gian, không cache)
@@ -82,8 +170,12 @@ router.get('/:period?', async (req, res) => {
 
         const userQuery = { isActive: true, role: { $ne: 'admin' }, ...getPeriodQuery(period) };
         const eligibleUsers = await User.find(userQuery).select('_id lastLoginAt').lean();
-        const eligibleIds = eligibleUsers.map(u => u._id);
+        let eligibleIds = eligibleUsers.map(u => u._id);
         const lastLoginMap = new Map(eligibleUsers.map(u => [u._id.toString(), u.lastLoginAt]));
+
+        // Ẩn user chưa mở khoá bảng xếp hạng.
+        const unlockedSet = await eligibleByUnlock(eligibleIds);
+        if (unlockedSet) eligibleIds = eligibleIds.filter(id => unlockedSet.has(String(id)));
 
         // Aggregation: tính accuracy (đúng/(đúng+sai)) rồi sort theo field + hướng chọn.
         const topStats = await UserStats.aggregate([
@@ -120,6 +212,7 @@ router.get('/:period?', async (req, res) => {
                 xp: s.xp || 0,
                 totalXp: s.totalXp || 0,
                 score: s.highestScore || 0,
+                gems: s.gems || 0,
                 streak: s.streakCurrent || 0,
                 accuracy: Math.round((s.accuracy || 0) * 100), // %
                 studyTime: s.totalPlayTime || 0, // giây
@@ -161,7 +254,10 @@ router.get('/rank/:userId/:period?', async (req, res) => {
 
         const baseQuery = { isActive: true, role: { $ne: 'admin' }, ...getPeriodQuery(period) };
         const eligibleUsers = await User.find(baseQuery).select('_id').lean();
-        const eligibleIds = eligibleUsers.map(u => u._id);
+        let eligibleIds = eligibleUsers.map(u => u._id);
+        // Cùng luật với bảng: chỉ đếm user đã mở khoá → hạng khớp bảng hiển thị.
+        const unlockedSet = await eligibleByUnlock(eligibleIds);
+        if (unlockedSet) eligibleIds = eligibleIds.filter(id => unlockedSet.has(String(id)));
 
         const userValue = stats?.[sortField] || 0;
 
