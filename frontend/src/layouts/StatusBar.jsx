@@ -5,6 +5,11 @@ import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Utils } from '@lib/utils.js';
 import { Energy } from '@game/energy.js';
 import FlagIcon from '@ui/FlagIcon.jsx';
+import { Notification } from '@ui/Toaster.jsx';
+
+// Cấp độ → dải level thực tế dùng để LỌC từ vựng (phải khớp SettingsScreen).
+const LEVEL_MAP = { easy: ['A1', 'A2'], medium: ['B1', 'B2'], hard: ['C1', 'C2'], adaptive: null };
+const LEVEL_LABEL = { easy: 'Dễ (A1-A2)', medium: 'Trung bình (B1-B2)', hard: 'Khó (C1-C2)', adaptive: 'Toàn bộ' };
 
 function computeSessionLabel() {
     const s = GameState.state?.settings || {};
@@ -74,12 +79,25 @@ export default function StatusBar() {
         const val = e.target.value;
         setQuestionsPerSession(val);
         GameState.state.settings.questionsPerSession = val === 'auto' ? 'auto' : parseInt(val);
+        GameState.save?.();
+        EventBus.emit(GameEvents.SESSION_BADGE_UPDATED);
+        Notification.info(val === 'auto'
+            ? 'Số câu mỗi lượt: Toàn bộ từ trong bộ lọc'
+            : `Số câu mỗi lượt: ${val} câu`);
     };
 
     const handleDifficultyChange = (e) => {
         const val = e.target.value;
         setDifficulty(val);
-        GameState.state.settings.difficulty = val;
+        const s = GameState.state.settings;
+        s.difficulty = val;
+        // BẮT BUỘC: bộ lọc từ vựng đọc `levelFilter`, không đọc `difficulty`.
+        // Thiếu dòng này thì đổi cấp độ ở thanh trạng thái sẽ không có tác dụng.
+        s.levelFilter = LEVEL_MAP[val] ?? null;
+        GameState.save?.();
+        Notification.info(val === 'adaptive'
+            ? 'Cấp độ: Toàn bộ — không lọc theo trình độ'
+            : `Cấp độ: ${LEVEL_LABEL[val]} — chỉ lấy từ ${LEVEL_MAP[val].join('/')}`);
     };
 
     return (

@@ -11,30 +11,37 @@ import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { Notification } from '@ui/Toaster.jsx';
 
+// 4 tầng ĐỘ KHÓ (màu = độ khó): 🟢 Dễ < 🔵 Trung bình < 🟣 Khó < 🔴 Thử thách.
+// Trong mỗi tầng, sắp theo cost (dễ → khó).
+const C_EASY = '#10b981, #059669';   // xanh cây
+const C_MED  = '#3b82f6, #2563eb';   // xanh dương
+const C_HARD = '#8b5cf6, #7c3aed';   // tím
+const C_MAX  = '#ef4444, #dc2626';   // đỏ
+
 const gameModes = [
     { group: 'Học & Nhận diện từ', icon: 'fa-book-open', modes: [
-        { mode: 'flashcard', icon: 'fa-layer-group', label: 'Flashcard', desc: 'Học từ vựng theo thẻ ghi nhớ', cost: 8, color: '#10b981, #059669' },
-        { mode: 'multiple-choice', icon: 'fa-circle-check', label: 'Trắc nghiệm', desc: 'Chọn nghĩa đúng của từ', cost: 10, color: '#10b981, #059669' },
-        { mode: 'matching', icon: 'fa-link', label: 'Nối từ', desc: 'Nối từ với nghĩa tương ứng', cost: 10, color: '#10b981, #059669' },
-        { mode: 'word-type-check', icon: 'fa-tag', label: 'Từ loại', desc: 'Xác định từ loại của từ', cost: 10, color: '#10b981, #059669' },
+        { mode: 'flashcard', icon: 'fa-layer-group', label: 'Flashcard', desc: 'Học từ vựng theo thẻ ghi nhớ', cost: 8, color: C_EASY },
+        { mode: 'multiple-choice', icon: 'fa-circle-check', label: 'Trắc nghiệm', desc: 'Chọn nghĩa đúng của từ', cost: 10, color: C_EASY },
+        { mode: 'matching', icon: 'fa-link', label: 'Nối từ', desc: 'Nối từ với nghĩa tương ứng', cost: 10, color: C_EASY },
+        { mode: 'word-type-check', icon: 'fa-tag', label: 'Từ loại', desc: 'Xác định từ loại của từ', cost: 10, color: C_EASY },
     ]},
     { group: 'Nghe & Phát âm', icon: 'fa-headphones', modes: [
-        { mode: 'listening', icon: 'fa-headphones', label: 'Nghe và chọn', desc: 'Nghe từ, chọn từ đúng trong 4 lựa chọn', cost: 12, color: '#3b82f6, #2563eb' },
-        { mode: 'pronunciation', icon: 'fa-microphone', label: 'Phát âm', desc: 'Nói đúng từ tiếng Anh để ghi điểm', cost: 15, color: '#3b82f6, #2563eb' },
-        { mode: 'dictation', icon: 'fa-keyboard', label: 'Chép chính tả', desc: 'Nghe từ và gõ lại chính xác tiếng Anh', cost: 15, color: '#3b82f6, #2563eb' },
-        { mode: 'sentence-listening', icon: 'fa-ear-listen', label: 'Nghe chuỗi từ', desc: 'Nghe 3 từ đọc liên tiếp, chọn đúng trong lưới 8 từ', cost: 12, color: '#3b82f6, #2563eb' },
+        { mode: 'listening', icon: 'fa-headphones', label: 'Nghe và chọn', desc: 'Nghe từ, chọn từ đúng trong 4 lựa chọn', cost: 12, color: C_MED },
+        { mode: 'sentence-listening', icon: 'fa-ear-listen', label: 'Nghe chuỗi từ', desc: 'Nghe 3 từ đọc liên tiếp, chọn đúng trong lưới 8 từ', cost: 12, color: C_MED },
+        { mode: 'pronunciation', icon: 'fa-microphone', label: 'Phát âm', desc: 'Nói đúng từ tiếng Anh để ghi điểm', cost: 15, color: C_MED },
+        { mode: 'dictation', icon: 'fa-keyboard', label: 'Chép chính tả', desc: 'Nghe từ và gõ lại chính xác tiếng Anh', cost: 15, color: C_MED },
     ]},
     { group: 'Đọc & Viết', icon: 'fa-pen-nib', modes: [
-        { mode: 'fill-blank', icon: 'fa-pen', label: 'Điền từ', desc: 'Điền từ tiếng Anh vào chỗ trống', cost: 15, color: '#f59e0b, #d97706' },
-        { mode: 'example-fill-blank', icon: 'fa-pen-to-square', label: 'Điền vào câu', desc: 'Điền từ đúng vào câu ví dụ', cost: 12, color: '#f59e0b, #d97706' },
-        { mode: 'sentence-builder', icon: 'fa-puzzle-piece', label: 'Xếp câu', desc: 'Sắp xếp cụm từ thành câu hoàn chỉnh', cost: 15, color: '#f59e0b, #d97706' },
-        { mode: 'phonetic-quiz', icon: 'fa-spell-check', label: 'Đọc phiên âm', desc: 'Nhìn ký hiệu IPA, tìm từ tiếng Anh tương ứng', cost: 12, color: '#f59e0b, #d97706' },
+        { mode: 'synonym-check', icon: 'fa-equals', label: 'Từ đồng nghĩa', desc: 'Tìm từ đồng nghĩa với từ cho sẵn', cost: 10, color: C_HARD },
+        { mode: 'example-fill-blank', icon: 'fa-pen-to-square', label: 'Điền vào câu', desc: 'Điền từ đúng vào câu ví dụ', cost: 12, color: C_HARD },
+        { mode: 'phonetic-quiz', icon: 'fa-spell-check', label: 'Đọc phiên âm', desc: 'Nhìn ký hiệu IPA, tìm từ tiếng Anh tương ứng', cost: 12, color: C_HARD },
+        { mode: 'fill-blank', icon: 'fa-pen', label: 'Điền từ', desc: 'Điền từ tiếng Anh vào chỗ trống', cost: 15, color: C_HARD },
     ]},
     { group: 'Nâng cao & Thử thách', icon: 'fa-brain', modes: [
-        { mode: 'context-learning', icon: 'fa-book-reader', label: 'Hiểu qua câu', desc: 'Đọc câu ví dụ, suy luận nghĩa tiếng Việt', cost: 10, color: '#8b5cf6, #7c3aed', weekendOnly: true },
-        { mode: 'synonym-check', icon: 'fa-equals', label: 'Từ đồng nghĩa', desc: 'Tìm từ đồng nghĩa với từ cho sẵn', cost: 10, color: '#8b5cf6, #7c3aed', weekendOnly: true },
-        { mode: 'speed-quiz', icon: 'fa-clock', label: 'Tốc độ', desc: 'Trả lời nhanh nhất trong giới hạn thời gian', cost: 20, color: '#8b5cf6, #7c3aed', weekendOnly: true },
-        { mode: 'review-mistakes', icon: 'fa-repeat', label: 'Ôn lại từ sai', desc: 'Luyện lại các từ đã làm sai', cost: 10, color: '#8b5cf6, #7c3aed', special: true, weekendOnly: true },
+        { mode: 'context-learning', icon: 'fa-book-reader', label: 'Hiểu qua câu', desc: 'Đọc câu ví dụ, suy luận nghĩa tiếng Việt', cost: 10, color: C_MAX, weekendOnly: true },
+        { mode: 'review-mistakes', icon: 'fa-repeat', label: 'Ôn lại từ sai', desc: 'Luyện lại các từ đã làm sai', cost: 10, color: C_MAX, special: true, weekendOnly: true },
+        { mode: 'sentence-builder', icon: 'fa-puzzle-piece', label: 'Xếp câu', desc: 'Sắp xếp cụm từ thành câu hoàn chỉnh', cost: 15, color: C_MAX, weekendOnly: true },
+        { mode: 'speed-quiz', icon: 'fa-clock', label: 'Tốc độ', desc: 'Trả lời nhanh nhất trong giới hạn thời gian', cost: 20, color: C_MAX, weekendOnly: true },
     ]},
 ];
 

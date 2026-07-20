@@ -312,8 +312,8 @@ export default function AchievementsScreen({ active }) {
                     {loading ? (
                         <div className="loading-state"><i className="fas fa-spinner fa-spin"></i> Đang tải...</div>
                     ) : filtered.length === 0 ? (
-                        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
-                            <i className="fas fa-trophy" style={{ fontSize: 48, marginBottom: 16, opacity: .3, display: 'block' }}></i>
+                        <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
+                            <i className="fas fa-trophy" style={{ fontSize: 48, marginBottom: 16, opacity: .3 }}></i>
                             <p>Chưa có thành tích nào trong danh mục này.</p>
                         </div>
                     ) : [...filtered].sort((a, b) => {

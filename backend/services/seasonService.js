@@ -21,6 +21,8 @@ const UserUpload = require('../models/UserUpload');
 const ToeicAttempt = require('../models/ToeicAttempt');
 const UserCheckin = require('../models/UserCheckin');
 const UserSpin = require('../models/UserSpin');
+const InventoryItem = require('../models/InventoryItem');
+const ItemDefinition = require('../models/ItemDefinition');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -67,13 +69,19 @@ async function resetData(buckets = {}) {
     if (buckets.resources) {
         await UserStats.updateMany({}, {
             $set: {
-                coins: 0, gems: 0, xp: 0, totalXp: 0, energy: 100, shields: 0,
+                coins: 0, gems: 0, xp: 0, totalXp: 0, energy: 100,
+                // Tiêu hao (counter trên UserStats) về 0 theo mùa.
+                shields: 0, hints: 0, timeFreezes: 0,
                 xpBoostActive: false, xpBoostMultiplier: 1, xpBoostExpiresAt: null,
                 coinsBoostActive: false, coinsBoostMultiplier: 1, coinsBoostExpiresAt: null,
                 vipExpiresAt: null,
             },
         });
         await UserProfile.updateMany({}, { $set: { level: 1 } });
+        // Xoá đồ TIÊU HAO trong túi (thẻ boost, vé quay…), GIỮ cosmetic đã mua.
+        const cosmeticIds = (await ItemDefinition.find({ type: /^cosmetic_/ }).select('itemId').lean())
+            .map(d => d.itemId);
+        await InventoryItem.deleteMany({ itemId: { $nin: cosmeticIds } });
     }
 
     if (buckets.progress) {
