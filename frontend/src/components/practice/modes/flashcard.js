@@ -365,93 +365,47 @@ export const Flashcard = {
         // achievements) qua đường unified — trước đây Flashcard chỉ gọi
         // showSummary() nên hoàn toàn bỏ qua → bài thống kê không thấy
         // Flashcard, quest/achievement không tăng.
-        try { await PracticeManager.finalizeSession(); } catch (_) {}
+        let results = null;
+        try { results = await PracticeManager.finalizeSession(); } catch (_) {}
 
-        this.showSummary();
+        this.showSummary(results);
     },
 
-    showSummary() {
-        const accuracy = this.words.length > 0 ?
-            Math.round((this.knownWords.length / this.words.length) * 100) : 0;
+    // Dùng CHUNG popup kết quả của PracticeManager (đồng bộ với mọi chế độ khác),
+    // chỉ đổi nhãn cho đúng ngữ nghĩa Flashcard + thêm nút riêng.
+    showSummary(results) {
+        const extraButtons = [
+            ...(this.unknownWords.length > 0 ? [{
+                text: `Ôn lại ${this.unknownWords.length} từ chưa biết`,
+                className: 'btn-warning',
+                onClick: () => { Modal.close(); this.reviewUnknown(); },
+            }] : []),
+            {
+                text: 'Học tiếp',
+                className: 'btn-secondary',
+                onClick: () => { Modal.close(); this.continueNextBatch(); },
+            },
+        ];
 
-        // Flashcard tự dựng popup (không qua PracticeManager.showResults)
-        // nên phải tự phát âm thanh hoàn thành ở đây.
-        Utils.playSound(Config.sounds.complete, 1.0);
-
-        Modal.show({
+        const opts = {
             title: '🃏 Hoàn thành Flashcard!',
-            content: `
-                <div class="flashcard-summary">
-                    <div class="summary-stats">
-                        <div class="summary-stat known">
-                            <i class="fas fa-check-circle"></i>
-                            <h3>${this.knownWords.length}</h3>
-                            <p>Đã biết</p>
-                        </div>
-                        <div class="summary-stat unknown">
-                            <i class="fas fa-times-circle"></i>
-                            <h3>${this.unknownWords.length}</h3>
-                            <p>Chưa biết</p>
-                        </div>
-                    </div>
+            correctLabel: 'Đã biết',
+            wrongLabel: 'Chưa biết',
+            accuracyLabel: 'Độ thuộc',
+            extraButtons,
+            hideRetry: true, // đã có nút "Ôn lại từ chưa biết" riêng
+        };
 
-                    <div class="summary-accuracy">
-                        <div class="accuracy-circle">
-                            <span class="accuracy-value">${accuracy}%</span>
-                            <span class="accuracy-label">Độ thuộc</span>
-                        </div>
-                    </div>
+        if (results) {
+            PracticeManager.showResults(
+                results.scoreData, results.xpReward, results.coinsReward,
+                results.isPerfect, results.gemsBonus, opts,
+            );
+            return;
+        }
 
-                    ${this.unknownWords.length > 0 ? `
-                        <div class="review-suggestion">
-                            <i class="fas fa-info-circle"></i>
-                            <p>Bạn có <strong>${this.unknownWords.length} từ chưa biết</strong>. Muốn ôn lại không?</p>
-                        </div>
-                    ` : `
-                        <div class="perfect-message">
-                            <i class="fas fa-trophy"></i>
-                            <p>Xuất sắc! Bạn đã biết tất cả từ vựng!</p>
-                        </div>
-                    `}
-                </div>
-            `,
-            buttons: [
-                ...(this.unknownWords.length > 0 ? [{
-                    text: 'Ôn lại từ chưa biết',
-                    className: 'btn-secondary',
-                    onClick: () => {
-                        Modal.close();
-                        this.reviewUnknown();
-                    }
-                }] : []),
-                {
-                    text: 'Học tiếp',
-                    className: 'btn-primary',
-                    onClick: () => {
-                        Modal.close();
-                        this.continueNextBatch();
-                    }
-                },
-                {
-                    text: 'Về trang chủ',
-                    className: 'btn-secondary',
-                    onClick: () => {
-                        this.cleanup();
-                        Modal.close();
-                        setTimeout(() => {
-                            if (PracticeManager.currentSession) {
-                                PracticeManager.currentSession.completed = true;
-                                PracticeManager.currentSession = null;
-                            }
-                            if (typeof Utils !== 'undefined' && Utils.stopAllSounds) {
-                                Utils.stopAllSounds();
-                            }
-                            UI.showScreen('home-screen');
-                        }, 300);
-                    }
-                }
-            ]
-        });
+        // Session đã kết thúc trước đó (vd học tiếp batch) → vẫn hiện kết quả cùng layout.
+        PracticeManager.showResults({ totalScore: 0 }, 0, 0, this.unknownWords.length === 0, 0, opts);
     },
 
     reviewUnknown() {

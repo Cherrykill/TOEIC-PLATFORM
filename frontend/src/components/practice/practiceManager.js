@@ -691,25 +691,38 @@ export const PracticeManager = {
         EventBus.emit(GameEvents.PRACTICE_COMPLETED, this.currentSession);
     },
 
-    showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus = 0) {
-        const wrongWordsInSession = this.currentSession?.wrongWordsInSession || [];
-        const answerHistory = this.currentSession?.answerHistory || [];
+    // opts cho phép mode có ngữ nghĩa riêng (vd Flashcard: "Đã biết/Chưa biết",
+    // thêm nút "Ôn lại từ chưa biết" / "Học tiếp") mà VẪN dùng chung layout kết quả.
+    showResults(scoreData, xpReward, coinsReward, isPerfect, gemsBonus = 0, opts = {}) {
+        const {
+            title = '🎉 Hoàn thành!',
+            correctLabel = 'Đúng',
+            wrongLabel = 'Sai',
+            accuracyLabel = 'Chính xác',
+            extraButtons = [],
+            hideRetry = false,
+        } = opts;
+        // Session có thể đã bị dọn (vd Flashcard gọi lại sau khi kết thúc batch)
+        // → đọc phòng thủ để popup vẫn hiện thay vì ném lỗi.
+        const s = this.currentSession || {};
+        const wrongWordsInSession = s.wrongWordsInSession || [];
+        const answerHistory = s.answerHistory || [];
         const performance = GameLogic.getPerformanceRating(
-            this.currentSession.correctAnswers,
-            this.currentSession.correctAnswers + this.currentSession.wrongAnswers
+            s.correctAnswers || 0,
+            (s.correctAnswers || 0) + (s.wrongAnswers || 0)
         );
 
         const stars = '⭐'.repeat(performance.stars);
 
         if (typeof Utils !== 'undefined' && Utils.stopAllSounds) Utils.stopAllSounds();
 
-        const durationSec = Math.round((this.currentSession.endTime - this.currentSession.startTime) / 1000) || 0;
+        const durationSec = Math.round(((s.endTime || 0) - (s.startTime || 0)) / 1000) || 0;
         const mm = String(Math.floor(durationSec / 60)).padStart(2, '0');
         const ss = String(durationSec % 60).padStart(2, '0');
         const durationStr = `${mm}:${ss}`;
 
-        const correct = this.currentSession.correctAnswers || 0;
-        const wrong = this.currentSession.wrongAnswers || 0;
+        const correct = s.correctAnswers || 0;
+        const wrong = s.wrongAnswers || 0;
         const accuracy = (correct + wrong) > 0
             ? Math.round((correct / (correct + wrong)) * 100)
             : 0;
@@ -717,14 +730,14 @@ export const PracticeManager = {
         Utils.playSound('assets/sounds/complete.mp3', 1.0);
 
         Modal.show({
-            title: '🎉 Hoàn thành!',
+            title,
             closeOnBackdrop: false,
             content: `
                 <div class="practice-result">
                     <div class="pr-left">
                         <div class="pr-circle" style="background: conic-gradient(var(--primary-color) ${accuracy * 3.6}deg, var(--bg-tertiary, #e5e7eb) 0)">
                             <span class="pr-circle-val">${accuracy}%</span>
-                            <span class="pr-circle-label">Chính xác</span>
+                            <span class="pr-circle-label">${accuracyLabel}</span>
                         </div>
                         <div class="pr-badge ${isPerfect ? 'perfect' : 'pass'}">
                             <i class="fas fa-${isPerfect ? 'trophy' : 'star'}"></i>
@@ -732,8 +745,8 @@ export const PracticeManager = {
                         </div>
                     </div>
                     <div class="pr-right">
-                        <div class="pr-row correct"><span><i class="fas fa-check-circle"></i> Đúng</span><b>${correct}</b></div>
-                        <div class="pr-row wrong"><span><i class="fas fa-times-circle"></i> Sai</span><b>${wrong}</b></div>
+                        <div class="pr-row correct"><span><i class="fas fa-check-circle"></i> ${correctLabel}</span><b>${correct}</b></div>
+                        <div class="pr-row wrong"><span><i class="fas fa-times-circle"></i> ${wrongLabel}</span><b>${wrong}</b></div>
                         <div class="pr-row"><span><i class="fas fa-star"></i> Kinh nghiệm</span><b>+${xpReward} XP</b></div>
                         <div class="pr-row"><span><i class="fas fa-coins"></i> Xu</span><b>+${coinsReward}</b></div>
                         ${gemsBonus > 0 ? `<div class="pr-row"><span><i class="fas fa-gem"></i> Gems</span><b>+${gemsBonus}</b></div>` : ''}
@@ -742,6 +755,7 @@ export const PracticeManager = {
                 </div>
             `,
             buttons: [
+                ...extraButtons,
                 {
                     text: 'Về trang chủ',
                     className: 'btn-secondary pr-btn-home',
@@ -760,11 +774,11 @@ export const PracticeManager = {
                     closeOnClick: false,
                     onClick: () => ReviewOverlay.show(answerHistory),
                 }] : []),
-                ...(wrongWordsInSession.length > 0 ? [{
+                ...(!hideRetry && wrongWordsInSession.length > 0 ? [{
                     text: `Làm lại ${wrongWordsInSession.length} câu sai`,
                     className: 'btn-warning',
                     onClick: () => {
-                        const mode = this.currentSession.mode;
+                        const mode = this.currentSession?.mode || s.mode;
                         PartSelector.retryWords = [...wrongWordsInSession];
                         this.cleanupCurrentMode();
                         this.cleanupKeyboardShortcuts();
@@ -777,7 +791,7 @@ export const PracticeManager = {
                     text: 'Chơi lại',
                     className: 'btn-primary',
                     onClick: () => {
-                        const mode = this.currentSession.mode;
+                        const mode = this.currentSession?.mode || s.mode;
                         this.cleanupCurrentMode();
                         this.cleanupKeyboardShortcuts();
                         this.currentSession = null;
