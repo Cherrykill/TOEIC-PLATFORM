@@ -1703,8 +1703,8 @@
 .toeic-right-panel .toeic-question-text {
   padding: 6px 16px 0;
   margin-bottom: 4px;
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 
 @media (max-width: 700px) {
@@ -1715,6 +1715,20 @@
     grid-template-columns: 1fr;
   }
   .toeic-passage-image { max-height: none; }
+}
+
+/* Chữ đáp án trong khung 2 cột nhỏ lại một nhịp — cột hẹp nên cỡ mặc định
+   (1rem) hay vỡ xuống 2 dòng, đọc mệt. */
+.toeic-right-panel .toeic-option {
+  padding: 10px 14px;
+}
+.toeic-right-panel .toeic-option-text {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.toeic-right-panel .toeic-option-label {
+  font-size: 0.95rem;
+  min-width: 24px;
 }
 
 /* ===== Nhóm câu hỏi hiển thị cùng màn (Part 3/4/6/7) ===== */
@@ -1738,8 +1752,8 @@
 .toeic-group-q-num {
   font-weight: 700;
   color: var(--primary-color, #e11d48);
-  font-size: 0.9rem;
-  margin-bottom: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 5px;
 }
 [data-theme="dark"] .toeic-group-question {
   border-color: rgba(255, 255, 255, 0.12);
