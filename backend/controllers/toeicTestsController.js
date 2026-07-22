@@ -5,7 +5,6 @@
 // CRUD + full-test generation. Verbatim move; behaviour unchanged.
 // routes/toeic.js imports these from here now.
 
-const ToeicQuestion = require('../models/ToeicQuestion'); // legacy — gỡ ở GĐ5
 const ToeicQuestionSet = require('../models/ToeicQuestionSet');
 const { countQuestions } = require('../services/questionSetService');
 const ToeicTest = require('../models/ToeicTest');

@@ -1,4 +1,3 @@
-const ToeicQuestion = require('../models/ToeicQuestion'); // legacy — sẽ gỡ ở GĐ5
 const { flattenSet, findQuestionById, findQuestionsByIds } = require('../services/questionSetService');
 const ToeicTest = require('../models/ToeicTest');
 const ToeicAttempt = require('../models/ToeicAttempt');

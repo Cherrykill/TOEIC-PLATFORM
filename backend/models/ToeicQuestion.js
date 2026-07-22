@@ -1,3 +1,17 @@
+// ⚠️ MODEL ĐÃ NGHỈ HƯU — KHÔNG dùng trong code chạy nữa.
+//
+// Thay bằng ToeicQuestionSet (1 document = 1 MÀN hỏi, các câu nằm trong mảng
+// questions[]). Toàn bộ controller/service/route đã chuyển sang model mới.
+//
+// Giữ lại file này CHỈ để các script migration đọc được dữ liệu cũ:
+//   scripts/migrateToQuestionSets.js  · scripts/renumberQuestions.js
+//   scripts/repairGroupMedia.js       · scripts/imageExtToPng.js
+// và để khôi phục từ backups/toeic-*/toeic_questions.json khi cần.
+//
+// Collection `toeic_questions` vẫn còn trong DB làm lưới an toàn. Xoá khi đã
+// chắc chắn:  db.toeic_questions.drop()
+// Các script cũ trong scripts/toeic/* cũng chỉ chạy trên model này.
+
 const mongoose = require('mongoose');
 
 const ToeicQuestionSchema = new mongoose.Schema({

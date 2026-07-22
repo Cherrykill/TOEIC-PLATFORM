@@ -346,7 +346,7 @@ ToeicTestSchema.statics.getByType = async function(testType) {
  * Create full-length TOEIC test
  */
 ToeicTestSchema.statics.createFullTest = async function(testData) {
-    const ToeicQuestion = mongoose.model('ToeicQuestion');
+    const ToeicQuestionSet = mongoose.model('ToeicQuestionSet');
 
     const parts = [];
     const partConfigs = [
@@ -365,7 +365,16 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
     const sourceFilter = testData.source || null;
 
     // Check total available questions first
-    const totalAvailable = await ToeicQuestion.countDocuments({
+    // Đếm SỐ CÂU (mỗi màn chứa 1..N câu), không đếm document.
+    const countQ = async (filter) => {
+        const r = await ToeicQuestionSet.aggregate([
+            { $match: filter },
+            { $group: { _id: null, n: { $sum: { $size: '$questions' } } } },
+        ]);
+        return r[0]?.n || 0;
+    };
+
+    const totalAvailable = await countQ({
         isActive: true,
         isPublished: true,
         ...(sourceFilter ? { source: sourceFilter } : {}),
@@ -406,7 +415,7 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
             query._id = { $nin: usedQuestionsByPart[config.partNumber] };
         }
 
-        const availableCount = await ToeicQuestion.countDocuments(query);
+        const availableCount = await countQ(query);
 
         if (availableCount < config.questionsCount) {
             insufficientParts.push({
@@ -442,21 +451,37 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
             ? usedQuestionsByPart[config.partNumber]
             : [];
 
-        const questions = await ToeicQuestion.getRandomQuestions({
+        // Bốc theo MÀN, gom tới khi đủ số câu — không cắt giữa màn để câu con
+        // không bị mồ côi mất ngữ cảnh chung.
+        const pool = await ToeicQuestionSet.find({
             part: config.partNumber,
-            count: config.questionsCount,
-            excludeIds,
-            source: sourceFilter,
-        });
+            isActive: true,
+            isPublished: true,
+            ...(sourceFilter ? { source: sourceFilter } : {}),
+            ...(excludeIds.length ? { _id: { $nin: excludeIds } } : {}),
+        }).lean();
+
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
+
+        const chosen = [];
+        let picked = 0;
+        for (const set of pool) {
+            if (picked >= config.questionsCount) break;
+            chosen.push(set);
+            picked += set.questions.length;
+        }
 
         parts.push({
             partNumber: config.partNumber,
-            questions: questions.map(q => q._id),
-            questionsCount: questions.length,
+            questions: chosen.map(s => s._id),
+            questionsCount: picked,
             timeLimit: config.timeLimit,
         });
 
-        totalQuestions += questions.length;
+        totalQuestions += picked;
         totalTime += config.timeLimit;
     }
 

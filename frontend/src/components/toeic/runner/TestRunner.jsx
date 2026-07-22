@@ -15,7 +15,20 @@ import { isToeicQuestionTimerOn, getToeicScreenTime } from '../toeicPartTime.js'
 // Dải index của nhóm chứa `index` (các câu liền kề cùng groupId). Không nhóm → [i,i].
 function getGroupRange(questions, index) {
     const q = questions[index];
-    if (!q || !q.groupId) return [index, index];
+    if (!q) return [index, index];
+
+    // Backend dàn phẳng theo MÀN nên mỗi câu tự biết vị trí của mình trong màn
+    // (questionIndex 1..N) và màn có bao nhiêu câu (setSize) → suy ra dải ngay,
+    // khỏi quét hai chiều và khỏi giả định các câu cùng màn nằm liền kề.
+    const idx = Number(q.questionIndex);
+    const size = Number(q.setSize);
+    if (Number.isFinite(idx) && Number.isFinite(size) && size > 0) {
+        const start = Math.max(0, index - (idx - 1));
+        return [start, Math.min(questions.length - 1, start + size - 1)];
+    }
+
+    // Dữ liệu cũ không có setSize → quay lại cách quét theo groupId.
+    if (!q.groupId) return [index, index];
     let start = index;
     let end = index;
     while (start > 0 && questions[start - 1]?.groupId === q.groupId) start--;
