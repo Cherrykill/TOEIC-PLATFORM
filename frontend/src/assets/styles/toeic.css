@@ -1601,18 +1601,7 @@
 }
 
 /* Header cột trái — đồng bộ với header cột phải (bar màu) */
-.toeic-left-header {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  padding: 10px 16px;
-  /* Chứa thêm điều hướng câu (QuestionNav) ở mép phải. */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
+/* .toeic-left-header đã bỏ — khung trái giờ không có thanh tiêu đề. */
 
 /* Điều hướng câu nằm ngay trên thanh tiêu đề khung nội dung. */
 .toeic-inline-qnav {
@@ -1651,6 +1640,9 @@
   flex: 1;
 }
 
+/* Khung trái đã bỏ thanh tiêu đề → bo góc trên cho liền khối. */
+.toeic-left-panel { border-radius: var(--border-radius-large); }
+
 /* Ảnh đoạn đọc (Part 6/7) là NỘI DUNG CHÍNH, không phải minh hoạ → không bó
    500x400 như ảnh Part 1. Tràn hết bề ngang khung để đọc được chữ. */
 .toeic-passage-image {
@@ -1671,7 +1663,7 @@
 /* Phần ĐỌC: đoạn văn cần nhiều chỗ hơn danh sách đáp án → cột trái rộng hơn,
    và bớt đệm để ảnh sát mép. */
 .toeic-two-col-layout.reading {
-  grid-template-columns: 1.6fr 1fr;
+  grid-template-columns: 1.25fr 1fr;
 }
 .toeic-two-col-layout.reading .toeic-left-body {
   padding: 10px;
@@ -1695,6 +1687,11 @@
   background: linear-gradient(135deg, #6366f1, #a78bfa);
   padding: 10px 16px;
   border-radius: 0;
+  /* Chứa thêm điều hướng câu (QuestionNav) ở mép phải. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .toeic-right-panel .toeic-options-listening,
@@ -2127,7 +2124,6 @@
   max-height: calc(100vh - 165px);
   overflow-y: auto;
 }
-.toeic-left-header,
 .toeic-right-header {
   position: sticky;
   top: 0;

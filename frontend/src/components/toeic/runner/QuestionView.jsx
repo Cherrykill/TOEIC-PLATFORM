@@ -70,14 +70,13 @@ export default function QuestionView({
     return (
         <div className={`toeic-two-col-layout${isListening ? '' : ' reading'}`}>
             <div className="toeic-left-panel">
-                <div className="toeic-left-header">
-                    <span>Câu {question.globalQuestionNumber ?? question.questionNumber ?? currentIndex + 1}</span>
-                    {nav && <QuestionNav {...nav} />}
-                </div>
                 <div className="toeic-left-body">{leftContent}</div>
             </div>
             <div className="toeic-right-panel">
-                <div className="toeic-right-header">{isListening ? 'Chọn đáp án' : 'Câu hỏi & đáp án'}</div>
+                <div className="toeic-right-header">
+                    <span>Câu {question.globalQuestionNumber ?? question.questionNumber ?? currentIndex + 1}</span>
+                    {nav && <QuestionNav {...nav} />}
+                </div>
                 {hasAudio && (
                     <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
                 )}

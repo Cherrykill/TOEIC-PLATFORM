@@ -35,14 +35,13 @@ export default function GroupQuestionView({ groupItems, answers, onSelectAnswer,
     return (
         <div className={`toeic-two-col-layout${isListening ? '' : ' reading'}`}>
             <div className="toeic-left-panel">
-                <div className="toeic-left-header">
-                    <span>Ngữ cảnh chung ({groupItems.length} câu)</span>
-                    {nav && <QuestionNav {...nav} />}
-                </div>
                 <div className="toeic-left-body">{leftContent}</div>
             </div>
             <div className="toeic-right-panel">
-                <div className="toeic-right-header">Trả lời {groupItems.length} câu</div>
+                <div className="toeic-right-header">
+                    <span>Trả lời {groupItems.length} câu</span>
+                    {nav && <QuestionNav {...nav} />}
+                </div>
                 <div className="toeic-group-questions">
                     {groupItems.map(({ q, index }) => (
                         <div key={index} className="toeic-group-question">
