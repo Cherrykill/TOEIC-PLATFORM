@@ -769,10 +769,6 @@ function updatePartVisibility() {
             ? `Chọn file để tự upload. Part ${part} cần ${rule.min > 0 ? 'đúng 1 ảnh' : 'tối đa 1 ảnh (tùy chọn)'}.`
             : `Chọn file để tự upload. Part ${part} cần ${rule.min}–${rule.max} ảnh (bản scan đoạn đọc).`;
     }
-
-    // Thông tin nhóm (Group ID / Index / Số đoạn) chỉ có nghĩa với Part gộp nhóm 3/4/6/7.
-    const groupInfo = document.getElementById('group-info-section');
-    if (groupInfo) groupInfo.style.display = [3, 4, 6, 7].includes(part) ? 'block' : 'none';
     const passageCountField = document.getElementById('passage-count-field');
     if (passageCountField) passageCountField.style.display = part === 7 ? 'block' : 'none';
 
@@ -869,32 +865,43 @@ function openQuestionModal(questionId = null) {
         title.textContent = 'Edit Question';
         const question = currentQuestions.find(q => q._id === questionId);
         if (question) {
+            // `question` giờ là một MÀN. Ngữ cảnh (ảnh/audio/source) ở cấp màn,
+            // còn đề bài/đáp án nằm trong questions[]. Form đơn sửa CÂU ĐẦU.
+            const sub = question.questions?.[0] || {};
+
             document.getElementById('question-id').value = question._id;
             document.getElementById('question-part').value = question.part;
-            document.getElementById('question-text').value = question.questionText || '';
+            document.getElementById('question-text').value = sub.questionText || '';
             currentImageUrls = Array.isArray(question.imageUrls) ? [...question.imageUrls] : [];
             document.getElementById('question-audio-url').value = question.audioUrl || '';
-            const expVal = typeof question.explanation === 'object'
-                ? JSON.stringify(question.explanation, null, 2)
-                : (question.explanation || '');
+            const expVal = typeof sub.explanation === 'object'
+                ? JSON.stringify(sub.explanation, null, 2)
+                : (sub.explanation || '');
             document.getElementById('question-explanation').value = expVal;
-            document.getElementById('question-group-id').value = question.groupId || '';
-            document.getElementById('question-index').value = question.questionIndex || '';
             document.getElementById('question-passage-count').value = question.passageCount || '';
+            const numEl = document.getElementById('question-number');
+            if (numEl) numEl.value = sub.number ?? '';
             const srcEl = document.getElementById('question-source');
             if (srcEl) srcEl.value = question.source || '';
             document.getElementById('question-audio-translate').value = question.audioTranslate || '';
-            document.getElementById('question-text-translate').value = question.questionTranslate || '';
+            document.getElementById('question-text-translate').value = sub.questionTranslate || '';
 
             if (question.audioUrl) {
                 previewAudio.src = question.audioUrl;
                 audioPreview.style.display = 'block';
             }
 
-            question.options.forEach((opt, idx) => {
+            // Màn nhiều câu không sửa được bằng form đơn — báo rõ thay vì sửa nhầm.
+            if ((question.questions?.length || 0) > 1) {
+                alert(`Màn này có ${question.questions.length} câu (Part ${question.part}).
+` +
+                      'Form câu đơn chỉ sửa được câu đầu. Hãy xoá rồi tạo lại bằng "Thêm nhóm".');
+            }
+
+            (sub.options || []).forEach((opt, idx) => {
                 const label = String.fromCharCode(65 + idx);
                 document.getElementById(`option-${label}`).value = opt.text;
-                if (opt.label === question.correctAnswer) {
+                if (opt.label === sub.correctAnswer) {
                     document.getElementById(`correct-${label}`).checked = true;
                 }
             });
@@ -1732,12 +1739,11 @@ async function handleQuestionSubmit(e) {
     const imageUrls = currentImageUrls.slice();   // nhiều ảnh (Part 1/3/4/6/7)
     const audioUrl = document.getElementById('question-audio-url').value.trim();
     const explanationRaw = document.getElementById('question-explanation').value.trim();
-    const groupIdRaw = document.getElementById('question-group-id').value.trim();
-    const questionIndexRaw = document.getElementById('question-index').value.trim();
     const passageCountRaw = document.getElementById('question-passage-count').value;
     const audioTranslateRaw = document.getElementById('question-audio-translate').value.trim();
     const questionTranslateRaw = document.getElementById('question-text-translate').value.trim();
     const sourceRaw = document.getElementById('question-source')?.value.trim() || '';
+    const numberRaw = document.getElementById('question-number')?.value.trim() || '';
 
     const correctAnswer = document.querySelector('input[name="correct-answer"]:checked')?.value;
     if (!correctAnswer) {
@@ -1782,12 +1788,12 @@ async function handleQuestionSubmit(e) {
         try { questionData.explanation = JSON.parse(explanationRaw); }
         catch { questionData.explanation = { note: explanationRaw }; }
     }
-    if (groupIdRaw) questionData.groupId = groupIdRaw;
-    if (questionIndexRaw) questionData.questionIndex = parseInt(questionIndexRaw);
     if (passageCountRaw) questionData.passageCount = parseInt(passageCountRaw);
     if (audioTranslateRaw) questionData.audioTranslate = audioTranslateRaw;
     if (questionTranslateRaw) questionData.questionTranslate = questionTranslateRaw;
     if (sourceRaw) questionData.source = sourceRaw;
+    // Để trống → server tự đánh theo chuẩn TOEIC của Part trong bộ đề đó.
+    if (numberRaw) questionData.questionNumber = parseInt(numberRaw);
 
     try {
         const url = questionId ? `${TOEIC_API_BASE}/questions/${questionId}` : `${TOEIC_API_BASE}/questions`;
