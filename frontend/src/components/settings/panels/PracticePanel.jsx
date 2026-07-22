@@ -41,21 +41,24 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
         }
     };
 
-    // ── Thời gian mỗi câu cho bài thi TOEIC (theo Part) ──────────────────────
+    // ── Thời gian mỗi câu cho bài thi TOEIC ──────────────────────────────────
+    // Part 1-4 (Nghe) đặt tay; Part 5-7 (Đọc) tự tính theo thời gian của từng
+    // đề nên không có gì để chỉnh — chỉ liệt kê cho biết.
+    const MANUAL_PARTS = TOEIC_PART_TIMES.filter(p => !p.auto);
     const [tpMode, setTpMode] = useState('all');
     const tp = s.toeicPartTime || {};
     const effPart = (id) => (typeof tp[id] === 'number' ? tp[id] : getToeicPartTimeDefault(id));
-    const firstPart = effPart(TOEIC_PART_TIMES[0].id);
-    const partAllSame = TOEIC_PART_TIMES.every(p => effPart(p.id) === firstPart) ? firstPart : null;
+    const firstPart = effPart(MANUAL_PARTS[0].id);
+    const partAllSame = MANUAL_PARTS.every(p => effPart(p.id) === firstPart) ? firstPart : null;
     const tpVal = tpMode === 'all' ? (partAllSame ?? '') : effPart(Number(tpMode));
     const tpOptions = (typeof tpVal === 'number' && !SEC_OPTIONS.includes(tpVal))
         ? [tpVal, ...SEC_OPTIONS].sort((a, b) => a - b) : SEC_OPTIONS;
     const applyPartTime = (secStr) => {
         const sec = parseInt(secStr);
         if (!Number.isFinite(sec)) return;
-        const base = {};
-        TOEIC_PART_TIMES.forEach(p => { base[p.id] = effPart(p.id); });
-        if (tpMode === 'all') TOEIC_PART_TIMES.forEach(p => { base[p.id] = sec; });
+        const base = { ...tp };
+        MANUAL_PARTS.forEach(p => { base[p.id] = effPart(p.id); });
+        if (tpMode === 'all') MANUAL_PARTS.forEach(p => { base[p.id] = sec; });
         else base[Number(tpMode)] = sec;
         updateSetting('toeicPartTime', base);
     };
@@ -198,37 +201,77 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                 />
             </div>
             {s.toeicPerQuestionTimer === true && (
-                <div className="setting-item" style={{ display: 'block', ...NESTED }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <>
+                    <div className="setting-item" style={NESTED}>
                         <div className="setting-info">
-                            <h4>Thời gian mỗi câu (theo Part)</h4>
-                            <p>Part 3/4/6/7 hiện cả nhóm một màn → thời gian màn đó nhân theo số câu</p>
+                            <h4>Tự động chuyển câu</h4>
+                            <p>Hết giờ một câu thì tự sang câu kế. Tắt thì đồng hồ dừng ở 0, bạn tự bấm Tiếp</p>
                         </div>
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <select value={tpMode} onChange={e => setTpMode(e.target.value)} title="Áp dụng cho Part nào">
-                                <option value="all">Toàn bộ</option>
-                                {TOEIC_PART_TIMES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                            <select value={tpVal} onChange={e => applyPartTime(e.target.value)} title="Số giây mỗi câu">
-                                {tpVal === '' && <option value="" disabled>— đang khác nhau —</option>}
-                                {tpOptions.map(sec => <option key={sec} value={sec}>{sec}s</option>)}
+                        <Toggle
+                            checked={s.toeicAutoAdvance !== false}
+                            onChange={v => updateSetting('toeicAutoAdvance', v)}
+                        />
+                    </div>
+
+                    {s.toeicAutoAdvance !== false && (
+                        <div className="setting-item" style={NESTED}>
+                            <div className="setting-info">
+                                <h4>Thời gian chuyển câu</h4>
+                                <p>Khoảng nghỉ giữa hai câu — đã được trừ khỏi thời gian mỗi câu</p>
+                            </div>
+                            <select
+                                value={typeof s.toeicTransition === 'number' ? s.toeicTransition : 1}
+                                onChange={e => updateSetting('toeicTransition', parseInt(e.target.value))}
+                            >
+                                {[0, 1, 2, 3, 5].map(sec => (
+                                    <option key={sec} value={sec}>{sec === 0 ? 'Không nghỉ' : `${sec}s`}</option>
+                                ))}
                             </select>
                         </div>
+                    )}
+
+                    <div className="setting-item" style={{ display: 'block', ...NESTED }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <div className="setting-info">
+                                <h4>Thời gian mỗi câu — Part Nghe</h4>
+                                <p>Part 3/4 hiện cả nhóm một màn → thời gian màn đó nhân theo số câu</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <select value={tpMode} onChange={e => setTpMode(e.target.value)} title="Áp dụng cho Part nào">
+                                    <option value="all">Toàn bộ</option>
+                                    {MANUAL_PARTS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                </select>
+                                <select value={tpVal} onChange={e => applyPartTime(e.target.value)} title="Số giây mỗi câu">
+                                    {tpVal === '' && <option value="" disabled>— đang khác nhau —</option>}
+                                    {tpOptions.map(sec => <option key={sec} value={sec}>{sec}s</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div style={{ marginTop: 10, borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
+                            {TOEIC_PART_TIMES.map(p => {
+                                const isDef = typeof tp[p.id] !== 'number';
+                                return (
+                                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '3px 0', color: 'var(--text-secondary)' }}>
+                                        <span>{p.name}</span>
+                                        {p.auto ? (
+                                            <span style={{ color: 'var(--primary-color)', fontWeight: 600 }}>
+                                                tự tính theo đề
+                                            </span>
+                                        ) : (
+                                            <span style={{ color: isDef ? 'var(--text-tertiary, #94a3b8)' : 'var(--primary-color)', fontWeight: 600 }}>
+                                                {effPart(p.id)}s{isDef ? ' (mặc định)' : ''}
+                                            </span>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 8, marginBottom: 0 }}>
+                            Part 5·6·7 (Đọc) lấy thời gian của chính đề đang làm chia đều cho số câu,
+                            rồi trừ thời gian chuyển câu — mỗi đề một khác nên không đặt tay ở đây.
+                        </p>
                     </div>
-                    <div style={{ marginTop: 10, borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
-                        {TOEIC_PART_TIMES.map(p => {
-                            const isDef = typeof tp[p.id] !== 'number';
-                            return (
-                                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '3px 0', color: 'var(--text-secondary)' }}>
-                                    <span>{p.name}</span>
-                                    <span style={{ color: isDef ? 'var(--text-tertiary, #94a3b8)' : 'var(--primary-color)', fontWeight: 600 }}>
-                                        {effPart(p.id)}s{isDef ? ' (mặc định)' : ''}
-                                    </span>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
+                </>
             )}
         </div>
     );

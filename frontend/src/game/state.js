@@ -22,7 +22,9 @@ export const DEFAULT_SETTINGS = {
     timePerQuestion: 30,      // legacy: dùng chung; questionTime (theo chế độ) ưu tiên hơn
     questionTime: {},         // { [modeId]: giây } — thời gian mỗi câu theo từng chế độ
     toeicPerQuestionTimer: false, // bài thi TOEIC: đếm ngược từng câu (song song đồng hồ tổng)
-    toeicPartTime: {},        // { [part]: giây } — thời gian mỗi câu TOEIC theo Part
+    toeicPartTime: {},        // { [part]: giây } — CHỈ Part 1-4; Part 5-7 tự tính theo đề
+    toeicAutoAdvance: true,   // hết giờ một câu → tự sang câu kế
+    toeicTransition: 1,       // giây nghỉ giữa hai câu (đã trừ khỏi ngân sách mỗi câu)
     difficulty: "adaptive",
     levelFilter: null,
     autoSync: true,

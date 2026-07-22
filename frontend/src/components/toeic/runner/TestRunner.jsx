@@ -11,7 +11,12 @@ import QuestionView from './QuestionView.jsx';
 import GroupQuestionView from './GroupQuestionView.jsx';
 import QuestionNavPopup from './QuestionNavPopup.jsx';
 import PartTransitionModal from './PartTransitionModal.jsx';
-import { isToeicQuestionTimerOn, getToeicScreenTime } from '../toeicPartTime.js';
+import {
+    isToeicQuestionTimerOn,
+    isToeicAutoAdvanceOn,
+    getToeicScreenTime,
+    getToeicTransition,
+} from '../toeicPartTime.js';
 
 // Dải index của nhóm chứa `index` (các câu liền kề cùng groupId). Không nhóm → [i,i].
 function getGroupRange(questions, index) {
@@ -278,19 +283,28 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         const cur = qs[gs];
         if (!cur) { setScreenLeft(null); return; }
         const atLast = ge >= qs.length - 1;
-        let left = getToeicScreenTime(cur.part, ge - gs + 1);
+        // Part 5/6/7 lấy thời gian từ chính đề này → phải truyền attempt.test.
+        let left = getToeicScreenTime(cur.part, ge - gs + 1, attempt.test);
         setScreenLeft(left);
+
+        let moveTimer = null;
         const id = setInterval(() => {
             left -= 1;
             setScreenLeft(left);
-            if (left <= 0) {
-                clearInterval(id);
-                if (!atLast) handleNextRef.current();  // câu cuối thì để đồng hồ tổng lo
-            }
+            if (left > 0) return;
+
+            clearInterval(id);
+            // Câu cuối thì để đồng hồ tổng lo; tắt tự chuyển thì dừng ở 0 cho
+            // người dùng tự bấm Tiếp (vẫn sửa được đáp án, không khoá gì).
+            if (atLast || !isToeicAutoAdvanceOn()) return;
+            // Chờ đúng khoảng chuyển câu đã trừ khỏi ngân sách mỗi câu — có
+            // trừ thì phải có nghỉ thật, không thì phép tính chỉ là lý thuyết.
+            moveTimer = setTimeout(() => handleNextRef.current(), getToeicTransition() * 1000);
         }, 1000);
-        return () => clearInterval(id);
+
+        return () => { clearInterval(id); if (moveTimer) clearTimeout(moveTimer); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [attempt.currentIndex, phase, attempt.questions.length]);
+    }, [attempt.currentIndex, phase, attempt.questions.length, attempt.test]);
 
     if (phase === 'loading') {
         return (
