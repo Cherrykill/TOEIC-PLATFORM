@@ -301,12 +301,20 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     const groupItems = [];
     for (let i = gStart; i <= gEnd; i++) groupItems.push({ q: attempt.questions[i], index: i });
 
+    // Điều hướng câu giờ nằm trên thanh tiêu đề khung nội dung, không ở header đề.
+    const navProps = {
+        current: attempt.currentIndex + 1,
+        total: attempt.test?.totalQuestions || attempt.questions.length,
+        canPrev: gStart > 0,
+        canNext: gEnd < attempt.questions.length - 1,
+        onPrev: handlePrev,
+        onNext: handleNext,
+    };
+
     return (
         <div className="toeic-container">
             <RunnerHeader
                 testName={attempt.test?.testName || ''}
-                currentIndex={attempt.currentIndex}
-                totalQuestions={attempt.test?.totalQuestions || attempt.questions.length}
                 timer={timer}
                 isMarked={attempt.markedQuestions.has(attempt.currentIndex)}
                 onBack={handleConfirmExit}
@@ -314,10 +322,6 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                 onToggleMark={handleToggleMark}
                 onPause={handlePause}
                 onSubmit={handleConfirmSubmit}
-                onPrev={handlePrev}
-                onNext={handleNext}
-                canPrev={gStart > 0}
-                canNext={gEnd < attempt.questions.length - 1}
             />
 
             <div className="toeic-question-container">
@@ -340,6 +344,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                         onSelectAnswer={handleGroupAnswer}
                         audioPlaying={audio.playing}
                         onPlayAudio={handlePlayAudio}
+                        nav={navProps}
                     />
                 ) : (
                     <QuestionView
@@ -356,6 +361,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                         keywordStatus={keywordStatus}
                         onKeywordChange={attempt.updateKeywordAnswer}
                         onCheckKeywords={handleCheckKeywords}
+                        nav={navProps}
                     />
                 )}
             </div>

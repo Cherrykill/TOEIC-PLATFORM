@@ -1607,6 +1607,44 @@
   color: #fff;
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   padding: 10px 16px;
+  /* Chứa thêm điều hướng câu (QuestionNav) ở mép phải. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Điều hướng câu nằm ngay trên thanh tiêu đề khung nội dung. */
+.toeic-inline-qnav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.toeic-inline-qnav-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0.95;
+}
+.toeic-inline-qnav .toeic-qnav-arrow {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toeic-inline-qnav .toeic-qnav-arrow:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.35);
+}
+.toeic-inline-qnav .toeic-qnav-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 .toeic-left-body {
   padding: 16px;

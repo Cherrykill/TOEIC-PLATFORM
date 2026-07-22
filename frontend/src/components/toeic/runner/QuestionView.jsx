@@ -2,10 +2,11 @@ import AudioPlayer from './AudioPlayer.jsx';
 import ListeningQuestion from './ListeningQuestion.jsx';
 import ReadingQuestion from './ReadingQuestion.jsx';
 import OptionList from './OptionList.jsx';
+import QuestionNav from './QuestionNav.jsx';
 import FillBlankOptions from './FillBlankOptions.jsx';
 
 export default function QuestionView({
-    question, currentIndex, fillInBlankMode, selectedAnswer,
+    question, currentIndex, fillInBlankMode, selectedAnswer, nav,
     audioPlaying, onPlayAudio, onSelectAnswer,
     keywordAnswers, keywordStatus, onKeywordChange, onCheckKeywords,
     timer, onToggleNav,
@@ -69,7 +70,10 @@ export default function QuestionView({
     return (
         <div className="toeic-two-col-layout">
             <div className="toeic-left-panel">
-                <div className="toeic-left-header">Câu {question.globalQuestionNumber ?? question.questionNumber ?? currentIndex + 1}</div>
+                <div className="toeic-left-header">
+                    <span>Câu {question.globalQuestionNumber ?? question.questionNumber ?? currentIndex + 1}</span>
+                    {nav && <QuestionNav {...nav} />}
+                </div>
                 <div className="toeic-left-body">{leftContent}</div>
             </div>
             <div className="toeic-right-panel">

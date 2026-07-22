@@ -1,6 +1,7 @@
 import AudioPlayer from './AudioPlayer.jsx';
 import ReadingQuestion from './ReadingQuestion.jsx';
 import OptionList from './OptionList.jsx';
+import QuestionNav from './QuestionNav.jsx';
 
 /**
  * Hiển thị CẢ NHÓM câu hỏi trên một màn (Part 3/4/6/7):
@@ -10,7 +11,7 @@ import OptionList from './OptionList.jsx';
  *
  * groupItems: [{ q, index }]  (index = vị trí tuyệt đối trong mảng questions)
  */
-export default function GroupQuestionView({ groupItems, answers, onSelectAnswer, audioPlaying, onPlayAudio }) {
+export default function GroupQuestionView({ groupItems, answers, onSelectAnswer, audioPlaying, onPlayAudio, nav }) {
     if (!groupItems?.length) return null;
 
     const media = (groupItems.find(it => it.q.audioUrl || it.q.imageUrls?.length || it.q.passages?.length) || groupItems[0]).q;
@@ -34,7 +35,10 @@ export default function GroupQuestionView({ groupItems, answers, onSelectAnswer,
     return (
         <div className="toeic-two-col-layout">
             <div className="toeic-left-panel">
-                <div className="toeic-left-header">Ngữ cảnh chung ({groupItems.length} câu)</div>
+                <div className="toeic-left-header">
+                    <span>Ngữ cảnh chung ({groupItems.length} câu)</span>
+                    {nav && <QuestionNav {...nav} />}
+                </div>
                 <div className="toeic-left-body">{leftContent}</div>
             </div>
             <div className="toeic-right-panel">
