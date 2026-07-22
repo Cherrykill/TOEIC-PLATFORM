@@ -862,7 +862,7 @@ function openQuestionModal(questionId = null) {
     setPartOptionsMode(!!questionId);
 
     if (questionId) {
-        title.textContent = 'Edit Question';
+        title.textContent = 'Sửa câu đơn';
         const question = currentQuestions.find(q => q._id === questionId);
         if (question) {
             // `question` giờ là một MÀN. Ngữ cảnh (ảnh/audio/source) ở cấp màn,
@@ -909,7 +909,7 @@ function openQuestionModal(questionId = null) {
             updatePartVisibility();
         }
     } else {
-        title.textContent = 'Add Question';
+        title.textContent = 'Thêm câu đơn (Part 1·2·5)';
         // Chỉ nhớ lại Part nếu là câu đơn (1/2/5); Part nhóm cũ thì mặc định về Part 1.
         const def = [1, 2, 5].includes(lastSelectedPart) ? lastSelectedPart : 1;
         document.getElementById('question-part').value = def;
