@@ -344,6 +344,11 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                 testName={attempt.test?.testName || ''}
                 timer={timer}
                 nav={navProps}
+                pace={{
+                    left: screenLeft,
+                    total: screenTotal,
+                    label: `Còn ${Math.max(0, screenLeft ?? 0)}s cho ${isGroupView ? `nhóm ${groupItems.length} câu` : 'câu này'}`,
+                }}
                 isMarked={attempt.markedQuestions.has(attempt.currentIndex)}
                 onBack={handleConfirmExit}
                 onToggleNav={() => setNavOpen(o => !o)}
@@ -353,24 +358,6 @@ export default function TestRunner({ config, onExit, onShowResults }) {
             />
 
             <div className="toeic-question-container">
-                {/* Nhịp của câu hiện tại: chỉ một thanh mảnh cạn dần, KHÔNG con
-                    số — đề thi thật chỉ có một đồng hồ tổng, hai con số đếm
-                    ngược cạnh nhau vừa nhiễu vừa không giống thi. Nhưng vẫn
-                    phải thấy được, nếu không thì tự chuyển câu hoá ra giật cục
-                    vô cớ. Đỏ dần ở 5s cuối để biết sắp sang câu. */}
-                {screenLeft !== null && screenTotal > 0 && (
-                    <div
-                        style={{ height: 3, borderRadius: 3, background: 'var(--border-color)', margin: '0 0 12px', overflow: 'hidden' }}
-                        title={`Còn ${Math.max(0, screenLeft)}s cho ${isGroupView ? `nhóm ${groupItems.length} câu` : 'câu này'}`}
-                    >
-                        <div style={{
-                            height: '100%',
-                            width: `${Math.max(0, Math.min(100, (screenLeft / screenTotal) * 100))}%`,
-                            background: screenLeft <= 5 ? '#dc2626' : 'var(--primary-color)',
-                            transition: 'width 1s linear, background-color .3s',
-                        }} />
-                    </div>
-                )}
                 {isGroupView ? (
                     <GroupQuestionView
                         groupItems={groupItems}

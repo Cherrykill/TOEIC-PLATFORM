@@ -2135,3 +2135,29 @@
   .toeic-left-panel,
   .toeic-right-panel { max-height: none; overflow: visible; }
 }
+
+/* ===================================================================
+   THANH NHỊP TỪNG CÂU — dán vào MÉP DƯỚI header đề thi.
+   Cùng khối với đồng hồ tổng nên đọc ra là "thời gian", nhưng KHÔNG
+   thêm con số thứ hai: con số đặt cạnh thanh sẽ bị hiểu nhầm là giờ
+   của riêng câu đó, trong khi 06:50 là giờ của cả bài.
+   =================================================================== */
+/* .toeic-test-header-bar vốn đã position:sticky → tự làm mốc cho thanh absolute. */
+.toeic-pace-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--border-color);
+  border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
+  overflow: hidden;
+}
+
+.toeic-pace-fill {
+  height: 100%;
+  background: var(--primary-color);
+  transition: width 1s linear, background-color 0.3s;
+}
+
+.toeic-pace-fill.urgent { background: #dc2626; }

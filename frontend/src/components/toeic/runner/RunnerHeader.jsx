@@ -2,9 +2,15 @@ import Timer from './Timer.jsx';
 import QuestionNav from './QuestionNav.jsx';
 
 export default function RunnerHeader({
-    testName, timer, isMarked, nav,
+    testName, timer, isMarked, nav, pace,
     onBack, onToggleNav, onToggleMark, onPause, onSubmit,
 }) {
+    // Thanh nhịp của câu hiện tại dán vào MÉP DƯỚI header: cùng khối với đồng
+    // hồ tổng nên đọc là "thời gian", nhưng không thêm con số thứ hai — con số
+    // đặt cạnh thanh sẽ bị hiểu nhầm là giờ của riêng câu đó.
+    const showPace = pace && pace.total > 0 && pace.left !== null;
+    const pct = showPace ? Math.max(0, Math.min(100, (pace.left / pace.total) * 100)) : 0;
+
     return (
         <div className="toeic-test-header-bar">
             {/* Trái: quay lại + tên đề */}
@@ -36,6 +42,15 @@ export default function RunnerHeader({
                     <i className="fas fa-check"></i> Nộp bài
                 </button>
             </div>
+
+            {showPace && (
+                <div className="toeic-pace-bar" title={pace.label}>
+                    <div
+                        className={`toeic-pace-fill${pace.left <= 5 ? ' urgent' : ''}`}
+                        style={{ width: `${pct}%` }}
+                    />
+                </div>
+            )}
         </div>
     );
 }
