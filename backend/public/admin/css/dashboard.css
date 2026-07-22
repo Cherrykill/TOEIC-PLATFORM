@@ -1279,7 +1279,10 @@ table tbody tr:hover td { background: var(--hover-bg); }
 #questions-table th:nth-child(5) { width: 92px; }   /* Dap an dung */
 #questions-table th:nth-child(6) { width: 140px; }  /* Anh */
 #questions-table th:nth-child(7) { width: 140px; }  /* Audio */
-#questions-table th:nth-child(8) { width: 112px; }  /* Thao tac */
+#questions-table th:nth-child(8) { width: 96px; }   /* Thao tac */
+/* table-layout:fixed khong tu cat chu -> tieu de dai tran de len cot ben canh
+   khi cua so hep. Cat bang ellipsis thay vi de chong chu. */
+#questions-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Noi dung da truncate san + co title day du -> cat mot dong cho gon hang. */
 #questions-table td:nth-child(3) {

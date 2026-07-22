@@ -230,27 +230,17 @@ function renderQuestionsTable() {
                 <td style="text-align: center; font-weight: 600; color: #667eea;">${answerDisplay}</td>
                 <td style="text-align: center;" title="${firstImage || ''}">${imageDisplay}</td>
                 <td style="text-align: center;" title="${q.audioUrl || ''}">${audioDisplay}</td>
-                <td>
-                    <button class="btn btn-info btn-sm btn-preview-question" data-question-id="${q._id}" title="Preview">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                    <button class="btn btn-primary btn-sm btn-edit-question" data-question-id="${q._id}" title="Edit">
+                <td style="white-space: nowrap">
+                    <button class="btn btn-primary btn-sm btn-edit-question" data-question-id="${q._id}" title="Sửa">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-danger btn-sm btn-delete-question" data-question-id="${q._id}" title="Delete">
+                    <button class="btn btn-danger btn-sm btn-delete-question" data-question-id="${q._id}" title="Xoá">
                         <i class="fas fa-trash"></i>
                     </button>
                 </td>
             </tr>
         `;
     }).join('');
-
-    tbody.querySelectorAll('.btn-preview-question').forEach(btn => {
-        btn.addEventListener('click', () => {
-            highlightQuestionRow(btn);
-            previewQuestion(btn.getAttribute('data-question-id'));
-        });
-    });
 
     tbody.querySelectorAll('.btn-edit-question').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1509,125 +1499,6 @@ async function submitQuestionJsonImport(inputId = 'question-json-input', resultI
         const ta = document.getElementById(inputId);
         if (ta) ta.value = '';
     }
-}
-
-function previewQuestion(questionId) {
-    const question = currentQuestions.find(q => q._id === questionId);
-    if (!question) {
-        alert('Question not found!');
-        return;
-    }
-
-    let modal = document.getElementById('preview-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'preview-modal';
-        modal.style.cssText = 'display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;';
-        document.body.appendChild(modal);
-    }
-
-    let html = `
-        <div style="background: white; border-radius: 15px; padding: 30px; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; position: relative;">
-            <button id="close-preview-btn" style="position: absolute; top: 15px; right: 15px; background: #e0e0e0; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 20px;">×</button>
-            <h3 style="margin-bottom: 20px; color: #667eea;">
-                <i class="fas fa-eye"></i> Preview - Part ${question.part}
-            </h3>
-    `;
-
-    if (question.imageUrls?.length > 0) {
-        question.imageUrls.forEach(url => {
-            html += `<img src="${url}" style="width: 100%; max-width: 500px; margin: 0 auto 10px; display: block; border-radius: 8px;">`;
-        });
-    }
-
-    if (question.part <= 4 && (question.audioUrl || question.audioText)) {
-        html += `
-            <div style="background: #f5f7fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <button id="preview-audio-btn" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                    <i class="fas fa-play"></i> Phát audio
-                </button>
-            </div>
-        `;
-    }
-
-    if (question.questionText && question.part >= 3) {
-        html += `<p style="font-size: 16px; margin-bottom: 20px;"><strong>Question:</strong> ${question.questionText}</p>`;
-    }
-
-    if (question.passages?.length > 0) {
-        question.passages.forEach(p => {
-            html += `<div style="background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 12px; white-space: pre-wrap;">${p}</div>`;
-        });
-    }
-
-    html += `<div style="margin-bottom: 20px;">`;
-    question.options.forEach(opt => {
-        const isCorrect = opt.label === question.correctAnswer;
-        html += `
-            <div style="padding: 12px; margin-bottom: 10px; border: 2px solid ${isCorrect ? '#10b981' : '#e0e0e0'}; background: ${isCorrect ? '#ecfdf5' : 'white'}; border-radius: 8px;">
-                <strong>${opt.label}.</strong> ${opt.text}
-                ${isCorrect ? '<span style="color: #10b981; margin-left: 10px;"><i class="fas fa-check-circle"></i> Correct</span>' : ''}
-            </div>
-        `;
-    });
-    html += `</div>`;
-
-    if (question.explanation && Object.keys(question.explanation).length > 0) {
-        const expHtml = Object.entries(question.explanation)
-            .map(([k, v]) => `<div style="margin-bottom:6px;"><strong>${k}.</strong> ${v}</div>`)
-            .join('');
-        html += `
-            <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                <strong style="color: #f59e0b;"><i class="fas fa-lightbulb"></i> Explanation:</strong>
-                <div style="margin-top: 10px;">${expHtml}</div>
-            </div>
-        `;
-    }
-
-    if (question.questionKeyword || question.answerKeyword || question.audioKeyword) {
-        html += `
-            <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; margin-top: 15px;">
-                <strong style="color: #667eea;"><i class="fas fa-key"></i> Keywords (Đục lỗ):</strong>
-                <div style="margin-top: 10px; display: flex; gap: 20px; flex-wrap: wrap;">
-                    ${question.questionKeyword ? `<span style="background: #667eea; color: white; padding: 5px 12px; border-radius: 15px;"><strong>Q:</strong> ${question.questionKeyword}</span>` : ''}
-                    ${question.answerKeyword ? `<span style="background: #10b981; color: white; padding: 5px 12px; border-radius: 15px;"><strong>A:</strong> ${question.answerKeyword}</span>` : ''}
-                    ${question.audioKeyword ? `<span style="background: #764ba2; color: white; padding: 5px 12px; border-radius: 15px;"><strong>Audio:</strong> ${question.audioKeyword}</span>` : ''}
-                </div>
-            </div>
-        `;
-    }
-
-    html += `</div>`;
-    modal.innerHTML = html;
-    modal.style.display = 'flex';
-
-    setTimeout(() => {
-        document.getElementById('close-preview-btn')?.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        if (question.part <= 4 && (question.audioUrl || question.audioText)) {
-            const audioBtn = document.getElementById('preview-audio-btn');
-            if (audioBtn) {
-                audioBtn.addEventListener('click', () => {
-                    if (question.audioUrl) {
-                        const audio = new Audio(question.audioUrl);
-                        audioBtn.disabled = true;
-                        audioBtn.innerHTML = '<i class="fas fa-volume-up"></i> Đang phát...';
-                        audio.play();
-                        audio.onended = () => {
-                            audioBtn.disabled = false;
-                            audioBtn.innerHTML = '<i class="fas fa-play"></i> Phát audio';
-                        };
-                    } else if (question.audioText) {
-                        const utterance = new SpeechSynthesisUtterance(question.audioText);
-                        utterance.lang = 'en-US';
-                        window.speechSynthesis.speak(utterance);
-                    }
-                });
-            }
-        }
-    }, 100);
 }
 
 async function handleImageUpload(file) {
