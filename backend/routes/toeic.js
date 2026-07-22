@@ -12,6 +12,7 @@ const {
     deleteAllQuestions,
     getQuestionsStatistics,
     getQuestionSources,
+    checkQuestionsHealth,
     getPrompts,
     savePrompt,
     resetPrompt,
@@ -369,6 +370,8 @@ router.get('/analytics/parts', getPartAnalysis);
  */
 router.get('/questions/statistics', authorize('admin'), getQuestionsStatistics);
 router.get('/questions/sources', authorize('admin'), getQuestionSources);
+// Soi ngân hàng câu hỏi: số trùng / lọt dải Part / thiếu media. Chỉ báo, không sửa.
+router.get('/questions/health', authorize('admin'), checkQuestionsHealth);
 
 // Prompt AI sinh câu hỏi — admin sửa được, lưu DB (xoá = về mặc định trong code).
 router.get('/prompts', authorize('admin'), getPrompts);

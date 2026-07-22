@@ -264,6 +264,86 @@ exports.deleteAllQuestions = async (req, res, next) => {
     }
 };
 
+// Ảnh bắt buộc / tối đa theo Part — khớp IMAGE_RULES bên admin.
+const IMAGE_RULES = { 1: [1, 1], 3: [0, 1], 4: [0, 1], 6: [1, 1], 7: [1, 3] };
+
+/**
+ * @desc    Soi ngân hàng câu hỏi tìm chỗ hỏng. KHÔNG sửa gì, chỉ báo cáo.
+ * @route   GET /api/toeic/questions/health
+ * @access  Private/Admin
+ *
+ * Ngân hàng câu hỏi không có số liệu nào bị "lệch" như đề thi, nhưng có ba thứ
+ * âm thầm hỏng mà nhìn bảng không ra: số câu TRÙNG trong cùng bộ đề (làm bài
+ * sẽ thấy hai câu 143), số câu LỌT ngoài dải chuẩn của Part, và màn THIẾU
+ * media bắt buộc (Part 6/7 không ảnh thì người làm bài không có gì để đọc).
+ */
+exports.checkQuestionsHealth = async (req, res, next) => {
+    try {
+        const sets = await ToeicQuestionSet.find({})
+            .select('part source audioUrl imageUrls questions.number')
+            .lean();
+
+        const duplicates = [];
+        const outOfRange = [];
+        const missingMedia = [];
+        const seen = new Map(); // "source|part|number" → số lần gặp
+
+        let totalQuestions = 0;
+
+        for (const s of sets) {
+            const lo = PART_START[s.part];
+            const hi = PART_END[s.part];
+            const src = s.source || '(không có source)';
+
+            for (const q of s.questions || []) {
+                totalQuestions++;
+                const n = Number(q.number);
+                if (!Number.isFinite(n)) {
+                    outOfRange.push({ setId: String(s._id), source: src, part: s.part, number: '(trống)' });
+                    continue;
+                }
+                if (n < lo || n > hi) {
+                    outOfRange.push({ setId: String(s._id), source: src, part: s.part, number: n, dai: `${lo}-${hi}` });
+                }
+                const key = `${src}|${s.part}|${n}`;
+                seen.set(key, (seen.get(key) || 0) + 1);
+            }
+
+            // Media bắt buộc
+            const [minImg] = IMAGE_RULES[s.part] || [0, 0];
+            const imgs = (s.imageUrls || []).filter(Boolean).length;
+            if (imgs < minImg) {
+                missingMedia.push({ setId: String(s._id), source: src, part: s.part, thieu: `ảnh (có ${imgs}/${minImg})` });
+            }
+            if (s.part >= 1 && s.part <= 4 && !s.audioUrl) {
+                missingMedia.push({ setId: String(s._id), source: src, part: s.part, thieu: 'audio' });
+            }
+        }
+
+        for (const [key, count] of seen) {
+            if (count < 2) continue;
+            const [source, part, number] = key.split('|');
+            duplicates.push({ source, part: Number(part), number: Number(number), soLan: count });
+        }
+
+        const issues = duplicates.length + outOfRange.length + missingMedia.length;
+        res.json({
+            success: true,
+            message: issues
+                ? `Đã soi ${sets.length} màn (${totalQuestions} câu) — thấy ${issues} chỗ cần xem lại`
+                : `Đã soi ${sets.length} màn (${totalQuestions} câu) — không thấy vấn đề gì`,
+            sets: sets.length,
+            totalQuestions,
+            issues,
+            duplicates,
+            outOfRange,
+            missingMedia,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 /**
  * @desc    Lấy TẤT CẢ prompt admin đã sửa (chỉ những cái có ghi đè).
  * @route   GET /api/toeic/prompts

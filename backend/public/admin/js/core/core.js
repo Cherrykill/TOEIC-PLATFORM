@@ -562,10 +562,7 @@ async function initDashboard() {
 
   document
     .getElementById("btn-sync-all-questions")
-    ?.addEventListener("click", () => {
-      loadQuestions();
-      showToast("Đã tải lại dữ liệu câu hỏi", "success");
-    });
+    ?.addEventListener("click", (e) => checkQuestionsHealth(e.currentTarget));
 
   document
     .getElementById("btn-sync-all-tests")

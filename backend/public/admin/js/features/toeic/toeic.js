@@ -2149,6 +2149,44 @@ async function generateTest() {
 }
 
 /**
+ * Soi ngân hàng câu hỏi + tải lại bảng. Khác đề thi, ở đây không có số liệu nào
+ * để đồng bộ — cái đáng lo là số câu TRÙNG / LỌT dải Part / màn THIẾU media,
+ * nhìn bảng không ra. Chỉ báo cáo, không tự sửa: số câu phải khớp ảnh đề scan
+ * nên tự đánh lại là hỏng dữ liệu thật.
+ */
+async function checkQuestionsHealth(btn) {
+    const original = btn?.innerHTML;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Đang soi...';
+    }
+    try {
+        const res = await fetch(`${TOEIC_API_BASE}/questions/health`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
+
+        showToast(data.message, data.issues ? 'error' : 'success');
+        if (data.issues) {
+            console.group('🔎 Ngân hàng câu hỏi TOEIC — chỗ cần xem lại');
+            if (data.duplicates.length) { console.warn('Số câu TRÙNG trong cùng bộ đề:'); console.table(data.duplicates); }
+            if (data.outOfRange.length) { console.warn('Số câu LỌT ngoài dải Part:'); console.table(data.outOfRange); }
+            if (data.missingMedia.length) { console.warn('Màn THIẾU media bắt buộc:'); console.table(data.missingMedia); }
+            console.groupEnd();
+        }
+        await loadQuestions(questionsPagination.filterPart || '');
+    } catch (err) {
+        showToast(`Soi lỗi: ${err.message}`, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    }
+}
+
+/**
  * Đồng bộ THẬT: bắt server đọc lại số câu từ ngân hàng câu hỏi và dọn tham
  * chiếu trỏ vào màn hỏi đã xoá. Trước đây nút này chỉ gọi loadTests() — tải
  * lại danh sách chứ không sửa gì, nên số câu lệch vẫn nguyên số lệch.
