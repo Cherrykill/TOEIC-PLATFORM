@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { useAuth } from '@components/auth/AuthContext.jsx';
 import { API } from '@api/http.js';
+import { SeasonAPI } from '@api/season.js';
 import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
@@ -20,7 +21,9 @@ export default function ProfileScreen({ active }) {
     const [seasons, setSeasons] = useState([]); // hành trình các mùa đã kết thúc
 
     useEffect(() => {
-        API.get('/season/my-history')
+        // API không có .get() ở cấp gốc — chỉ có các nhóm (auth/user/shop/...).
+        // Gọi API.get() ở đây từng ném TypeError làm sập cả màn Hồ sơ.
+        SeasonAPI.myHistory()
             .then(res => { if (res?.success) setSeasons(res.data || []); })
             .catch(() => {});
     }, []);

@@ -480,10 +480,10 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: 6px 12px;
   background-color: var(--bg-secondary);
   border-radius: var(--border-radius-large);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--primary-color);
 }
@@ -503,14 +503,18 @@
   gap: var(--spacing-sm);
 }
 
+/* Nut hanh dong tren header de thi: nen gon lai — day la thanh dieu huong,
+   khong phai nut hanh dong chinh cua trang. */
 .toeic-action-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid var(--border-color);
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   border-radius: var(--border-radius-large);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .toeic-action-btn:hover {

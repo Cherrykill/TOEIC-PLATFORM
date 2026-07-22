@@ -12,16 +12,19 @@ export const BACKGROUNDS = {
         dark: true,
         requiresVip: true, // hết VIP → tự revert về nền mặc định
     },
-    // Nền mua ở cửa hàng — hiện dùng gradient (ảnh tùy chọn, đặt ở /uploads/background/).
+    // Nền mua ở cửa hàng — CHỈ gradient, KHÔNG đặt `image` sẵn.
+    // Trước đây hai mục này trỏ /uploads/background/bg-ocean.jpg và bg-neon.jpg
+    // trong khi thư mục đó chỉ có bg-vip-week.png → ai trang bị là dính 404,
+    // nền không hiện. Muốn dùng ảnh thật thì upload qua catalog: admin đặt
+    // effect.slot='background' + effect.key khớp key ở đây, ảnh sẽ được
+    // registerBackgroundCosmetics gộp vào và đè lên gradient.
     'bg-ocean': {
         label: 'Đại dương',
-        image: '/uploads/background/bg-ocean.jpg',
         gradient: 'linear-gradient(120deg,#0ea5e9 0%,#0369a1 50%,#1e3a8a 100%)',
         dark: true,
     },
     'bg-neon': {
         label: 'Neon',
-        image: '/uploads/background/bg-neon.jpg',
         gradient: 'linear-gradient(120deg,#7c3aed 0%,#db2777 45%,#0ea5e9 100%)',
         dark: true,
     },
