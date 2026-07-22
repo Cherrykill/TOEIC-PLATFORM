@@ -2148,9 +2148,10 @@ async function generateTest() {
     }
 }
 
+// Bật/tắt xuất bản một đề. Không hỏi xác nhận: thao tác đảo lại được ngay bằng
+// chính nút đó, hỏi mỗi lần chỉ tổ vướng. Báo bằng toast như bên Đề từ vựng.
 async function publishTest(testId, shouldPublish) {
-    const action = shouldPublish ? 'publish' : 'unpublish';
-    if (!confirm(`Are you sure you want to ${action} this test?`)) return;
+    const action = shouldPublish ? 'xuất bản' : 'gỡ xuất bản';
 
     try {
         const res = await fetch(`${TOEIC_API_BASE}/tests/${testId}/publish`, {
@@ -2161,13 +2162,13 @@ async function publishTest(testId, shouldPublish) {
 
         const data = await res.json();
 
-        if (!data.success) throw new Error(data.message || `Failed to ${action} test`);
+        if (!data.success) throw new Error(data.message || `Không ${action} được đề`);
 
-        alert(`✅ Test ${action}ed successfully!`);
+        showToast(`Đã ${action} đề thi`, 'success');
         loadTests();
     } catch (error) {
-        console.error(`Error ${action}ing test:`, error);
-        alert(`❌ Failed to ${action} test: ` + error.message);
+        console.error(`Lỗi khi ${action} đề:`, error);
+        showToast(`Không ${action} được: ${error.message}`, 'error');
     }
 }
 
