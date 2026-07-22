@@ -964,205 +964,142 @@ const _Q_FOOTER = `
 
 === QUY TẮC CHUNG ===
 - Trả về DUY NHẤT một mảng JSON hợp lệ [ ... ], KHÔNG markdown, KHÔNG bọc trong khối code, KHÔNG giải thích thừa.
-- "part" là số nguyên. "correctAnswer" phải khớp đúng 1 "label" trong "options".
-- "source" = MÃ ĐỀ/BỘ ĐỀ (vd: official_2024) — RẤT QUAN TRỌNG: hệ thống gom câu hỏi thành đề thi THEO "source". TẤT CẢ câu hỏi cùng một đề PHẢI dùng CÙNG một "source".
-- "explanation" viết tiếng Việt; giữ nguyên tiếng Anh ở questionText/options.
+- Mỗi phần tử của mảng là MỘT MÀN HỎI. Part 1/2/5: "questions" có ĐÚNG 1 phần tử. Part 3/4/6/7: nhiều phần tử dùng chung ngữ cảnh.
+- Ngữ cảnh chung (audioUrl / imageUrls / passageCount) đặt ở CẤP MÀN, KHÔNG lặp vào từng câu.
+- "number" = SỐ CÂU thật theo chuẩn TOEIC: P1 1-6 · P2 7-31 · P3 32-70 · P4 71-100 · P5 101-130 · P6 131-146 · P7 147-200.
+- "source" = MÃ ĐỀ (vd official_2024) — hệ thống gom màn thành đề thi THEO "source"; cùng một đề phải CÙNG "source".
+- "correctAnswer" phải khớp đúng 1 "label" trong "options". "explanation" viết tiếng Việt, giữ nguyên tiếng Anh ở questionText/options.
 
 Nội dung câu hỏi của tôi:
 <<< DÁN NỘI DUNG CÂU HỎI CỦA BẠN VÀO ĐÂY >>>`;
 
-// Prompt RIÊNG, GỌN cho từng Part — chỉ trường + quy tắc + ví dụ của part đó.
+// Khung dữ liệu chung: 1 phần tử của mảng = 1 MÀN HỎI.
+const _SET_SHAPE = `{
+  "part": <số>,
+  "source": "<mã đề — BẮT BUỘC>",
+  "audioUrl": "<mp3 — chỉ Part 1-4; để trống nếu admin tự upload>",
+  "imageUrls": ["<ảnh — để [] nếu admin tự upload>"],
+  "questions": [
+    { "number": <số câu>, "questionText": "<câu hỏi>",
+      "options": [{"label":"A","text":"..."}, {"label":"B","text":"..."}, {"label":"C","text":"..."}, {"label":"D","text":"..."}],
+      "correctAnswer": "A|B|C|D",
+      "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." } }
+  ]
+}`;
+
 const PART_PROMPTS = {
-    '1': `Bạn là trợ lý tạo câu hỏi TOEIC PART 1 (Mô tả tranh). Chuyển nội dung của tôi thành MẢNG JSON đúng schema:
-{
-  "part": 1,
-  "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "imageUrls": ["<đường dẫn ảnh, vd /assets/images/ets26t1/ets26t1-01.png — để trống nếu admin tự upload>"],
-  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-01.mp3 — để trống nếu admin tự upload>",
-  "options": [
-    { "label": "A", "text": "<mô tả A>" },
-    { "label": "B", "text": "<mô tả B>" },
-    { "label": "C", "text": "<mô tả C>" },
-    { "label": "D", "text": "<mô tả D>" }
-  ],
-  "correctAnswer": "A|B|C|D",
-  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
-}
-=== LƯU Ý PART 1 (câu 1-6, mỗi câu 1 ảnh + 1 audio đơn) ===
-- KHÔNG có "questionText", KHÔNG cần "audioText" (phát file audio thật).
-- 4 đáp án là 4 câu mô tả tranh.
-- "imageUrls" = ảnh /assets/images/{thư mục đề}/{tên file}.png ; "audioUrl" = mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (cùng số thứ tự câu). Để trống nếu admin tự upload.
+    '1': `Bạn là trợ lý tạo câu hỏi TOEIC PART 1 (Mô tả tranh). Mỗi câu là MỘT MÀN có đúng 1 câu:
+${_SET_SHAPE}
+=== LƯU Ý PART 1 (câu 1-6) ===
+- KHÔNG có "questionText" — 4 đáp án là 4 câu mô tả tranh.
+- Mỗi màn: đúng 1 ảnh trong "imageUrls" + 1 "audioUrl".
 === VÍ DỤ ===
 [
-  { "part": 1, "imageUrls": ["/assets/images/ets26t1/ets26t1-01.png"], "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3",
-    "options": [ {"label":"A","text":"The man is reading a newspaper."}, {"label":"B","text":"The man is typing on a laptop."}, {"label":"C","text":"The man is talking on the phone."}, {"label":"D","text":"The man is drinking coffee."} ],
-    "correctAnswer": "B",
-    "explanation": { "A": "❌ Không cầm báo.", "B": "✅ Đúng: đang gõ laptop.", "C": "❌ Không gọi điện.", "D": "❌ Không uống cà phê." } }
+  { "part": 1, "source": "ets26t1",
+    "imageUrls": ["/assets/images/ets26t1/ets26t1-01.png"],
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3",
+    "questions": [ { "number": 1,
+      "options": [{"label":"A","text":"The man is reading a newspaper."},{"label":"B","text":"The man is typing on a laptop."},{"label":"C","text":"The man is talking on the phone."},{"label":"D","text":"The man is drinking coffee."}],
+      "correctAnswer": "B",
+      "explanation": { "A": "❌ Không cầm báo.", "B": "✅ Đúng: đang gõ laptop.", "C": "❌ Không gọi điện.", "D": "❌ Không uống cà phê." } } ] }
 ]` + _Q_FOOTER,
 
-    '2': `Bạn là trợ lý tạo câu hỏi TOEIC PART 2 (Hỏi & đáp). Chuyển nội dung của tôi thành MẢNG JSON đúng schema:
-{
-  "part": 2,
-  "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-07.mp3 — để trống nếu admin tự upload>",
-  "questionText": "<câu được nói (câu hỏi gốc) — tùy chọn>",
-  "options": [
-    { "label": "A", "text": "..." },
-    { "label": "B", "text": "..." },
-    { "label": "C", "text": "..." }
-  ],
-  "correctAnswer": "A|B|C",
-  "explanation": { "A": "...", "B": "...", "C": "..." }
-}
-=== LƯU Ý PART 2 (câu 7-31, mỗi câu 1 audio đơn) ===
-- CHỈ 3 đáp án A/B/C — KHÔNG có D. Không ảnh, không passage, KHÔNG cần "audioText" (phát file audio thật).
-- "audioUrl" = đường dẫn mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (theo số câu). Để trống nếu chưa có.
+    '2': `Bạn là trợ lý tạo câu hỏi TOEIC PART 2 (Hỏi & đáp). Mỗi câu là MỘT MÀN có đúng 1 câu:
+${_SET_SHAPE}
+=== LƯU Ý PART 2 (câu 7-31) ===
+- CHỈ 3 đáp án A/B/C — KHÔNG có D. Không ảnh.
+- "questionText" = câu được nói (tùy chọn). Mỗi màn 1 "audioUrl".
 === VÍ DỤ ===
 [
-  { "part": 2, "audioUrl": "/assets/audio/ets26t1/ets26t1-07.mp3",
-    "questionText": "Where can I find the meeting room?",
-    "options": [ {"label":"A","text":"It's on the third floor."}, {"label":"B","text":"The meeting was great."}, {"label":"C","text":"At 10 a.m."} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: trả lời nơi chốn.", "B": "❌ Lạc đề.", "C": "❌ Trả lời thời gian, không phải nơi chốn." } }
+  { "part": 2, "source": "ets26t1", "audioUrl": "/assets/audio/ets26t1/ets26t1-07.mp3",
+    "questions": [ { "number": 7, "questionText": "Where can I find the meeting room?",
+      "options": [{"label":"A","text":"It's on the third floor."},{"label":"B","text":"The meeting was great."},{"label":"C","text":"At 10 a.m."}],
+      "correctAnswer": "A",
+      "explanation": { "A": "✅ Đúng: trả lời nơi chốn.", "B": "❌ Lạc đề.", "C": "❌ Trả lời thời gian." } } ] }
 ]` + _Q_FOOTER,
 
-    '3': `Bạn là trợ lý tạo câu hỏi TOEIC PART 3 (Hội thoại — nhiều câu chung 1 đoạn hội thoại). Schema:
-{
-  "part": 3, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "groupId": "<vd p3_grp_001 — chung cho các câu cùng đoạn>",
-  "questionIndex": "<1, 2, 3...>",
-  "audioUrl": "<đường dẫn mp3 theo DẢI SỐ câu của nhóm, vd nhóm câu 32-34 → /assets/audio/ets26t1/ets26t1-32-34.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
-  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-32-34.png — CHỈ ở câu 1; để [] nếu không có>"],
-  "questionText": "<câu hỏi>",
-  "options": [ {"label":"A","text":"..."}, {"label":"B","text":"..."}, {"label":"C","text":"..."}, {"label":"D","text":"..."} ],
-  "correctAnswer": "A|B|C|D",
-  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
-}
-=== LƯU Ý PART 3 (câu 32-70 — 13 nhóm × 3 câu/đoạn hội thoại) ===
-- Các câu cùng đoạn dùng CHUNG "groupId"; "questionIndex" tăng dần (thường 3 câu).
-- Chỉ câu ĐẦU (questionIndex 1) chứa "audioUrl" và "imageUrls". KHÔNG cần "audioText" (hệ thống phát file audio thật).
-- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 32-34 → "ets26t1-32-34.mp3" (audio), "ets26t1-32-34.png" (ảnh). Để [] / để trống nếu không có.
-=== VÍ DỤ (nhóm 2 câu) ===
+    '3': `Bạn là trợ lý tạo câu hỏi TOEIC PART 3 (Hội thoại). MỘT MÀN = 1 đoạn hội thoại + nhiều câu:
+${_SET_SHAPE}
+=== LƯU Ý PART 3 (câu 32-70 — thường 3 câu/đoạn) ===
+- "audioUrl" đặt ở CẤP MÀN (dùng chung cho mọi câu), tên theo dải số: nhóm 32-34 → ets26t1-32-34.mp3.
+- "imageUrls" chỉ khi có biểu đồ/bảng, cũng ở cấp màn.
+=== VÍ DỤ (màn 2 câu) ===
 [
-  { "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
-    "audioUrl": "/assets/audio/ets26t1/ets26t1-32-34.mp3",
-    "imageUrls": [],
-    "questionText": "What is the man doing?",
-    "options": [ {"label":"A","text":"Finishing a report"}, {"label":"B","text":"Checking some figures"}, {"label":"C","text":"Sending an email"}, {"label":"D","text":"Attending a meeting"} ],
-    "correctAnswer": "B",
-    "explanation": { "A": "❌ Gần xong nhưng chưa hoàn thành.", "B": "✅ Đúng: cần kiểm tra số liệu.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } },
-  { "part": 3, "groupId": "p3_grp_001", "questionIndex": 2,
-    "questionText": "When does the manager want the report?",
-    "options": [ {"label":"A","text":"By noon"}, {"label":"B","text":"By 3 PM"}, {"label":"C","text":"Tomorrow"}, {"label":"D","text":"Next week"} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: wants it by noon.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } }
+  { "part": 3, "source": "ets26t1", "audioUrl": "/assets/audio/ets26t1/ets26t1-32-34.mp3", "imageUrls": [],
+    "questions": [
+      { "number": 32, "questionText": "What is the man doing?",
+        "options": [{"label":"A","text":"Finishing a report"},{"label":"B","text":"Checking some figures"},{"label":"C","text":"Sending an email"},{"label":"D","text":"Attending a meeting"}],
+        "correctAnswer": "B",
+        "explanation": { "A": "❌ Chưa xong.", "B": "✅ Đúng: cần kiểm tra số liệu.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } },
+      { "number": 33, "questionText": "When does the manager want the report?",
+        "options": [{"label":"A","text":"By noon"},{"label":"B","text":"By 3 PM"},{"label":"C","text":"Tomorrow"},{"label":"D","text":"Next week"}],
+        "correctAnswer": "A",
+        "explanation": { "A": "✅ Đúng: wants it by noon.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } } ] }
 ]` + _Q_FOOTER,
 
-    '4': `Bạn là trợ lý tạo câu hỏi TOEIC PART 4 (Bài nói — nhiều câu chung 1 đoạn độc thoại 1 người). Schema:
-{
-  "part": 4, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "groupId": "<vd p4_grp_001>",
-  "questionIndex": "<1, 2, 3...>",
-  "audioUrl": "<đường dẫn mp3 theo DẢI SỐ câu của nhóm, vd nhóm câu 71-73 → /assets/audio/ets26t1/ets26t1-71-73.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
-  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-71-73.png — CHỈ ở câu 1; để [] nếu không có>"],
-  "questionText": "<câu hỏi>",
-  "options": [ 4 đáp án A-D ],
-  "correctAnswer": "A|B|C|D",
-  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
-}
-=== LƯU Ý PART 4 (câu 71-100 — 10 nhóm × 3 câu/bài nói) ===
-- Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioUrl" và "imageUrls". KHÔNG cần "audioText" (hệ thống phát file audio thật).
-- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 71-73 → "ets26t1-71-73.mp3" (audio), "ets26t1-71-73.png" (ảnh). Để [] / để trống nếu không có.
-=== VÍ DỤ (nhóm 2 câu) ===
+    '4': `Bạn là trợ lý tạo câu hỏi TOEIC PART 4 (Bài nói). MỘT MÀN = 1 bài nói + nhiều câu:
+${_SET_SHAPE}
+=== LƯU Ý PART 4 (câu 71-100 — thường 3 câu/bài) ===
+- "audioUrl" ở CẤP MÀN, tên theo dải số: nhóm 71-73 → ets26t1-71-73.mp3.
+=== VÍ DỤ (màn 2 câu) ===
 [
-  { "part": 4, "groupId": "p4_grp_001", "questionIndex": 1,
-    "audioUrl": "/assets/audio/ets26t1/ets26t1-71-73.mp3",
-    "imageUrls": [],
-    "questionText": "What is the announcement about?",
-    "options": [ {"label":"A","text":"A store closing soon"}, {"label":"B","text":"A sale event"}, {"label":"C","text":"A lost item"}, {"label":"D","text":"A new product"} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: cửa hàng sắp đóng cửa.", "B": "❌ Không nói khuyến mãi.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } },
-  { "part": 4, "groupId": "p4_grp_001", "questionIndex": 2,
-    "questionText": "What are listeners asked to do?",
-    "options": [ {"label":"A","text":"Go to the checkout"}, {"label":"B","text":"Leave immediately"}, {"label":"C","text":"Call a manager"}, {"label":"D","text":"Wait outside"} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: bring items to the checkout.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } }
+  { "part": 4, "source": "ets26t1", "audioUrl": "/assets/audio/ets26t1/ets26t1-71-73.mp3", "imageUrls": [],
+    "questions": [
+      { "number": 71, "questionText": "What is the announcement about?",
+        "options": [{"label":"A","text":"A store closing soon"},{"label":"B","text":"A sale event"},{"label":"C","text":"A lost item"},{"label":"D","text":"A new product"}],
+        "correctAnswer": "A",
+        "explanation": { "A": "✅ Đúng: cửa hàng sắp đóng cửa.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } },
+      { "number": 72, "questionText": "What are listeners asked to do?",
+        "options": [{"label":"A","text":"Go to the checkout"},{"label":"B","text":"Leave immediately"},{"label":"C","text":"Call a manager"},{"label":"D","text":"Wait outside"}],
+        "correctAnswer": "A",
+        "explanation": { "A": "✅ Đúng: bring items to the checkout.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } } ] }
 ]` + _Q_FOOTER,
 
-    '5': `Bạn là trợ lý tạo câu hỏi TOEIC PART 5 (Hoàn thành câu — ngữ pháp/từ vựng). Schema:
-{
-  "part": 5,
-  "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "questionText": "<câu có chỗ trống _____>",
-  "questionTranslate": "<dịch tiếng Việt — tùy chọn>",
-  "options": [ {"label":"A","text":"..."}, {"label":"B","text":"..."}, {"label":"C","text":"..."}, {"label":"D","text":"..."} ],
-  "correctAnswer": "A|B|C|D",
-  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
-}
-=== LƯU Ý PART 5 (câu 101-130 — không audio/ảnh/passage) ===
-- 1 câu có chỗ trống, 4 đáp án A-D. KHÔNG cần audio/passage/group.
+    '5': `Bạn là trợ lý tạo câu hỏi TOEIC PART 5 (Hoàn thành câu). Mỗi câu là MỘT MÀN có đúng 1 câu:
+${_SET_SHAPE}
+=== LƯU Ý PART 5 (câu 101-130) ===
+- KHÔNG audio/ảnh. "questionText" là câu có chỗ trống _____.
 === VÍ DỤ ===
 [
-  { "part": 5,
-    "questionText": "The new policy will _____ next month.",
-    "questionTranslate": "Chính sách mới sẽ _____ vào tháng tới.",
-    "options": [ {"label":"A","text":"take effect"}, {"label":"B","text":"took effect"}, {"label":"C","text":"taking effect"}, {"label":"D","text":"effected"} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: take effect = có hiệu lực. Will + V nguyên thể.", "B": "❌ took effect là quá khứ, không dùng sau will.", "C": "❌ taking không đứng sau will.", "D": "❌ effected sai nghĩa." } }
+  { "part": 5, "source": "ets26t1",
+    "questions": [ { "number": 101, "questionText": "The new policy will _____ next month.",
+      "options": [{"label":"A","text":"take effect"},{"label":"B","text":"took effect"},{"label":"C","text":"taking effect"},{"label":"D","text":"effected"}],
+      "correctAnswer": "A",
+      "explanation": { "A": "✅ Đúng: will + V nguyên thể.", "B": "❌ Quá khứ.", "C": "❌ V-ing.", "D": "❌ Sai nghĩa." } } ] }
 ]` + _Q_FOOTER,
 
-    '6': `Bạn là trợ lý tạo câu hỏi TOEIC PART 6 (Hoàn thành đoạn — 1 đoạn nhiều chỗ trống). Schema:
-{
-  "part": 6, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "groupId": "<vd p6_grp_001>",
-  "questionIndex": "<1, 2, 3...>",
-  "imageUrls": ["<ẢNH đoạn văn (cách dùng CHÍNH, đúng 1 ảnh) theo DẢI SỐ câu, vd nhóm câu 131-134 → /assets/images/ets26t1/ets26t1-131-134.png — CHỈ ở câu 1; để [] nếu admin upload sau>"],
-  "options": [ 4 đáp án A-D ],
-  "correctAnswer": "A|B|C|D",
-  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
-}
-=== LƯU Ý PART 6 (câu 131-146 — 4 nhóm × 4 câu/đoạn) ===
-- Chung "groupId"; mỗi câu ứng 1 chỗ trống (Part 6 bắt đầu từ câu 131). Chỉ câu ĐẦU chứa "imageUrls" (ẢNH đoạn văn — cách chính, 1 ảnh).
+    '6': `Bạn là trợ lý tạo câu hỏi TOEIC PART 6 (Hoàn thành đoạn). MỘT MÀN = 1 đoạn văn + 4 chỗ trống:
+${_SET_SHAPE}
+=== LƯU Ý PART 6 (câu 131-146 — 4 câu/đoạn) ===
+- Đoạn văn dùng ẢNH scan ở CẤP MÀN (đúng 1 ảnh), tên theo dải số: 131-134 → ets26t1-131-134.png.
+- KHÔNG có "questionText" (giống Part 1) — mỗi câu chỉ là 1 chỗ trống với 4 đáp án; thứ tự chỗ trống theo "number".
+=== VÍ DỤ (màn 2 câu) ===
+[
+  { "part": 6, "source": "ets26t1", "imageUrls": ["/assets/images/ets26t1/ets26t1-131-134.png"],
+    "questions": [
+      { "number": 131,
+        "options": [{"label":"A","text":"arrive"},{"label":"B","text":"arrives"},{"label":"C","text":"arrived"},{"label":"D","text":"arriving"}],
+        "correctAnswer": "A",
+        "explanation": { "A": "✅ Đúng: will + V nguyên thể.", "B": "❌ Sai chia.", "C": "❌ Quá khứ.", "D": "❌ V-ing." } },
+      { "number": 132,
+        "options": [{"label":"A","text":"contact"},{"label":"B","text":"contacts"},{"label":"C","text":"contacted"},{"label":"D","text":"contacting"}],
+        "correctAnswer": "A",
+        "explanation": { "A": "✅ Đúng: please + V nguyên thể.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } } ] }
+]` + _Q_FOOTER,
+
+    '7': `Bạn là trợ lý tạo câu hỏi TOEIC PART 7 (Đọc hiểu). MỘT MÀN = 1-3 đoạn đọc + nhiều câu:
+${_SET_SHAPE}
+=== LƯU Ý PART 7 (câu 147-200) ===
+- Thêm "passageCount": 1 | 2 | 3 ở CẤP MÀN. SỐ ẢNH trong "imageUrls" = passageCount (tối đa 3).
 - Đọc bằng ẢNH scan — KHÔNG gõ đoạn văn dạng text.
-- KHÔNG có "questionText" (giống Part 1) — mỗi câu chỉ là 1 chỗ trống với 4 đáp án; thứ tự chỗ trống theo "questionIndex".
-- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 131-134 → "ets26t1-131-134.png". Để [] nếu admin upload sau.
-=== VÍ DỤ (nhóm 2 câu) ===
-[
-  { "part": 6, "groupId": "p6_grp_001", "questionIndex": 1,
-    "imageUrls": ["/assets/images/ets26t1/ets26t1-131-134.png"],
-    "options": [ {"label":"A","text":"arrive"}, {"label":"B","text":"arrives"}, {"label":"C","text":"arrived"}, {"label":"D","text":"arriving"} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: will + V nguyên thể.", "B": "❌ Sai chia.", "C": "❌ Quá khứ.", "D": "❌ V-ing." } },
-  { "part": 6, "groupId": "p6_grp_001", "questionIndex": 2,
-    "options": [ {"label":"A","text":"contact"}, {"label":"B","text":"contacts"}, {"label":"C","text":"contacted"}, {"label":"D","text":"contacting"} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: please + V nguyên thể.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } }
-]` + _Q_FOOTER,
-
-    '7': `Bạn là trợ lý tạo câu hỏi TOEIC PART 7 (Đọc hiểu — 1-3 đoạn đọc, nhiều câu). Schema:
-{
-  "part": 7, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "groupId": "<vd p7_grp_001>",
-  "questionIndex": "<1, 2, 3...>",
-  "passageCount": "<1 | 2 | 3>",
-  "imageUrls": ["<ẢNH các đoạn đọc (cách dùng CHÍNH) — SỐ ẢNH = passageCount (1 ảnh single, 2 ảnh double, 3 ảnh triple), tối đa 3; CHỈ ở câu 1; để [] nếu admin upload sau>"],
-  "questionText": "<câu hỏi>",
-  "options": [ 4 đáp án A-D ],
-  "correctAnswer": "A|B|C|D",
-  "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
-}
-=== LƯU Ý PART 7 (câu 147-200 — nhóm tùy: single/double/triple đoạn, dải số theo nhóm) ===
-- Chung "groupId" + "passageCount" (Part 7 bắt đầu từ câu 147). Chỉ câu ĐẦU chứa "imageUrls".
-- Đọc bằng ẢNH scan là cách CHÍNH — KHÔNG gõ đoạn văn dạng text. Double = 2 ảnh, triple = 3 ảnh (tối đa 3).
-- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 147-148 → "ets26t1-147-148.png". Để [] nếu admin upload sau.
 === VÍ DỤ ===
 [
-  { "part": 7, "groupId": "p7_grp_001", "questionIndex": 1, "passageCount": 1,
+  { "part": 7, "source": "ets26t1", "passageCount": 1,
     "imageUrls": ["/assets/images/ets26t1/ets26t1-147-148.png"],
-    "questionText": "Why will the library be closed?",
-    "options": [ {"label":"A","text":"For a holiday"}, {"label":"B","text":"For repairs"}, {"label":"C","text":"For an event"}, {"label":"D","text":"For cleaning"} ],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: closed for the national holiday.", "B": "❌ Không đề cập.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } }
+    "questions": [ { "number": 147, "questionText": "Why will the library be closed?",
+      "options": [{"label":"A","text":"For a holiday"},{"label":"B","text":"For repairs"},{"label":"C","text":"For an event"},{"label":"D","text":"For cleaning"}],
+      "correctAnswer": "A",
+      "explanation": { "A": "✅ Đúng: closed for the national holiday.", "B": "❌ Không đề cập.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } } ] }
 ]` + _Q_FOOTER,
 };
 
@@ -1189,109 +1126,20 @@ function copyQuestionPrompt(forcedPart, forcedSource) {
     // forcedPart/forcedSource: modal NHÓM truyền Part + mã đề đang chọn để prompt sát hơn.
     const partSel = document.getElementById('q-prompt-part');
     const part = (forcedPart && typeof forcedPart === 'string') ? forcedPart : (partSel ? partSel.value : 'all');
-    let prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Hãy chuyển nội dung câu hỏi tôi cung cấp thành MẢNG JSON đúng schema dưới đây để tôi import vào hệ thống.
-
-=== SCHEMA THỐNG NHẤT (áp dụng cho tất cả Part 1-7) ===
-{
-  "part": <số 1-7, BẮT BUỘC>,
-  "source": "<MÃ ĐỀ, vd official_2024 — BẮT BUỘC: hệ thống gom câu hỏi thành đề theo source; câu cùng đề phải CÙNG source>",
-
-  // Nhóm câu hỏi (Part 3, 4, 6, 7 có nhiều câu chung 1 audio/passage)
-  "groupId": "<chuỗi định danh nhóm, ví dụ: p3_grp_001 — bắt buộc nếu có nhóm>",
-  "questionIndex": <thứ tự trong nhóm bắt đầu từ 1 — bắt buộc nếu có nhóm>,
-
-  // Nội dung câu hỏi
-  "questionText": "<câu hỏi tiếng Anh — bắt buộc Part 3/4/7 (Part 2/5 tùy); BỎ với Part 1 và Part 6 (chỉ chỗ trống + 4 đáp án)>",
-  "questionTranslate": "<bản dịch tiếng Việt của câu hỏi — tùy chọn>",
-
-  // Nghe (Part 1-4) — KHÔNG cần "audioText", hệ thống phát file audio thật theo audioUrl
-  "audioUrl": "<mp3: Part 1/2 file đơn vd /assets/audio/ets26t1/ets26t1-01.mp3 ; Part 3/4 file dải số nhóm vd ets26t1-32-34.mp3 (chỉ ở câu đầu) — để trống nếu admin upload>",
-
-  // Đọc (Part 6-7) — dùng ẢNH đoạn văn (imageUrls) là chính, KHÔNG gõ text
-  "passageCount": <1 | 2 | 3 — chỉ Part 7 (double = 2 ảnh, triple = 3 ảnh)>,
-
-  // Ảnh (Part 1 = tranh, đúng 1; Part 3/4 = biểu đồ nếu có, tối đa 1; Part 6 = ảnh đoạn văn 1; Part 7 = ảnh đoạn đọc, tối đa 3)
-  "imageUrls": ["<ảnh .png: Part 1 file đơn vd ets26t1-01.png ; Part 3/4/6/7 file dải số nhóm vd ets26t1-32-34.png (chỉ ở câu đầu) — để [] nếu admin upload sau>"],
-
-  // Đáp án
-  "options": [
-    { "label": "A", "text": "<đáp án A>" },
-    { "label": "B", "text": "<đáp án B>" },
-    { "label": "C", "text": "<đáp án C>" },
-    { "label": "D", "text": "<đáp án D — tùy chọn với Part 2>" }
-  ],
-  "correctAnswer": "A | B | C | D",
-
-  // Giải thích theo từng đáp án
-  "explanation": {
-    "A": "✅ Đúng: <lý do> — HOẶC — ❌ Sai: <lý do>",
-    "B": "❌ Sai: <lý do>",
-    "C": "❌ Sai: <lý do>",
-    "D": "❌ Sai: <lý do>"
-  }
-}
-
-=== QUY TẮC BẮT BUỘC ===
-- Trả về DUY NHẤT một mảng JSON hợp lệ [ ... ], KHÔNG kèm giải thích, KHÔNG markdown, KHÔNG \`\`\`.
-- "part" là số nguyên, KHÔNG phải chuỗi.
-- "source" = MÃ ĐỀ/BỘ ĐỀ (vd: official_2024) — RẤT QUAN TRỌNG: hệ thống gom câu hỏi thành đề thi THEO "source". Câu cùng một đề PHẢI dùng CÙNG một "source".
-- Tối thiểu 3 đáp án (A, B, C); D tùy chọn.
-- "correctAnswer" phải khớp đúng 1 label trong "options".
-- Part 1 và Part 6: BỎ "questionText" (chỉ ảnh + 4 đáp án cho mỗi chỗ trống).
-- Part 2: chỉ có A/B/C, không có D.
-- Part 3/4: nhiều câu hỏi cùng 1 audio → cùng "groupId", "questionIndex" tăng dần.
-- Part 6/7: nhiều câu hỏi cùng 1 đoạn → cùng "groupId", chỉ câu đầu tiên (questionIndex: 1) chứa "imageUrls" (ẢNH đoạn văn — cách chính, KHÔNG gõ text). Part 6 = 1 ảnh; Part 7 = số ảnh bằng passageCount (tối đa 3).
-- ĐẶT TÊN FILE audio/ảnh (RẤT QUAN TRỌNG, đúng từng ký tự):
-  • Thư mục theo số đề: "ets26t" + số đề, vd đề 1 → ets26t1, đề 2 → ets26t2 (PHẢI có "26", KHÔNG viết "etst2").
-  • Part 1/2 (mỗi câu 1 audio/ảnh) → file ĐƠN theo số câu: /assets/audio/ets26t2/ets26t2-01.mp3
-  • Part 3/4/6/7 (nhóm nhiều câu) → file theo DẢI SỐ câu của nhóm: /assets/audio/ets26t2/ets26t2-32-34.mp3 ; ảnh tương tự .png. "audioUrl"/"imageUrls" CHỈ đặt ở câu đầu nhóm (questionIndex 1).
-- Giải thích trong "explanation" viết tiếng Việt; giữ nguyên tiếng Anh trong "questionText", "options".
-- Bỏ qua các trường không liên quan đến part đó (ví dụ: Part 5 không cần audio/ảnh/passages).
-
-=== VÍ DỤ PART 5 ===
-[
-  {
-    "part": 5,
-    "questionText": "The new policy will _____ next month.",
-    "questionTranslate": "Chính sách mới sẽ _____ vào tháng tới.",
-    "options": [
-      { "label": "A", "text": "take effect" },
-      { "label": "B", "text": "took effect" },
-      { "label": "C", "text": "taking effect" },
-      { "label": "D", "text": "effected" }
-    ],
-    "correctAnswer": "A",
-    "explanation": {
-      "A": "✅ Đúng: take effect = có hiệu lực. Will + V nguyên thể (tương lai đơn).",
-      "B": "❌ Sai: took effect là quá khứ đơn, không dùng sau will.",
-      "C": "❌ Sai: taking không thể đứng sau will.",
-      "D": "❌ Sai: effected không đúng nghĩa ở đây."
-    }
-  }
-]
-
-=== VÍ DỤ PART 3 (nhóm 3 câu) ===
-[
-  {
-    "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
-    "audioUrl": "/assets/audio/ets26t1/ets26t1-32-34.mp3",
-    "imageUrls": [],
-    "questionText": "What is the man doing?",
-    "options": [{ "label": "A", "text": "Finishing a report" }, { "label": "B", "text": "Checking some figures" }, { "label": "C", "text": "Sending an email" }, { "label": "D", "text": "Attending a meeting" }],
-    "correctAnswer": "B",
-    "explanation": { "A": "❌ Gần xong nhưng chưa hoàn thành.", "B": "✅ Đúng: he needs to check the numbers.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." }
-  },
-  {
-    "part": 3, "groupId": "p3_grp_001", "questionIndex": 2,
-    "questionText": "When does the manager want the report?",
-    "options": [{ "label": "A", "text": "By noon" }, { "label": "B", "text": "By 3 PM" }, { "label": "C", "text": "Tomorrow morning" }, { "label": "D", "text": "Next week" }],
-    "correctAnswer": "A",
-    "explanation": { "A": "✅ Đúng: the manager wants it by noon.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." }
-  }
-]
-
-Nội dung câu hỏi của tôi:
-<<< DÁN NỘI DUNG CÂU HỎI CỦA BẠN VÀO ĐÂY >>>`;
+    // Prompt "Tất cả Part": dùng chung khung MÀN HỎI + quy tắc chung, thay vì
+    // lặp lại schema dài. Chọn 1 Part cụ thể thì dùng PART_PROMPTS gọn hơn.
+    let prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Chuyển nội dung tôi cung cấp thành MẢNG JSON,
+mỗi phần tử là MỘT MÀN HỎI đúng khung sau:
+${_SET_SHAPE}
+=== SỐ CÂU & SỐ CÂU MỖI MÀN THEO PART ===
+- Part 1 (1-6): 1 câu/màn · 1 ảnh + 1 audio · KHÔNG có "questionText"
+- Part 2 (7-31): 1 câu/màn · 1 audio · CHỈ 3 đáp án A/B/C
+- Part 3 (32-70): ~3 câu/màn · audio chung ở cấp màn
+- Part 4 (71-100): ~3 câu/màn · audio chung ở cấp màn
+- Part 5 (101-130): 1 câu/màn · không audio/ảnh
+- Part 6 (131-146): 4 câu/màn · 1 ảnh đoạn văn · KHÔNG có "questionText"
+- Part 7 (147-200): nhiều câu/màn · thêm "passageCount" 1-3, số ảnh = passageCount`
+        + _Q_FOOTER;
 
     // Chọn 1 Part cụ thể → dùng prompt RIÊNG, gọn (không gộp chung 7 part).
     if (part !== 'all' && PART_PROMPTS[part]) prompt = PART_PROMPTS[part];
@@ -1322,53 +1170,55 @@ Nội dung câu hỏi của tôi:
     }
 }
 
-// Kiểm tra ĐỊNH DẠNG 1 câu hỏi import. Trả mảng lỗi (rỗng nếu hợp lệ).
-function validateImportedQuestion(q, i) {
-    const n = `Câu #${i + 1}`;
+// Kiểm tra ĐỊNH DẠNG một MÀN HỎI import. Trả mảng lỗi (rỗng nếu hợp lệ).
+function validateImportedQuestion(set, i) {
+    const n = `Màn #${i + 1}`;
     const errs = [];
-    if (!q || typeof q !== 'object' || Array.isArray(q)) return [`${n}: phải là một object JSON`];
+    if (!set || typeof set !== 'object' || Array.isArray(set)) return [`${n}: phải là một object JSON`];
 
-    const part = parseInt(q.part);
-    if (!part || part < 1 || part > 7) return [`${n}: thiếu/sai "part" (phải là số 1-7)`];
+    const part = parseInt(set.part);
+    if (!part || part < 1 || part > 7) return [`${n}: thiếu/sai "part" (số 1-7)`];
+    if (!set.source || !String(set.source).trim()) errs.push(`${n}: thiếu "source" (mã đề — bắt buộc)`);
 
-    // Đáp án: Part 2 cần 3, các part khác cần 4 — đều phải có nội dung.
-    if (!Array.isArray(q.options)) {
-        errs.push(`${n}: thiếu "options" (mảng đáp án)`);
-    } else {
-        const cleaned = q.options.map((o, idx) => ({
-            label: (o && o.label) || String.fromCharCode(65 + idx),
-            text: (o && o.text != null ? String(o.text) : '').trim(),
-        }));
-        const withText = cleaned.filter(o => o.text);
+    if (!Array.isArray(set.questions) || !set.questions.length) {
+        return [...errs, `${n}: thiếu "questions" (mảng câu hỏi của màn)`];
+    }
+    // Part câu đơn chỉ được 1 câu/màn; Part nhóm cần từ 2 câu trở lên.
+    const grouped = [3, 4, 6, 7].includes(part);
+    if (!grouped && set.questions.length !== 1) {
+        errs.push(`${n}: Part ${part} là câu đơn — mỗi màn đúng 1 câu (đang có ${set.questions.length})`);
+    }
+
+    // Dải số câu chuẩn TOEIC, để bắt sớm số sai thay vì lưu rồi mới lệch.
+    const RANGE = { 1: [1, 6], 2: [7, 31], 3: [32, 70], 4: [71, 100], 5: [101, 130], 6: [131, 146], 7: [147, 200] };
+    const [lo, hi] = RANGE[part];
+
+    set.questions.forEach((q, k) => {
+        const qn = `${n} câu ${k + 1}`;
+        const num = Number(q?.number);
+        if (!Number.isFinite(num)) errs.push(`${qn}: thiếu "number" (số câu)`);
+        else if (num < lo || num > hi) errs.push(`${qn}: "number" ${num} ngoài dải Part ${part} (${lo}-${hi})`);
+
+        const opts = Array.isArray(q?.options) ? q.options : null;
+        if (!opts) { errs.push(`${qn}: thiếu "options"`); return; }
+        const withText = opts
+            .map((o, idx) => ({ label: (o && o.label) || String.fromCharCode(65 + idx), text: String(o?.text ?? '').trim() }))
+            .filter(o => o.text);
         const expected = part === 2 ? 3 : 4;
-        if (withText.length !== expected) errs.push(`${n}: Part ${part} cần đúng ${expected} đáp án có nội dung (đang có ${withText.length})`);
-        // correctAnswer
+        if (withText.length !== expected) errs.push(`${qn}: Part ${part} cần đúng ${expected} đáp án (đang có ${withText.length})`);
         if (!q.correctAnswer || !/^[A-D]$/.test(String(q.correctAnswer))) {
-            errs.push(`${n}: "correctAnswer" phải là một chữ A/B/C/D`);
-        } else if (!cleaned.some(o => o.label === q.correctAnswer)) {
-            errs.push(`${n}: "correctAnswer" (${q.correctAnswer}) không khớp đáp án nào`);
+            errs.push(`${qn}: "correctAnswer" phải là A/B/C/D`);
+        } else if (!withText.some(o => o.label === q.correctAnswer)) {
+            errs.push(`${qn}: "correctAnswer" (${q.correctAnswer}) không khớp đáp án nào`);
         }
-    }
+        // Part 1 và 6 không có câu hỏi riêng (chỉ tranh / chỗ trống + đáp án).
+        if ([3, 4, 7].includes(part) && !String(q?.questionText || '').trim()) {
+            errs.push(`${qn}: Part ${part} cần "questionText"`);
+        }
+    });
 
-    // source bắt buộc (gom câu thành đề thi)
-    if (!q.source || !String(q.source).trim()) errs.push(`${n}: thiếu "source" (mã đề — bắt buộc)`);
-
-    // questionText bắt buộc với Part 3/4/7 — RIÊNG Part 6 (điền chỗ trống) KHÔNG có câu hỏi (như Part 1).
-    if ([3, 4, 7].includes(part) && (!q.questionText || !String(q.questionText).trim())) errs.push(`${n}: Part ${part} cần "questionText"`);
-
-    // Part nhóm: 3,4,6,7 cần groupId + questionIndex. Nội dung (audio/ảnh) đặt ở
-    // câu đầu — KHÔNG bắt buộc "audioText"/"passages" (dùng file audio thật + ảnh).
-    if ([3, 4, 6, 7].includes(part)) {
-        if (!q.groupId || !String(q.groupId).trim()) errs.push(`${n}: Part ${part} cần "groupId"`);
-        const idx = parseInt(q.questionIndex);
-        if (!idx || idx < 1) errs.push(`${n}: Part ${part} cần "questionIndex" (số ≥ 1)`);
-    }
-
-    // Kiểu dữ liệu media nếu có
-    if (q.imageUrls != null && !Array.isArray(q.imageUrls) && typeof q.imageUrls !== 'string') errs.push(`${n}: "imageUrls" phải là mảng hoặc chuỗi`);
-    if (q.audioUrl != null && typeof q.audioUrl !== 'string') errs.push(`${n}: "audioUrl" phải là chuỗi`);
-    if (q.explanation != null && typeof q.explanation !== 'object' && typeof q.explanation !== 'string') errs.push(`${n}: "explanation" phải là object hoặc chuỗi`);
-
+    if (set.imageUrls != null && !Array.isArray(set.imageUrls)) errs.push(`${n}: "imageUrls" phải là mảng`);
+    if (set.audioUrl != null && typeof set.audioUrl !== 'string') errs.push(`${n}: "audioUrl" phải là chuỗi`);
     return errs;
 }
 
@@ -1378,36 +1228,19 @@ async function submitQuestionJsonImport(inputId = 'question-json-input', resultI
     const resultDiv = document.getElementById(resultId);
     if (!raw) { showToast('Vui lòng nhập JSON', 'error'); return; }
 
-    let questions;
+    let sets;
     try {
         const parsed = JSON.parse(raw);
-        questions = Array.isArray(parsed) ? parsed : [parsed];
+        sets = Array.isArray(parsed) ? parsed : [parsed];
     } catch (e) {
         showToast('JSON không hợp lệ: ' + e.message, 'error');
         return;
     }
-    if (questions.length === 0) { showToast('Không có câu hỏi nào trong JSON', 'error'); return; }
-
-    // Nhân MEDIA CHUNG trong mỗi nhóm sang MỌI câu (AI hay chỉ đặt ở câu đầu) →
-    // mỗi câu tự đủ ngữ cảnh khi làm bài / xem lại.
-    const byGroup = {};
-    questions.forEach(q => { if (q && q.groupId) (byGroup[q.groupId] = byGroup[q.groupId] || []).push(q); });
-    Object.values(byGroup).forEach(members => {
-        const audioUrl = members.find(m => m.audioUrl)?.audioUrl;
-        const imageUrls = members.find(m => Array.isArray(m.imageUrls) && m.imageUrls.length)?.imageUrls;
-        const passages = members.find(m => Array.isArray(m.passages) && m.passages.length)?.passages;
-        const passageCount = members.find(m => m.passageCount)?.passageCount;
-        members.forEach(m => {
-            if (audioUrl && !m.audioUrl) m.audioUrl = audioUrl;
-            if (imageUrls && !(m.imageUrls?.length)) m.imageUrls = imageUrls;
-            if (passages && !(m.passages?.length)) m.passages = passages;
-            if (passageCount && !m.passageCount) m.passageCount = passageCount;
-        });
-    });
+    if (!sets.length) { showToast('Không có màn hỏi nào trong JSON', 'error'); return; }
 
     // PRE-VALIDATE TOÀN BỘ — sai định dạng thì KHÔNG lưu gì cả (import nguyên khối).
     const preErrors = [];
-    questions.forEach((q, i) => { preErrors.push(...validateImportedQuestion(q, i)); });
+    sets.forEach((s, i) => { preErrors.push(...validateImportedQuestion(s, i)); });
     if (preErrors.length) {
         resultDiv.style.display = 'block';
         resultDiv.style.background = '#fef2f2';
@@ -1417,7 +1250,7 @@ async function submitQuestionJsonImport(inputId = 'question-json-input', resultI
             <b>❌ Không lưu — JSON sai định dạng (${preErrors.length} lỗi)</b>
             <ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">${preErrors.map(e => `<li>${e}</li>`).join('')}</ul>
         `;
-        showToast('JSON sai định dạng — đã hủy import (không lưu câu nào)', 'error');
+        showToast('JSON sai định dạng — đã hủy import (không lưu màn nào)', 'error');
         return;
     }
 
@@ -1427,74 +1260,62 @@ async function submitQuestionJsonImport(inputId = 'question-json-input', resultI
     resultDiv.style.display = 'none';
 
     let ok = 0;
+    let savedQuestions = 0;
     const errors = [];
 
-    for (let i = 0; i < questions.length; i++) {
-        const q = questions[i] || {};
+    for (let i = 0; i < sets.length; i++) {
+        const s = sets[i] || {};
         try {
-            const part = parseInt(q.part);
-            if (!part || part < 1 || part > 7) throw new Error('part phải là số 1-7');
-            const options = Array.isArray(q.options) ? q.options
-                .map((o, idx) => ({
-                    label: o.label || String.fromCharCode(65 + idx),
-                    text: (o.text != null ? String(o.text) : '').trim(),
-                }))
-                .filter(o => o.text) : [];
-            if (options.length < 3) throw new Error('cần tối thiểu 3 đáp án');
-            if (!q.correctAnswer || !options.some(o => o.label === q.correctAnswer)) {
-                throw new Error('correctAnswer không khớp đáp án nào');
-            }
-
-            const payload = { part, correctAnswer: q.correctAnswer, options };
-            if (q.questionText && part >= 2) payload.questionText = String(q.questionText).trim();
-            if (q.audioText) payload.audioText = String(q.audioText).trim();
-            if (q.passages) payload.passages = Array.isArray(q.passages) ? q.passages : [String(q.passages).trim()];
-            else if (q.passage) payload.passages = [String(q.passage).trim()];
-            if (q.imageUrls) payload.imageUrls = Array.isArray(q.imageUrls) ? q.imageUrls : [String(q.imageUrls).trim()];
-            else if (q.imageUrl) payload.imageUrls = [String(q.imageUrl).trim()];
-            if (q.audioUrl) payload.audioUrl = String(q.audioUrl).trim();
-            if (q.audioTranslate) payload.audioTranslate = String(q.audioTranslate).trim();
-            if (q.questionTranslate) payload.questionTranslate = String(q.questionTranslate).trim();
-            if (q.groupId) payload.groupId = String(q.groupId).trim();
-            if (q.questionIndex) payload.questionIndex = parseInt(q.questionIndex);
-            if (q.passageCount) payload.passageCount = parseInt(q.passageCount);
-            if (q.source) payload.source = String(q.source).trim(); // mã đề — gom câu thành đề thi
-            if (q.explanation) payload.explanation = typeof q.explanation === 'object' ? q.explanation : { note: String(q.explanation).trim() };
+            // Gửi nguyên hình dạng MÀN — server (buildSetPayload) nhận thẳng.
+            const payload = {
+                part: parseInt(s.part),
+                source: String(s.source).trim(),
+                audioUrl: s.audioUrl || undefined,
+                audioText: s.audioText || undefined,
+                imageUrls: Array.isArray(s.imageUrls) ? s.imageUrls.filter(Boolean) : [],
+                passages: Array.isArray(s.passages) ? s.passages.filter(Boolean) : [],
+                passageCount: s.passageCount || undefined,
+                questions: s.questions.map(q => ({
+                    number: Number(q.number),
+                    questionText: q.questionText || undefined,
+                    questionTranslate: q.questionTranslate || undefined,
+                    options: (q.options || []).map((o, idx) => ({
+                        label: o.label || String.fromCharCode(65 + idx),
+                        text: String(o.text ?? '').trim(),
+                    })).filter(o => o.text),
+                    correctAnswer: q.correctAnswer,
+                    explanation: q.explanation || {},
+                })),
+            };
 
             const res = await fetch(`${TOEIC_API_BASE}/questions`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`,
-                },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
                 body: JSON.stringify(payload),
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
             ok++;
+            savedQuestions += payload.questions.length;
         } catch (e) {
-            errors.push(`Câu #${i + 1}: ${e.message}`);
+            errors.push(`Màn #${i + 1}: ${e.message}`);
         }
     }
 
     btn.disabled = false;
     btn.textContent = 'Import JSON';
 
-    const total = questions.length;
+    const total = sets.length;
     resultDiv.style.display = 'block';
     resultDiv.style.background = errors.length === total ? '#fef2f2' : errors.length === 0 ? '#f0fdf4' : '#fffbeb';
     resultDiv.style.border = `1px solid ${errors.length === total ? '#fca5a5' : errors.length === 0 ? '#86efac' : '#fcd34d'}`;
-    // Light background → pin dark text so the summary stays readable in dark mode.
     resultDiv.style.color = '#1f2937';
     resultDiv.innerHTML = `
-        <b>${total} câu</b> — ✅ ${ok} thêm mới · ❌ ${errors.length} lỗi
+        <b>${total} màn</b> — ✅ ${ok} thêm mới (${savedQuestions} câu) · ❌ ${errors.length} lỗi
         ${errors.length ? '<ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>' : ''}
     `;
 
     if (ok > 0 && typeof loadQuestions === 'function') loadQuestions();
-
-    // Có câu vào được → xóa luôn JSON trong ô nhập (khỏi dính lần sau). Câu lỗi
-    // đã liệt kê ở khung kết quả bên dưới rồi.
     if (ok > 0) {
         const ta = document.getElementById(inputId);
         if (ta) ta.value = '';
