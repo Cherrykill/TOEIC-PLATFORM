@@ -273,6 +273,8 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     // ── Đếm ngược THEO MÀN (Part nhóm = số câu × thời gian mỗi câu) ──────────
     // Chạy song song đồng hồ tổng; hết giờ màn nào thì tự sang màn kế.
     const [screenLeft, setScreenLeft] = useState(null);
+    // Ngân sách của màn hiện tại — cần để vẽ thanh theo tỉ lệ còn lại.
+    const [screenTotal, setScreenTotal] = useState(0);
     const handleNextRef = useRef(handleNext);
     handleNextRef.current = handleNext;
 
@@ -285,6 +287,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         const atLast = ge >= qs.length - 1;
         // Part 5/6/7 lấy thời gian từ chính đề này → phải truyền attempt.test.
         let left = getToeicScreenTime(cur.part, ge - gs + 1, attempt.test);
+        setScreenTotal(left);
         setScreenLeft(left);
 
         let moveTimer = null;
@@ -350,16 +353,22 @@ export default function TestRunner({ config, onExit, onShowResults }) {
             />
 
             <div className="toeic-question-container">
-                {screenLeft !== null && (
-                    <div style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        margin: '0 0 10px', padding: '6px 12px', borderRadius: 20, fontWeight: 700,
-                        background: screenLeft <= 5 ? 'rgba(220,38,38,.15)' : 'rgba(148,163,184,.15)',
-                        color: screenLeft <= 5 ? '#dc2626' : 'var(--text-secondary)',
-                    }}>
-                        <i className="fas fa-hourglass-half"></i>
-                        {isGroupView ? `Nhóm ${groupItems.length} câu — ` : ''}
-                        còn {Math.max(0, screenLeft)}s
+                {/* Nhịp của câu hiện tại: chỉ một thanh mảnh cạn dần, KHÔNG con
+                    số — đề thi thật chỉ có một đồng hồ tổng, hai con số đếm
+                    ngược cạnh nhau vừa nhiễu vừa không giống thi. Nhưng vẫn
+                    phải thấy được, nếu không thì tự chuyển câu hoá ra giật cục
+                    vô cớ. Đỏ dần ở 5s cuối để biết sắp sang câu. */}
+                {screenLeft !== null && screenTotal > 0 && (
+                    <div
+                        style={{ height: 3, borderRadius: 3, background: 'var(--border-color)', margin: '0 0 12px', overflow: 'hidden' }}
+                        title={`Còn ${Math.max(0, screenLeft)}s cho ${isGroupView ? `nhóm ${groupItems.length} câu` : 'câu này'}`}
+                    >
+                        <div style={{
+                            height: '100%',
+                            width: `${Math.max(0, Math.min(100, (screenLeft / screenTotal) * 100))}%`,
+                            background: screenLeft <= 5 ? '#dc2626' : 'var(--primary-color)',
+                            transition: 'width 1s linear, background-color .3s',
+                        }} />
                     </div>
                 )}
                 {isGroupView ? (

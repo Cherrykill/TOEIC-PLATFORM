@@ -192,8 +192,8 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
             <h3 style={{ marginTop: 24 }}>Bài thi TOEIC</h3>
             <div className="setting-item">
                 <div className="setting-info">
-                    <h4>Đếm ngược từng câu</h4>
-                    <p>Hết giờ tự chuyển sang câu kế. Đồng hồ tổng cả bài vẫn chạy song song</p>
+                    <h4>Giới hạn giờ từng câu</h4>
+                    <p>Hiện thanh nhịp mảnh trên câu đang làm — đồng hồ số vẫn chỉ có một, là đồng hồ tổng cả bài</p>
                 </div>
                 <Toggle
                     checked={s.toeicPerQuestionTimer === true}
