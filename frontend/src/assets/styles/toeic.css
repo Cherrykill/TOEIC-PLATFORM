@@ -1614,12 +1614,14 @@
   font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
-  opacity: 0.95;
+  color: var(--text-primary);
+  min-width: 74px;
+  text-align: center;
 }
 .toeic-inline-qnav .toeic-qnav-arrow {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: #fff;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
   width: 26px;
   height: 26px;
   border-radius: 6px;
@@ -1629,7 +1631,9 @@
   justify-content: center;
 }
 .toeic-inline-qnav .toeic-qnav-arrow:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
 }
 .toeic-inline-qnav .toeic-qnav-arrow:disabled {
   opacity: 0.35;
@@ -1680,28 +1684,17 @@
   overflow: hidden;
 }
 
-.toeic-right-header {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #fff;
-  background: linear-gradient(135deg, #6366f1, #a78bfa);
-  padding: 10px 16px;
-  border-radius: 0;
-  /* Chứa thêm điều hướng câu (QuestionNav) ở mép phải. */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
+/* .toeic-right-header đã bỏ — hai khung không còn thanh tiêu đề. */
 
+/* Không còn thanh tiêu đề che phía trên → phải tự chừa đệm trên. */
 .toeic-right-panel .toeic-options-listening,
 .toeic-right-panel .toeic-options {
-  padding: 0 16px 16px;
+  padding: 14px 16px 16px;
 }
 
 /* Đề bài (Part 5-7) trong cột phải — nới khoảng cách, không sát mép */
 .toeic-right-panel .toeic-question-text {
-  padding: 6px 16px 0;
+  padding: 14px 16px 0;
   margin-bottom: 4px;
   font-size: 0.95rem;
   line-height: 1.55;
@@ -1736,7 +1729,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 8px 16px 16px;
+  padding: 14px 16px 16px;
 }
 .toeic-group-question {
   border: 1.5px solid var(--border-color, #e0e0e0);
@@ -2137,11 +2130,6 @@
 .toeic-right-panel {
   max-height: calc(100vh - 165px);
   overflow-y: auto;
-}
-.toeic-right-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
 }
 @media (max-width: 700px) {
   .toeic-left-panel,

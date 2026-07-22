@@ -303,7 +303,8 @@ export default function TestRunner({ config, onExit, onShowResults }) {
 
     // Điều hướng câu giờ nằm trên thanh tiêu đề khung nội dung, không ở header đề.
     const navProps = {
-        current: attempt.currentIndex + 1,
+        // Màn nhóm phủ nhiều câu → hiện DẢI vị trí (vd 5–8) cho đúng thực tế.
+        current: gEnd > gStart ? `${gStart + 1}–${gEnd + 1}` : gStart + 1,
         total: attempt.test?.totalQuestions || attempt.questions.length,
         canPrev: gStart > 0,
         canNext: gEnd < attempt.questions.length - 1,
@@ -316,6 +317,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
             <RunnerHeader
                 testName={attempt.test?.testName || ''}
                 timer={timer}
+                nav={navProps}
                 isMarked={attempt.markedQuestions.has(attempt.currentIndex)}
                 onBack={handleConfirmExit}
                 onToggleNav={() => setNavOpen(o => !o)}
@@ -344,7 +346,6 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                         onSelectAnswer={handleGroupAnswer}
                         audioPlaying={audio.playing}
                         onPlayAudio={handlePlayAudio}
-                        nav={navProps}
                     />
                 ) : (
                     <QuestionView
@@ -361,7 +362,6 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                         keywordStatus={keywordStatus}
                         onKeywordChange={attempt.updateKeywordAnswer}
                         onCheckKeywords={handleCheckKeywords}
-                        nav={navProps}
                     />
                 )}
             </div>

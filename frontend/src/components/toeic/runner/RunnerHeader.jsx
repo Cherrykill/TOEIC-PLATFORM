@@ -1,10 +1,10 @@
 import Timer from './Timer.jsx';
+import QuestionNav from './QuestionNav.jsx';
 
 export default function RunnerHeader({
-    testName, timer, isMarked,
+    testName, timer, isMarked, nav,
     onBack, onToggleNav, onToggleMark, onPause, onSubmit,
 }) {
-    // Điều hướng câu đã chuyển xuống thanh tiêu đề khung nội dung (QuestionNav).
     return (
         <div className="toeic-test-header-bar">
             {/* Trái: quay lại + tên đề */}
@@ -13,6 +13,11 @@ export default function RunnerHeader({
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <div className="toeic-test-name">{testName}</div>
+            </div>
+
+            {/* Giữa: điều hướng câu */}
+            <div className="toeic-header-center">
+                {nav && <QuestionNav {...nav} />}
             </div>
 
 
