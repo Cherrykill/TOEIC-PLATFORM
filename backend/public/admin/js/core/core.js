@@ -569,10 +569,7 @@ async function initDashboard() {
 
   document
     .getElementById("btn-sync-all-tests")
-    ?.addEventListener("click", () => {
-      loadTests();
-      showToast("Đã tải lại dữ liệu đề thi", "success");
-    });
+    ?.addEventListener("click", (e) => syncAllTests(e.currentTarget));
 
   document
     .getElementById("btn-sync-all-uploads")

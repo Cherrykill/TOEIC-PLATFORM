@@ -26,6 +26,7 @@ const {
     createTest,
     updateTest,
     publishTest,
+    syncAllTests,
     generateFullTest,
     deleteTest,
     deleteAllTests,
@@ -398,6 +399,8 @@ router.post('/tests', authorize('admin'), createTest);
 router.put('/tests/:id', authorize('admin'), updateTest);
 router.put('/tests/:id/publish', authorize('admin'), publishTest);
 router.post('/tests/generate', authorize('admin'), generateFullTest);
+// Đồng bộ lại số câu của mọi đề + dọn ref trỏ vào màn hỏi đã xoá.
+router.post('/tests/sync-all', authorize('admin'), syncAllTests);
 router.delete('/tests/delete-all', authorize('admin'), deleteAllTests);
 router.delete('/tests/:id', authorize('admin'), deleteTest);
 

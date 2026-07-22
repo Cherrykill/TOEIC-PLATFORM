@@ -406,6 +406,73 @@ exports.publishTest = async (req, res, next) => {
 };
 
 /**
+ * @desc    Đồng bộ lại số câu của MỌI đề thi + dọn tham chiếu chết.
+ * @route   POST /api/toeic/tests/sync-all
+ * @access  Private/Admin
+ *
+ * `totalQuestions` và `parts[].questionsCount` được ghi CỨNG lúc tạo đề, nên
+ * lệch dần mỗi khi: xoá một màn hỏi (đề còn giữ ref trỏ vào hư không), hoặc
+ * thêm/bớt câu con khi sửa một màn nhóm (số câu đổi nhưng đề không biết).
+ * Hàm này đọc lại sự thật từ ToeicQuestionSet rồi ghi đè.
+ */
+exports.syncAllTests = async (req, res, next) => {
+    try {
+        const tests = await ToeicTest.find({});
+
+        // Nạp MỘT lần số câu của mọi màn → tránh N truy vấn theo từng đề.
+        const sets = await ToeicQuestionSet.find({}).select('questions').lean();
+        const sizeById = new Map(sets.map(s => [String(s._id), (s.questions || []).length]));
+
+        let changed = 0;
+        let droppedRefs = 0;
+        const details = [];
+
+        for (const test of tests) {
+            const before = { total: test.totalQuestions, counts: test.parts.map(p => p.questionsCount) };
+            let dropped = 0;
+            let total = 0;
+
+            for (const part of test.parts) {
+                const alive = (part.questions || []).filter(id => sizeById.has(String(id)));
+                dropped += (part.questions || []).length - alive.length;
+                part.questions = alive;
+                part.questionsCount = alive.reduce((n, id) => n + sizeById.get(String(id)), 0);
+                total += part.questionsCount;
+            }
+            test.totalQuestions = total;
+
+            const drifted = before.total !== total
+                || before.counts.some((c, i) => c !== test.parts[i].questionsCount);
+            if (!drifted && !dropped) continue;
+
+            await test.save();
+            changed++;
+            droppedRefs += dropped;
+            details.push({
+                testName: test.testName,
+                totalBefore: before.total,
+                totalAfter: total,
+                droppedRefs: dropped,
+            });
+        }
+
+        res.json({
+            success: true,
+            message: changed
+                ? `Đã đồng bộ ${changed}/${tests.length} đề`
+                    + (droppedRefs ? ` · dọn ${droppedRefs} tham chiếu chết` : '')
+                : `Đã kiểm tra ${tests.length} đề — số câu đều khớp, không có gì phải sửa`,
+            checked: tests.length,
+            changed,
+            droppedRefs,
+            details,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * @desc    Delete a test (Admin)
  * @route   DELETE /api/toeic/tests/:id
  * @access  Private/Admin

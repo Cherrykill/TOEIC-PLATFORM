@@ -2148,6 +2148,39 @@ async function generateTest() {
     }
 }
 
+/**
+ * Đồng bộ THẬT: bắt server đọc lại số câu từ ngân hàng câu hỏi và dọn tham
+ * chiếu trỏ vào màn hỏi đã xoá. Trước đây nút này chỉ gọi loadTests() — tải
+ * lại danh sách chứ không sửa gì, nên số câu lệch vẫn nguyên số lệch.
+ */
+async function syncAllTests(btn) {
+    const original = btn?.innerHTML;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Đang đồng bộ...';
+    }
+    try {
+        const res = await fetch(`${TOEIC_API_BASE}/tests/sync-all`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
+
+        showToast(data.message, data.changed ? 'success' : 'info');
+        // Có sửa gì thì in chi tiết ra console để đối chiếu, khỏi phải đoán.
+        if (data.changed) console.table(data.details);
+        loadTests();
+    } catch (err) {
+        showToast(`Đồng bộ lỗi: ${err.message}`, 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    }
+}
+
 // Bật/tắt xuất bản một đề. Không hỏi xác nhận: thao tác đảo lại được ngay bằng
 // chính nút đó, hỏi mỗi lần chỉ tổ vướng. Báo bằng toast như bên Đề từ vựng.
 async function publishTest(testId, shouldPublish) {
