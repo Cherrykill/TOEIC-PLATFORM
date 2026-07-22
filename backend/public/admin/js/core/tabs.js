@@ -332,6 +332,59 @@ async function saveTopicModal(id, modal) {
   }
 }
 
+/**
+ * Xuất bản HÀNG LOẠT mọi đề đang ẩn — giống "Xuất bản tất cả" bên đề thi TOEIC.
+ * Bỏ qua đề 0 từ: xuất bản một đề rỗng thì người dùng bấm vào chỉ thấy trống.
+ */
+async function publishAllTopics() {
+  const hidden = (_topicsData || []).filter((t) => !t.isPublic);
+  const ready = hidden.filter((t) => (t.wordCount || 0) > 0);
+  const empty = hidden.length - ready.length;
+
+  if (!ready.length) {
+    showToast(
+      hidden.length
+        ? `${hidden.length} đề đang ẩn nhưng chưa có từ nào — sync hoặc thêm từ trước đã.`
+        : "Mọi đề đều đã xuất bản.",
+      "info",
+    );
+    return;
+  }
+  if (
+    !confirm(
+      `Xuất bản ${ready.length} đề đang ẩn?` +
+        (empty ? `\n(Bỏ qua ${empty} đề chưa có từ nào.)` : ""),
+    )
+  )
+    return;
+
+  let ok = 0;
+  const errors = [];
+  for (const t of ready) {
+    try {
+      const res = await fetch(`${API_URL}/topics/${t._id}/publish`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ isPublic: true }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || "lỗi");
+      ok++;
+    } catch (err) {
+      errors.push(`${t.displayName || t._id}: ${err.message}`);
+    }
+  }
+
+  alert(
+    `✅ Đã xuất bản ${ok}/${ready.length} đề.` +
+      (errors.length ? `\n\n❌ Lỗi:\n${errors.slice(0, 5).join("\n")}` : ""),
+  );
+  loadTopicsTab();
+}
+
 // Xuất bản / gỡ xuất bản một đề. Gửi trạng thái MONG MUỐN để bấm nhanh hai lần
 // vẫn ra đúng kết quả (server không tự đảo).
 async function publishTopic(id, isPublic) {

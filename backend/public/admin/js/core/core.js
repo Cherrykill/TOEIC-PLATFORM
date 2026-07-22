@@ -502,6 +502,10 @@ async function initDashboard() {
     ?.addEventListener("click", () => showTopicModal());
 
   document
+    .getElementById("btn-publish-all-topics")
+    ?.addEventListener("click", () => publishAllTopics());
+
+  document
     .getElementById("btn-sync-all-topics")
     ?.addEventListener("click", async () => {
       try {

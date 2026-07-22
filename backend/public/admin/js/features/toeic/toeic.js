@@ -677,20 +677,20 @@ function renderTestsTable() {
             <td style="text-align: center;">${Math.round(t.totalTime / 60)}</td>
             <td style="text-align: center;">${t.timesAttempted || 0}</td>
             <td style="text-align: center;">${t.averageScore ? Math.round(t.averageScore) : '-'}</td>
-            <td>
-                <button class="btn btn-primary btn-sm btn-edit-test" data-test-id="${t._id}" title="Chỉnh sửa" style="margin-right: 5px;">
-                    <i class="fas fa-edit"></i>
-                </button>
+            <td style="white-space: nowrap">
                 ${!isPublished && hasQuestions ? `
-                    <button class="btn btn-success btn-sm btn-publish-test" data-test-id="${t._id}" title="Đăng" style="margin-right: 5px;">
-                        <i class="fas fa-check-circle"></i>
+                    <button class="btn btn-success btn-sm btn-publish-test" data-test-id="${t._id}" title="Xuất bản" style="margin-right: 5px;">
+                        <i class="fas fa-upload"></i>
                     </button>
                 ` : ''}
                 ${isPublished ? `
-                    <button class="btn btn-warning btn-sm btn-unpublish-test" data-test-id="${t._id}" title="Bỏ đăng" style="margin-right: 5px;">
+                    <button class="btn btn-warning btn-sm btn-unpublish-test" data-test-id="${t._id}" title="Gỡ xuất bản" style="margin-right: 5px;">
                         <i class="fas fa-eye-slash"></i>
                     </button>
                 ` : ''}
+                <button class="btn btn-primary btn-sm btn-edit-test" data-test-id="${t._id}" title="Chỉnh sửa" style="margin-right: 5px;">
+                    <i class="fas fa-edit"></i>
+                </button>
                 <button class="btn btn-danger btn-sm btn-delete-test" data-test-id="${t._id}" title="Xóa">
                     <i class="fas fa-trash-alt"></i>
                 </button>
