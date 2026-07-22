@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Modal } from '@ui/Modal.jsx';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { EnergyShop } from '@game/energyShop.js';
 import { useToeicAttempt } from '../hooks/useToeicAttempt.js';
 import { useToeicTimer } from '../hooks/useToeicTimer.js';
 import { useToeicAudio } from '../hooks/useToeicAudio.js';
@@ -88,7 +89,15 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                 }
                 setPhase('running');
             } catch (err) {
-                Notification.error(err.message || 'Không thể bắt đầu bài thi');
+                // Hết năng lượng → mở thẳng popup mua, khỏi bắt vào cửa hàng.
+                // Vẫn thoát runner: mua xong người dùng đang ở danh sách đề,
+                // bấm lại đề là vào (khôi phục runner vừa gỡ thì phức tạp mà
+                // chẳng lợi gì).
+                if (err.energyNeeded) {
+                    EnergyShop.showModal({ needed: err.energyNeeded });
+                } else {
+                    Notification.error(err.message || 'Không thể bắt đầu bài thi');
+                }
                 onExit();
             }
         })();

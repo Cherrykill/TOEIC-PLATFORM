@@ -36,7 +36,15 @@ export function useToeicAttempt() {
         const response = await ToeicAPI.startAttempt(testId, fillInBlankMode);
         const apiData = response.data || response;
         if (!apiData?.success || !apiData.data) {
-            throw new Error(apiData?.message || 'Không thể bắt đầu bài thi');
+            // Đính kèm số ⚡/🪙 còn thiếu (server trả về) để chỗ gọi mở đúng
+            // popup mua năng lượng thay vì chỉ hiện một dòng lỗi cụt.
+            const err = new Error(apiData?.message || 'Không thể bắt đầu bài thi');
+            if (apiData?.energyNeeded) {
+                err.energyNeeded = apiData.energyNeeded;
+                err.currentEnergy = apiData.currentEnergy;
+            }
+            if (apiData?.coinsNeeded) err.coinsNeeded = apiData.coinsNeeded;
+            throw err;
         }
         startTimeRef.current = Date.now();
         shownTransitionsRef.current = new Set();

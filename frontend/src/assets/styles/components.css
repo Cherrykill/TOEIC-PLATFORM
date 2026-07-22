@@ -7919,3 +7919,31 @@ mark {
   color: #fff;
 }
 .leaderboard-me-pinned .leaderboard-gems { color: #fda4d4; }
+
+/* ===================================================================
+   POPUP HẾT NĂNG LƯỢNG (EnergyShop)
+   Gói bán lấy từ catalog nên số nút thay đổi được — dùng grid tự dãn.
+   =================================================================== */
+.energy-refill-modal { text-align: center; }
+.energy-refill-modal .energy-icon { font-size: 44px; line-height: 1; margin-bottom: 6px; }
+.energy-refill-modal p { margin: 4px 0; }
+.energy-refill-modal .energy-info { font-size: 13px; opacity: 0.75; }
+
+.energy-refill-modal .refill-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+.energy-refill-modal .energy-pack-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.energy-refill-modal .energy-pack-btn strong { font-size: 15px; }
+.energy-refill-modal .energy-pack-btn:disabled { opacity: 0.45; cursor: not-allowed; }

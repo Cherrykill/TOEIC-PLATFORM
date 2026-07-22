@@ -155,7 +155,8 @@ export const PracticeManager = {
 
         const energyCost = Config.energyCosts[mode];
         if (!Energy.hasEnough(energyCost)) {
-            Energy.showRefillModal();
+            // Truyền số ⚡ cần để popup báo còn thiếu bao nhiêu + đếm giờ hồi đủ.
+            Energy.showRefillModal({ needed: energyCost });
             return false;
         }
 
