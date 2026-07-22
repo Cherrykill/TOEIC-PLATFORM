@@ -33,7 +33,7 @@ export default function GroupQuestionView({ groupItems, answers, onSelectAnswer,
     );
 
     return (
-        <div className="toeic-two-col-layout">
+        <div className={`toeic-two-col-layout${isListening ? '' : ' reading'}`}>
             <div className="toeic-left-panel">
                 <div className="toeic-left-header">
                     <span>Ngữ cảnh chung ({groupItems.length} câu)</span>

@@ -68,7 +68,7 @@ export default function QuestionView({
 
     // Thống nhất 2 cột cho mọi Part: trái "Câu hỏi", phải đề + đáp án.
     return (
-        <div className="toeic-two-col-layout">
+        <div className={`toeic-two-col-layout${isListening ? '' : ' reading'}`}>
             <div className="toeic-left-panel">
                 <div className="toeic-left-header">
                     <span>Câu {question.globalQuestionNumber ?? question.questionNumber ?? currentIndex + 1}</span>

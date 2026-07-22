@@ -1651,6 +1651,32 @@
   flex: 1;
 }
 
+/* Ảnh đoạn đọc (Part 6/7) là NỘI DUNG CHÍNH, không phải minh hoạ → không bó
+   500x400 như ảnh Part 1. Tràn hết bề ngang khung để đọc được chữ. */
+.toeic-passage-image {
+  width: 100%;
+  max-height: 78vh;
+  display: block;
+  margin: 0 auto var(--spacing-md);
+  object-fit: contain;
+  border-radius: var(--border-radius-large);
+  box-shadow: var(--shadow-medium);
+  cursor: zoom-in;
+  background: #fff;
+}
+.toeic-passage-image:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* Phần ĐỌC: đoạn văn cần nhiều chỗ hơn danh sách đáp án → cột trái rộng hơn,
+   và bớt đệm để ảnh sát mép. */
+.toeic-two-col-layout.reading {
+  grid-template-columns: 1.6fr 1fr;
+}
+.toeic-two-col-layout.reading .toeic-left-body {
+  padding: 10px;
+}
+
 .toeic-right-panel {
   background: var(--bg-secondary, #f8fafc);
   border-radius: 14px;
@@ -1685,9 +1711,13 @@
 }
 
 @media (max-width: 700px) {
-  .toeic-two-col-layout {
+  /* Phải kể cả .reading — rule 2 class có độ ưu tiên cao hơn, không ghi rõ ở đây
+     thì màn hẹp vẫn chia 2 cột. */
+  .toeic-two-col-layout,
+  .toeic-two-col-layout.reading {
     grid-template-columns: 1fr;
   }
+  .toeic-passage-image { max-height: none; }
 }
 
 /* ===== Nhóm câu hỏi hiển thị cùng màn (Part 3/4/6/7) ===== */
