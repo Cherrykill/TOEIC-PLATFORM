@@ -12,6 +12,9 @@ const {
     deleteAllQuestions,
     getQuestionsStatistics,
     getQuestionSources,
+    getPrompts,
+    savePrompt,
+    resetPrompt,
     createQuestionGroup,
     generateQuestionsWithAI,
 } = require('../controllers/toeicQuestionsController');
@@ -365,6 +368,11 @@ router.get('/analytics/parts', getPartAnalysis);
  */
 router.get('/questions/statistics', authorize('admin'), getQuestionsStatistics);
 router.get('/questions/sources', authorize('admin'), getQuestionSources);
+
+// Prompt AI sinh câu hỏi — admin sửa được, lưu DB (xoá = về mặc định trong code).
+router.get('/prompts', authorize('admin'), getPrompts);
+router.put('/prompts/:key', authorize('admin'), savePrompt);
+router.delete('/prompts/:key', authorize('admin'), resetPrompt);
 router.get('/questions', authorize('admin'), getQuestions);
 router.get('/questions/:id', authorize('admin'), getQuestion);
 router.post('/questions/group', authorize('admin'), createQuestionGroup);

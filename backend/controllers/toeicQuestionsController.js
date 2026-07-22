@@ -7,6 +7,7 @@
 // imports these from here now.
 
 const ToeicQuestionSet = require('../models/ToeicQuestionSet');
+const ToeicPrompt = require('../models/ToeicPrompt');
 const logger = require('../utils/logger');
 
 // Số câu MỞ ĐẦU của từng Part theo chuẩn TOEIC — trùng với partRanges dùng lúc
@@ -257,6 +258,66 @@ exports.deleteAllQuestions = async (req, res, next) => {
             success: true,
             message: 'Đã xoá toàn bộ câu hỏi TOEIC',
             deletedCount: result.deletedCount,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Lấy TẤT CẢ prompt admin đã sửa (chỉ những cái có ghi đè).
+ * @route   GET /api/toeic/prompts
+ * @access  Private/Admin
+ */
+exports.getPrompts = async (req, res, next) => {
+    try {
+        const rows = await ToeicPrompt.find({}).select('key content updatedAt').lean();
+        // Trả dạng { key: content } cho frontend gộp thẳng vào bản mặc định.
+        const data = {};
+        rows.forEach(r => { data[r.key] = r.content; });
+        res.json({ success: true, data, updatedAt: Object.fromEntries(rows.map(r => [r.key, r.updatedAt])) });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc    Ghi đè prompt của một Part (hoặc 'all').
+ * @route   PUT /api/toeic/prompts/:key
+ * @access  Private/Admin
+ */
+exports.savePrompt = async (req, res, next) => {
+    try {
+        const { key } = req.params;
+        const content = String(req.body?.content ?? '').trim();
+        if (!content) {
+            return res.status(400).json({ success: false, message: 'Nội dung prompt không được để trống.' });
+        }
+        const doc = await ToeicPrompt.findOneAndUpdate(
+            { key },
+            { content, updatedBy: req.user.id },
+            { new: true, upsert: true, runValidators: true }
+        );
+        res.json({ success: true, message: `Đã lưu prompt "${key}"`, data: { key: doc.key, updatedAt: doc.updatedAt } });
+    } catch (error) {
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ success: false, message: 'Key prompt không hợp lệ (1-7 hoặc "all").' });
+        }
+        next(error);
+    }
+};
+
+/**
+ * @desc    Khôi phục mặc định = XOÁ bản ghi đè (bản gốc vẫn nằm trong code).
+ * @route   DELETE /api/toeic/prompts/:key
+ * @access  Private/Admin
+ */
+exports.resetPrompt = async (req, res, next) => {
+    try {
+        const r = await ToeicPrompt.deleteOne({ key: req.params.key });
+        res.json({
+            success: true,
+            message: r.deletedCount ? 'Đã khôi phục prompt mặc định' : 'Prompt này vốn đang dùng mặc định',
         });
     } catch (error) {
         next(error);

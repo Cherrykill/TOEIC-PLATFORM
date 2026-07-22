@@ -1122,6 +1122,55 @@ function updateQuestionJsonPlaceholder() {
     ta.placeholder = ex || _defaultJsonPlaceholder;
 }
 
+// Bản GHI ĐÈ prompt do admin sửa (nạp từ DB). Rỗng = đang dùng mặc định trong code.
+let PROMPT_OVERRIDES = {};
+
+async function loadPromptOverrides() {
+    try {
+        const res = await fetch(`${TOEIC_API_BASE}/prompts`, {
+            headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (data.success) PROMPT_OVERRIDES = data.data || {};
+    } catch (e) {
+        console.error('Không tải được prompt đã sửa:', e);
+    }
+    return PROMPT_OVERRIDES;
+}
+
+/** Prompt đang có hiệu lực cho một key: bản admin sửa, không có thì lấy mặc định. */
+function getEffectivePrompt(key) {
+    return PROMPT_OVERRIDES[key] || PART_PROMPTS[key] || '';
+}
+
+/** Prompt gốc trong code — dùng cho nút "Khôi phục mặc định". */
+function getDefaultPrompt(key) {
+    return PART_PROMPTS[key] || '';
+}
+
+async function savePromptOverride(key, content) {
+    const res = await fetch(`${TOEIC_API_BASE}/prompts/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ content }),
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Lưu prompt lỗi');
+    PROMPT_OVERRIDES[key] = content;
+    return data;
+}
+
+async function resetPromptOverride(key) {
+    const res = await fetch(`${TOEIC_API_BASE}/prompts/${key}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message || 'Khôi phục lỗi');
+    delete PROMPT_OVERRIDES[key];
+    return data;
+}
+
 function copyQuestionPrompt(forcedPart, forcedSource) {
     // forcedPart/forcedSource: modal NHÓM truyền Part + mã đề đang chọn để prompt sát hơn.
     const partSel = document.getElementById('q-prompt-part');
@@ -1142,7 +1191,10 @@ ${_SET_SHAPE}
         + _Q_FOOTER;
 
     // Chọn 1 Part cụ thể → dùng prompt RIÊNG, gọn (không gộp chung 7 part).
-    if (part !== 'all' && PART_PROMPTS[part]) prompt = PART_PROMPTS[part];
+    // Ưu tiên bản admin đã sửa; chưa sửa thì dùng mặc định trong code.
+    const eff = getEffectivePrompt(part);
+    if (part !== 'all' && eff) prompt = eff;
+    else if (part === 'all' && PROMPT_OVERRIDES.all) prompt = PROMPT_OVERRIDES.all;
 
     // Có Source → ép AI dùng đúng mã đề cho MỌI câu (khỏi gõ lệch source).
     const src = (typeof forcedSource === 'string') ? forcedSource.trim() : '';
