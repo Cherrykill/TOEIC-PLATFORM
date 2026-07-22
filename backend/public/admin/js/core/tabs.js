@@ -69,6 +69,10 @@ const MODE_LABELS = {
 // ---- TOPICS TAB ----
 
 let _topicsData = [];
+// Phân trang phía client — danh sách đề nhỏ, tải một lần rồi cắt trang tại chỗ.
+let _topicsFiltered = [];
+const _topicsPage = { current: 1, limit: 15 };
+
 async function loadTopicsTab() {
   const tbody = document.getElementById("topics-tbody");
   if (!tbody) return;
@@ -81,11 +85,8 @@ async function loadTopicsTab() {
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
     _topicsData = data.data;
-    renderTopicsTable(_topicsData);
-    const countEl = document.getElementById("topics-filter-count");
-    if (countEl)
-      countEl.textContent = `${_topicsData.length} / ${_topicsData.length} đề`;
     _setupTopicsSearch();
+    _applyTopicsFilter();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="7" style="color:#ef4444;text-align:center;padding:20px;">${err.message}</td></tr>`;
   }
@@ -119,10 +120,33 @@ function _applyTopicsFilter() {
     });
   }
 
-  renderTopicsTable(data);
+  _topicsFiltered = data;
+  _renderTopicsPage();
+}
+
+/** Cắt trang từ danh sách đã lọc rồi vẽ bảng + thanh phân trang. */
+function _renderTopicsPage() {
+  const totalPages = Math.max(1, Math.ceil(_topicsFiltered.length / _topicsPage.limit));
+  if (_topicsPage.current > totalPages) _topicsPage.current = 1;
+
+  const start = (_topicsPage.current - 1) * _topicsPage.limit;
+  renderTopicsTable(_topicsFiltered.slice(start, start + _topicsPage.limit));
+
   const countEl = document.getElementById("topics-filter-count");
   if (countEl)
-    countEl.textContent = `${data.length} / ${_topicsData.length} đề`;
+    countEl.textContent = `${_topicsFiltered.length} / ${_topicsData.length} đề`;
+
+  renderPager("topics-pagination", {
+    page: _topicsPage.current,
+    limit: _topicsPage.limit,
+    total: _topicsFiltered.length,
+    itemName: "đề",
+    onPage: (p) => {
+      _topicsPage.current = p;
+      _renderTopicsPage();
+      document.getElementById("topics-table")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+  });
 }
 
 function _setupTopicsSearch() {
@@ -130,16 +154,23 @@ function _setupTopicsSearch() {
   if (!search || search.dataset.topicsFiltersBound) return;
   search.dataset.topicsFiltersBound = "1";
 
-  search.addEventListener("input", _applyTopicsFilter);
+  // Đổi bộ lọc thì về trang 1; còn tải lại sau khi xuất bản thì GIỮ trang đang
+  // xem, đỡ phải lật lại từ đầu mỗi lần bấm.
+  const refilter = () => {
+    _topicsPage.current = 1;
+    _applyTopicsFilter();
+  };
+
+  search.addEventListener("input", refilter);
   document
     .getElementById("topics-filter-words")
-    ?.addEventListener("change", _applyTopicsFilter);
+    ?.addEventListener("change", refilter);
   document
     .getElementById("topics-filter-visible")
-    ?.addEventListener("change", _applyTopicsFilter);
+    ?.addEventListener("change", refilter);
   document
     .getElementById("topics-filter-lang")
-    ?.addEventListener("change", _applyTopicsFilter);
+    ?.addEventListener("change", refilter);
   document
     .getElementById("topics-filter-clear")
     ?.addEventListener("click", () => {
@@ -151,7 +182,7 @@ function _setupTopicsSearch() {
       if (w) w.value = "";
       if (v) v.value = "";
       if (l) l.value = "";
-      _applyTopicsFilter();
+      refilter();
     });
 }
 

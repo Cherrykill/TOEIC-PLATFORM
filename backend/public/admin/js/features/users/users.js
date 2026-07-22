@@ -92,18 +92,19 @@ function displayUsers() {
   if (!paginatedUsers || !paginatedUsers.length) {
     tbody.innerHTML =
       '<tr><td colspan="8" style="text-align:center;padding:30px;">Khong tim thay tai khoan nao</td></tr>';
-    renderPagination(
-      "users-pagination",
-      usersPagination,
-      (page) => {
+    renderPager("users-pagination", {
+      page: usersPagination.currentPage,
+      limit: usersPagination.limit,
+      total: usersPagination.total,
+      itemName: "tài khoản",
+      onPage: (page) => {
         usersPagination.currentPage = page;
         displayUsers();
         document
           .querySelector("#users-table")
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       },
-      "users",
-    );
+    });
     return;
   }
 
@@ -160,18 +161,19 @@ function displayUsers() {
     .join("");
 
   attachUserListeners();
-  renderPagination(
-    "users-pagination",
-    usersPagination,
-    (page) => {
+  renderPager("users-pagination", {
+    page: usersPagination.currentPage,
+    limit: usersPagination.limit,
+    total: usersPagination.total,
+    itemName: "tài khoản",
+    onPage: (page) => {
       usersPagination.currentPage = page;
       displayUsers();
       document
         .querySelector("#users-table")
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
-    "users",
-  );
+  });
 }
 
 function attachUserListeners() {

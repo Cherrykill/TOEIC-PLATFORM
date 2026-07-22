@@ -1113,6 +1113,37 @@ table tbody tr:hover td { background: var(--hover-bg); }
   border-top: 1px solid var(--border-color);
 }
 
+/* ── Phân trang dùng chung (renderPager) — một kiểu cho mọi bảng ── */
+.pager { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.pager-info { color: var(--text-secondary); font-size: 13px; margin-right: 6px; }
+.pager-info strong { color: var(--text-primary); }
+.pager-btn {
+  padding: 4px 8px;
+  min-width: 28px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #1e293b;
+  color: #94a3b8;
+  font-size: 12px;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+.pager-btn:hover:not(:disabled):not(.active) { filter: brightness(1.35); }
+.pager-btn.active {
+  padding: 4px 10px;
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  cursor: default;
+}
+.pager-btn:disabled { opacity: 0.4; cursor: default; }
+[data-theme="dark"] .pager-btn {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
 /* ===================================
    BADGES
    =================================== */

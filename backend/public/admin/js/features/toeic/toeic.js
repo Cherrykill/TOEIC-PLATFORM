@@ -26,95 +26,6 @@ async function loadToeicStats() {
     }
 }
 
-function renderPagination(containerId, paginationState, onPageChange, itemName = 'items') {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const { currentPage, totalPages, total } = paginationState;
-
-    if (totalPages <= 1) {
-        container.innerHTML = '';
-        return;
-    }
-
-    const startItem = (currentPage - 1) * paginationState.limit + 1;
-    const endItem = Math.min(currentPage * paginationState.limit, total);
-
-    let pageNumbers = '';
-    const maxVisiblePages = 5;
-
-    if (totalPages <= maxVisiblePages + 2) {
-        for (let i = 1; i <= totalPages; i++) {
-            pageNumbers += `<button class="btn btn-sm ${i === currentPage ? 'btn-primary' : 'btn-secondary'} pagination-page" data-page="${i}">${i}</button>`;
-        }
-    } else {
-        pageNumbers += `<button class="btn btn-sm ${1 === currentPage ? 'btn-primary' : 'btn-secondary'} pagination-page" data-page="1">1</button>`;
-
-        let start = Math.max(2, currentPage - 1);
-        let end = Math.min(totalPages - 1, currentPage + 1);
-
-        if (currentPage <= 3) {
-            end = Math.min(4, totalPages - 1);
-        } else if (currentPage >= totalPages - 2) {
-            start = Math.max(totalPages - 3, 2);
-        }
-
-        if (start > 2) {
-            pageNumbers += `<span style="padding: 0 8px; color: #999;">...</span>`;
-        }
-
-        for (let i = start; i <= end; i++) {
-            pageNumbers += `<button class="btn btn-sm ${i === currentPage ? 'btn-primary' : 'btn-secondary'} pagination-page" data-page="${i}">${i}</button>`;
-        }
-
-        if (end < totalPages - 1) {
-            pageNumbers += `<span style="padding: 0 8px; color: #999;">...</span>`;
-        }
-
-        pageNumbers += `<button class="btn btn-sm ${totalPages === currentPage ? 'btn-primary' : 'btn-secondary'} pagination-page" data-page="${totalPages}">${totalPages}</button>`;
-    }
-
-    container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap;">
-            <div style="color: #666; font-size: 14px;">
-                Hiển thị ${startItem}–${endItem} / ${total} ${itemName}
-            </div>
-            <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap;">
-                <button class="btn btn-sm btn-secondary pagination-first" ${currentPage === 1 ? 'disabled' : ''} title="First Page">
-                    <i class="fas fa-angle-double-left"></i>
-                </button>
-                <button class="btn btn-sm btn-secondary pagination-prev" ${currentPage === 1 ? 'disabled' : ''} title="Previous">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                ${pageNumbers}
-                <button class="btn btn-sm btn-secondary pagination-next" ${currentPage === totalPages ? 'disabled' : ''} title="Next">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-                <button class="btn btn-sm btn-secondary pagination-last" ${currentPage === totalPages ? 'disabled' : ''} title="Last Page">
-                    <i class="fas fa-angle-double-right"></i>
-                </button>
-            </div>
-        </div>
-    `;
-
-    const firstBtn = container.querySelector('.pagination-first');
-    const prevBtn = container.querySelector('.pagination-prev');
-    const nextBtn = container.querySelector('.pagination-next');
-    const lastBtn = container.querySelector('.pagination-last');
-
-    if (firstBtn && !firstBtn.disabled) firstBtn.addEventListener('click', () => onPageChange(1));
-    if (prevBtn && !prevBtn.disabled) prevBtn.addEventListener('click', () => onPageChange(currentPage - 1));
-    if (nextBtn && !nextBtn.disabled) nextBtn.addEventListener('click', () => onPageChange(currentPage + 1));
-    if (lastBtn && !lastBtn.disabled) lastBtn.addEventListener('click', () => onPageChange(totalPages));
-
-    container.querySelectorAll('.pagination-page').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const page = parseInt(btn.dataset.page);
-            if (page !== currentPage) onPageChange(page);
-        });
-    });
-}
-
 async function loadQuestions(filterPart = '', _page = 1) {
     try {
         questionsPagination.filterPart = filterPart;
@@ -378,11 +289,17 @@ function applyFiltersAndSort() {
     currentQuestions = filtered.slice(start, end);
 
     renderQuestionsTable();
-    renderPagination('questions-pagination', questionsPagination, (page) => {
-        questionsPagination.currentPage = page;
-        applyFiltersAndSort();
-        document.querySelector('#questions-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 'questions');
+    renderPager('questions-pagination', {
+        page: questionsPagination.currentPage,
+        limit: questionsPagination.limit,
+        total: questionsPagination.total,
+        itemName: 'màn',
+        onPage: (page) => {
+            questionsPagination.currentPage = page;
+            applyFiltersAndSort();
+            document.querySelector('#questions-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+    });
     updateFilterResults();
 }
 
@@ -580,11 +497,17 @@ function applyTestFilters() {
     currentTests = filtered.slice(start, end);
 
     renderTestsTable();
-    renderPagination('tests-pagination', testsPagination, (page) => {
-        testsPagination.currentPage = page;
-        applyTestFilters();
-        document.querySelector('#tests-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 'tests');
+    renderPager('tests-pagination', {
+        page: testsPagination.currentPage,
+        limit: testsPagination.limit,
+        total: testsPagination.total,
+        itemName: 'đề',
+        onPage: (page) => {
+            testsPagination.currentPage = page;
+            applyTestFilters();
+            document.querySelector('#tests-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+    });
     updateTestFilterResults();
 }
 
@@ -2502,16 +2425,17 @@ async function loadPracticeHistory(page = 1, userId = '', search = '') {
         if (result.success) {
             practiceHistoryData = result.data;
             renderPracticeHistoryTable(result.data);
-            renderPagination('history-pagination', {
-                currentPage: result.page,
-                totalPages: result.pages,
+            renderPager('history-pagination', {
+                page: result.page,
+                limit: practiceHistoryLimit,
                 total: result.total || result.data.length,
-                limit: practiceHistoryLimit
-            }, (page) => {
-                const filters = getHistoryFilters();
-                loadPracticeHistory(page, filters.userId, filters.search);
-                document.querySelector('#history-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 'history records');
+                itemName: 'lượt thi',
+                onPage: (page) => {
+                    const filters = getHistoryFilters();
+                    loadPracticeHistory(page, filters.userId, filters.search);
+                    document.querySelector('#history-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                },
+            });
         } else {
             console.error('Failed to load practice history:', result.message);
             document.getElementById('history-table-body').innerHTML = `
