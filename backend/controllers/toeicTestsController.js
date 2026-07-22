@@ -406,6 +406,69 @@ exports.publishTest = async (req, res, next) => {
 };
 
 /**
+ * @desc    Nạp lại danh sách câu hỏi của một đề TỪ KHO.
+ * @route   POST /api/toeic/tests/:id/refill
+ * @access  Private/Admin
+ *
+ * Khác "Sync số câu": sync chỉ ĐẾM LẠI những màn đề đang trỏ tới. Đề thi là
+ * một danh sách chọn CỐ ĐỊNH, nên thêm câu mới vào kho thì đề cũ không tự biết.
+ * Hàm này quét lại kho theo đúng (source, part) của đề rồi gắn thêm những màn
+ * còn thiếu — giữ nguyên thứ tự cũ, chỉ NỐI THÊM vào cuối để không xáo trộn
+ * đề người ta đã sắp.
+ */
+exports.refillTest = async (req, res, next) => {
+    try {
+        const test = await ToeicTest.findById(req.params.id);
+        if (!test) return res.status(404).json({ success: false, message: 'Không tìm thấy đề thi' });
+
+        let added = 0;
+        const perPart = [];
+
+        for (const part of test.parts) {
+            const pool = await ToeicQuestionSet.find({
+                part: part.partNumber,
+                isActive: true,
+                isPublished: true,
+                ...(test.source ? { source: test.source } : {}),
+            }).sort({ 'questions.0.number': 1, createdAt: 1 }).select('questions').lean();
+
+            const have = new Set((part.questions || []).map(String));
+            const missing = pool.filter(s => !have.has(String(s._id)));
+            if (missing.length) {
+                part.questions = [...(part.questions || []), ...missing.map(s => s._id)];
+                added += missing.length;
+            }
+
+            // Đếm lại số câu THẬT của part sau khi nối.
+            const sizeById = new Map(pool.map(s => [String(s._id), s.questions.length]));
+            part.questionsCount = (part.questions || [])
+                .reduce((n, id) => n + (sizeById.get(String(id)) || 0), 0);
+
+            perPart.push({
+                part: part.partNumber,
+                manThemMoi: missing.length,
+                cauSauKhiNap: part.questionsCount,
+            });
+        }
+
+        test.totalQuestions = test.parts.reduce((n, p) => n + p.questionsCount, 0);
+        await test.save();
+
+        res.json({
+            success: true,
+            message: added
+                ? `Đã nạp thêm ${added} màn — đề "${test.testName}" giờ có ${test.totalQuestions} câu`
+                : `Đề "${test.testName}" đã có đủ mọi câu trong kho (${test.totalQuestions} câu)`,
+            added,
+            totalQuestions: test.totalQuestions,
+            perPart,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
  * @desc    Đồng bộ lại số câu của MỌI đề thi + dọn tham chiếu chết.
  * @route   POST /api/toeic/tests/sync-all
  * @access  Private/Admin

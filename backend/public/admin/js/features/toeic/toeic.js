@@ -582,6 +582,10 @@ function renderTestsTable() {
                         <i class="fas fa-eye-slash"></i>
                     </button>
                 ` : ''}
+                <button class="btn btn-secondary btn-sm btn-refill-test" data-test-id="${t._id}"
+                    title="Nạp thêm câu mới trong kho vào đề này (cùng source + Part)" style="margin-right: 5px;">
+                    <i class="fas fa-arrow-down-to-line"></i>
+                </button>
                 <button class="btn btn-primary btn-sm btn-edit-test" data-test-id="${t._id}" title="Chỉnh sửa" style="margin-right: 5px;">
                     <i class="fas fa-edit"></i>
                 </button>
@@ -595,6 +599,9 @@ function renderTestsTable() {
 
     tbody.querySelectorAll('.btn-edit-test').forEach(btn => {
         btn.addEventListener('click', () => editTest(btn.getAttribute('data-test-id')));
+    });
+    tbody.querySelectorAll('.btn-refill-test').forEach(btn => {
+        btn.addEventListener('click', () => refillTest(btn.getAttribute('data-test-id'), btn));
     });
     tbody.querySelectorAll('.btn-publish-test').forEach(btn => {
         btn.addEventListener('click', () => publishTest(btn.getAttribute('data-test-id'), true));
@@ -2077,6 +2084,37 @@ async function checkQuestionsHealth(btn) {
             btn.disabled = false;
             btn.innerHTML = original;
         }
+    }
+}
+
+/**
+ * Nạp thêm câu MỚI trong kho vào một đề.
+ *
+ * Khác "Sync số câu": sync chỉ đếm lại những màn đề đang trỏ tới, nên thêm câu
+ * vào kho xong bấm sync thì số vẫn y nguyên — đề thi là danh sách chọn CỐ ĐỊNH.
+ * Nút này mới là cái kéo câu mới vào đề.
+ */
+async function refillTest(testId, btn) {
+    const test = (allTests || []).find(t => t._id === testId);
+    if (!confirm(`Quét kho theo source "${test?.source || '(không có)'}" và nạp thêm câu mới vào đề "${test?.testName || ''}"?\n\n`
+        + 'Câu đang có giữ nguyên thứ tự, câu mới nối vào cuối.')) return;
+
+    const original = btn?.innerHTML;
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; }
+    try {
+        const res = await fetch(`${TOEIC_API_BASE}/tests/${testId}/refill`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
+        showToast(data.message, data.added ? 'success' : 'info');
+        if (data.added) console.table(data.perPart);
+        loadTests();
+    } catch (err) {
+        showToast(`Nạp câu lỗi: ${err.message}`, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = original; }
     }
 }
 

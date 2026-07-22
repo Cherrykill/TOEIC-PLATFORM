@@ -28,6 +28,7 @@ const {
     updateTest,
     publishTest,
     syncAllTests,
+    refillTest,
     generateFullTest,
     deleteTest,
     deleteAllTests,
@@ -404,6 +405,8 @@ router.put('/tests/:id/publish', authorize('admin'), publishTest);
 router.post('/tests/generate', authorize('admin'), generateFullTest);
 // Đồng bộ lại số câu của mọi đề + dọn ref trỏ vào màn hỏi đã xoá.
 router.post('/tests/sync-all', authorize('admin'), syncAllTests);
+// Nạp thêm vào đề những màn mới có trong kho (cùng source + part).
+router.post('/tests/:id/refill', authorize('admin'), refillTest);
 router.delete('/tests/delete-all', authorize('admin'), deleteAllTests);
 router.delete('/tests/:id', authorize('admin'), deleteTest);
 
