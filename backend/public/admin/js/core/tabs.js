@@ -185,7 +185,7 @@ function renderTopicsTable(topics) {
                 </span>
             </td>
             <td style="white-space:nowrap">
-                <button class="btn ${t.isPublic ? "btn-ghost" : "btn-success"} btn-sm topic-btn-publish"
+                <button class="btn ${t.isPublic ? "btn-warning" : "btn-success"} btn-sm topic-btn-publish"
                     title="${t.isPublic ? "Gỡ xuất bản — ẩn đề với người dùng" : "Xuất bản — hiện đề cho người dùng"}">
                     <i class="fas ${t.isPublic ? "fa-eye-slash" : "fa-upload"}"></i>
                 </button>

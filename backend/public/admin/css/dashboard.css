@@ -659,6 +659,9 @@ body {
 .btn-success { background: var(--success);   color: white; }
 .btn-danger  { background: var(--danger);    color: white; }
 .btn-warning { background: var(--warning);   color: white; }
+/* Icon trong nút màu đặc luôn trắng — nền vàng/cam dễ bị icon ăn theo màu chữ
+   mặc định của bảng nên nhìn xỉn, không đọc ra hình. */
+.btn-warning i, .btn-success i, .btn-danger i, .btn-primary i { color: #fff; }
 .btn-secondary {
   background: var(--bg-tertiary);
   color: var(--text-primary);
