@@ -6,7 +6,8 @@
 // their handlers. Verbatim move; behaviour unchanged. routes/toeic.js
 // imports these from here now.
 
-const ToeicQuestion = require('../models/ToeicQuestion');
+const ToeicQuestion = require('../models/ToeicQuestion'); // legacy — gỡ ở GĐ5
+const ToeicQuestionSet = require('../models/ToeicQuestionSet');
 const logger = require('../utils/logger');
 
 // Số câu MỞ ĐẦU của từng Part theo chuẩn TOEIC — trùng với partRanges dùng lúc
@@ -24,8 +25,73 @@ async function nextQuestionNumber(part, source) {
     const start = PART_START[part] || 1;
     const filter = { part };
     if (source) filter.source = source;
-    const last = await ToeicQuestion.findOne(filter).sort({ questionNumber: -1 }).select('questionNumber');
-    return Math.max(start, (last?.questionNumber || 0) + 1);
+    const sets = await ToeicQuestionSet.find(filter).select('questions.number').lean();
+    let max = 0;
+    for (const set of sets) for (const q of (set.questions || [])) {
+        if (Number.isFinite(q.number) && q.number > max) max = q.number;
+    }
+    return Math.max(start, max + 1);
+}
+
+/**
+ * Chuẩn hoá payload admin thành MỘT MÀN.
+ * Nhận cả hai dạng để giao diện cũ chạy tiếp:
+ *   • dạng NHÓM: { questions: [ {...}, ... ] }
+ *   • dạng CÂU ĐƠN (phẳng): { questionText, options, correctAnswer, ... }
+ * Part 1/2/5 chỉ là màn có đúng 1 câu — không có nhánh riêng theo part.
+ */
+/** Đếm SỐ CÂU (không phải số màn) khớp một điều kiện. */
+async function countQuestionsIn(filter) {
+    const rows = await ToeicQuestionSet.aggregate([
+        { $match: filter },
+        { $group: { _id: null, n: { $sum: { $size: '$questions' } } } },
+    ]);
+    return rows[0]?.n || 0;
+}
+
+function buildSetPayload(body) {
+    const part = parseInt(body.part);
+    const raw = (Array.isArray(body.questions) && body.questions.length)
+        ? body.questions
+        : [{
+            number: body.questionNumber,
+            questionText: body.questionText,
+            questionTranslate: body.questionTranslate,
+            options: body.options,
+            correctAnswer: body.correctAnswer,
+            explanation: body.explanation,
+        }];
+
+    const questions = raw.map((q, i) => {
+        const options = (Array.isArray(q.options) ? q.options : [])
+            .map((o, idx) => ({ label: o.label || String.fromCharCode(65 + idx), text: String(o.text ?? '').trim() }))
+            .filter(o => o.text);
+        if (options.length < 3) throw Object.assign(new Error(`Câu #${i + 1}: cần tối thiểu 3 đáp án.`), { status: 400 });
+        if (!q.correctAnswer || !options.some(o => o.label === q.correctAnswer)) {
+            throw Object.assign(new Error(`Câu #${i + 1}: correctAnswer không khớp đáp án nào.`), { status: 400 });
+        }
+        return {
+            number: Number.isFinite(Number(q.number)) ? Number(q.number) : undefined,
+            questionText: q.questionText ? String(q.questionText).trim() : undefined,
+            questionTranslate: q.questionTranslate ? String(q.questionTranslate).trim() : undefined,
+            options,
+            correctAnswer: q.correctAnswer,
+            explanation: (q.explanation && typeof q.explanation === 'object') ? q.explanation
+                : (q.explanation ? { note: String(q.explanation).trim() } : {}),
+        };
+    });
+
+    return {
+        part,
+        source: body.source ? String(body.source).trim() : undefined,
+        audioUrl: body.audioUrl ? String(body.audioUrl).trim() : undefined,
+        audioText: body.audioText ? String(body.audioText).trim() : undefined,
+        audioTranslate: body.audioTranslate ? String(body.audioTranslate).trim() : undefined,
+        imageUrls: Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean) : [],
+        passages: Array.isArray(body.passages) ? body.passages.filter(Boolean) : [],
+        passageCount: body.passageCount ? parseInt(body.passageCount) : undefined,
+        questions,
+    };
 }
 
 /**
@@ -35,39 +101,26 @@ async function nextQuestionNumber(part, source) {
  */
 exports.getQuestions = async (req, res, next) => {
     try {
-        const {
-            part,
-            topic,
-            source,
-            groupId,
-            page = 1,
-            limit = 20,
-        } = req.query;
-
+        const { part, topic, source, page = 1, limit = 20 } = req.query;
         const query = {};
-
         if (part) query.part = parseInt(part);
         if (topic) query.topic = topic;
         if (source) query.source = source;
-        if (groupId) query.groupId = groupId;
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const questions = await ToeicQuestion.find(query)
-            .sort({ createdAt: -1, _id: -1 })
-            .limit(parseInt(limit))
-            .skip(skip)
-            .lean();
-
-        const total = await ToeicQuestion.countDocuments(query);
+        // Một dòng = một MÀN (Part 1/2/5 là màn 1 câu).
+        const sets = await ToeicQuestionSet.find(query)
+            .sort({ source: 1, part: 1, 'questions.0.number': 1 })
+            .limit(parseInt(limit)).skip(skip).lean();
+        const total = await ToeicQuestionSet.countDocuments(query);
 
         res.json({
             success: true,
-            count: questions.length,
+            count: sets.length,
             total,
             page: parseInt(page),
             pages: Math.ceil(total / parseInt(limit)),
-            data: questions,
+            data: sets,
         });
     } catch (error) {
         next(error);
@@ -81,19 +134,9 @@ exports.getQuestions = async (req, res, next) => {
  */
 exports.getQuestion = async (req, res, next) => {
     try {
-        const question = await ToeicQuestion.findById(req.params.id).lean();
-
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found',
-            });
-        }
-
-        res.json({
-            success: true,
-            data: question,
-        });
+        const set = await ToeicQuestionSet.findById(req.params.id).lean();
+        if (!set) return res.status(404).json({ success: false, message: 'Không tìm thấy màn hỏi' });
+        res.json({ success: true, data: set });
     } catch (error) {
         next(error);
     }
@@ -106,21 +149,19 @@ exports.getQuestion = async (req, res, next) => {
  */
 exports.createQuestion = async (req, res, next) => {
     try {
-        req.body.createdBy = req.user.id;
+        const payload = buildSetPayload(req.body);
+        // Câu nào chưa có số → đánh tiếp theo chuẩn TOEIC của Part trong bộ đề đó.
+        let next = await nextQuestionNumber(payload.part, payload.source);
+        payload.questions.forEach(q => { if (!Number.isFinite(q.number)) q.number = next++; });
 
-        // Auto-generate questionNumber if not provided
-        if (!req.body.questionNumber) {
-            req.body.questionNumber = await nextQuestionNumber(req.body.part, req.body.source);
-        }
-
-        const question = await ToeicQuestion.create(req.body);
-
+        const set = await ToeicQuestionSet.create({ ...payload, createdBy: req.user.id });
         res.status(201).json({
             success: true,
-            message: 'Question created successfully',
-            data: question,
+            message: `✅ Đã tạo màn ${set.questions.length} câu (Part ${set.part}).`,
+            data: set,
         });
     } catch (error) {
+        if (error.status === 400) return res.status(400).json({ success: false, message: error.message });
         next(error);
     }
 };
@@ -132,80 +173,19 @@ exports.createQuestion = async (req, res, next) => {
  * @access  Private/Admin
  */
 exports.createQuestionGroup = async (req, res, next) => {
-    try {
-        const { part, source, audioUrl, imageUrls, passageCount, questions } = req.body;
-
-        const p = parseInt(part);
-        if (![3, 4, 6, 7].includes(p)) {
-            return res.status(400).json({ success: false, message: 'Nhóm câu hỏi chỉ dùng cho Part 3/4/6/7.' });
-        }
-        if (!source || !String(source).trim()) {
-            return res.status(400).json({ success: false, message: 'Thiếu "source" (mã đề) cho nhóm.' });
-        }
-        if (!Array.isArray(questions) || questions.length < 2) {
-            return res.status(400).json({ success: false, message: 'Nhóm cần ít nhất 2 câu hỏi.' });
-        }
-
-        // Chuẩn hoá + kiểm tra từng câu con TRƯỚC khi ghi (không tạo nửa vời).
-        const cleaned = [];
-        for (let i = 0; i < questions.length; i++) {
-            const q = questions[i] || {};
-            const options = Array.isArray(q.options)
-                ? q.options
-                    .map((o, idx) => ({ label: o.label || String.fromCharCode(65 + idx), text: (o.text != null ? String(o.text) : '').trim() }))
-                    .filter(o => o.text)
-                : [];
-            if (options.length < 3) {
-                return res.status(400).json({ success: false, message: `Câu #${i + 1}: cần tối thiểu 3 đáp án có nội dung.` });
-            }
-            if (!q.correctAnswer || !options.some(o => o.label === q.correctAnswer)) {
-                return res.status(400).json({ success: false, message: `Câu #${i + 1}: correctAnswer không khớp đáp án nào.` });
-            }
-            cleaned.push({
-                questionText: q.questionText ? String(q.questionText).trim() : undefined,
-                options,
-                correctAnswer: q.correctAnswer,
-                explanation: q.explanation && typeof q.explanation === 'object' ? q.explanation
-                    : (q.explanation ? { note: String(q.explanation).trim() } : undefined),
-            });
-        }
-
-        // questionNumber tăng dần theo chuẩn TOEIC của Part (P6 bắt đầu 131…).
-        let nextNumber = await nextQuestionNumber(p, String(source).trim());
-
-        const groupId = `p${p}_grp_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
-        // Media CHUNG gắn vào MỌI câu trong nhóm → mỗi câu tự đủ ngữ cảnh
-        // (hiện đúng ở cả màn làm bài, sửa tay lẫn màn xem lại).
-        const sharedMedia = {
-            audioUrl: audioUrl ? String(audioUrl).trim() : undefined,
-            imageUrls: Array.isArray(imageUrls) ? imageUrls.filter(Boolean) : [],
-            passageCount: passageCount ? parseInt(passageCount) : undefined,
-        };
-
-        const docs = cleaned.map((c, i) => ({
-            part: p,
-            questionNumber: nextNumber++,
-            groupId,
-            questionIndex: i + 1,
-            source: String(source).trim(),
-            questionText: c.questionText,
-            options: c.options,
-            correctAnswer: c.correctAnswer,
-            explanation: c.explanation,
-            createdBy: req.user.id,
-            ...sharedMedia,
-        }));
-
-        const created = await ToeicQuestion.insertMany(docs);
-
-        res.status(201).json({
-            success: true,
-            message: `✅ Đã tạo nhóm ${created.length} câu (Part ${p}).`,
-            data: { groupId, count: created.length },
-        });
-    } catch (error) {
-        next(error);
+    // Nhóm câu hỏi CHÍNH LÀ một màn nhiều câu → dùng chung đường tạo màn.
+    // Giữ endpoint riêng để giao diện trình dựng nhóm không phải đổi.
+    const p = parseInt(req.body?.part);
+    if (![3, 4, 6, 7].includes(p)) {
+        return res.status(400).json({ success: false, message: 'Nhóm câu hỏi chỉ dùng cho Part 3/4/6/7.' });
     }
+    if (!Array.isArray(req.body?.questions) || req.body.questions.length < 2) {
+        return res.status(400).json({ success: false, message: 'Nhóm cần ít nhất 2 câu hỏi.' });
+    }
+    if (!req.body?.source || !String(req.body.source).trim()) {
+        return res.status(400).json({ success: false, message: 'Thiếu "source" (mã đề) cho nhóm.' });
+    }
+    return exports.createQuestion(req, res, next);
 };
 
 /**
@@ -215,25 +195,22 @@ exports.createQuestionGroup = async (req, res, next) => {
  */
 exports.updateQuestion = async (req, res, next) => {
     try {
-        const question = await ToeicQuestion.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true, runValidators: true }
-        );
+        const payload = buildSetPayload(req.body);
+        const current = await ToeicQuestionSet.findById(req.params.id).select('questions.number').lean();
+        if (!current) return res.status(404).json({ success: false, message: 'Không tìm thấy màn hỏi' });
 
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found',
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Question updated successfully',
-            data: question,
+        // Thiếu số thì giữ số cũ theo vị trí, không đánh lại từ đầu.
+        payload.questions.forEach((q, i) => {
+            if (!Number.isFinite(q.number)) q.number = current.questions[i]?.number;
         });
+        let next = await nextQuestionNumber(payload.part, payload.source);
+        payload.questions.forEach(q => { if (!Number.isFinite(q.number)) q.number = next++; });
+
+        const set = await ToeicQuestionSet.findByIdAndUpdate(req.params.id, payload,
+            { new: true, runValidators: true });
+        res.json({ success: true, message: 'Đã cập nhật màn hỏi', data: set });
     } catch (error) {
+        if (error.status === 400) return res.status(400).json({ success: false, message: error.message });
         next(error);
     }
 };
@@ -245,19 +222,9 @@ exports.updateQuestion = async (req, res, next) => {
  */
 exports.deleteQuestion = async (req, res, next) => {
     try {
-        const question = await ToeicQuestion.findByIdAndDelete(req.params.id);
-
-        if (!question) {
-            return res.status(404).json({
-                success: false,
-                message: 'Question not found',
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Question deleted successfully',
-        });
+        const set = await ToeicQuestionSet.findByIdAndDelete(req.params.id);
+        if (!set) return res.status(404).json({ success: false, message: 'Không tìm thấy màn hỏi' });
+        res.json({ success: true, message: `Đã xoá màn (${set.questions.length} câu)` });
     } catch (error) {
         next(error);
     }
@@ -270,12 +237,10 @@ exports.deleteQuestion = async (req, res, next) => {
  */
 exports.deleteAllQuestions = async (req, res, next) => {
     try {
-        // Delete all TOEIC questions
-        const result = await ToeicQuestion.deleteMany({});
-
+        const result = await ToeicQuestionSet.deleteMany({});
         res.json({
             success: true,
-            message: `Successfully deleted all TOEIC questions`,
+            message: 'Đã xoá toàn bộ câu hỏi TOEIC',
             deletedCount: result.deletedCount,
         });
     } catch (error) {
@@ -291,7 +256,7 @@ exports.deleteAllQuestions = async (req, res, next) => {
 exports.getQuestionSources = async (req, res, next) => {
     try {
         // distinct đã bỏ trùng; lọc rỗng/null rồi sắp xếp cho dễ nhìn.
-        const sources = (await ToeicQuestion.distinct('source'))
+        const sources = (await ToeicQuestionSet.distinct('source'))
             .filter(s => s && s.trim())
             .sort((a, b) => a.localeCompare(b));
         res.json({ success: true, data: sources });
@@ -327,7 +292,7 @@ exports.getQuestionsStatistics = async (req, res, next) => {
         let canCreateFullTest = true;
 
         for (let part = 1; part <= 7; part++) {
-            const total = await ToeicQuestion.countDocuments({ part, isActive: true, isPublished: true });
+            const total = await countQuestionsIn({ part, isActive: true, isPublished: true });
 
             const required = partRequirements[part];
             const missing = Math.max(0, required - total);
@@ -349,13 +314,13 @@ exports.getQuestionsStatistics = async (req, res, next) => {
         }
 
         // Section breakdown
-        const listeningCount = await ToeicQuestion.countDocuments({
+        const listeningCount = await countQuestionsIn({
             part: { $in: [1, 2, 3, 4] },
             isActive: true,
             isPublished: true,
         });
 
-        const readingCount = await ToeicQuestion.countDocuments({
+        const readingCount = await countQuestionsIn({
             part: { $in: [5, 6, 7] },
             isActive: true,
             isPublished: true,
@@ -435,24 +400,26 @@ exports.generateQuestionsWithAI = async (req, res, next) => {
                 const correctIdx = qData.options.findIndex(opt => opt.isCorrect);
                 const correctAnswer = LETTERS[correctIdx >= 0 ? correctIdx : 0];
 
-                const questionToSave = {
+                // AI sinh từng câu rời → mỗi câu là một MÀN 1 câu.
+                const setToSave = {
                     part: qData.part,
-                    questionNumber: i + 1,
-                    questionText: qData.questionText,
-                    options: transformedOptions,
-                    correctAnswer,
-                    explanation: qData.explanation || {},
-                    audioText: qData.audioTranscript || null,
+                    audioText: qData.audioTranscript || undefined,
                     passages: qData.passage ? [qData.passage] : [],
-                    passageType: qData.passageType || null,
                     topic: qData.passageType || 'general',
                     tags: ['ai-generated'],
                     isPublished: false,
                     isActive: true,
                     createdBy: req.user.id,
+                    questions: [{
+                        number: await nextQuestionNumber(qData.part, undefined),
+                        questionText: qData.questionText,
+                        options: transformedOptions,
+                        correctAnswer,
+                        explanation: qData.explanation || {},
+                    }],
                 };
 
-                const savedQuestion = await ToeicQuestion.create(questionToSave);
+                const savedQuestion = await ToeicQuestionSet.create(setToSave);
                 savedQuestions.push(savedQuestion);
             }
 

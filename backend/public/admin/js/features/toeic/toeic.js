@@ -143,7 +143,7 @@ async function loadQuestions(filterPart = '', _page = 1) {
         console.error('Error loading questions:', error);
         const tbody = document.querySelector('#questions-table tbody');
         if (tbody) tbody.innerHTML = `
-            <tr><td colspan="7" class="loading" style="color: red;">
+            <tr><td colspan="8" class="loading" style="color: red;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Error loading questions</p>
             </td></tr>
@@ -156,7 +156,7 @@ function renderQuestionsTable() {
 
     if (currentQuestions.length === 0) {
         tbody.innerHTML = `
-            <tr><td colspan="7" class="loading">
+            <tr><td colspan="8" class="loading">
                 <i class="fas fa-inbox"></i>
                 <p>No questions found</p>
             </td></tr>
@@ -199,7 +199,22 @@ function renderQuestionsTable() {
             keywordsTitle = keywordsTitleParts.join(' | ');
         }
 
-        const questionTextFull = q.questionText || 'N/A';
+        // Dữ liệu giờ là MỘT MÀN: Part 1/2/5 có 1 câu, Part 3/4/6/7 có nhiều câu.
+        const subs = Array.isArray(q.questions) ? q.questions : [];
+        const nums = subs.map(x => x.number).filter(Number.isFinite);
+        const numLabel = nums.length
+            ? (nums.length === 1 ? String(nums[0]) : `${Math.min(...nums)}–${Math.max(...nums)}`)
+            : '-';
+        const numDisplay = `<span style="font-weight:700;color:#e11d48">${numLabel}</span>` +
+            (subs.length > 1 ? `<br><small style="color:var(--text-secondary)">${subs.length} câu</small>` : '');
+
+        // Cột nội dung: câu đơn hiện đề bài; màn nhiều câu liệt kê số câu.
+        const questionTextFull = subs.length > 1
+            ? subs.map(x => `${x.number ?? '?'}. ${x.correctAnswer}`).join('  ·  ')
+            : (subs[0]?.questionText || 'N/A');
+        const answerDisplay = subs.length > 1
+            ? `<small style="color:var(--text-secondary)">${subs.length} đáp án</small>`
+            : (subs[0]?.correctAnswer || '-');
 
         const sourceFull = q.source || '';
         const sourceDisplay = sourceFull
@@ -209,9 +224,10 @@ function renderQuestionsTable() {
         return `
             <tr>
                 <td><span class="part-badge">Part ${q.part}</span></td>
+                <td style="text-align: center;">${numDisplay}</td>
                 <td title="${questionTextFull.replace(/"/g, '&quot;')}">${truncate(questionTextFull, 50)}</td>
                 <td style="text-align: center;">${sourceDisplay}</td>
-                <td style="text-align: center; font-weight: 600; color: #667eea;">${q.correctAnswer}</td>
+                <td style="text-align: center; font-weight: 600; color: #667eea;">${answerDisplay}</td>
                 <td style="text-align: center;" title="${firstImage || ''}">${imageDisplay}</td>
                 <td style="text-align: center;" title="${q.audioUrl || ''}">${audioDisplay}</td>
                 <td>
@@ -618,7 +634,7 @@ async function loadTests() {
         console.error('Error loading tests:', error);
         const tbody = document.querySelector('#tests-table tbody');
         if (tbody) tbody.innerHTML = `
-            <tr><td colspan="7" class="loading" style="color: red;">
+            <tr><td colspan="8" class="loading" style="color: red;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Error loading tests</p>
             </td></tr>
@@ -631,7 +647,7 @@ function renderTestsTable() {
 
     if (currentTests.length === 0) {
         tbody.innerHTML = `
-            <tr><td colspan="7" class="loading">
+            <tr><td colspan="8" class="loading">
                 <i class="fas fa-inbox"></i>
                 <p>Không tìm thấy đề thi nào</p>
             </td></tr>
@@ -2362,12 +2378,12 @@ async function loadUsersInTab() {
             applyUserFilters();
         } else {
             const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
-            tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: ${dangerColor}">Lỗi tải dữ liệu: ${data.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="loading" style="color: ${dangerColor}">Lỗi tải dữ liệu: ${data.message}</td></tr>`;
         }
     } catch (err) {
         console.error("Error loading users:", err);
         const dangerColor = getComputedStyle(document.documentElement).getPropertyValue('--danger').trim();
-        tbody.innerHTML = `<tr><td colspan="7" class="loading" style="color: ${dangerColor}">Lỗi kết nối API: Không thể tải danh sách tài khoản</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="loading" style="color: ${dangerColor}">Lỗi kết nối API: Không thể tải danh sách tài khoản</td></tr>`;
     }
 }
 
