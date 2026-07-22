@@ -1102,15 +1102,22 @@ table tbody tr:last-child td { border-bottom: none; }
 
 table tbody tr:hover td { background: var(--hover-bg); }
 
-/* Pagination inside cards */
+/* Pagination inside cards — nằm TRÊN bảng (khỏi phải cuộn xuống đáy mới đổi
+   được trang), nên viền/khoảng cách ngả xuống dưới thay vì lên trên. */
 .pagination-row {
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 6px;
-  padding-top: 16px;
-  margin-top: 16px;
-  border-top: 1px solid var(--border-color);
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+/* Không có gì để phân trang thì đừng để lại đường kẻ trống */
+.pagination-row:empty {
+  padding: 0;
+  margin: 0;
+  border: none;
 }
 
 /* ── Phân trang dùng chung (renderPager) — một kiểu cho mọi bảng ── */
