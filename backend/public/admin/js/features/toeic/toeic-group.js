@@ -8,7 +8,21 @@ let groupImageUrls = [];        // ảnh chung của nhóm
 let groupAudioUrl = '';         // audio chung của nhóm
 let groupQCounter = 0;          // đảm bảo name radio duy nhất giữa các hàng
 
+/**
+ * Mở trình dựng nhóm. Trước đây là popup, giờ là TAB DỌC riêng — nên chuyển
+ * tab rồi mới dựng lại form. Giữ nguyên tên vì nút "+ Nhóm câu" đang gọi.
+ */
 function openGroupModal() {
+    document.querySelector('.sidebar-link[data-main-tab="toeic-group"]')?.click();
+    resetGroupBuilder();
+}
+
+/** "Xoá trắng": dựng lại trình dựng từ đầu thay vì đóng popup như trước. */
+function closeGroupModal() {
+    resetGroupBuilder();
+}
+
+function resetGroupBuilder() {
     groupImageUrls = [];
     groupAudioUrl = '';
     groupQCounter = 0;
@@ -43,12 +57,20 @@ function openGroupModal() {
 
     if (typeof loadTestSourceOptions === 'function') loadTestSourceOptions();
     groupUpdatePartVisibility();
-    document.getElementById('group-modal').style.display = 'flex';
 }
 
-function closeGroupModal() {
-    document.getElementById('group-modal').style.display = 'none';
+// Lần đầu vào tab mới dựng form; các lần sau giữ nguyên để không mất công gõ.
+let _groupTabInited = false;
+async function initToeicGroupTab() {
+    if (typeof loadTestSourceOptions === 'function') loadTestSourceOptions();
+    if (_groupTabInited) return;
+    _groupTabInited = true;
+
+    resetGroupBuilder();
+    if (typeof ensurePromptsLoaded === 'function') await ensurePromptsLoaded();
+    if (typeof initPromptEditor === 'function') initPromptEditor('group', ['3', '4', '6', '7']);
 }
+window.initToeicGroupTab = initToeicGroupTab;
 
 // Chuyển tab Trình dựng / Nhập JSON trong modal nhóm.
 function switchGroupTab(tab) {

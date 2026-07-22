@@ -36,6 +36,8 @@ function initMainTabs() {
         vocabulary:          'Từ vựng TOEIC',
         users:               'Tài khoản người dùng',
         'toeic-questions':   'Câu hỏi TOEIC',
+        'toeic-single':      'Tạo câu đơn TOEIC (Part 1·2·5)',
+        'toeic-group':       'Tạo nhóm câu TOEIC (Part 3·4·6·7)',
         'toeic-tests':       'Đề thi TOEIC',
         activity:            'Hoạt động người dùng',
         reports:             'Báo cáo người dùng',
@@ -78,6 +80,10 @@ function initMainTabs() {
         } else if (tab === 'toeic-questions') {
             loadToeicStats();
             loadQuestions();
+        } else if (tab === 'toeic-single') {
+            window.initToeicSingleTab?.();
+        } else if (tab === 'toeic-group') {
+            window.initToeicGroupTab?.();
         } else if (tab === 'toeic-tests') {
             loadToeicStats();
             loadTests();
@@ -215,7 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
         updateQuestionJsonPlaceholder(); // set theo Part mặc định khi tải trang
     }
     document.getElementById('btn-submit-q-json')?.addEventListener('click', () => submitQuestionJsonImport());
-    document.getElementById('btn-close-q-json')?.addEventListener('click', closeQuestionModal);
+    document.getElementById('btn-close-q-json')?.addEventListener('click', clearQuestionJson);
 
     document.getElementById('question-image-file')?.addEventListener('change', (e) => {
         const file = e.target.files?.[0];

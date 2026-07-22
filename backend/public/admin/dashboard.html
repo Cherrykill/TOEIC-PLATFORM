@@ -7,7 +7,7 @@
     <title>TOEIC Learning Platform - Admin Dashboard</title>
     <!-- FontAwesome self-host (bỏ cdnjs → hết Tracking Prevention chặn) -->
     <link rel="stylesheet" href="/admin/vendor/fontawesome/css/all.min.css?v=6.4.0" />
-    <link rel="stylesheet" href="/admin/css/dashboard.css?v=16" />
+    <link rel="stylesheet" href="/admin/css/dashboard.css?v=17" />
   </head>
   <body>
     <!-- @include('partials/modals/login-modal.html') -->
@@ -36,6 +36,10 @@
 
           <!-- @include('partials/tabs/toeic-questions.html') -->
           <!-- End TOEIC Questions Tab -->
+
+          <!-- @include('partials/tabs/toeic-single.html') -->
+
+          <!-- @include('partials/tabs/toeic-group.html') -->
 
           <!-- @include('partials/tabs/toeic-tests.html') -->
           <!-- End TOEIC Tests Tab -->
@@ -91,10 +95,6 @@
 
     <!-- @include('partials/modals/user-form-modal.html') -->
 
-    <!-- @include('partials/modals/question-modal.html') -->
-
-    <!-- @include('partials/modals/group-modal.html') -->
-
     <!-- @include('partials/modals/test-modal.html') -->
 
     <!-- @include('partials/modals/achievement-modal.html') -->
@@ -118,8 +118,8 @@
     <script src="/admin/js/features/vocab/vocab.js?v=4"></script>
     <script src="/admin/js/features/users/users.js?v=2"></script>
     <script src="/admin/js/features/vocab/vocab-stats.js?v=2"></script>
-    <script src="/admin/js/features/toeic/toeic.js?v=37"></script>
-    <script src="/admin/js/features/toeic/toeic-group.js?v=4"></script>
+    <script src="/admin/js/features/toeic/toeic.js?v=38"></script>
+    <script src="/admin/js/features/toeic/toeic-group.js?v=5"></script>
     <script src="/admin/js/features/monitor/monitor.js?v=2"></script>
     <script src="/admin/js/core/tabs.js?v=3"></script>
     <script src="/admin/js/features/season/season-admin.js?v=1"></script>
@@ -131,7 +131,7 @@
     <script src="/admin/js/features/economy/game-config-admin.js?v=1"></script>
     <script src="/admin/js/features/economy/feature-unlock-admin.js?v=2"></script>
     <script src="/admin/js/features/monitor/db-manager.js?v=3"></script>
-    <script src="/admin/js/core/ui-init.js?v=14"></script>
+    <script src="/admin/js/core/ui-init.js?v=15"></script>
     <script src="/admin/js/core/nav-game.js?v=15"></script>
   </body>
 </html>

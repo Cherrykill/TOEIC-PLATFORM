@@ -847,8 +847,30 @@ function setPartOptionsMode(editMode) {
     if (hint) hint.style.display = editMode ? 'none' : 'block';
 }
 
+/**
+ * Mở form câu đơn. Trước đây là popup, giờ là TAB DỌC riêng — nên hàm này
+ * chuyển tab rồi mới nạp dữ liệu. Giữ nguyên tên vì nhiều nơi đang gọi
+ * (nút "+ Câu đơn", nút Sửa ở bảng câu hỏi).
+ */
 function openQuestionModal(questionId = null) {
-    const modal = document.getElementById('question-modal');
+    document.querySelector('.sidebar-link[data-main-tab="toeic-single"]')?.click();
+    fillQuestionForm(questionId);
+}
+
+/** "Xoá trắng": về lại chế độ thêm mới thay vì đóng popup như trước. */
+function closeQuestionModal() {
+    fillQuestionForm(null);
+}
+
+/** Xoá trắng riêng ô JSON — ở lại tab JSON, không nhảy về tab Nhập tay. */
+function clearQuestionJson() {
+    const input = document.getElementById('question-json-input');
+    const result = document.getElementById('question-json-result');
+    if (input) input.value = '';
+    if (result) result.style.display = 'none';
+}
+
+function fillQuestionForm(questionId = null) {
     const form = document.getElementById('question-form');
     const title = document.getElementById('question-modal-title');
     const audioPreview = document.getElementById('audio-preview');
@@ -895,7 +917,7 @@ function openQuestionModal(questionId = null) {
             if ((question.questions?.length || 0) > 1) {
                 alert(`Màn này có ${question.questions.length} câu (Part ${question.part}).
 ` +
-                      'Form câu đơn chỉ sửa được câu đầu. Hãy xoá rồi tạo lại bằng "Thêm nhóm".');
+                      'Form câu đơn chỉ sửa được câu đầu. Hãy xoá rồi tạo lại ở tab "Tạo nhóm câu".');
             }
 
             (sub.options || []).forEach((opt, idx) => {
@@ -924,12 +946,6 @@ function openQuestionModal(questionId = null) {
     if (qJsonInput) qJsonInput.value = '';
     if (qJsonResult) qJsonResult.style.display = 'none';
     switchQuestionModalTab('manual');
-
-    modal.style.display = 'flex';
-}
-
-function closeQuestionModal() {
-    document.getElementById('question-modal').style.display = 'none';
 }
 
 // ===================================
@@ -1101,6 +1117,32 @@ ${_SET_SHAPE}
       "correctAnswer": "A",
       "explanation": { "A": "✅ Đúng: closed for the national holiday.", "B": "❌ Không đề cập.", "C": "❌ Không đề cập.", "D": "❌ Không đề cập." } } ] }
 ]` + _Q_FOOTER,
+
+    // Prompt tổng: dùng khi không chốt trước Part. Nằm chung PART_PROMPTS để
+    // admin sửa/khôi phục nó y hệt prompt của từng Part.
+    'all': `Bạn là trợ lý tạo câu hỏi TOEIC. Chuyển nội dung tôi cung cấp thành MẢNG JSON,
+mỗi phần tử là MỘT MÀN HỎI đúng khung sau:
+${_SET_SHAPE}
+=== SỐ CÂU & SỐ CÂU MỖI MÀN THEO PART ===
+- Part 1 (1-6): 1 câu/màn · 1 ảnh + 1 audio · KHÔNG có "questionText"
+- Part 2 (7-31): 1 câu/màn · 1 audio · CHỈ 3 đáp án A/B/C
+- Part 3 (32-70): ~3 câu/màn · audio chung ở cấp màn
+- Part 4 (71-100): ~3 câu/màn · audio chung ở cấp màn
+- Part 5 (101-130): 1 câu/màn · không audio/ảnh
+- Part 6 (131-146): 4 câu/màn · 1 ảnh đoạn văn · KHÔNG có "questionText"
+- Part 7 (147-200): nhiều câu/màn · thêm "passageCount" 1-3, số ảnh = passageCount` + _Q_FOOTER,
+};
+
+// Nhãn hiển thị trong ô chọn prompt.
+const PROMPT_KEY_LABELS = {
+    '1': 'Part 1 — Mô tả tranh',
+    '2': 'Part 2 — Hỏi & đáp',
+    '3': 'Part 3 — Hội thoại',
+    '4': 'Part 4 — Bài nói',
+    '5': 'Part 5 — Hoàn thành câu',
+    '6': 'Part 6 — Hoàn thành đoạn',
+    '7': 'Part 7 — Đọc hiểu',
+    'all': 'Tất cả Part (prompt tổng)',
 };
 
 // Trích phần "=== VÍ DỤ === [...]" trong prompt của 1 Part để làm placeholder ô JSON.
@@ -1171,30 +1213,125 @@ async function resetPromptOverride(key) {
     return data;
 }
 
+// Chỉ gọi API prompts MỘT lần cho cả hai tab (cùng dùng chung PROMPT_OVERRIDES).
+let _promptsLoading = null;
+function ensurePromptsLoaded() {
+    if (!_promptsLoading) _promptsLoading = loadPromptOverrides();
+    return _promptsLoading;
+}
+
+// ===================================
+// TRÌNH SOẠN PROMPT (dùng chung cho tab Câu đơn và tab Nhóm câu)
+// prefix = 'single' | 'group' → id: {prefix}-prompt-key/-text/-save/-reset/-copy/-status
+// ===================================
+
+function _promptEl(prefix, name) {
+    return document.getElementById(`${prefix}-prompt-${name}`);
+}
+
+/** Đổ prompt đang có hiệu lực của key đang chọn vào ô soạn thảo. */
+function refreshPromptEditor(prefix) {
+    const sel = _promptEl(prefix, 'key');
+    const ta = _promptEl(prefix, 'text');
+    const status = _promptEl(prefix, 'status');
+    if (!sel || !ta) return;
+
+    const key = sel.value;
+    ta.value = getEffectivePrompt(key);
+    if (!status) return;
+
+    const edited = Object.prototype.hasOwnProperty.call(PROMPT_OVERRIDES, key);
+    status.innerHTML = edited
+        ? '<i class="fas fa-pen-to-square" style="color:#f59e0b"></i> Đang dùng <strong>bản đã sửa</strong> (lưu trong DB). Bấm “Về mặc định” để xoá bản sửa.'
+        : '<i class="fas fa-box" style="color:#10b981"></i> Đang dùng <strong>bản mặc định</strong> trong code. Sửa rồi bấm “Lưu” để ghi đè.';
+}
+
+function initPromptEditor(prefix, keys) {
+    const sel = _promptEl(prefix, 'key');
+    const ta = _promptEl(prefix, 'text');
+    if (!sel || !ta || sel.dataset.bound) return;
+    sel.dataset.bound = '1';
+
+    sel.innerHTML = keys
+        .map(k => `<option value="${k}">${PROMPT_KEY_LABELS[k] || `Part ${k}`}</option>`)
+        .join('');
+
+    // Đổi Part khi đang sửa dở → hỏi trước, tránh mất công gõ.
+    sel.addEventListener('change', () => {
+        if (ta.dataset.dirty === '1' && !confirm('Prompt đang sửa chưa lưu sẽ mất. Vẫn đổi Part?')) {
+            sel.value = sel.dataset.lastKey;
+            return;
+        }
+        ta.dataset.dirty = '';
+        sel.dataset.lastKey = sel.value;
+        refreshPromptEditor(prefix);
+    });
+    ta.addEventListener('input', () => { ta.dataset.dirty = '1'; });
+
+    _promptEl(prefix, 'save')?.addEventListener('click', async () => {
+        const key = sel.value;
+        try {
+            await savePromptOverride(key, ta.value);
+            ta.dataset.dirty = '';
+            refreshPromptEditor(prefix);
+            showToast(`Đã lưu prompt ${PROMPT_KEY_LABELS[key] || key}`, 'success');
+        } catch (e) {
+            showToast(`Lưu prompt lỗi: ${e.message}`, 'error');
+        }
+    });
+
+    _promptEl(prefix, 'reset')?.addEventListener('click', async () => {
+        const key = sel.value;
+        if (!Object.prototype.hasOwnProperty.call(PROMPT_OVERRIDES, key)) {
+            showToast('Prompt này đang là bản mặc định rồi', 'info');
+            return;
+        }
+        if (!confirm(`Xoá bản sửa của "${PROMPT_KEY_LABELS[key] || key}" và quay về mặc định?`)) return;
+        try {
+            await resetPromptOverride(key);
+            ta.dataset.dirty = '';
+            refreshPromptEditor(prefix);
+            showToast('Đã khôi phục prompt mặc định', 'success');
+        } catch (e) {
+            showToast(`Khôi phục lỗi: ${e.message}`, 'error');
+        }
+    });
+
+    _promptEl(prefix, 'copy')?.addEventListener('click', () => {
+        navigator.clipboard?.writeText(ta.value)
+            .then(() => showToast('Đã copy prompt', 'success'))
+            .catch(() => showToast('Không copy được, hãy bôi đen và copy tay', 'error'));
+    });
+
+    sel.dataset.lastKey = sel.value;
+    refreshPromptEditor(prefix);
+}
+
+// ===================================
+// TAB "TẠO CÂU ĐƠN" (Part 1·2·5)
+// ===================================
+
+let _singleTabInited = false;
+async function initToeicSingleTab() {
+    // Gợi ý mã đề luôn mới (admin có thể vừa tạo đề ở tab khác).
+    if (typeof loadTestSourceOptions === 'function') loadTestSourceOptions();
+    if (_singleTabInited) return;
+    _singleTabInited = true;
+
+    // Form trống lần đầu vào tab; các lần sau giữ nguyên để không mất công gõ.
+    fillQuestionForm(null);
+    await ensurePromptsLoaded();
+    initPromptEditor('single', ['1', '2', '5', 'all']);
+}
+window.initToeicSingleTab = initToeicSingleTab;
+
 function copyQuestionPrompt(forcedPart, forcedSource) {
     // forcedPart/forcedSource: modal NHÓM truyền Part + mã đề đang chọn để prompt sát hơn.
     const partSel = document.getElementById('q-prompt-part');
     const part = (forcedPart && typeof forcedPart === 'string') ? forcedPart : (partSel ? partSel.value : 'all');
-    // Prompt "Tất cả Part": dùng chung khung MÀN HỎI + quy tắc chung, thay vì
-    // lặp lại schema dài. Chọn 1 Part cụ thể thì dùng PART_PROMPTS gọn hơn.
-    let prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Chuyển nội dung tôi cung cấp thành MẢNG JSON,
-mỗi phần tử là MỘT MÀN HỎI đúng khung sau:
-${_SET_SHAPE}
-=== SỐ CÂU & SỐ CÂU MỖI MÀN THEO PART ===
-- Part 1 (1-6): 1 câu/màn · 1 ảnh + 1 audio · KHÔNG có "questionText"
-- Part 2 (7-31): 1 câu/màn · 1 audio · CHỈ 3 đáp án A/B/C
-- Part 3 (32-70): ~3 câu/màn · audio chung ở cấp màn
-- Part 4 (71-100): ~3 câu/màn · audio chung ở cấp màn
-- Part 5 (101-130): 1 câu/màn · không audio/ảnh
-- Part 6 (131-146): 4 câu/màn · 1 ảnh đoạn văn · KHÔNG có "questionText"
-- Part 7 (147-200): nhiều câu/màn · thêm "passageCount" 1-3, số ảnh = passageCount`
-        + _Q_FOOTER;
-
-    // Chọn 1 Part cụ thể → dùng prompt RIÊNG, gọn (không gộp chung 7 part).
+    // Chọn 1 Part cụ thể → prompt RIÊNG, gọn. Không chọn → prompt tổng.
     // Ưu tiên bản admin đã sửa; chưa sửa thì dùng mặc định trong code.
-    const eff = getEffectivePrompt(part);
-    if (part !== 'all' && eff) prompt = eff;
-    else if (part === 'all' && PROMPT_OVERRIDES.all) prompt = PROMPT_OVERRIDES.all;
+    let prompt = getEffectivePrompt(part) || getEffectivePrompt('all');
 
     // Có Source → ép AI dùng đúng mã đề cho MỌI câu (khỏi gõ lệch source).
     const src = (typeof forcedSource === 'string') ? forcedSource.trim() : '';

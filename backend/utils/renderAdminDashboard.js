@@ -5,14 +5,20 @@ const path = require('path');
 
 const ADMIN_DIR = path.join(__dirname, '..', 'public', 'admin');
 const SHELL_PATH = path.join(ADMIN_DIR, 'dashboard.html');
-const INCLUDE_RE = /^(\s*)<!-- @include\('(.+?)'\) -->$/;
+// \r? ở cuối: repo bật core.autocrlf nên máy Windows checkout ra CRLF. Thiếu nó
+// thì marker không khớp, dashboard render ra vỏ rỗng (không lỗi, chỉ trắng trang).
+const INCLUDE_RE = /^(\s*)<!-- @include\('(.+?)'\) -->\r?$/;
+
+// Tách dòng theo cả LF lẫn CRLF để không dính \r vào cuối mỗi dòng.
+function splitLines(text) {
+  return text.split(/\r?\n/);
+}
 
 function renderAdminDashboard() {
   const shell = fs.readFileSync(SHELL_PATH, 'utf8');
-  const lines = shell.split('\n');
   const out = [];
 
-  for (const line of lines) {
+  for (const line of splitLines(shell)) {
     const match = line.match(INCLUDE_RE);
     if (!match) {
       out.push(line);
@@ -23,8 +29,8 @@ function renderAdminDashboard() {
     if (!partialPath.startsWith(ADMIN_DIR)) {
       throw new Error(`Invalid partial path: ${relPath}`);
     }
-    const content = fs.readFileSync(partialPath, 'utf8').replace(/\n$/, '');
-    out.push(...content.split('\n'));
+    const content = fs.readFileSync(partialPath, 'utf8').replace(/\r?\n$/, '');
+    out.push(...splitLines(content));
   }
 
   return out.join('\n');

@@ -1923,7 +1923,6 @@ table tbody tr:hover td { background: var(--hover-bg); }
 
 /* Panel trong của các modal hardcode background:white */
 [data-theme="dark"] #add-word-modal > div,
-[data-theme="dark"] #question-modal > div,
 [data-theme="dark"] #test-modal > div {
   background: var(--bg-primary) !important;
   color: var(--text-primary) !important;
@@ -1939,16 +1938,17 @@ table tbody tr:hover td { background: var(--hover-bg); }
 }
 #test-form label { font-size: 12px !important; font-weight: 600 !important; margin-bottom: 4px !important; }
 
-/* Chữ & label bên trong mọi modal admin (label thường không set màu) */
+/* Chữ & label bên trong mọi modal admin (label thường không set màu).
+   Hai tab tạo câu hỏi TOEIC dùng chung markup form nên gộp luôn vào đây. */
 [data-theme="dark"] #add-word-modal,
-[data-theme="dark"] #question-modal,
 [data-theme="dark"] #test-modal,
 [data-theme="dark"] #achievement-modal,
 [data-theme="dark"] #quest-modal,
 [data-theme="dark"] #shop-modal,
 [data-theme="dark"] #add-word-modal label,
-[data-theme="dark"] #question-modal label,
 [data-theme="dark"] #test-modal label,
+[data-theme="dark"] #main-tab-toeic-single label,
+[data-theme="dark"] #main-tab-toeic-group label,
 [data-theme="dark"] #achievement-modal label,
 [data-theme="dark"] #quest-modal label,
 [data-theme="dark"] #shop-modal label {
@@ -2023,7 +2023,6 @@ table tbody tr:hover td { background: var(--hover-bg); }
    màn nhỏ).
    =================================================================== */
 #add-word-modal > div,
-#question-modal > div,
 #test-modal > div,
 #achievement-modal > div,
 #quest-modal > div,
