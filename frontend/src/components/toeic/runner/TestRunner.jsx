@@ -72,6 +72,26 @@ export default function TestRunner({ config, onExit, onShowResults }) {
 
     const audio = useToeicAudio({ onFinished: handleAudioFinished });
 
+    // Header đề thi dính (sticky) NGAY DƯỚI hai thanh chung của app (.top-nav +
+    // .status-bar) — cả hai cũng sticky. Để top:0 thì nó trượt xuống dưới hai
+    // thanh kia và biến mất đúng lúc cuộn xem ảnh. Đo chiều cao thật thay vì
+    // ghi số cứng: desktop/mobile mỗi nơi một khác.
+    useEffect(() => {
+        const measure = () => {
+            const h = ['.top-nav', '.status-bar'].reduce((sum, sel) => {
+                const el = document.querySelector(sel);
+                if (!el) return sum;
+                const st = getComputedStyle(el);
+                if (st.position !== 'sticky' && st.position !== 'fixed') return sum;
+                return sum + el.getBoundingClientRect().height;
+            }, 0);
+            document.documentElement.style.setProperty('--app-sticky-offset', `${Math.round(h)}px`);
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    }, []);
+
     // Khoá thanh tìm kiếm trên header CHỈ khi đang làm Full Test (mini/đục lỗ không khoá).
     useEffect(() => {
         const lock = phase === 'running' && attempt.test?.testType === 'full-test';

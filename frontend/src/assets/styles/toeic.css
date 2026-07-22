@@ -388,9 +388,13 @@
    ================================== */
 
 .toeic-test-header-bar {
-  /* Dính trên cùng khi cuộn → đồng hồ + nút Nộp bài luôn nhìn thấy */
+  /* Dính khi cuộn → đồng hồ + nút Nộp bài luôn nhìn thấy.
+     Neo NGAY DƯỚI hai thanh chung của app (.top-nav + .status-bar, cũng
+     sticky). Để top:0 thì header này chui xuống dưới chúng và mất hút đúng
+     lúc cuộn xem ảnh đề. --app-sticky-offset do TestRunner đo lúc chạy;
+     96px chỉ là dự phòng khi biến chưa kịp đặt. */
   position: sticky;
-  top: 0;
+  top: var(--app-sticky-offset, 96px);
   z-index: 30;
   background-color: var(--bg-primary);
   padding: var(--spacing-md);
