@@ -1220,16 +1220,32 @@ table tbody tr:hover td { background: var(--hover-bg); }
 .options-container { border: 1.5px solid var(--border-color); border-radius: var(--radius); padding: 12px; margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
 .option-item { display: flex; gap: 8px; margin-bottom: 0; align-items: center; }
 .option-item input[type="radio"] { width: 18px; height: 18px; flex-shrink: 0; }
-/* Nén toàn bộ form Add Question — input thấp như form Add Word */
+/* Nén form tạo câu hỏi — input thấp như form Add Word.
+   Áp cho CẢ HAI tab (câu đơn & nhóm câu): trước đây chỉ #question-form được
+   nén nên tab Nhóm câu chữ to hơn hẳn, nhìn lệch nhau. Trừ radio/checkbox
+   để không phồng nút chọn đáp án. */
 .option-item input[type="text"],
-#question-form input, #question-form select, #question-form textarea {
+#main-tab-toeic-single input:not([type="radio"]):not([type="checkbox"]),
+#main-tab-toeic-single select,
+#main-tab-toeic-single textarea,
+#main-tab-toeic-group input:not([type="radio"]):not([type="checkbox"]),
+#main-tab-toeic-group select,
+#main-tab-toeic-group textarea {
   padding: 8px 10px !important;
   border-width: 1px !important;
   border-radius: 6px !important;
   font-size: 13px !important;
 }
-#question-form label { font-size: 12px !important; font-weight: 600 !important; margin-bottom: 4px !important; }
-#question-form textarea { min-height: 0; }
+#main-tab-toeic-single label,
+#main-tab-toeic-group label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px !important;
+}
+#main-tab-toeic-single textarea,
+#main-tab-toeic-group textarea { min-height: 0; }
+/* Chữ dẫn giải (small / p mô tả) cùng cỡ ở cả hai tab */
+#main-tab-toeic-single small, #main-tab-toeic-group small { font-size: 11.5px; }
 
 /* Search inputs inside card (vocab / history) */
 .card-search {

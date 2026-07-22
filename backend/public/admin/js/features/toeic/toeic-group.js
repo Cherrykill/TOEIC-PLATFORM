@@ -7,14 +7,77 @@
 let groupImageUrls = [];        // ảnh chung của nhóm
 let groupAudioUrl = '';         // audio chung của nhóm
 let groupQCounter = 0;          // đảm bảo name radio duy nhất giữa các hàng
+let editingGroupId = null;      // khác null = đang SỬA một màn có sẵn
 
 /**
  * Mở trình dựng nhóm. Trước đây là popup, giờ là TAB DỌC riêng — nên chuyển
  * tab rồi mới dựng lại form. Giữ nguyên tên vì nút "+ Nhóm câu" đang gọi.
+ * Truyền setId = sửa cả màn (nhiều câu một lượt) thay vì tạo mới.
  */
-function openGroupModal() {
+function openGroupModal(setId = null) {
     document.querySelector('.sidebar-link[data-main-tab="toeic-group"]')?.click();
     resetGroupBuilder();
+    if (setId) fillGroupBuilder(setId);
+}
+
+/** Đổ dữ liệu một màn có sẵn vào trình dựng để sửa cả loạt câu. */
+async function fillGroupBuilder(setId) {
+    // Ưu tiên dữ liệu bảng đang mở; không có (đổi trang, tải lại) thì hỏi server.
+    let set = (currentQuestions || []).find(q => q._id === setId);
+    if (!set) {
+        try {
+            const res = await fetch(`${TOEIC_API_BASE}/questions/${setId}`, {
+                headers: { Authorization: `Bearer ${getToken()}` },
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+            set = data.data;
+        } catch (e) {
+            showToast(`Không tải được màn hỏi: ${e.message}`, 'error');
+            return;
+        }
+    }
+
+    editingGroupId = setId;
+    groupAudioUrl = set.audioUrl || '';
+    groupImageUrls = Array.isArray(set.imageUrls) ? [...set.imageUrls] : [];
+
+    document.getElementById('group-part').value = String(set.part);
+    document.getElementById('group-source').value = set.source || '';
+    document.getElementById('group-passage-count').value = set.passageCount || '';
+
+    if (groupAudioUrl) {
+        document.getElementById('group-audio-player').src = groupAudioUrl;
+        document.getElementById('group-audio-preview').style.display = 'block';
+    }
+    renderGroupImages();
+
+    // Dựng lại đúng số hàng câu con, giữ nguyên số câu đã đánh.
+    const container = document.getElementById('group-questions-container');
+    container.innerHTML = '';
+    (set.questions || []).forEach(q => container.appendChild(makeGroupQuestionRow(q)));
+    if (!container.querySelectorAll('.group-q-row').length) container.appendChild(makeGroupQuestionRow());
+    renumberGroupQuestions();
+
+    groupUpdatePartVisibility();
+    syncGroupEditMode();
+}
+
+/** Đổi nhãn tiêu đề + nút Lưu theo chế độ đang tạo mới hay đang sửa. */
+function syncGroupEditMode() {
+    const title = document.getElementById('group-builder-title');
+    const btn = document.getElementById('btn-submit-group');
+    const isEdit = !!editingGroupId;
+    if (title) {
+        title.innerHTML = isEdit
+            ? '<i class="fas fa-pen-to-square"></i> Sửa nhóm câu (Part 3·4·6·7)'
+            : '<i class="fas fa-layer-group"></i> Thêm nhóm câu (Part 3·4·6·7)';
+    }
+    if (btn) {
+        btn.innerHTML = isEdit
+            ? '<i class="fas fa-save"></i> Lưu thay đổi'
+            : '<i class="fas fa-layer-group"></i> Tạo nhóm';
+    }
 }
 
 /** "Xoá trắng": dựng lại trình dựng từ đầu thay vì đóng popup như trước. */
@@ -26,6 +89,8 @@ function resetGroupBuilder() {
     groupImageUrls = [];
     groupAudioUrl = '';
     groupQCounter = 0;
+    editingGroupId = null;
+    syncGroupEditMode();
     document.getElementById('group-part').value = '3';
     document.getElementById('group-source').value = '';
     document.getElementById('group-audio-file').value = '';
@@ -80,7 +145,7 @@ function switchGroupTab(tab) {
     const tabJson = document.getElementById('group-tab-json');
     const btnCreate = document.getElementById('btn-submit-group');
     const btnImport = document.getElementById('btn-group-submit-json');
-    const on = { background: '#e11d48', color: '#fff' };
+    const on = { background: 'var(--primary)', color: '#fff' };
     const off = { background: '#f5f5f5', color: '#666' };
     const isJson = tab === 'json';
     manual.style.display = isJson ? 'none' : 'block';
@@ -138,35 +203,58 @@ function renderGroupImages() {
     });
 }
 
-// 1 hàng câu hỏi con: nội dung + 4 đáp án (radio chọn đúng) + giải thích + xóa.
-function makeGroupQuestionRow() {
+// Escape để giá trị nạp sẵn không phá thuộc tính HTML.
+function _gqAttr(v) {
+    return String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+// 1 hàng câu hỏi con: số câu + nội dung + 4 đáp án (radio chọn đúng) + giải thích + xóa.
+// `data` (tùy chọn) là một câu con có sẵn — dùng khi SỬA cả nhóm.
+function makeGroupQuestionRow(data = null) {
     const id = ++groupQCounter;
     const wrap = document.createElement('div');
     wrap.className = 'group-q-row';
     wrap.dataset.qid = id;
-    wrap.style.cssText = 'border:1.5px solid #e5e7eb;border-radius:10px;padding:12px;margin-bottom:10px;position:relative';
+    wrap.style.cssText = 'border:1.5px solid var(--border-color,#e5e7eb);border-radius:10px;padding:12px;margin-bottom:10px;position:relative';
+
+    const optText = (L) => (data?.options || []).find(o => o.label === L)?.text || '';
     const opt = (L) => `
         <div style="display:flex;gap:6px;align-items:center">
-            <input type="radio" name="gq-correct-${id}" value="${L}" style="width:16px;height:16px;flex-shrink:0" title="Đáp án đúng">
+            <input type="radio" name="gq-correct-${id}" value="${L}" style="width:16px;height:16px;flex-shrink:0"
+                title="Đáp án đúng" ${data?.correctAnswer === L ? 'checked' : ''}>
             <span style="width:16px;font-weight:600">${L}</span>
             <input type="text" class="gq-opt" data-label="${L}" placeholder="Đáp án ${L}${L === 'D' ? ' (tùy chọn)' : ''}"
-                style="flex:1;padding:7px;border:1.5px solid #e0e0e0;border-radius:6px">
+                value="${_gqAttr(optText(L))}"
+                style="flex:1;padding:7px;border:1px solid var(--border-color,#e0e0e0);border-radius:6px">
         </div>`;
+
+    const expVal = data?.explanation && typeof data.explanation === 'object'
+        ? JSON.stringify(data.explanation, null, 2)
+        : (data?.explanation || '');
+
     wrap.innerHTML = `
         <button type="button" class="gq-del" title="Xóa câu này"
             style="position:absolute;top:8px;right:8px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;width:26px;height:26px;cursor:pointer">×</button>
-        <div style="font-weight:600;color:#6366f1;margin-bottom:8px"><i class="fas fa-circle-question"></i> <span class="gq-num"></span></div>
-        <input type="text" class="gq-text" placeholder="Nội dung câu hỏi..."
-            style="width:100%;padding:8px;border:1.5px solid #e0e0e0;border-radius:6px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-weight:600;color:#6366f1"><i class="fas fa-circle-question"></i> <span class="gq-num"></span></span>
+            <label style="margin:0;color:var(--text-secondary)">Số câu</label>
+            <input type="number" class="gq-number" min="1" max="200" value="${_gqAttr(data?.number ?? '')}"
+                placeholder="tự đánh" title="Để trống = server tự đánh theo chuẩn Part"
+                style="width:96px;padding:6px 8px;border:1px solid var(--border-color,#e0e0e0);border-radius:6px">
+        </div>
+        <input type="text" class="gq-text" placeholder="Nội dung câu hỏi..." value="${_gqAttr(data?.questionText)}"
+            style="width:100%;padding:8px;border:1px solid var(--border-color,#e0e0e0);border-radius:6px;margin-bottom:8px">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:8px">
             ${opt('A')}${opt('B')}${opt('C')}${opt('D')}
         </div>
         <textarea class="gq-exp" rows="2" placeholder='Giải thích (tùy chọn) — có thể dán JSON {"A":"...","B":"..."}'
-            style="width:100%;padding:8px;border:1.5px solid #e0e0e0;border-radius:6px;font-family:inherit"></textarea>`;
+            style="width:100%;padding:8px;border:1px solid var(--border-color,#e0e0e0);border-radius:6px;font-family:inherit">${_gqAttr(expVal)}</textarea>`;
     wrap.querySelector('.gq-del').onclick = () => {
         const container = document.getElementById('group-questions-container');
-        if (container.querySelectorAll('.group-q-row').length <= 2) {
-            alert('Nhóm cần tối thiểu 2 câu.');
+        // Tạo mới thì nhóm phải từ 2 câu; đang SỬA thì cho về 1 (màn cũ có thể 1 câu).
+        const floor = editingGroupId ? 1 : 2;
+        if (container.querySelectorAll('.group-q-row').length <= floor) {
+            alert(`Cần giữ tối thiểu ${floor} câu.`);
             return;
         }
         wrap.remove();
@@ -251,7 +339,15 @@ function collectGroupQuestions() {
         const expRaw = row.querySelector('.gq-exp').value.trim();
         let explanation;
         if (expRaw) { try { explanation = JSON.parse(expRaw); } catch { explanation = { note: expRaw }; } }
-        return { questionText: row.querySelector('.gq-text').value.trim(), options, correctAnswer, explanation };
+        // Để trống số câu → server tự đánh theo chuẩn Part của bộ đề đó.
+        const numRaw = row.querySelector('.gq-number')?.value.trim();
+        return {
+            number: numRaw ? parseInt(numRaw) : undefined,
+            questionText: row.querySelector('.gq-text').value.trim(),
+            options,
+            correctAnswer,
+            explanation,
+        };
     });
 }
 
@@ -269,17 +365,23 @@ async function submitGroup() {
     }
 
     const questions = collectGroupQuestions();
-    if (questions.length < 2) { alert('Nhóm cần tối thiểu 2 câu.'); return; }
+    // Tạo mới: nhóm phải từ 2 câu. Sửa: cho phép màn 1 câu đã có sẵn trong DB.
+    const minQ = editingGroupId ? 1 : 2;
+    if (questions.length < minQ) { alert(`Nhóm cần tối thiểu ${minQ} câu.`); return; }
     for (let i = 0; i < questions.length; i++) {
         if (questions[i].options.length < 3) { alert(`Câu ${i + 1}: cần tối thiểu 3 đáp án.`); return; }
         if (!questions[i].correctAnswer) { alert(`Câu ${i + 1}: chưa chọn đáp án đúng.`); return; }
     }
 
+    // Sửa màn có sẵn → PUT vào chính màn đó; tạo mới → POST đường tạo nhóm.
+    const isEdit = !!editingGroupId;
+    const url = isEdit ? `${TOEIC_API_BASE}/questions/${editingGroupId}` : `${TOEIC_API_BASE}/questions/group`;
+
     const btn = document.getElementById('btn-submit-group');
-    btn.disabled = true; btn.textContent = 'Đang tạo...';
+    btn.disabled = true; btn.textContent = isEdit ? 'Đang lưu...' : 'Đang tạo...';
     try {
-        const res = await fetch(`${TOEIC_API_BASE}/questions/group`, {
-            method: 'POST',
+        const res = await fetch(url, {
+            method: isEdit ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
             body: JSON.stringify({
                 part, source,
@@ -291,12 +393,14 @@ async function submitGroup() {
         });
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
-        showToast(data.message || 'Đã tạo nhóm', 'success');
-        closeGroupModal();
+        showToast(data.message || (isEdit ? 'Đã lưu thay đổi' : 'Đã tạo nhóm'), 'success');
+        // Sửa xong thì ở lại màn vừa sửa; tạo xong thì dọn để nhập nhóm kế tiếp.
+        if (!isEdit) closeGroupModal();
         if (typeof loadQuestions === 'function') loadQuestions();
     } catch (e) {
-        alert('Tạo nhóm lỗi: ' + e.message);
+        alert((isEdit ? 'Lưu nhóm lỗi: ' : 'Tạo nhóm lỗi: ') + e.message);
     } finally {
-        btn.disabled = false; btn.textContent = 'Tạo nhóm';
+        btn.disabled = false;
+        syncGroupEditMode();
     }
 }

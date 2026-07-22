@@ -1975,7 +1975,17 @@ async function handleAIGenerate(part, count) {
     }
 }
 
-window.editQuestion = (questionId) => openQuestionModal(questionId);
+/**
+ * Sửa một màn: màn NHIỀU câu (hoặc Part nhóm) mở trình dựng nhóm để sửa cả
+ * loạt một lượt; màn 1 câu mở form câu đơn. Trước đây mọi thứ đổ vào form đơn
+ * nên màn nhiều câu chỉ sửa được câu đầu.
+ */
+window.editQuestion = (questionId) => {
+    const set = currentQuestions.find(q => q._id === questionId);
+    const isGroup = (set?.questions?.length || 0) > 1 || [3, 4, 6, 7].includes(Number(set?.part));
+    if (isGroup && typeof openGroupModal === 'function') openGroupModal(questionId);
+    else openQuestionModal(questionId);
+};
 window.deleteQuestion = deleteQuestion;
 
 // Nạp danh sách nguồn (distinct từ câu hỏi) vào datalist để tránh gõ lệch.
