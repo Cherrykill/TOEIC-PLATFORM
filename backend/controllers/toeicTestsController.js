@@ -5,7 +5,9 @@
 // CRUD + full-test generation. Verbatim move; behaviour unchanged.
 // routes/toeic.js imports these from here now.
 
-const ToeicQuestion = require('../models/ToeicQuestion');
+const ToeicQuestion = require('../models/ToeicQuestion'); // legacy — gỡ ở GĐ5
+const ToeicQuestionSet = require('../models/ToeicQuestionSet');
+const { countQuestions } = require('../services/questionSetService');
 const ToeicTest = require('../models/ToeicTest');
 const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
@@ -186,7 +188,13 @@ exports.createTest = async (req, res, next) => {
                 ...(selectMode !== 'shuffle-cross' && source ? { source } : {}),
             };
 
-            const availableCount = await ToeicQuestion.countDocuments(scopeFilter);
+            // Pool giờ là các MÀN hỏi. Một màn = một nhóm, nên nhánh "đảo theo
+            // nhóm" ngày xưa biến mất: đảo màn là đã giữ nguyên nhóm.
+            const pool = await ToeicQuestionSet.find(scopeFilter)
+                .sort({ 'questions.0.number': 1, createdAt: 1 })
+                .lean();
+
+            const availableCount = countQuestions(pool);
             if (availableCount < requiredCount) {
                 return res.status(400).json({
                     success: false,
@@ -200,10 +208,6 @@ exports.createTest = async (req, res, next) => {
                 });
             }
 
-            const pool = await ToeicQuestion.find(scopeFilter)
-                .sort({ questionNumber: 1, createdAt: 1 })
-                .lean();
-
             const shuffle = (arr) => {
                 for (let i = arr.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -212,46 +216,33 @@ exports.createTest = async (req, res, next) => {
                 return arr;
             };
 
-            let questions;
-            if (selectMode === 'default') {
-                // Theo thứ tự tạo
-                questions = pool.slice(0, requiredCount);
-            } else if ([3, 4, 6, 7].includes(partNumber)) {
-                // Part có nhóm → ĐẢO THEO NHÓM, giữ nguyên thứ tự câu trong nhóm
-                const groupMap = new Map();
-                for (const q of pool) {
-                    const key = q.groupId || String(q._id);
-                    if (!groupMap.has(key)) groupMap.set(key, []);
-                    groupMap.get(key).push(q);
-                }
-                const groups = [...groupMap.values()];
-                groups.forEach(g => g.sort((a, b) => (a.questionIndex || 0) - (b.questionIndex || 0)));
-                shuffle(groups);
-                questions = [];
-                for (const g of groups) {
-                    if (questions.length >= requiredCount) break;
-                    questions.push(...g);
-                }
-                questions = questions.slice(0, requiredCount);
-            } else {
-                // Part câu đơn (1, 2, 5) → đảo từng câu
-                questions = shuffle(pool).slice(0, requiredCount);
+            // 'default' giữ thứ tự; các chế độ khác đảo MÀN.
+            const ordered = selectMode === 'default' ? pool : shuffle([...pool]);
+
+            // Gom màn cho tới khi ĐỦ SỐ CÂU. Không cắt giữa màn — trước đây
+            // slice(0, requiredCount) xé lẻ nhóm, làm câu mồ côi mất ngữ cảnh.
+            const chosen = [];
+            let picked = 0;
+            for (const set of ordered) {
+                if (picked >= requiredCount) break;
+                chosen.push(set);
+                picked += set.questions.length;
             }
 
-            if (questions.length < requiredCount) {
+            if (picked < requiredCount) {
                 return res.status(400).json({
                     success: false,
-                    message: `⚠️ Cannot create Mini Test Part ${partNumber}: Not enough questions. Need ${requiredCount}, found ${questions.length}.`,
+                    message: `⚠️ Cannot create Mini Test Part ${partNumber}: Not enough questions. Need ${requiredCount}, found ${picked}.`,
                 });
             }
 
             parts = [{
                 partNumber,
-                questions: questions.map(q => q._id),
-                questionsCount: questions.length,
+                questions: chosen.map(s => s._id),
+                questionsCount: picked,
                 timeLimit: customTotalTime || defaultTime
             }];
-            totalQuestions = questions.length;
+            totalQuestions = picked;
             if (!customTotalTime) {
                 totalTime = defaultTime;
             }
