@@ -158,7 +158,7 @@ function _setupTopicsSearch() {
 function renderTopicsTable(topics) {
   const tbody = document.getElementById("topics-tbody");
   if (!topics.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#64748b;padding:30px;">Chưa có đề nào. Nhấn "+ Thêm đề" để tạo.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#64748b;padding:30px;">Chưa có đề nào. Nhấn "+ Thêm đề" để tạo.</td></tr>`;
     return;
   }
 
@@ -166,7 +166,6 @@ function renderTopicsTable(topics) {
   topics.forEach((t) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-            <td style="font-size:20px;text-align:center;">${t.icon || "📚"}</td>
             <td>
                 <strong>${t.displayName}</strong>
                 ${t.description ? `<div style="font-size:11px;color:#64748b;margin-top:2px;">${t.description}</div>` : ""}
