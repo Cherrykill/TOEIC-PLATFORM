@@ -96,7 +96,13 @@ function groupUpdatePartVisibility() {
     const part = parseInt(document.getElementById('group-part').value);
     const rule = IMAGE_RULES[part] || { min: 0, max: 0 };
     // Audio chỉ có ở Part nghe 3/4.
-    document.getElementById('group-audio-field').style.display = (part === 3 || part === 4) ? 'block' : 'none';
+    const audioField = document.getElementById('group-audio-field');
+    const imageField = document.getElementById('group-image-field');
+    const hasAudio = (part === 3 || part === 4);
+    audioField.style.display = hasAudio ? 'block' : 'none';
+    // Part 3/4 hiện cả audio lẫn ảnh → xếp cạnh nhau; Part 6/7 chỉ ảnh → trọn hàng.
+    audioField.style.gridColumn = hasAudio ? 'auto' : '1 / -1';
+    imageField.style.gridColumn = hasAudio ? 'auto' : '1 / -1';
     // Ảnh: Part 6/7 bắt buộc, 3/4 tùy chọn.
     const hint = document.getElementById('group-image-hint');
     if (hint) hint.textContent = rule.max > 1

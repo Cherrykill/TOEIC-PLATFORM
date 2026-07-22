@@ -1212,6 +1212,10 @@ table tbody tr:hover td { background: var(--hover-bg); }
    =================================== */
 .question-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 .full-width { grid-column: 1 / -1; }
+/* Hàng "Part · Source · Số câu": lưới con 3 cột, chiếm trọn 1 hàng của form.
+   Nhờ vậy audio & ảnh phía dưới luôn mở hàng mới và nằm cạnh nhau. */
+.qf-head { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 14px; align-items: start; }
+@media (max-width: 900px) { .qf-head { grid-template-columns: 1fr; } }
 /* 4 đáp án xếp 2×2 cho gọn, ít cuộn */
 .options-container { border: 1.5px solid var(--border-color); border-radius: var(--radius); padding: 12px; margin-top: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
 .option-item { display: flex; gap: 8px; margin-bottom: 0; align-items: center; }

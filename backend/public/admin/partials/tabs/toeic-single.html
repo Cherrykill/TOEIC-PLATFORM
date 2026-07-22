@@ -96,6 +96,9 @@
                 <input type="hidden" id="question-id" />
 
                 <div class="question-form-grid">
+                  <!-- Hàng thông tin chung: gom 3 ô vào lưới con để không còn ô lẻ
+                       đẩy audio/ảnh lệch hàng nhau. -->
+                  <div class="full-width qf-head">
                   <div>
                     <label style="display: block; margin-bottom: 5px; font-weight: 500">Part *</label>
                     <select id="question-part" required
@@ -141,6 +144,7 @@
                       <option value="3">3 đoạn (Triple)</option>
                     </select>
                   </div>
+                  </div><!-- /qf-head -->
 
                   <!-- Audio: chọn file và player nằm chung 1 hàng -->
                   <div class="full-width" id="audio-file-field" style="display: none">
