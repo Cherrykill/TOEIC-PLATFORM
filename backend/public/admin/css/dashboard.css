@@ -1249,17 +1249,26 @@ table tbody tr:hover td { background: var(--hover-bg); }
 .card-search::placeholder { color: var(--text-secondary); opacity: 0.6; }
 
 /* Questions table column widths */
+/* Bang cau hoi TOEIC: 8 cot. Truoc day khai 9 cot nen tu khi them cot "So cau"
+   moi be rong lech mot o -> "Noi dung" chi con 70px, chu xuong 5 dong. */
 #questions-table { table-layout: fixed; width: 100%; }
-#questions-table th:nth-child(1) { width: 70px; }
-#questions-table th:nth-child(2) { width: 250px; }
-#questions-table th:nth-child(3) { width: 70px; }
-#questions-table th:nth-child(4) { width: 120px; }
-#questions-table th:nth-child(5) { width: 100px; }
-#questions-table th:nth-child(6) { width: 120px; }
-#questions-table th:nth-child(7) { width: 50px; }
-#questions-table th:nth-child(8) { width: 100px; }
-#questions-table th:nth-child(9) { width: 120px; }
-#questions-table td:nth-child(2) { max-width: 250px; white-space: normal; word-wrap: break-word; line-height: 1.4; }
+#questions-table th:nth-child(1) { width: 78px; }   /* Part */
+#questions-table th:nth-child(2) { width: 84px; }   /* So cau */
+#questions-table th:nth-child(3) { width: auto; }   /* Noi dung - chiem phan con lai */
+#questions-table th:nth-child(4) { width: 110px; }  /* Nguon */
+#questions-table th:nth-child(5) { width: 92px; }   /* Dap an dung */
+#questions-table th:nth-child(6) { width: 140px; }  /* Anh */
+#questions-table th:nth-child(7) { width: 140px; }  /* Audio */
+#questions-table th:nth-child(8) { width: 112px; }  /* Thao tac */
+
+/* Noi dung da truncate san + co title day du -> cat mot dong cho gon hang. */
+#questions-table td:nth-child(3) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Cot 2 gio la "So cau" (truoc la Noi dung) -> can giua, khong xuong dong. */
+#questions-table td:nth-child(2) { text-align: center; white-space: nowrap; line-height: 1.3; }
 
 /* ===================================
    ROW HIGHLIGHT (editing)
