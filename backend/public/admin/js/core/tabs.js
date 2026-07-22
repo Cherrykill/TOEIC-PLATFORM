@@ -184,14 +184,17 @@ function renderTopicsTable(topics) {
                     ${t.isPublic ? "Hiện" : "Ẩn"}
                 </span>
             </td>
-            <td>
-                <button class="btn btn-ghost btn-sm topic-btn-sync" title="Sync wordCount"><i class="fas fa-sync"></i></button>
-                <button class="btn btn-primary btn-sm topic-btn-edit"><i class="fas fa-edit"></i></button>
-                <button class="btn btn-danger btn-sm topic-btn-delete"><i class="fas fa-trash"></i></button>
+            <td style="white-space:nowrap">
+                <button class="btn ${t.isPublic ? "btn-ghost" : "btn-success"} btn-sm topic-btn-publish"
+                    title="${t.isPublic ? "Gỡ xuất bản — ẩn đề với người dùng" : "Xuất bản — hiện đề cho người dùng"}">
+                    <i class="fas ${t.isPublic ? "fa-eye-slash" : "fa-upload"}"></i>
+                </button>
+                <button class="btn btn-primary btn-sm topic-btn-edit" title="Sửa"><i class="fas fa-edit"></i></button>
+                <button class="btn btn-danger btn-sm topic-btn-delete" title="Xoá"><i class="fas fa-trash"></i></button>
             </td>`;
 
-    tr.querySelector(".topic-btn-sync").addEventListener("click", () =>
-      syncTopicCount(t._id),
+    tr.querySelector(".topic-btn-publish").addEventListener("click", () =>
+      publishTopic(t._id, !t.isPublic),
     );
     tr.querySelector(".topic-btn-edit").addEventListener("click", () =>
       showTopicModal(t),
@@ -329,20 +332,21 @@ async function saveTopicModal(id, modal) {
   }
 }
 
-async function syncTopicCount(id) {
-  const topic = _topicsData.find((t) => t._id === id || t.id === id);
-  const lang = topic?.lang || "en";
-
-  console.log(`[Sync] Đang đồng bộ đề ID: ${id} | Ngôn ngữ: ${lang} | SourceKeys:`, topic?.sourceKeys);
-
+// Xuất bản / gỡ xuất bản một đề. Gửi trạng thái MONG MUỐN để bấm nhanh hai lần
+// vẫn ra đúng kết quả (server không tự đảo).
+async function publishTopic(id, isPublic) {
   try {
-    const res = await fetch(`${API_URL}/topics/${id}/sync-count?lang=${lang}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${getToken()}` },
+    const res = await fetch(`${API_URL}/topics/${id}/publish`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ isPublic }),
     });
     const data = await res.json();
     if (!data.success) throw new Error(data.message);
-    showToast(`Đã sync: ${data.data.wordCount} từ`, "success");
+    showToast(data.message, "success");
     loadTopicsTab();
   } catch (err) {
     showToast(`Lỗi: ${err.message}`, "error");

@@ -5,6 +5,7 @@ const {
     getAllTopics,
     createTopic,
     updateTopic,
+    publishTopic,
     deleteTopic,
     syncWordCount,
     syncAllWordCounts,
@@ -17,6 +18,7 @@ router.get('/all', ...admin, getAllTopics);
 router.post('/sync-all', ...admin, syncAllWordCounts);
 router.post('/', ...admin, createTopic);
 router.put('/:id', ...admin, updateTopic);
+router.put('/:id/publish', ...admin, publishTopic);
 router.delete('/:id', ...admin, deleteTopic);
 router.post('/:id/sync-count', ...admin, syncWordCount);
 

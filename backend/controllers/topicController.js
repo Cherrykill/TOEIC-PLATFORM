@@ -130,6 +130,36 @@ exports.updateTopic = async (req, res, next) => {
   }
 };
 
+// PUT /api/topics/:id/publish
+// Xuất bản / gỡ xuất bản một đề. Endpoint riêng thay vì PUT chung để bảng đề
+// bật tắt được bằng một cú bấm mà không phải gửi lại toàn bộ field.
+// Client gửi trạng thái MONG MUỐN (không phải "đảo") nên bấm nhanh hai lần
+// cũng ra đúng kết quả.
+exports.publishTopic = async (req, res, next) => {
+  try {
+    const isPublic = !!req.body?.isPublic;
+    const topic = await Topic.findByIdAndUpdate(
+      req.params.id,
+      { isPublic },
+      { new: true, runValidators: true },
+    );
+    if (!topic)
+      return res
+        .status(404)
+        .json({ success: false, message: "Không tìm thấy topic" });
+
+    res.json({
+      success: true,
+      message: topic.isPublic
+        ? `Đã xuất bản "${topic.displayName}"`
+        : `Đã gỡ "${topic.displayName}" khỏi danh sách người dùng`,
+      data: topic,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 // DELETE /api/topics/:id
 exports.deleteTopic = async (req, res, next) => {
   try {
