@@ -92,7 +92,7 @@ function displayUsers() {
   if (!paginatedUsers || !paginatedUsers.length) {
     tbody.innerHTML =
       '<tr><td colspan="8" style="text-align:center;padding:30px;">Khong tim thay tai khoan nao</td></tr>';
-    renderPager("users-pagination", {
+    renderPager("users-modal-pagination", {
       page: usersPagination.currentPage,
       limit: usersPagination.limit,
       total: usersPagination.total,
@@ -161,7 +161,7 @@ function displayUsers() {
     .join("");
 
   attachUserListeners();
-  renderPager("users-pagination", {
+  renderPager("users-modal-pagination", {
     page: usersPagination.currentPage,
     limit: usersPagination.limit,
     total: usersPagination.total,

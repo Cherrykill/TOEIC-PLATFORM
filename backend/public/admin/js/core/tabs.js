@@ -132,10 +132,6 @@ function _renderTopicsPage() {
   const start = (_topicsPage.current - 1) * _topicsPage.limit;
   renderTopicsTable(_topicsFiltered.slice(start, start + _topicsPage.limit));
 
-  const countEl = document.getElementById("topics-filter-count");
-  if (countEl)
-    countEl.textContent = `${_topicsFiltered.length} / ${_topicsData.length} đề`;
-
   renderPager("topics-pagination", {
     page: _topicsPage.current,
     limit: _topicsPage.limit,

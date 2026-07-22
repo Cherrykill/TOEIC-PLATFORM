@@ -1102,15 +1102,18 @@ table tbody tr:last-child td { border-bottom: none; }
 
 table tbody tr:hover td { background: var(--hover-bg); }
 
-/* Pagination inside cards — nằm TRÊN bảng (khỏi phải cuộn xuống đáy mới đổi
-   được trang), nên viền/khoảng cách ngả xuống dưới thay vì lên trên. */
+/* Dải phân trang — nằm TRÊN bảng, cùng hàng với nhóm nút thao tác:
+   [1–15 / 20 đề  « 1 2 »] ................... [Xuất bản] [Sync] [Xóa lọc]
+   Hai đường viền ôm lấy dải này để nó tách bạch khỏi ô lọc phía trên và bảng
+   phía dưới — trước đây căn giữa, một viền, trôi lơ lửng giữa hai khối. */
 .pagination-row {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  padding-bottom: 14px;
-  margin-bottom: 14px;
+  gap: 10px;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  border-top: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
 }
 /* Không có gì để phân trang thì đừng để lại đường kẻ trống */

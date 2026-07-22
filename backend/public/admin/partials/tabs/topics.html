@@ -36,8 +36,8 @@
                   <option value="zh">🇨🇳 Tiếng Trung</option>
                 </select>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px">
-                <span id="topics-filter-count" class="result-count" style="font-size: 13px; color: var(--text-secondary)"></span>
+              <div class="pagination-row">
+                <div id="topics-pagination" class="filter-results-text"></div>
                 <div style="display: flex; gap: 8px; align-items: center">
                   <button class="btn btn-success btn-sm" id="btn-publish-all-topics" title="Xuất bản mọi đề đang ẩn (bỏ qua đề 0 từ)">
                     <i class="fas fa-upload"></i> Xuất bản tất cả
@@ -48,7 +48,6 @@
                   <button class="btn btn-ghost btn-sm" id="topics-filter-clear"><i class="fas fa-times"></i> Xóa lọc</button>
                 </div>
               </div>
-              <div id="topics-pagination" class="pagination-row"></div>
               <div class="table-container">
                 <table id="topics-table">
                   <thead>

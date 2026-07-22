@@ -300,14 +300,6 @@ function applyFiltersAndSort() {
             document.querySelector('#questions-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
     });
-    updateFilterResults();
-}
-
-function updateFilterResults() {
-    const filteredCount = document.getElementById('filtered-count');
-    const totalCount = document.getElementById('total-count');
-    if (filteredCount) filteredCount.textContent = currentQuestions.length;
-    if (totalCount) totalCount.textContent = allQuestions.length;
 }
 
 function initUserSearchAndFilters() {
@@ -375,15 +367,8 @@ function applyUserFilters() {
     }
 
     currentUsers = filtered;
+    usersTabPage.current = 1; // đổi bộ lọc thì về trang đầu
     displayUsersInTab(currentUsers);
-    updateUserFilterResults();
-}
-
-function updateUserFilterResults() {
-    const filteredCount = document.getElementById('user-filtered-count');
-    const totalCount = document.getElementById('user-total-count');
-    if (filteredCount) filteredCount.textContent = currentUsers.length;
-    if (totalCount) totalCount.textContent = allUsers.length;
 }
 
 function initTestSearchAndFilters() {
@@ -508,20 +493,6 @@ function applyTestFilters() {
             document.querySelector('#tests-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
     });
-    updateTestFilterResults();
-}
-
-function updateTestFilterResults() {
-    const filteredCount = document.getElementById('test-filtered-count');
-    const totalCount = document.getElementById('test-total-count');
-    const pageInfo = document.getElementById('test-page-info');
-    if (filteredCount) filteredCount.textContent = testsPagination.total;
-    if (totalCount) totalCount.textContent = allTests.length;
-    if (pageInfo) {
-        pageInfo.textContent = testsPagination.totalPages > 1
-            ? `· trang ${testsPagination.currentPage}/${testsPagination.totalPages}`
-            : '';
-    }
 }
 
 async function loadTests() {
@@ -2279,15 +2250,36 @@ async function loadUsersInTab() {
     }
 }
 
+// Phân trang phía client cho bảng tài khoản trong TAB (khác bảng trong modal
+// quản lý — modal có thanh phân trang riêng #users-modal-pagination).
+const usersTabPage = { current: 1, limit: 15 };
+
 function displayUsersInTab(users) {
     const tbody = document.querySelector("#users-table-tab tbody");
+    const all = users || [];
 
-    if (!users || !users.length) {
+    const totalPages = Math.max(1, Math.ceil(all.length / usersTabPage.limit));
+    if (usersTabPage.current > totalPages) usersTabPage.current = 1;
+
+    renderPager('users-pagination', {
+        page: usersTabPage.current,
+        limit: usersTabPage.limit,
+        total: all.length,
+        itemName: 'tài khoản',
+        onPage: (page) => {
+            usersTabPage.current = page;
+            displayUsersInTab(all);
+            document.querySelector('#users-table-tab')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+    });
+
+    if (!all.length) {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;">Không tìm thấy tài khoản nào</td></tr>';
         return;
     }
 
-    tbody.innerHTML = users.map((u) => {
+    const start = (usersTabPage.current - 1) * usersTabPage.limit;
+    tbody.innerHTML = all.slice(start, start + usersTabPage.limit).map((u) => {
         const userId = u._id || u.id;
         const createdAt = new Date(u.createdAt).toLocaleDateString('vi-VN');
         const statusBadge = u.isActive

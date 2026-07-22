@@ -49,14 +49,9 @@
                   <option value="lowest-score">Điểm TB thấp nhất</option>
                 </select>
               </div>
-              <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; flex-wrap: wrap; gap: 8px">
+              <div class="pagination-row" style="flex-wrap: wrap; gap: 8px">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
-                  <div id="test-filter-results-info" class="filter-results-text" style="font-size: 13px; color: var(--text-secondary); margin: 0">
-                    <i class="fas fa-file-alt"></i>
-                    <strong id="test-filtered-count">0</strong> /
-                    <strong id="test-total-count">0</strong> đề
-                    <span id="test-page-info" style="color: #aaa; margin-left: 4px"></span>
-                  </div>
+                  <div id="tests-pagination" class="filter-results-text"></div>
                   <select id="test-page-size" class="filter-select" style="width: auto; min-width: 90px; font-size: 12px; padding: 4px 8px">
                     <option value="10">10 / trang</option>
                     <option value="15" selected>15 / trang</option>
@@ -74,7 +69,6 @@
                 </div>
               </div>
 
-              <div id="tests-pagination" class="pagination-row"></div>
               <div class="table-container">
                 <table id="tests-table" class="data-table">
                   <thead>
