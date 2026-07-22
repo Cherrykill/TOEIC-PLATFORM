@@ -78,7 +78,11 @@ export function useToeicAttempt() {
             currentIndex: 0,
             answers: apiData.data.answers || {},
             markedQuestions: new Set(apiData.data.markedQuestions || []),
-            customTimeLimit: undefined,
+            // Đếm ngược tiếp từ thời gian CÒN LẠI server chốt. Để undefined như
+            // trước thì useToeicTimer hiểu là "không giới hạn" và đếm TIẾN.
+            customTimeLimit: Number.isFinite(apiData.data.timeRemaining)
+                ? apiData.data.timeRemaining
+                : (apiData.data.test?.totalTime ?? undefined),
             fillInBlankMode: false,
             keywordAnswers: {},
         });

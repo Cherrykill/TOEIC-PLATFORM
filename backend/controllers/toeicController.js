@@ -324,6 +324,11 @@ exports.resumeAttempt = async (req, res, next) => {
 
         // Tải lại ĐỦ câu hỏi của đề (không chỉ câu đã trả lời) + map đáp án đã lưu
         // → client hiển thị tiếp đúng trạng thái.
+        //
+        // part.questions là các MÀN (ToeicQuestionSet), phải DÀN PHẲNG y hệt
+        // startAttempt. Trước đây chỗ này đọc `question.options` ở cấp document
+        // — mà options nằm trong questions[] của màn — nên tiếp tục bài xong là
+        // cột đáp án trống trơn.
         const test = await ToeicTest.findById(attempt.testId).populate('parts.questions');
         const partRanges = { 1: { start: 1 }, 2: { start: 7 }, 3: { start: 32 }, 4: { start: 71 }, 5: { start: 101 }, 6: { start: 131 }, 7: { start: 147 } };
         const questions = [];
@@ -331,19 +336,23 @@ exports.resumeAttempt = async (req, res, next) => {
         if (test) {
             for (const part of test.parts) {
                 let partQuestionIndex = 0;
-                for (const question of part.questions) {
-                    if (test.testType === 'full-test') globalQuestionNumber = (partRanges[part.partNumber]?.start || 1) + partQuestionIndex;
-                    else globalQuestionNumber++;
-                    const q = question.toObject();
-                    delete q.correctAnswer;
-                    delete q.questionKeyword;
-                    delete q.answerKeyword;
-                    delete q.audioKeyword;
-                    q.options = (q.options || []).map(opt => ({ label: opt.label, text: opt.text }));
-                    q.globalQuestionNumber = globalQuestionNumber;
-                    q.section = part.partNumber <= 4 ? 'listening' : 'reading';
-                    questions.push(q);
-                    partQuestionIndex++;
+                for (const set of part.questions) {
+                    if (!set) continue; // tham chiếu hỏng (màn đã bị xoá)
+                    const plain = typeof set.toObject === 'function' ? set.toObject() : set;
+                    for (const q of flattenSet(plain)) {
+                        if (Number.isFinite(q.questionNumber)) {
+                            globalQuestionNumber = q.questionNumber;
+                        } else if (test.testType === 'full-test') {
+                            globalQuestionNumber = (partRanges[part.partNumber]?.start || 1) + partQuestionIndex;
+                        } else {
+                            globalQuestionNumber++;
+                        }
+                        delete q.correctAnswer;
+                        q.globalQuestionNumber = globalQuestionNumber;
+                        q.section = part.partNumber <= 4 ? 'listening' : 'reading';
+                        questions.push(q);
+                        partQuestionIndex++;
+                    }
                 }
             }
         }
@@ -355,15 +364,32 @@ exports.resumeAttempt = async (req, res, next) => {
             if (ua) answers[i] = ua;
         });
 
+        // Thời gian CÒN LẠI = tổng thời gian đề − đã trôi (trừ lúc tạm dừng).
+        // Thiếu con số này thì client không biết đếm ngược từ đâu nên quay ra
+        // đếm TIẾN như đồng hồ bấm giờ.
+        let timeRemaining = null;
+        if (test?.totalTime) {
+            const elapsed = (Date.now() - new Date(attempt.startedAt).getTime()) / 1000
+                - (attempt.totalPauseDuration || 0);
+            timeRemaining = Math.max(0, Math.round(test.totalTime - elapsed));
+        }
+
         res.json({
             success: true,
             message: 'Test resumed',
             data: {
                 attemptId: attempt._id,
-                test: test ? { id: test._id, testName: test.testName, testType: test.testType, totalQuestions: test.totalQuestions } : null,
+                test: test ? {
+                    id: test._id,
+                    testName: test.testName,
+                    testType: test.testType,
+                    totalQuestions: test.totalQuestions,
+                    totalTime: test.totalTime,
+                } : null,
                 questions,
                 answers,
                 markedQuestions: attempt.markedQuestions || [],
+                timeRemaining,
             },
         });
     } catch (error) {
