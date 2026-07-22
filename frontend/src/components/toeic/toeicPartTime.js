@@ -53,44 +53,78 @@ export function getToeicPartTimeDefault(part) {
     return DEFAULTS[part] ?? 30;
 }
 
-/**
- * Thời gian mỗi câu TỰ TÍNH từ một đề: chia đều thời gian đề cho số câu rồi
- * trừ khoảng chuyển câu. Trả về null nếu đề thiếu dữ liệu để tính.
- *
- * Vì sao trừ: mỗi câu thực tế ngốn (thời gian làm + thời gian chuyển), nên
- *   soCau × (moiCau + chuyen) ≤ tongThoiGian  →  moiCau ≤ tong/soCau − chuyen
- * Không trừ thì làm hết bài sẽ lố giờ đúng bằng tổng thời gian chuyển câu.
- */
-export function getToeicAutoPerQuestion(test) {
-    const total = Number(test?.totalTime);
-    const count = Number(test?.totalQuestions);
-    if (!Number.isFinite(total) || !Number.isFinite(count) || count <= 0 || total <= 0) return null;
-    const per = Math.floor(total / count) - getToeicTransition();
-    return Math.max(MIN_AUTO_SECONDS, per);
-}
+// Trọng số thời gian giữa các Part Đọc. Chia ĐỀU cho mọi câu là không công
+// bằng: câu Part 7 phải đọc cả một lá thư/thông báo rồi mới trả lời được, còn
+// Part 5 chỉ là một câu điền chỗ trống. Nhóm câu (Part 6/7) vì thế nhận nhiều
+// thời gian hơn hẳn — vừa do có nhiều câu, vừa do mỗi câu nặng hơn.
+const READ_WEIGHT = { 5: 1, 6: 1.3, 7: 1.8 };
 
 /**
- * Số giây cho MỘT câu của một Part.
- * @param {number} part
- * @param {object} [test] đề đang làm — bắt buộc để tính được Part 5/6/7
+ * Chia thời gian của MỘT đề cho các Part Đọc (5/6/7).
+ *
+ * Ngân sách = thời gian đề − thời gian các Part Nghe (đặt tay) − thời gian
+ * chuyển câu, rồi chia theo trọng số:
+ *      mỗi câu Part p = ngânSách × w(p) / Σ(w(part của từng câu Đọc))
+ *
+ * Nhờ chia theo trọng số, tổng thời gian vẫn khớp đề mà câu nặng được nhiều
+ * giờ hơn. Đề chỉ có một Part Đọc (mini test) thì mọi trọng số bằng nhau →
+ * quay về đúng phép chia đều như trước, không đổi gì.
+ *
+ * @param {object} test      đề đang làm ({ totalTime })
+ * @param {Array}  questions danh sách câu đã dàn phẳng (mỗi câu có .part)
+ * @returns {object|null} { [part]: giây mỗi câu } cho các Part Đọc
  */
-export function getToeicPartTime(part, test) {
-    if (isAutoTimePart(part)) {
-        const auto = getToeicAutoPerQuestion(test);
-        if (auto !== null) return auto;
-        // Không có dữ liệu đề (vd xem trước trong Cài đặt) → rơi về mặc định.
-        return getToeicPartTimeDefault(part);
+export function buildToeicReadingPlan(test, questions) {
+    const total = Number(test?.totalTime);
+    if (!Number.isFinite(total) || total <= 0 || !Array.isArray(questions) || !questions.length) return null;
+
+    const reading = questions.filter(q => isAutoTimePart(q.part));
+    if (!reading.length) return null;
+
+    // Phần Nghe ăn trước theo thời gian đặt tay của chính nó.
+    const listeningTime = questions
+        .filter(q => !isAutoTimePart(q.part))
+        .reduce((sum, q) => sum + getToeicPartTimeDefaultOrSet(q.part), 0);
+
+    const transition = getToeicTransition();
+    const usable = total - listeningTime - transition * reading.length;
+
+    const weightSum = reading.reduce((sum, q) => sum + (READ_WEIGHT[q.part] || 1), 0);
+    const plan = {};
+    for (const part of AUTO_TIME_PARTS) {
+        const w = READ_WEIGHT[part] || 1;
+        plan[part] = Math.max(MIN_AUTO_SECONDS, Math.floor((usable * w) / weightSum));
     }
+    return plan;
+}
+
+/** Thời gian đặt tay của một Part Nghe (hoặc mặc định của nó). */
+function getToeicPartTimeDefaultOrSet(part) {
     const v = GameState.state?.settings?.toeicPartTime?.[part];
     return (typeof v === 'number' && v > 0) ? v : getToeicPartTimeDefault(part);
 }
 
 /**
- * Số giây cho MỘT MÀN. Part nhóm hiện nhiều câu cùng lúc nên nhân theo số câu.
+ * Số giây cho MỘT câu của một Part.
+ * @param {number} part
+ * @param {object} [plan] bảng giờ Part Đọc do buildToeicReadingPlan dựng
+ */
+export function getToeicPartTime(part, plan) {
+    if (isAutoTimePart(part)) {
+        // Không dựng được bảng (thiếu dữ liệu đề) → rơi về mặc định.
+        return plan?.[part] ?? getToeicPartTimeDefault(part);
+    }
+    return getToeicPartTimeDefaultOrSet(part);
+}
+
+/**
+ * Số giây cho MỘT MÀN. Màn nhóm hiện nhiều câu cùng lúc nên nhân theo số câu
+ * → nhóm luôn được nhiều thời gian hơn câu đơn, và với Part 6/7 còn được cộng
+ * thêm nhờ trọng số trong buildToeicReadingPlan.
  * @param {number} part
  * @param {number} questionCount số câu đang hiển thị trên màn (1 với Part đơn)
- * @param {object} [test] đề đang làm
+ * @param {object} [plan] bảng giờ Part Đọc
  */
-export function getToeicScreenTime(part, questionCount = 1, test) {
-    return getToeicPartTime(part, test) * Math.max(1, questionCount);
+export function getToeicScreenTime(part, questionCount = 1, plan) {
+    return getToeicPartTime(part, plan) * Math.max(1, questionCount);
 }

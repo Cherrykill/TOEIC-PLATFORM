@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { Modal } from '@ui/Modal.jsx';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
@@ -16,6 +16,7 @@ import {
     isToeicAutoAdvanceOn,
     getToeicScreenTime,
     getToeicTransition,
+    buildToeicReadingPlan,
 } from '../toeicPartTime.js';
 
 // Dải index của nhóm chứa `index` (các câu liền kề cùng groupId). Không nhóm → [i,i].
@@ -275,6 +276,13 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     const [screenLeft, setScreenLeft] = useState(null);
     // Ngân sách của màn hiện tại — cần để vẽ thanh theo tỉ lệ còn lại.
     const [screenTotal, setScreenTotal] = useState(0);
+
+    // Bảng giờ Part Đọc: dựng MỘT lần cho cả bài (phụ thuộc đề + danh sách câu),
+    // không tính lại mỗi lần đổi câu.
+    const readingPlan = useMemo(
+        () => buildToeicReadingPlan(attempt.test, attempt.questions),
+        [attempt.test, attempt.questions],
+    );
     const handleNextRef = useRef(handleNext);
     handleNextRef.current = handleNext;
 
@@ -285,8 +293,8 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         const cur = qs[gs];
         if (!cur) { setScreenLeft(null); return; }
         const atLast = ge >= qs.length - 1;
-        // Part 5/6/7 lấy thời gian từ chính đề này → phải truyền attempt.test.
-        let left = getToeicScreenTime(cur.part, ge - gs + 1, attempt.test);
+        // Part 5/6/7 lấy giờ từ bảng chia theo chính đề này.
+        let left = getToeicScreenTime(cur.part, ge - gs + 1, readingPlan);
         setScreenTotal(left);
         setScreenLeft(left);
 
@@ -307,7 +315,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
 
         return () => { clearInterval(id); if (moveTimer) clearTimeout(moveTimer); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [attempt.currentIndex, phase, attempt.questions.length, attempt.test]);
+    }, [attempt.currentIndex, phase, attempt.questions.length, readingPlan]);
 
     if (phase === 'loading') {
         return (
