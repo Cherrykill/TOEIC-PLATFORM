@@ -582,9 +582,11 @@ function renderTestsTable() {
                         <i class="fas fa-eye-slash"></i>
                     </button>
                 ` : ''}
+                <!-- fa-file-import: bản FontAwesome FREE không có fa-arrow-down-to-line
+                     (icon Pro) — dùng nó thì nút hiện ra ô trống. -->
                 <button class="btn btn-secondary btn-sm btn-refill-test" data-test-id="${t._id}"
                     title="Nạp thêm câu mới trong kho vào đề này (cùng source + Part)" style="margin-right: 5px;">
-                    <i class="fas fa-arrow-down-to-line"></i>
+                    <i class="fas fa-file-import"></i>
                 </button>
                 <button class="btn btn-primary btn-sm btn-edit-test" data-test-id="${t._id}" title="Chỉnh sửa" style="margin-right: 5px;">
                     <i class="fas fa-edit"></i>
