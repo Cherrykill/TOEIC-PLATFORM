@@ -1,4 +1,4 @@
-const { flattenSet, findQuestionById, findQuestionsByIds } = require('../services/questionSetService');
+const { flattenSet, findQuestionById, findQuestionsByIds, recordAnswerStat } = require('../services/questionSetService');
 const ToeicTest = require('../models/ToeicTest');
 const ToeicAttempt = require('../models/ToeicAttempt');
 const UserProfile = require('../models/UserProfile');
@@ -412,14 +412,11 @@ exports.submitAttempt = async (req, res, next) => {
         // Calculate improvement
         await attempt.calculateImprovement();
 
-        // Update question statistics
-        for (const answer of attempt.answers) {
-            const question = await findQuestionById(answer.questionId);
-            if (question) {
-                question.recordAnswer(answer.isCorrect, answer.timeSpent);
-                await question.save();
-            }
-        }
+        // Thống kê từng câu. findQuestionById trả OBJECT THUẦN (lean) nên không
+        // gọi được method Mongoose — phải cập nhật qua service.
+        await Promise.all(
+            attempt.answers.map(a => recordAnswerStat(a.questionId, a.isCorrect))
+        );
 
         // Update test statistics
         const test = await ToeicTest.findById(attempt.testId);
@@ -522,9 +519,10 @@ exports.submitAttempt = async (req, res, next) => {
  */
 exports.getAttemptReview = async (req, res, next) => {
     try {
-        const attempt = await ToeicAttempt.findById(req.params.id)
-            .populate('wrongQuestions')
-            .populate('markedQuestions');
+        // KHÔNG populate wrongQuestions/markedQuestions: id giờ trỏ sub-document
+        // trong ToeicQuestionSet nên ref không khớp được. Danh sách câu đầy đủ
+        // đã dựng bên dưới qua findQuestionsByIds.
+        const attempt = await ToeicAttempt.findById(req.params.id);
 
         if (!attempt) {
             return res.status(404).json({

@@ -82,7 +82,26 @@ async function findQuestionsByIds(subIds) {
     return map;
 }
 
+/**
+ * Ghi thống kê cho MỘT câu (sub-document). Cập nhật nguyên tử bằng toán tử
+ * vị trí `$` — không tải cả màn về rồi save, tránh ghi đè lẫn nhau khi nhiều
+ * người nộp bài cùng lúc.
+ */
+async function recordAnswerStat(subId, isCorrect) {
+    if (!subId) return;
+    await ToeicQuestionSet.updateOne(
+        { 'questions._id': subId },
+        {
+            $inc: {
+                'questions.$.timesUsed': 1,
+                [`questions.$.${isCorrect ? 'correctCount' : 'wrongCount'}`]: 1,
+            },
+        }
+    );
+}
+
 module.exports = {
+    recordAnswerStat,
     flattenQuestion,
     flattenSet,
     flattenSets,

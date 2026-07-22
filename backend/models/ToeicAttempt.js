@@ -8,7 +8,10 @@ const PauseRecordSchema = new mongoose.Schema({
 const AnswerSchema = new mongoose.Schema({
     questionId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'ToeicQuestion',
+        // ID của MỘT CÂU = _id sub-document trong ToeicQuestionSet.
+        // Không dùng populate được (ref chỉ khớp _id cấp document);
+        // tra cứu qua services/questionSetService.findQuestionsByIds.
+        ref: 'ToeicQuestionSet',
         required: true,
     },
     partNumber: {
@@ -252,11 +255,17 @@ const ToeicAttemptSchema = new mongoose.Schema({
     // ===================================
     wrongQuestions: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'ToeicQuestion',
+        // ID của MỘT CÂU = _id sub-document trong ToeicQuestionSet.
+        // Không dùng populate được (ref chỉ khớp _id cấp document);
+        // tra cứu qua services/questionSetService.findQuestionsByIds.
+        ref: 'ToeicQuestionSet',
     }],
     markedQuestions: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'ToeicQuestion',
+        // ID của MỘT CÂU = _id sub-document trong ToeicQuestionSet.
+        // Không dùng populate được (ref chỉ khớp _id cấp document);
+        // tra cứu qua services/questionSetService.findQuestionsByIds.
+        ref: 'ToeicQuestionSet',
     }],
     hasReviewed: {
         type: Boolean,
