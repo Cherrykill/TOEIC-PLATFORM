@@ -6,6 +6,8 @@ import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { afterAnswer } from '@components/practice/practiceNav.js';
+import { startQuestionTimer } from '@components/practice/questionTimer.js';
+import { timeoutQuestion } from '@components/practice/questionTimeout.js';
 
 export const SentenceListening = {
 
@@ -82,6 +84,22 @@ export const SentenceListening = {
         this.render(question);
 
         setTimeout(() => this.playSequence(question.targetWords), 700);
+
+        // Đếm ngược cho RIÊNG câu này; hết giờ → tính sai + chuyển/khoá.
+        startQuestionTimer('sentence-listening', () => this.onQuestionTimeout());
+    },
+
+    // Hết giờ mà chưa trả lời.
+    onQuestionTimeout() {
+        const question = this.questions[this.currentIndex];
+        if (!question) return;
+        const targets = new Set(question.targetWords || []);
+        timeoutQuestion(this, 'sentence-listening', {
+            selector: '.sl-grid-word-btn', word: question.targetWords?.[0],
+            reveal: (btns) => btns.forEach(b => {
+                if (targets.has(b.dataset.word)) b.classList.add('sl-missed');
+            }),
+        });
     },
 
     render(question) {

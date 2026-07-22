@@ -2,6 +2,7 @@
 // ← Trước / Tiếp → + phím mũi tên). Bật/tắt qua settings.autoAdvance.
 import { GameState } from '@game/state.js';
 import { getTransitionDelay } from './transitionDelay.js';
+import { stopQuestionTimer } from './questionTimer.js';
 
 let navMode = null;      // mode đang hiển thị thanh điều hướng thủ công
 let keyBound = false;    // đã gắn listener bàn phím chưa
@@ -12,6 +13,8 @@ export function isAutoAdvance() {
 
 // Gọi sau khi user trả lời xong 1 câu. modeObj cần: currentIndex, showQuestion(), nextQuestion().
 export function afterAnswer(modeObj, modeId) {
+    // Câu này xong rồi → dừng đếm ngược, tránh "hết giờ" nổ trong lúc chờ chuyển câu.
+    stopQuestionTimer();
     if (isAutoAdvance()) {
         setTimeout(() => modeObj.nextQuestion(), getTransitionDelay(modeId));
         return;
@@ -23,6 +26,9 @@ function goPrev() {
     if (navMode && navMode.currentIndex > 0) {
         navMode.currentIndex--;
         navMode.showQuestion();
+        // showQuestion() bật lại đồng hồ, nhưng câu lùi về ĐÃ trả lời rồi —
+        // để chạy tiếp thì hết giờ sẽ tính SAI lần hai. Dừng ngay.
+        stopQuestionTimer();
         renderNavBar(navMode); // giữ thanh điều hướng ở câu vừa lùi tới
     }
 }

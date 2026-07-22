@@ -98,7 +98,15 @@ exports.getTest = async (req, res, next) => {
  */
 exports.createTest = async (req, res, next) => {
     try {
-        const { testName, testType, description, source, level, totalTime: customTotalTime, questionSelectMode } = req.body;
+        const { testName, testType, description, source, level, totalTime: customTotalTime, questionSelectMode,
+            isFree, requiredCoins, requiredLevel } = req.body;
+
+        // Điều kiện vào bài, chuẩn hoá 1 lần rồi dùng cho cả full-test lẫn mini-test.
+        const accessFields = {
+            isFree: isFree === undefined ? true : !!isFree,
+            requiredCoins: Math.max(0, Number(requiredCoins) || 0),
+            requiredLevel: Math.max(1, Number(requiredLevel) || 1),
+        };
 
         // Validate required fields
         if (!testName || !testType) {
@@ -121,10 +129,9 @@ exports.createTest = async (req, res, next) => {
                 });
 
                 // Override totalTime if custom time provided
-                if (customTotalTime) {
-                    test.totalTime = customTotalTime;
-                    await test.save();
-                }
+                if (customTotalTime) test.totalTime = customTotalTime;
+                Object.assign(test, accessFields);
+                await test.save();
 
                 return res.status(201).json({
                     success: true,
@@ -263,6 +270,7 @@ exports.createTest = async (req, res, next) => {
             isPublished: false,
             isActive: true,
             questionSelectMode: questionSelectMode || 'default',
+            ...accessFields,
         });
 
         res.status(201).json({
@@ -316,7 +324,8 @@ exports.generateFullTest = async (req, res, next) => {
  */
 exports.updateTest = async (req, res, next) => {
     try {
-        const { testName, testType, description, source, level, totalTime, randomQuestionCount, questionSelectMode, isPublished, isActive } = req.body;
+        const { testName, testType, description, source, level, totalTime, randomQuestionCount, questionSelectMode, isPublished, isActive,
+            isFree, requiredCoins, requiredLevel } = req.body;
 
         const test = await ToeicTest.findById(req.params.id);
 
@@ -344,6 +353,10 @@ exports.updateTest = async (req, res, next) => {
         if (totalTime !== undefined) test.totalTime = totalTime;
         if (randomQuestionCount !== undefined) test.randomQuestionCount = randomQuestionCount;
         if (questionSelectMode !== undefined) test.questionSelectMode = questionSelectMode;
+        // Điều kiện vào bài — kẹp giá trị để admin không lỡ tay nhập số âm.
+        if (isFree !== undefined) test.isFree = !!isFree;
+        if (requiredCoins !== undefined) test.requiredCoins = Math.max(0, Number(requiredCoins) || 0);
+        if (requiredLevel !== undefined) test.requiredLevel = Math.max(1, Number(requiredLevel) || 1);
         if (isPublished !== undefined) test.isPublished = isPublished;
         if (isActive !== undefined) test.isActive = isActive;
 

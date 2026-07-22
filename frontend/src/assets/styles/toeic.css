@@ -1652,6 +1652,34 @@
   }
 }
 
+/* ===== Nhóm câu hỏi hiển thị cùng màn (Part 3/4/6/7) ===== */
+.toeic-group-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 16px 16px;
+}
+.toeic-group-question {
+  border: 1.5px solid var(--border-color, #e0e0e0);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.toeic-group-question .toeic-question-text {
+  padding: 0 0 6px;
+}
+.toeic-group-question .toeic-options {
+  padding: 0;
+}
+.toeic-group-q-num {
+  font-weight: 700;
+  color: var(--primary-color, #e11d48);
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+[data-theme="dark"] .toeic-group-question {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
 /* ===== Nav toggle button ===== */
 .toeic-timer-group {
   display: flex;

@@ -1,0 +1,782 @@
+    <!-- Modal: Add/Edit TOEIC Question -->
+    <div
+      id="question-modal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="
+          background: white;
+          border-radius: 15px;
+          padding: 22px;
+          max-width: 800px;
+          width: 92%;
+          max-height: 90vh;
+          overflow-y: auto;
+        "
+      >
+        <h3 style="margin-bottom: 20px; color: #e11d48">
+          <i class="fas fa-question-circle"></i>
+          <span id="question-modal-title">Add Question</span>
+        </h3>
+
+        <!-- Tab toggle: Nhập tay / Nhập JSON -->
+        <div
+          id="question-modal-tabs"
+          style="
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+          "
+        >
+          <button
+            type="button"
+            id="q-tab-manual"
+            style="
+              flex: 1;
+              padding: 9px;
+              border: none;
+              background: var(--primary);
+              color: #fff;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            <i class="fas fa-pen"></i> Nhập tay
+          </button>
+          <button
+            type="button"
+            id="q-tab-json"
+            style="
+              flex: 1;
+              padding: 9px;
+              border: none;
+              background: #f5f5f5;
+              color: #666;
+              font-weight: 600;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            <i class="fas fa-code"></i> Nhập JSON
+          </button>
+        </div>
+
+        <!-- JSON input panel -->
+        <div id="question-json-panel" style="display: none">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 10px;
+              margin-bottom: 8px;
+              flex-wrap: wrap;
+            "
+          >
+            <p style="font-size: 12px; color: #888; margin: 0">
+              Dán 1 object hoặc array câu hỏi. Bí thì bấm
+              <b>Copy prompt</b> rồi đưa cho AI (ChatGPT…) để nó chuyển hộ.
+            </p>
+            <div style="display: flex; align-items: center; gap: 8px">
+              <select
+                id="q-prompt-part"
+                title="Chọn Part để lấy prompt phù hợp"
+                style="
+                  padding: 7px 10px;
+                  border: 1.5px solid var(--border-color, #334155);
+                  background: var(--bg-secondary, #1e293b);
+                  color: var(--text-primary, #e2e8f0);
+                  border-radius: 8px;
+                  font-size: 12px;
+                  font-weight: 600;
+                  cursor: pointer;
+                "
+              >
+                <option value="all">Tất cả Part</option>
+                <option value="1">Part 1 — Mô tả tranh</option>
+                <option value="2">Part 2 — Hỏi & đáp</option>
+                <option value="3">Part 3 — Hội thoại</option>
+                <option value="4">Part 4 — Bài nói</option>
+                <option value="5" selected>Part 5 — Hoàn thành câu</option>
+                <option value="6">Part 6 — Hoàn thành đoạn</option>
+                <option value="7">Part 7 — Đọc hiểu</option>
+              </select>
+              <button
+                type="button"
+                id="btn-copy-q-prompt"
+                style="
+                  padding: 7px 14px;
+                  border: 1.5px solid var(--primary);
+                  background: transparent;
+                  color: var(--primary);
+                  border-radius: 8px;
+                  cursor: pointer;
+                  font-weight: 600;
+                  font-size: 12px;
+                  white-space: nowrap;
+                "
+              >
+                📋 Copy prompt cho AI
+              </button>
+            </div>
+          </div>
+          <textarea
+            id="question-json-input"
+            rows="14"
+            placeholder='[
+  {
+    "part": 5,
+    "source": "ets2026",
+    "questionText": "The new policy will _____ next month.",
+    "questionTranslate": "Chính sách mới sẽ _____ vào tháng tới.",
+    "options": [
+      { "label": "A", "text": "take effect" },
+      { "label": "B", "text": "took effect" },
+      { "label": "C", "text": "taking effect" },
+      { "label": "D", "text": "effected" }
+    ],
+    "correctAnswer": "A",
+    "explanation": {
+      "A": "✅ Đúng: take effect = có hiệu lực. Will + V nguyên thể.",
+      "B": "❌ Sai: took effect là quá khứ đơn.",
+      "C": "❌ Sai: taking không dùng sau will.",
+      "D": "❌ Sai: effected không đúng nghĩa."
+    }
+  },
+  {
+    "part": 1,
+    "source": "ets2026",
+    "imageUrls": ["/assets/images/ets26t1/ets26t1-01.jpg"],
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3",
+    "audioText": "(A) The man is reading. (B) The man is typing. (C) The man is calling. (D) The man is eating.",
+    "options": [
+      { "label": "A", "text": "The man is reading." },
+      { "label": "B", "text": "The man is typing." },
+      { "label": "C", "text": "The man is calling." },
+      { "label": "D", "text": "The man is eating." }
+    ],
+    "correctAnswer": "B",
+    "explanation": { "A": "❌", "B": "✅ Đúng: đang gõ máy.", "C": "❌", "D": "❌" }
+  },
+  {
+    "part": 3,
+    "source": "ets2026",
+    "groupId": "p3_grp_001",
+    "questionIndex": 1,
+    "audioUrl": "/assets/audio/ets26t1/ets26t1-32.mp3",
+    "audioText": "W: Have you finished the report? M: Almost, I need to check the numbers.",
+    "audioTranslate": "Nữ: Bạn xong báo cáo chưa? Nam: Gần xong, tôi cần kiểm tra số liệu.",
+    "questionText": "What is the man doing?",
+    "questionTranslate": "Người đàn ông đang làm gì?",
+    "options": [
+      { "label": "A", "text": "Finishing a report" },
+      { "label": "B", "text": "Checking some figures" },
+      { "label": "C", "text": "Sending an email" },
+      { "label": "D", "text": "Attending a meeting" }
+    ],
+    "correctAnswer": "B",
+    "explanation": {
+      "A": "❌ Chưa hoàn thành.",
+      "B": "✅ Đúng: he needs to check the numbers.",
+      "C": "❌ Không đề cập.",
+      "D": "❌ Không đề cập."
+    }
+  },
+  {
+    "part": 7,
+    "source": "ets2026",
+    "groupId": "p7_grp_001",
+    "questionIndex": 1,
+    "passageCount": 1,
+    "passages": ["NOTICE: The library will be closed on Monday for the holiday."],
+    "questionText": "Why will the library be closed?",
+    "options": [
+      { "label": "A", "text": "For a holiday" },
+      { "label": "B", "text": "For repairs" },
+      { "label": "C", "text": "For an event" },
+      { "label": "D", "text": "For cleaning" }
+    ],
+    "correctAnswer": "A",
+    "explanation": { "A": "✅ Đúng: closed for the holiday.", "B": "❌", "C": "❌", "D": "❌" }
+  }
+]
+// Mọi câu cùng 1 đề phải CÙNG "source". Part 1-4 có "audioUrl" (/assets/audio/...). Bí thì bấm "Copy prompt cho AI".'
+            style="
+              width: 100%;
+              padding: 12px;
+              border: 2px solid #e0e0e0;
+              border-radius: 8px;
+              font-family: monospace;
+              font-size: 13px;
+              resize: vertical;
+              box-sizing: border-box;
+            "
+          ></textarea>
+          <div
+            id="question-json-result"
+            style="
+              display: none;
+              margin-top: 12px;
+              padding: 12px;
+              border-radius: 8px;
+              font-size: 13px;
+            "
+          ></div>
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              justify-content: flex-end;
+              margin-top: 16px;
+            "
+          >
+            <button
+              type="button"
+              id="btn-close-q-json"
+              style="
+                padding: 10px 20px;
+                border: 2px solid #ccc;
+                background: white;
+                border-radius: 8px;
+                cursor: pointer;
+              "
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              id="btn-submit-q-json"
+              style="
+                padding: 10px 24px;
+                border: none;
+                background: var(--primary);
+                color: white;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              Nhập JSON
+            </button>
+          </div>
+        </div>
+
+        <form id="question-form">
+          <input type="hidden" id="question-id" />
+
+          <div class="question-form-grid">
+            <div>
+              <label
+                style="display: block; margin-bottom: 5px; font-weight: 500"
+                >Part *</label
+              >
+              <select
+                id="question-part"
+                required
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 2px solid #e0e0e0;
+                  border-radius: 8px;
+                "
+              >
+                <option value="">Select Part</option>
+                <option value="1">Part 1 - Photographs</option>
+                <option value="2">Part 2 - Question-Response</option>
+                <option value="3">Part 3 - Conversations</option>
+                <option value="4">Part 4 - Talks</option>
+                <option value="5">Part 5 - Incomplete Sentences</option>
+                <option value="6">Part 6 - Text Completion</option>
+                <option value="7">Part 7 - Reading Comprehension</option>
+              </select>
+              <small id="question-part-hint" style="display: none; color: #888; font-size: 12px; margin-top: 4px;">
+                <i class="fas fa-info-circle"></i> Part 3/4/6/7 là câu nhóm — tạo bằng nút <strong>“Thêm nhóm”</strong>.
+              </small>
+            </div>
+
+            <div>
+              <label style="display: block; margin-bottom: 5px; font-weight: 500"
+                >Source (mã đề)</label
+              >
+              <input
+                type="text"
+                id="question-source"
+                placeholder="VD: official_2024 — gom câu thành đề thi"
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 2px solid #e0e0e0;
+                  border-radius: 8px;
+                "
+              />
+            </div>
+
+            <div class="full-width" id="audio-file-field" style="display: none">
+              <label
+                style="display: block; margin-bottom: 5px; font-weight: 500"
+              >
+                <i class="fas fa-volume-up"></i> File audio (Tùy chọn - cho phần Nghe)
+              </label>
+              <!-- File input và player nằm chung 1 hàng; player chỉ hiện sau khi upload xong. -->
+              <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+                <input
+                  type="file"
+                  id="question-audio-file"
+                  accept="audio/*"
+                  style="
+                    flex: 1 1 240px;
+                    min-width: 200px;
+                    padding: 10px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                  "
+                />
+                <input type="hidden" id="question-audio-url" />
+                <div id="audio-upload-status" style="display: none">
+                  <p style="color: #e11d48; font-size: 14px; margin: 0; white-space: nowrap">
+                    <i class="fas fa-spinner fa-spin"></i> Uploading audio...
+                  </p>
+                </div>
+                <div id="audio-preview" style="display: none; flex: 1 1 320px; min-width: 260px">
+                  <audio
+                    id="preview-audio"
+                    controls
+                    style="width: 100%"
+                    title="Audio đã tải lên"
+                  ></audio>
+                </div>
+              </div>
+              <small style="color: #666; display: block; margin-top: 5px">
+                <i class="fas fa-info-circle"></i> Audio will be automatically
+                uploaded when you select a file (MP3, WAV, OGG, M4A, AAC - max
+                10MB)
+              </small>
+            </div>
+
+            <div
+              class="full-width"
+              id="question-text-field"
+              style="display: none"
+            >
+              <label
+                style="display: block; margin-bottom: 5px; font-weight: 500"
+                >Nội dung câu hỏi</label
+              >
+              <input
+                type="text"
+                id="question-text"
+                placeholder="Nhập câu hỏi..."
+                style="
+                  width: 100%;
+                  padding: 10px;
+                  border: 2px solid #e0e0e0;
+                  border-radius: 8px;
+                "
+              />
+            </div>
+
+            <div class="full-width" id="image-url-field" style="display: none">
+              <label
+                style="display: block; margin-bottom: 5px; font-weight: 500"
+              >
+                <i class="fas fa-image"></i> Hình ảnh
+                <span id="image-required-star" style="display: none">*</span>
+              </label>
+              <!-- File input và ảnh nằm chung 1 hàng (giống audio). -->
+              <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+                <input
+                  type="file"
+                  id="question-image-file"
+                  accept="image/*"
+                  style="
+                    flex: 1 1 240px;
+                    min-width: 200px;
+                    padding: 10px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                  "
+                />
+                <div id="image-upload-status" style="display: none">
+                  <p style="color: #e11d48; font-size: 14px; margin: 0; white-space: nowrap">
+                    <i class="fas fa-spinner fa-spin"></i> Uploading image...
+                  </p>
+                </div>
+                <!-- Danh sách ảnh (nhiều ảnh) sinh động bằng JS (renderImageList). -->
+                <div
+                  id="images-container"
+                  style="display: flex; flex-wrap: wrap; gap: 10px"
+                ></div>
+              </div>
+              <small style="color: #666; display: block; margin-top: 5px">
+                <i class="fas fa-info-circle"></i>
+                <span id="image-hint-text">Chọn file để tự upload.</span>
+              </small>
+            </div>
+
+            <div class="full-width" id="options-section">
+              <label
+                style="display: block; margin-bottom: 10px; font-weight: 500"
+                >Các đáp án *</label
+              >
+              <div class="options-container">
+                <div class="option-item">
+                  <input
+                    type="radio"
+                    name="correct-answer"
+                    value="A"
+                    id="correct-A"
+                  />
+                  <label for="correct-A" style="width: 20px; font-weight: 600"
+                    >A</label
+                  >
+                  <input
+                    type="text"
+                    id="option-A"
+                    placeholder="Option A"
+                    required
+                    autocomplete="off"
+                    style="
+                      flex: 1;
+                      padding: 10px;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 8px;
+                    "
+                  />
+                </div>
+                <div class="option-item">
+                  <input
+                    type="radio"
+                    name="correct-answer"
+                    value="B"
+                    id="correct-B"
+                  />
+                  <label for="correct-B" style="width: 20px; font-weight: 600"
+                    >B</label
+                  >
+                  <input
+                    type="text"
+                    id="option-B"
+                    placeholder="Option B"
+                    required
+                    autocomplete="off"
+                    style="
+                      flex: 1;
+                      padding: 10px;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 8px;
+                    "
+                  />
+                </div>
+                <div class="option-item">
+                  <input
+                    type="radio"
+                    name="correct-answer"
+                    value="C"
+                    id="correct-C"
+                  />
+                  <label for="correct-C" style="width: 20px; font-weight: 600"
+                    >C</label
+                  >
+                  <input
+                    type="text"
+                    id="option-C"
+                    placeholder="Option C"
+                    required
+                    autocomplete="off"
+                    style="
+                      flex: 1;
+                      padding: 10px;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 8px;
+                    "
+                  />
+                </div>
+                <div class="option-item">
+                  <input
+                    type="radio"
+                    name="correct-answer"
+                    value="D"
+                    id="correct-D"
+                  />
+                  <label for="correct-D" style="width: 20px; font-weight: 600"
+                    >D</label
+                  >
+                  <input
+                    type="text"
+                    id="option-D"
+                    placeholder="Option D (optional)"
+                    autocomplete="off"
+                    style="
+                      flex: 1;
+                      padding: 10px;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 8px;
+                    "
+                  />
+                </div>
+              </div>
+              <small style="color: #666; display: block; margin-top: 5px"
+                >Chọn đáp án đúng bằng nút radio</small
+              >
+            </div>
+
+            <div class="full-width">
+              <label
+                style="display: block; margin-bottom: 5px; font-weight: 500"
+                >Giải thích (tùy chọn)</label
+              >
+              <textarea
+                id="question-explanation"
+                rows="6"
+                placeholder="Giải thích tại sao đây là đáp án đúng..."
+                style="
+                  width: 100%;
+                  min-height: 140px;
+                  padding: 10px;
+                  border: 2px solid #e0e0e0;
+                  border-radius: 8px;
+                  resize: vertical;
+                  font-family: inherit;
+                "
+              ></textarea>
+            </div>
+
+            <!-- Keyword Fields for Fill-in-blank (Đục lỗ) - Part 1-2 -->
+            <div
+              class="full-width"
+              id="keyword-field-part12"
+              style="display: none"
+            >
+              <label
+                style="display: block; margin-bottom: 10px; font-weight: 500"
+              >
+                <i class="fas fa-key" style="color: #e11d48"></i> Keywords cho
+                chế độ Đục lỗ (Part 1-2)
+              </label>
+              <p style="font-size: 12px; color: #888; margin-bottom: 10px">
+                Part 1-2: Đục lỗ trong câu hỏi và đáp án (hiển thị toàn bộ text
+                khi làm bài)
+              </p>
+              <div
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px"
+              >
+                <div>
+                  <label
+                    style="
+                      display: block;
+                      margin-bottom: 5px;
+                      font-size: 13px;
+                      color: #666;
+                    "
+                  >
+                    Keyword trong câu hỏi/Audio
+                  </label>
+                  <input
+                    type="text"
+                    id="question-keyword"
+                    placeholder="Từ cần điền trong audio text..."
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 8px;
+                    "
+                  />
+                  <small style="color: #999; font-size: 11px"
+                    >Từ này sẽ bị ẩn khi hiển thị câu hỏi</small
+                  >
+                </div>
+                <div>
+                  <label
+                    style="
+                      display: block;
+                      margin-bottom: 5px;
+                      font-size: 13px;
+                      color: #666;
+                    "
+                  >
+                    Keyword trong đáp án đúng
+                  </label>
+                  <input
+                    type="text"
+                    id="answer-keyword"
+                    placeholder="Từ cần điền trong đáp án đúng..."
+                    style="
+                      width: 100%;
+                      padding: 10px;
+                      border: 2px solid #e0e0e0;
+                      border-radius: 8px;
+                    "
+                  />
+                  <small style="color: #999; font-size: 11px"
+                    >Từ này sẽ bị ẩn trong đáp án đúng</small
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Keyword Fields for Fill-in-blank (Đục lỗ) - Part 3-4 -->
+            <div
+              class="full-width"
+              id="keyword-field-part34"
+              style="display: none"
+            >
+              <label
+                style="display: block; margin-bottom: 10px; font-weight: 500"
+              >
+                <i class="fas fa-key" style="color: #f97316"></i> Keywords cho
+                chế độ Đục lỗ (Part 3-4)
+              </label>
+              <p style="font-size: 12px; color: #888; margin-bottom: 10px">
+                Part 3-4: Đục lỗ trong Audio Text (transcript của đoạn hội
+                thoại)
+              </p>
+              <div>
+                <label
+                  style="
+                    display: block;
+                    margin-bottom: 5px;
+                    font-size: 13px;
+                    color: #666;
+                  "
+                >
+                  Keyword trong Audio Text
+                </label>
+                <input
+                  type="text"
+                  id="audio-keyword"
+                  placeholder="Từ cần điền trong audio transcript..."
+                  style="
+                    width: 100%;
+                    padding: 10px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                  "
+                />
+                <small style="color: #999; font-size: 11px"
+                  >Từ này sẽ bị ẩn trong đoạn audio text khi làm bài đục
+                  lỗ</small
+                >
+              </div>
+            </div>
+
+            <!-- New schema fields: groupId / questionIndex / passageCount / translations -->
+            <div class="full-width" id="group-info-section" style="border-top: 2px solid #f0f0f0; padding-top: 16px; margin-top: 4px;">
+              <label style="display: block; margin-bottom: 10px; font-weight: 600; color: #6366f1;">
+                <i class="fas fa-layer-group"></i> Thông tin nhóm câu hỏi (Part 3/4/6/7)
+              </label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                <div>
+                  <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Group ID</label>
+                  <input
+                    type="text"
+                    id="question-group-id"
+                    placeholder="VD: p3_grp_001"
+                    style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
+                  />
+                  <small style="color: #999; font-size: 11px;">Nhóm câu hỏi cùng chung audio/passage</small>
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Question Index</label>
+                  <input
+                    type="number"
+                    id="question-index"
+                    min="1"
+                    placeholder="1, 2, 3..."
+                    style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
+                  />
+                  <small style="color: #999; font-size: 11px;">Thứ tự trong nhóm (bắt đầu từ 1)</small>
+                </div>
+                <div id="passage-count-field">
+                  <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Số đoạn văn (Part 7)</label>
+                  <select
+                    id="question-passage-count"
+                    style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
+                  >
+                    <option value="">-- Không có --</option>
+                    <option value="1">1 đoạn (Single)</option>
+                    <option value="2">2 đoạn (Double)</option>
+                    <option value="3">3 đoạn (Triple)</option>
+                  </select>
+                  <small style="color: #999; font-size: 11px;">Chỉ dùng cho Part 7</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="full-width">
+              <label style="display: block; margin-bottom: 5px; font-weight: 500; color: #6366f1;">
+                <i class="fas fa-language"></i> Bản dịch tiếng Việt (tùy chọn)
+              </label>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div>
+                  <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Dịch Audio / Đoạn hội thoại</label>
+                  <textarea
+                    id="question-audio-translate"
+                    rows="3"
+                    placeholder="Bản dịch tiếng Việt của audio/hội thoại..."
+                    style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
+                  ></textarea>
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: 5px; font-size: 13px; color: #666;">Dịch câu hỏi</label>
+                  <textarea
+                    id="question-text-translate"
+                    rows="3"
+                    placeholder="Bản dịch tiếng Việt của câu hỏi..."
+                    style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              justify-content: flex-end;
+              margin-top: 20px;
+            "
+          >
+            <button
+              type="button"
+              id="btn-close-question-modal"
+              style="
+                padding: 10px 20px;
+                border: 2px solid #ccc;
+                background: white;
+                border-radius: 8px;
+                cursor: pointer;
+              "
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              style="
+                padding: 10px 20px;
+                border: none;
+                background: #e11d48;
+                color: white;
+                border-radius: 8px;
+                cursor: pointer;
+              "
+            >
+              Lưu câu hỏi
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>

@@ -1,4 +1,5 @@
-const ToeicQuestion = require('../models/ToeicQuestion');
+const ToeicQuestion = require('../models/ToeicQuestion'); // legacy — sẽ gỡ ở GĐ5
+const { flattenSet, findQuestionById, findQuestionsByIds } = require('../services/questionSetService');
 const ToeicTest = require('../models/ToeicTest');
 const ToeicAttempt = require('../models/ToeicAttempt');
 const UserProfile = require('../models/UserProfile');
@@ -15,6 +16,21 @@ const { logTxn } = require('../utils/economyLog');
  * @route   POST /api/toeic/attempts/start
  * @access  Private
  */
+// ── Chi phí & phần thưởng bài TOEIC — TỈ LỆ THEO SỐ CÂU ───────────────────────
+// Trước đây thưởng cố định theo accuracy (tối đa 1000 XP / 500 xu) BẤT KỂ đề dài
+// ngắn → bài 6 câu cho bằng bài 200 câu, spam vài phút là lên chục level.
+// Nay mọi thứ quy theo số câu để công bằng và không phá hệ thống mở khoá Level.
+const TOEIC_ENERGY_PER_Q = 0.6;   // 6 câu ≈ 5⚡ · 25 câu ≈ 15⚡ · 200 câu ≈ 60⚡
+const TOEIC_ENERGY_MIN = 5;
+const TOEIC_ENERGY_MAX = 60;
+const TOEIC_XP_PER_Q = 5;         // 100% đúng: 6 câu = 30 XP · 200 câu = 1000 XP
+const TOEIC_COINS_PER_Q = 2;      // 100% đúng: 6 câu = 12 xu · 200 câu = 400 xu
+
+function toeicEnergyCost(totalQuestions) {
+    const raw = Math.round((totalQuestions || 0) * TOEIC_ENERGY_PER_Q);
+    return Math.min(TOEIC_ENERGY_MAX, Math.max(TOEIC_ENERGY_MIN, raw));
+}
+
 exports.startAttempt = async (req, res, next) => {
     try {
         const { testId, fillBlankMode } = req.body;
@@ -43,10 +59,45 @@ exports.startAttempt = async (req, res, next) => {
             });
         }
 
-        // Deduct coins if not free. stats lấy bằng .lean() (không có .save()) →
-        // dùng cập nhật atomic (cũng hợp economy server-authoritative).
-        if (!test.isFree && test.requiredCoins > 0) {
-            await UserStats.updateOne({ userId: req.user.id }, { $inc: { coins: -test.requiredCoins } });
+        // ── Thanh toán: VÀNG trước, NĂNG LƯỢNG sau ───────────────────────────
+        // Cả hai đều atomic (điều kiện $gte trong filter) vì `stats` đọc bằng
+        // .lean() nên số dư có thể đã cũ — canUserAccess ở trên chỉ là kiểm tra
+        // sớm để báo lỗi đẹp, KHÔNG được coi là bảo đảm.
+        // Vàng đi trước vì nó là tài nguyên KHÔNG tự hồi: nếu bước sau hỏng thì
+        // hoàn lại vàng dễ và an toàn hơn là hoàn năng lượng.
+        const coinCost = (!test.isFree && test.requiredCoins > 0) ? test.requiredCoins : 0;
+        if (coinCost > 0) {
+            const coinsPaid = await UserStats.findOneAndUpdate(
+                { userId: req.user.id, coins: { $gte: coinCost } },
+                { $inc: { coins: -coinCost } }
+            );
+            if (!coinsPaid) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Không đủ xu! Cần ${coinCost} xu để mở bài thi này.`,
+                    coinsNeeded: coinCost,
+                    currentCoins: stats?.coins ?? 0,
+                });
+            }
+        }
+
+        const energyCost = toeicEnergyCost(test.totalQuestions);
+        const paid = await UserStats.findOneAndUpdate(
+            { userId: req.user.id, energy: { $gte: energyCost } },
+            { $inc: { energy: -energyCost }, $set: { lastEnergyUpdate: new Date() } },
+            { new: true }
+        );
+        if (!paid) {
+            // Thiếu năng lượng → hoàn lại vàng đã trừ, không để user mất trắng.
+            if (coinCost > 0) {
+                await UserStats.updateOne({ userId: req.user.id }, { $inc: { coins: coinCost } });
+            }
+            return res.status(400).json({
+                success: false,
+                message: `Không đủ năng lượng! Cần ${energyCost}⚡ cho bài ${test.totalQuestions} câu.`,
+                energyNeeded: energyCost,
+                currentEnergy: stats?.energy ?? 0,
+            });
         }
 
         // Create attempt
@@ -75,49 +126,36 @@ exports.startAttempt = async (req, res, next) => {
             7: { start: 147, count: 54 },
         };
 
+        // part.questions giờ là các MÀN (ToeicQuestionSet); mỗi màn dàn phẳng ra
+        // nhiều câu, mỗi câu đã kèm ngữ cảnh chung + groupId = id màn.
         for (const part of test.parts) {
             const partConfig = partRanges[part.partNumber];
             let partQuestionIndex = 0;
 
-            for (const question of part.questions) {
-                // Calculate global question number
-                if (test.testType === 'full-test') {
-                    // Full test: Use standard TOEIC numbering
-                    globalQuestionNumber = partConfig.start + partQuestionIndex;
-                } else {
-                    // Mini test or other: Sequential numbering
-                    globalQuestionNumber++;
+            for (const set of part.questions) {
+                if (!set) continue; // tham chiếu hỏng (màn đã bị xoá)
+                const plain = typeof set.toObject === 'function' ? set.toObject() : set;
+
+                for (const q of flattenSet(plain)) {
+                    // Số câu THẬT đã chuẩn TOEIC (P6 = 131…), dùng luôn. Chỉ khi
+                    // câu thiếu số mới quay lại cách đánh theo vị trí như trước.
+                    if (Number.isFinite(q.questionNumber)) {
+                        globalQuestionNumber = q.questionNumber;
+                    } else if (test.testType === 'full-test') {
+                        globalQuestionNumber = partConfig.start + partQuestionIndex;
+                    } else {
+                        globalQuestionNumber++;
+                    }
+
+                    // Chế độ thường: KHÔNG gửi đáp án đúng về client.
+                    if (!fillBlankMode) delete q.correctAnswer;
+
+                    q.globalQuestionNumber = globalQuestionNumber;
+                    q.section = part.partNumber <= 4 ? 'listening' : 'reading';
+
+                    questions.push(q);
+                    partQuestionIndex++;
                 }
-
-                const q = question.toObject();
-
-                // In fill-blank mode, keep correctAnswer and keyword fields for display
-                if (fillBlankMode) {
-                    // Keep correctAnswer for highlighting
-                    // Keep questionKeyword, answerKeyword, audioKeyword for blanking
-                    q.options = q.options.map(opt => ({
-                        label: opt.label,
-                        text: opt.text,
-                    }));
-                } else {
-                    // Normal mode: Don't send correct answers
-                    delete q.correctAnswer;
-                    // fields removed in new schema — kept for safety
-                    delete q.questionKeyword;
-                    delete q.answerKeyword;
-                    delete q.audioKeyword;
-                    q.options = q.options.map(opt => ({
-                        label: opt.label,
-                        text: opt.text,
-                    }));
-                }
-
-                // Add global question number and section info
-                q.globalQuestionNumber = globalQuestionNumber;
-                q.section = part.partNumber <= 4 ? 'listening' : 'reading';
-
-                questions.push(q);
-                partQuestionIndex++;
             }
         }
 
@@ -194,7 +232,7 @@ exports.submitAnswer = async (req, res, next) => {
         }
 
         // Get correct answer
-        const question = await ToeicQuestion.findById(questionId);
+        const question = await findQuestionById(questionId);
 
         if (!question) {
             return res.status(404).json({
@@ -377,7 +415,7 @@ exports.submitAttempt = async (req, res, next) => {
 
         // Update question statistics
         for (const answer of attempt.answers) {
-            const question = await ToeicQuestion.findById(answer.questionId);
+            const question = await findQuestionById(answer.questionId);
             if (question) {
                 question.recordAnswer(answer.isCorrect, answer.timeSpent);
                 await question.save();
@@ -403,12 +441,17 @@ exports.submitAttempt = async (req, res, next) => {
         ]);
 
         // Calculate rewards based on performance
-        const baseXp = Math.round(attempt.accuracy * 10);
-        const bonusXp = attempt.isPersonalBest ? 100 : 0;
-        const perfectPartBonus = attempt.isPerfectPart.length * 50;
+        // Quy theo SỐ CÂU: đề càng dài thưởng càng nhiều (xem ghi chú đầu file).
+        const qCount = attempt.totalQuestions || 0;
+        const accRatio = (attempt.accuracy || 0) / 100;
+        const baseXp = Math.round(accRatio * qCount * TOEIC_XP_PER_Q);
+        // Bonus cũng chặn theo cỡ đề để bài 6 câu không "ăn" bonus như bài full.
+        const sizeCap = Math.min(50, Math.round(qCount * 1.5));
+        const bonusXp = attempt.isPersonalBest ? Math.min(100, Math.round(qCount * 2)) : 0;
+        const perfectPartBonus = attempt.isPerfectPart.length * sizeCap;
 
         attempt.xpEarned = baseXp + bonusXp + perfectPartBonus;
-        attempt.coinsEarned = Math.round(attempt.accuracy * 5);
+        attempt.coinsEarned = Math.round(accRatio * qCount * TOEIC_COINS_PER_Q);
 
         if (attempt.totalScore >= 900) attempt.gemsEarned = 5;
         else if (attempt.totalScore >= 700) attempt.gemsEarned = 2;
@@ -437,10 +480,7 @@ exports.submitAttempt = async (req, res, next) => {
 
         // Batch fetch all questions in one query instead of N individual queries
         const questionIds = attempt.answers.map(a => a.questionId);
-        const questionDocs = await ToeicQuestion.find({ _id: { $in: questionIds } })
-            .select('questionText imageUrls passages options explanation part audioUrl audioText groupId questionIndex')
-            .lean();
-        const questionMap = new Map(questionDocs.map(q => [q._id.toString(), q]));
+        const questionMap = await findQuestionsByIds(questionIds);
 
         const questionsReview = attempt.answers.map((ans) => {
             const q = questionMap.get(ans.questionId?.toString());
@@ -503,8 +543,7 @@ exports.getAttemptReview = async (req, res, next) => {
 
         // Batch fetch all questions in one query
         const reviewQuestionIds = attempt.answers.map(a => a.questionId);
-        const reviewQuestionDocs = await ToeicQuestion.find({ _id: { $in: reviewQuestionIds } }).lean();
-        const reviewQuestionMap = new Map(reviewQuestionDocs.map(q => [q._id.toString(), q]));
+        const reviewQuestionMap = await findQuestionsByIds(reviewQuestionIds);
 
         const questions = attempt.answers
             .map((answer) => {

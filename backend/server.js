@@ -16,6 +16,7 @@ if (missingEnv.length > 0) {
 }
 
 const logger = require('./utils/logger');
+const { renderAdminDashboard } = require('./utils/renderAdminDashboard');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -359,7 +360,7 @@ app.get('/api/admin/stats/growth', protect, authorize('admin'), async (req, res)
 // DASHBOARD & SPA (Catch-all)
 // ===================================
 app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin', 'dashboard.html'));
+    res.send(renderAdminDashboard());
 });
 
 // Data file 404 Handler (Specific for /data folder)
@@ -380,7 +381,7 @@ app.use('/api/*', (req, res) => {
 
 // Admin SPA Fallback (chỉ dành cho admin dashboard)
 app.get('/admin/*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin', 'dashboard.html'));
+    res.send(renderAdminDashboard());
 });
 
 // ===================================

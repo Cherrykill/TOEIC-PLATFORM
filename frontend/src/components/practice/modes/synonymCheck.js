@@ -6,6 +6,8 @@ import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { afterAnswer } from '@components/practice/practiceNav.js';
+import { startQuestionTimer } from '@components/practice/questionTimer.js';
+import { timeoutQuestion } from '@components/practice/questionTimeout.js';
 
 export const SynonymCheck = {
 
@@ -75,6 +77,23 @@ export const SynonymCheck = {
         PracticeManager.setCurrentWord(question.word);
 
         this.render(question);
+
+        // Đếm ngược cho RIÊNG câu này; hết giờ → tính sai + chuyển/khoá.
+        startQuestionTimer('synonym-check', () => this.onQuestionTimeout());
+    },
+
+    // Hết giờ mà chưa trả lời.
+    onQuestionTimeout() {
+        const question = this.questions[this.currentIndex];
+        if (!question) return;
+        const norm = s => String(s).trim().toLowerCase();
+        const correctSet = new Set((question.correctAnswers || []).map(norm));
+        timeoutQuestion(this, 'synonym-check', {
+            word: question.word,
+            reveal: (btns) => btns.forEach((b, i) => {
+                if (correctSet.has(norm(question.options[i]))) b.classList.add('correct');
+            }),
+        });
     },
 
     render(question) {

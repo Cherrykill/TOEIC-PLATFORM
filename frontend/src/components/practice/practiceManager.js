@@ -7,6 +7,13 @@ import { GameLogic, vocabLang } from '@game/gameLogic.js';
 import { Http } from '@api/http.js';
 import { Energy } from '@game/energy.js';
 import { Quest } from '@components/quest/quest.js';
+import { getQuestionTime, QUESTION_TIME_MODES } from '@components/practice/questionTime.js';
+import { stopQuestionTimer, freezeQuestionTimer, isQuestionTimerRunning } from '@components/practice/questionTimer.js';
+
+// 9 chế độ hỏi–đáp: đếm ngược THEO TỪNG CÂU (mỗi câu một đồng hồ riêng).
+// Các chế độ đặc biệt (ghép từ, tốc độ, xếp câu, chép chính tả, phát âm…) giữ
+// nguyên đồng hồ cả lượt như cũ vì cơ chế chơi khác hẳn.
+const PER_QUESTION_MODES = new Set(QUESTION_TIME_MODES.map(m => m.id));
 import { WrongWordsManager } from '@components/vocab/wrongWords/wrongWordsManager.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
@@ -219,9 +226,10 @@ export const PracticeManager = {
         actualPairsCount = Math.min(Math.floor(userQuestionCount / 2), 20);
 
         if (settings.timeLimitEnabled !== false) {
-            const timePerQuestion = settings.timePerQuestion || 30;
+            // Thời gian mỗi câu giờ đặt RIÊNG theo chế độ (Cài đặt → Luyện tập).
+            const timePerQuestion = getQuestionTime(mode);
             actualTimeLimit = actualQuestionsPerRound * timePerQuestion;
-            console.log(`⏱️ Time limit enabled: ${actualTimeLimit} seconds (${actualQuestionsPerRound} questions × ${timePerQuestion}s)`);
+            console.log(`⏱️ Time limit enabled: ${actualTimeLimit} seconds (${actualQuestionsPerRound} questions × ${timePerQuestion}s — chế độ ${mode})`);
         } else {
             actualTimeLimit = 0;
             console.log(`⏱️ Time limit disabled`);
@@ -234,7 +242,14 @@ export const PracticeManager = {
             timeLimit: actualTimeLimit
         };
 
-        this.startTimer(actualTimeLimit);
+        // Chế độ hỏi–đáp: KHÔNG chạy đồng hồ cả lượt — mỗi câu tự bật đồng hồ riêng
+        // trong showQuestion(). Chế độ đặc biệt vẫn dùng đồng hồ cả lượt.
+        if (PER_QUESTION_MODES.has(mode)) {
+            this.stopTimer();
+            this.updateTimerDisplay(0, true); // ẩn cho tới khi câu đầu hiện ra
+        } else {
+            this.startTimer(actualTimeLimit);
+        }
 
         // Tham chiếu mode đang chạy — dùng cho điều hướng thủ công + chống tính
         // điểm lặp (đọc currentIndex khi tắt tự động chuyển câu).
@@ -862,6 +877,7 @@ export const PracticeManager = {
     },
 
     cleanupCurrentMode() {
+        stopQuestionTimer(); // dừng đếm ngược từng câu khi rời chế độ
         if (!this.currentSession) return;
         this.cleanupMode(this.currentSession.mode);
     },
@@ -981,6 +997,18 @@ export const PracticeManager = {
         GameState.state.resources.timeFreezes--;
         this.updateFreezeButton();
 
+        // Chế độ hỏi–đáp đang chạy đồng hồ TỪNG CÂU → đóng băng đồng hồ đó.
+        if (isQuestionTimerRunning()) {
+            freezeQuestionTimer(10000);
+            Notification.show({
+                type: 'info',
+                title: '⏸️ Đã dừng thời gian!',
+                message: 'Thời gian đông băng trong 10 giây',
+                duration: 2000,
+            });
+            return;
+        }
+
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
@@ -1026,13 +1054,15 @@ export const PracticeManager = {
         window._reactSetTimerVisible?.(!hide);
         if (hide) return;
 
-        const timerEl = document.getElementById('practice-timer');
-
         const minutes = Math.floor(seconds / 60);
         const secs = seconds % 60;
         const timeString = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
-        timerEl.textContent = timeString;
+        // Qua state React — ghi thẳng textContent bị xoá mỗi lần component re-render.
+        window._reactSetPracticeTimer?.(timeString);
+
+        const timerEl = document.getElementById('practice-timer');
+        if (!timerEl) return;
 
         if (seconds < 30 && seconds > 0) {
             timerEl.classList.add('timer-warning');
@@ -1047,6 +1077,8 @@ export const PracticeManager = {
         }
     },
 
+    // Hết giờ ĐỒNG HỒ CẢ LƯỢT — chỉ còn dùng cho các chế độ đặc biệt.
+    // 9 chế độ hỏi–đáp hết giờ theo TỪNG CÂU (xem questionTimer + onQuestionTimeout).
     onTimeUp() {
         console.log('⏰ Time is up!');
 

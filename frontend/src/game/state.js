@@ -19,7 +19,10 @@ export const DEFAULT_SETTINGS = {
     volume: 70,
     questionsPerSession: 'auto',
     timeLimitEnabled: true,
-    timePerQuestion: 30,
+    timePerQuestion: 30,      // legacy: dùng chung; questionTime (theo chế độ) ưu tiên hơn
+    questionTime: {},         // { [modeId]: giây } — thời gian mỗi câu theo từng chế độ
+    toeicPerQuestionTimer: false, // bài thi TOEIC: đếm ngược từng câu (song song đồng hồ tổng)
+    toeicPartTime: {},        // { [part]: giây } — thời gian mỗi câu TOEIC theo Part
     difficulty: "adaptive",
     levelFilter: null,
     autoSync: true,

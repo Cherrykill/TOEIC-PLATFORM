@@ -6,6 +6,8 @@ import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { afterAnswer } from '@components/practice/practiceNav.js';
+import { startQuestionTimer } from '@components/practice/questionTimer.js';
+import { timeoutQuestion } from '@components/practice/questionTimeout.js';
 
 export const FillBlank = {
     config: null,
@@ -77,6 +79,22 @@ export const FillBlank = {
         if (GameState.state.settings.soundEnabled && !question.reversed) {
             setTimeout(() => GameLogic.speakWord(wordPk(question.word), ttsLang()), 300);
         }
+
+        // Đếm ngược cho RIÊNG câu này; hết giờ → tính sai + chuyển/khoá.
+        startQuestionTimer('fill-blank', () => this.onQuestionTimeout());
+    },
+
+    // Hết giờ mà chưa trả lời.
+    onQuestionTimeout() {
+        const question = this.questions[this.currentIndex];
+        if (!question) return;
+        timeoutQuestion(this, 'fill-blank', {
+            selector: '#answer-input, #submit-btn', word: question.word,
+            reveal: () => {
+                const input = document.getElementById('answer-input');
+                if (input) { input.value = question.correctAnswer; input.classList.add('wrong'); }
+            },
+        });
     },
 
     render(question) {

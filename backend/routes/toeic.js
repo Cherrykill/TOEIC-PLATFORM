@@ -11,6 +11,8 @@ const {
     deleteQuestion,
     deleteAllQuestions,
     getQuestionsStatistics,
+    getQuestionSources,
+    createQuestionGroup,
     generateQuestionsWithAI,
 } = require('../controllers/toeicQuestionsController');
 
@@ -362,8 +364,10 @@ router.get('/analytics/parts', getPartAnalysis);
  *         description: Câu hỏi đã tạo
  */
 router.get('/questions/statistics', authorize('admin'), getQuestionsStatistics);
+router.get('/questions/sources', authorize('admin'), getQuestionSources);
 router.get('/questions', authorize('admin'), getQuestions);
 router.get('/questions/:id', authorize('admin'), getQuestion);
+router.post('/questions/group', authorize('admin'), createQuestionGroup);
 router.post('/questions', authorize('admin'), createQuestion);
 router.post('/questions/ai-generate', authorize('admin'), generateQuestionsWithAI);
 router.put('/questions/:id', authorize('admin'), updateQuestion);

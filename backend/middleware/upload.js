@@ -4,27 +4,54 @@ const path = require('path');
 const fs = require('fs');
 
 // ===================================
+// HELPER — chọn thư mục & tên file cho ảnh/audio câu hỏi TOEIC
+// ===================================
+
+// Tên thư mục an toàn: chỉ chữ/số/-/_ ; rỗng → null.
+const sanitizeFolder = (v) => {
+    const s = String(v || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    return s || null;
+};
+
+// Quyết định thư mục con theo THỨ TỰ ưu tiên:
+//   1. ?source=... trên query (form gửi Source đang chọn) — đúng ý người dùng nhất.
+//   2. Tiền tố trước "p<số>" trong tên file (quy ước cũ e2e9p1_1 → e2e9).
+//   3. 'other' khi không suy ra được.
+const resolveTestFolder = (req, file) => {
+    const fromQuery = sanitizeFolder(req.query.source);
+    if (fromQuery) return fromQuery;
+    const match = file.originalname.match(/^([a-z0-9]+)p\d+/i);
+    return match ? match[1].toLowerCase() : 'other';
+};
+
+// Giữ tên gốc nhưng thêm hậu tố ngắn khi ĐÃ tồn tại → không đè file cũ.
+// (Trùng tên là chuyện thường vì mỗi bộ đề hay đánh số lại từ 1.)
+const uniqueFilename = (destPath, originalname) => {
+    const ext = path.extname(originalname);
+    const base = path.basename(originalname, ext);
+    let name = originalname;
+    let i = 1;
+    while (fs.existsSync(path.join(destPath, name))) {
+        name = `${base}-${i}${ext}`;
+        i += 1;
+    }
+    return name;
+};
+
+// ===================================
 // IMAGE UPLOAD CONFIGURATION
 // ===================================
 
 const imageStorage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Extract test type from filename (e.g., e2e9p1_1.jpg -> e2e9)
-        const match = file.originalname.match(/^([a-z0-9]+)p\d+/i);
-        const testType = match ? match[1] : 'other';
-
-        const destPath = `public/assets/images/${testType}/`;
-
-        // Create directory if it doesn't exist
+        const destPath = `public/assets/images/${resolveTestFolder(req, file)}/`;
         if (!fs.existsSync(destPath)) {
             fs.mkdirSync(destPath, { recursive: true });
         }
-
         cb(null, destPath);
     },
     filename: function (req, file, cb) {
-        // Keep original filename - no timestamp prefix
-        cb(null, file.originalname);
+        cb(null, uniqueFilename(`public/assets/images/${resolveTestFolder(req, file)}/`, file.originalname));
     }
 });
 
@@ -54,22 +81,14 @@ const uploadImage = multer({
 
 const audioStorage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Extract test type from filename (e.g., e2e9p1_1.mp3 -> e2e9)
-        const match = file.originalname.match(/^([a-z0-9]+)p\d+/i);
-        const testType = match ? match[1] : 'other';
-
-        const destPath = `public/assets/audio/${testType}/`;
-
-        // Create directory if it doesn't exist
+        const destPath = `public/assets/audio/${resolveTestFolder(req, file)}/`;
         if (!fs.existsSync(destPath)) {
             fs.mkdirSync(destPath, { recursive: true });
         }
-
         cb(null, destPath);
     },
     filename: function (req, file, cb) {
-        // Keep original filename - no timestamp prefix
-        cb(null, file.originalname);
+        cb(null, uniqueFilename(`public/assets/audio/${resolveTestFolder(req, file)}/`, file.originalname));
     }
 });
 

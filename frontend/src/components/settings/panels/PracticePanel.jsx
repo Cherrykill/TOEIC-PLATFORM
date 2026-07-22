@@ -1,36 +1,63 @@
 // "Practice" panel. Presentational — state/handlers passed from SettingsScreen.
 import { useState } from 'react';
 import Toggle from './Toggle.jsx';
-import { TRANSITION_MODES, getTransitionDefault } from '@components/practice/transitionDelay.js';
+import { QUESTION_TIME_MODES, getQuestionTimeDefault } from '@components/practice/questionTime.js';
+import { TOEIC_PART_TIMES, getToeicPartTimeDefault } from '@components/toeic/toeicPartTime.js';
 
 const GOAL_PRESETS = [10, 15, 30, 60, 90, 120, 180];
-const TIME_OPTIONS = [500, 1000, 1500, 2000, 3000, 4000];
-const fmtDelay = (ms) => `${ms / 1000}s`;
+const SEC_OPTIONS = [10, 15, 20, 25, 30, 45, 60, 90, 120];
+
+// Thụt lề + vạch trái cho cài đặt PHỤ THUỘC một toggle phía trên → nhìn ra quan hệ cha–con.
+const NESTED = { paddingLeft: 14, borderLeft: '2px solid var(--border-color)' };
 
 export default function PracticePanel({ s, handleQPS, updateSetting, handleDifficulty }) {
     const goalVal = s.dailyStudyGoalMin ?? 15;
     const [goalCustom, setGoalCustom] = useState(false);
     const isGoalCustom = goalCustom || !GOAL_PRESETS.includes(goalVal);
 
-    // Thời gian chuyển câu (per-mode). Select 1 chọn chế độ ("all" = toàn bộ).
+    // Thời gian mỗi câu (per-mode). Select 1 chọn chế độ ("all" = toàn bộ).
+    // Fallback: giá trị cũ timePerQuestion (dùng chung) nếu chế độ chưa có riêng.
     const [tmMode, setTmMode] = useState('all');
-    const qt = s.questionTransition || {};
-    const effDelay = (id) => (typeof qt[id] === 'number' ? qt[id] : getTransitionDefault(id));
-    const firstDelay = effDelay(TRANSITION_MODES[0].id);
-    const allSame = TRANSITION_MODES.every(m => effDelay(m.id) === firstDelay) ? firstDelay : null;
-    const tmVal = tmMode === 'all' ? (allSame ?? '') : effDelay(tmMode);
-    const tmOptions = (typeof tmVal === 'number' && !TIME_OPTIONS.includes(tmVal))
-        ? [tmVal, ...TIME_OPTIONS] : TIME_OPTIONS;
-    const applyTmTime = (msStr) => {
-        const ms = parseInt(msStr);
-        if (!Number.isFinite(ms)) return;
+    const qt = s.questionTime || {};
+    const legacy = (typeof s.timePerQuestion === 'number' && s.timePerQuestion > 0) ? s.timePerQuestion : null;
+    const effSec = (id) => (typeof qt[id] === 'number' ? qt[id] : (legacy ?? getQuestionTimeDefault(id)));
+    const firstSec = effSec(QUESTION_TIME_MODES[0].id);
+    const allSame = QUESTION_TIME_MODES.every(m => effSec(m.id) === firstSec) ? firstSec : null;
+    const tmVal = tmMode === 'all' ? (allSame ?? '') : effSec(tmMode);
+    const tmOptions = (typeof tmVal === 'number' && !SEC_OPTIONS.includes(tmVal))
+        ? [tmVal, ...SEC_OPTIONS].sort((a, b) => a - b) : SEC_OPTIONS;
+    const applyTmTime = (secStr) => {
+        const sec = parseInt(secStr);
+        if (!Number.isFinite(sec)) return;
         if (tmMode === 'all') {
             const next = {};
-            TRANSITION_MODES.forEach(m => { next[m.id] = ms; });
-            updateSetting('questionTransition', next);
+            QUESTION_TIME_MODES.forEach(m => { next[m.id] = sec; });
+            updateSetting('questionTime', next);
         } else {
-            updateSetting('questionTransition', { ...qt, [tmMode]: ms });
+            // Ghi kèm giá trị đang hiệu lực của các chế độ khác để không rơi về mặc định.
+            const base = {};
+            QUESTION_TIME_MODES.forEach(m => { base[m.id] = effSec(m.id); });
+            updateSetting('questionTime', { ...base, [tmMode]: sec });
         }
+    };
+
+    // ── Thời gian mỗi câu cho bài thi TOEIC (theo Part) ──────────────────────
+    const [tpMode, setTpMode] = useState('all');
+    const tp = s.toeicPartTime || {};
+    const effPart = (id) => (typeof tp[id] === 'number' ? tp[id] : getToeicPartTimeDefault(id));
+    const firstPart = effPart(TOEIC_PART_TIMES[0].id);
+    const partAllSame = TOEIC_PART_TIMES.every(p => effPart(p.id) === firstPart) ? firstPart : null;
+    const tpVal = tpMode === 'all' ? (partAllSame ?? '') : effPart(Number(tpMode));
+    const tpOptions = (typeof tpVal === 'number' && !SEC_OPTIONS.includes(tpVal))
+        ? [tpVal, ...SEC_OPTIONS].sort((a, b) => a - b) : SEC_OPTIONS;
+    const applyPartTime = (secStr) => {
+        const sec = parseInt(secStr);
+        if (!Number.isFinite(sec)) return;
+        const base = {};
+        TOEIC_PART_TIMES.forEach(p => { base[p.id] = effPart(p.id); });
+        if (tpMode === 'all') TOEIC_PART_TIMES.forEach(p => { base[p.id] = sec; });
+        else base[Number(tpMode)] = sec;
+        updateSetting('toeicPartTime', base);
     };
 
     return (
@@ -53,49 +80,47 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                 <div className="setting-info"><h4>Giới hạn thời gian</h4><p>Đếm ngược cho mỗi câu hỏi</p></div>
                 <Toggle checked={s.timeLimitEnabled !== false} onChange={v => updateSetting('timeLimitEnabled', v)} />
             </div>
-            <div className="setting-item">
-                <label>Thời gian mỗi câu (giây)</label>
-                <select value={s.timePerQuestion || 30} onChange={e => updateSetting('timePerQuestion', parseInt(e.target.value))}>
-                    {[10, 15, 20, 30, 45, 60].map(n => <option key={n} value={n}>{n}s</option>)}
-                </select>
-            </div>
+            {/* Phụ thuộc "Giới hạn thời gian" — đặt riêng cho từng chế độ. */}
+            {s.timeLimitEnabled !== false && (
+                <div className="setting-item" style={{ display: 'block', ...NESTED }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <div className="setting-info">
+                            <h4>Thời gian mỗi câu</h4>
+                            <p>Chọn chế độ (hoặc “Toàn bộ”) rồi đặt số giây cho mỗi câu hỏi</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <select value={tmMode} onChange={e => setTmMode(e.target.value)} title="Áp dụng cho chế độ nào">
+                                <option value="all">Toàn bộ</option>
+                                {QUESTION_TIME_MODES.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                            </select>
+                            <select value={tmVal} onChange={e => applyTmTime(e.target.value)} title="Số giây mỗi câu">
+                                {/* Rỗng = các chế độ đang KHÁC nhau, không phải "chưa đặt". */}
+                                {tmVal === '' && <option value="" disabled>— đang khác nhau —</option>}
+                                {tmOptions.map(sec => <option key={sec} value={sec}>{sec}s</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    <div style={{ marginTop: 10, borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
+                        {QUESTION_TIME_MODES.map(m => {
+                            const isDef = typeof qt[m.id] !== 'number';
+                            return (
+                                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '3px 0', color: 'var(--text-secondary)' }}>
+                                    <span>{m.name}</span>
+                                    <span style={{ color: isDef ? 'var(--text-tertiary, #94a3b8)' : 'var(--primary-color)', fontWeight: 600 }}>
+                                        {effSec(m.id)}s{isDef ? ' (mặc định)' : ''}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
             <div className="setting-item">
                 <div className="setting-info">
                     <h4>Tự động chuyển câu</h4>
                     <p>Tắt để tự bấm ← Trước / Tiếp → sau mỗi câu</p>
                 </div>
                 <Toggle checked={s.autoAdvance !== false} onChange={v => updateSetting('autoAdvance', v)} />
-            </div>
-            <div className="setting-item" style={{ display: s.autoAdvance !== false ? 'block' : 'none' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <div className="setting-info">
-                        <h4>Thời gian chuyển câu</h4>
-                        <p>Thời gian chờ trước khi sang câu tiếp (theo từng chế độ)</p>
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <select value={tmMode} onChange={e => setTmMode(e.target.value)}>
-                            <option value="all">Toàn bộ</option>
-                            {TRANSITION_MODES.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                        </select>
-                        <select value={tmVal} onChange={e => applyTmTime(e.target.value)}>
-                            {tmVal === '' && <option value="" disabled>— chọn —</option>}
-                            {tmOptions.map(ms => <option key={ms} value={ms}>{fmtDelay(ms)}</option>)}
-                        </select>
-                    </div>
-                </div>
-                <div style={{ marginTop: 10, borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
-                    {TRANSITION_MODES.map(m => {
-                        const isDef = typeof qt[m.id] !== 'number';
-                        return (
-                            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '3px 0', color: 'var(--text-secondary)' }}>
-                                <span>{m.name}</span>
-                                <span style={{ color: isDef ? 'var(--text-tertiary, #94a3b8)' : 'var(--primary-color)', fontWeight: 600 }}>
-                                    {fmtDelay(effDelay(m.id))}{isDef ? ' (mặc định)' : ''}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
             </div>
             <div className="setting-item">
                 <label>Mục tiêu thời gian học mỗi ngày</label>
@@ -159,6 +184,52 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                     <option value="zh">🇨🇳 Tiếng Trung (ZH)</option>
                 </select>
             </div>
+
+            {/* ── Bài thi TOEIC ─────────────────────────────────────────────── */}
+            <h3 style={{ marginTop: 24 }}>Bài thi TOEIC</h3>
+            <div className="setting-item">
+                <div className="setting-info">
+                    <h4>Đếm ngược từng câu</h4>
+                    <p>Hết giờ tự chuyển sang câu kế. Đồng hồ tổng cả bài vẫn chạy song song</p>
+                </div>
+                <Toggle
+                    checked={s.toeicPerQuestionTimer === true}
+                    onChange={v => updateSetting('toeicPerQuestionTimer', v)}
+                />
+            </div>
+            {s.toeicPerQuestionTimer === true && (
+                <div className="setting-item" style={{ display: 'block', ...NESTED }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <div className="setting-info">
+                            <h4>Thời gian mỗi câu (theo Part)</h4>
+                            <p>Part 3/4/6/7 hiện cả nhóm một màn → thời gian màn đó nhân theo số câu</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                            <select value={tpMode} onChange={e => setTpMode(e.target.value)} title="Áp dụng cho Part nào">
+                                <option value="all">Toàn bộ</option>
+                                {TOEIC_PART_TIMES.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                            <select value={tpVal} onChange={e => applyPartTime(e.target.value)} title="Số giây mỗi câu">
+                                {tpVal === '' && <option value="" disabled>— đang khác nhau —</option>}
+                                {tpOptions.map(sec => <option key={sec} value={sec}>{sec}s</option>)}
+                            </select>
+                        </div>
+                    </div>
+                    <div style={{ marginTop: 10, borderTop: '1px solid var(--border-color)', paddingTop: 8 }}>
+                        {TOEIC_PART_TIMES.map(p => {
+                            const isDef = typeof tp[p.id] !== 'number';
+                            return (
+                                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '3px 0', color: 'var(--text-secondary)' }}>
+                                    <span>{p.name}</span>
+                                    <span style={{ color: isDef ? 'var(--text-tertiary, #94a3b8)' : 'var(--primary-color)', fontWeight: 600 }}>
+                                        {effPart(p.id)}s{isDef ? ' (mặc định)' : ''}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

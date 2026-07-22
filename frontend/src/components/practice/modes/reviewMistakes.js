@@ -6,6 +6,8 @@ import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { WrongWordsManager } from '@components/vocab/wrongWords/wrongWordsManager.js';
 import { afterAnswer } from '@components/practice/practiceNav.js';
+import { startQuestionTimer } from '@components/practice/questionTimer.js';
+import { timeoutQuestion } from '@components/practice/questionTimeout.js';
 
 export const ReviewMistakes = {
 
@@ -90,6 +92,17 @@ export const ReviewMistakes = {
         PracticeManager.setCurrentWord(question.word);
 
         this.render(question);
+
+        // Đếm ngược cho RIÊNG câu này; hết giờ → tính sai + chuyển/khoá.
+        startQuestionTimer('review-mistakes', () => this.onQuestionTimeout());
+    },
+
+    // Hết giờ mà chưa trả lời.
+    onQuestionTimeout() {
+        const question = this.questions[this.currentIndex];
+        if (!question) return;
+        const ci = question.options.indexOf(question.correctAnswer);
+        timeoutQuestion(this, 'review-mistakes', { correctIndex: ci >= 0 ? ci : undefined, word: question.word });
     },
 
     render(question) {

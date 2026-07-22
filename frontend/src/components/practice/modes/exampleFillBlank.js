@@ -6,6 +6,8 @@ import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
 import { afterAnswer } from '@components/practice/practiceNav.js';
+import { startQuestionTimer } from '@components/practice/questionTimer.js';
+import { timeoutQuestion } from '@components/practice/questionTimeout.js';
 
 // Dịch cả câu sang tiếng Việt qua Google Translate (gtx) — cùng API popup Dịch nhanh,
 // không cần backend/API key.
@@ -142,6 +144,21 @@ export const ExampleFillBlank = {
         PracticeManager.setCurrentWord(question.word);
 
         this.render(question);
+
+        // Đếm ngược cho RIÊNG câu này; hết giờ → tính sai + chuyển/khoá.
+        startQuestionTimer('example-fill-blank', () => this.onQuestionTimeout());
+    },
+
+    // Hết giờ mà chưa trả lời.
+    onQuestionTimeout() {
+        const question = this.questions[this.currentIndex];
+        if (!question) return;
+        timeoutQuestion(this, 'example-fill-blank', {
+            selector: '.option-btn', word: question.word,
+            reveal: (btns) => btns.forEach(b => {
+                if (b.dataset.answer === question.correctAnswer) b.classList.add('correct');
+            }),
+        });
     },
 
     render(question) {

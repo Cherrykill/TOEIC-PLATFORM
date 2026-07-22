@@ -2068,3 +2068,209 @@ table tbody tr:hover td { background: var(--hover-bg); }
   white-space: nowrap;
   letter-spacing: 0.3px;
 }
+
+/* ===== Moved from dashboard.html inline <style> (login modal etc.) ===== */
+/* Login modal */
+      #admin-login-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+      #admin-login-modal .modal-content {
+        background: var(--bg-primary, white);
+        border-radius: 14px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        max-width: 400px;
+        width: 90%;
+        border: 1px solid var(--border-color, #e5e7eb);
+      }
+      #admin-login-modal .modal-header {
+        padding: 24px 24px 0;
+      }
+      #admin-login-modal .modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--text-primary, #1f2937);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #admin-login-modal .modal-header h2 i {
+        color: var(--primary, #e11d48);
+      }
+      #admin-login-modal .modal-body {
+        padding: 20px 24px 24px;
+      }
+      #admin-login-modal .form-group {
+        margin-bottom: 16px;
+      }
+      #admin-login-modal .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--text-secondary, #6b7280);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      #admin-login-modal .form-group input {
+        width: 100%;
+        padding: 10px 13px;
+        border: 1.5px solid var(--border-color, #e5e7eb);
+        border-radius: 8px;
+        font-size: 14px;
+        background: var(--bg-primary, white);
+        color: var(--text-primary, #1f2937);
+        transition: border-color 0.15s;
+        font-family: inherit;
+      }
+      #admin-login-modal .form-group input:focus {
+        outline: none;
+        border-color: var(--primary, #e11d48);
+        box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.08);
+      }
+
+      /* Activity sub-tab nav */
+      .activity-subtab-nav {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 16px;
+        background: var(--bg-card, #fff);
+        border: 1px solid var(--border-color, #e5e7eb);
+        border-radius: 10px;
+        padding: 4px;
+      }
+      .activity-subtab-btn {
+        flex: 1;
+        padding: 9px 12px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary, #6b7280);
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+      }
+      .activity-subtab-btn:hover {
+        background: var(--bg-secondary, #f3f4f6);
+        color: var(--text-primary, #111827);
+      }
+      .activity-subtab-btn.active {
+        background: var(--primary, #e11d48);
+        color: #fff;
+      }
+      .activity-panel { display: none; }
+      .activity-panel.active { display: block; }
+
+      /* DB Manager layout */
+      .db-manager-layout {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 16px;
+        align-items: start;
+        height: calc(100vh - 120px);
+      }
+      .db-col-sidebar {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+      .db-col-sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: .4px;
+      }
+      .db-col-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .db-col-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--text-primary);
+        transition: background .12s;
+        gap: 6px;
+      }
+      .db-col-item:hover { background: var(--bg-secondary); }
+      .db-col-item.active {
+        background: var(--primary, #e11d48);
+        color: #fff;
+      }
+      .db-col-item.active .db-col-count-badge { background: rgba(255,255,255,.25); color:#fff; }
+      .db-col-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .db-col-count-badge {
+        font-size: 10px;
+        font-weight: 700;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        padding: 2px 7px;
+        border-radius: 10px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .db-col-empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 13px;
+      }
+      .db-doc-panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 16px 20px;
+        overflow-y: auto;
+        height: 100%;
+      }
+      .db-doc-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--text-secondary);
+        font-size: 14px;
+        text-align: center;
+      }
+      /* JSON editor modal */
+      #db-json-modal textarea {
+        width: 100%;
+        min-height: 300px;
+        font-family: monospace;
+        font-size: 13px;
+        padding: 12px;
+        border: 1.5px solid var(--border-color);
+        border-radius: 8px;
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        resize: vertical;
+        box-sizing: border-box;
+      }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Notification } from '@ui/Toaster.jsx';
+import { toeicEnergyCost } from '../toeicCost.js';
 
 export default function StartTestModal({ test, onConfirm, onCancel }) {
     const [selected, setSelected] = useState('default');
@@ -38,7 +39,10 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
                     <div style={{ padding: 20 }}>
                         <p style={{ marginBottom: 20, color: 'var(--text-secondary)' }}>
                             Bài thi: <strong>{test?.testName || 'TOEIC Test'}</strong><br />
-                            Số câu hỏi: <strong>{test?.totalQuestions || 200}</strong> câu
+                            Số câu hỏi: <strong>{test?.totalQuestions || 200}</strong> câu<br />
+                            Chi phí: <strong style={{ color: 'var(--warning, #f59e0b)' }}>
+                                <i className="fas fa-bolt"></i> {toeicEnergyCost(test?.totalQuestions || 200)} năng lượng
+                            </strong>
                         </p>
 
                         <div style={{ marginBottom: 15 }}>

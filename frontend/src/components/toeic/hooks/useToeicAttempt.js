@@ -119,8 +119,49 @@ export function useToeicAttempt() {
         }
     }, [state.questions, state.currentIndex, state.attemptId]);
 
+    // Ghi đáp án cho MỘT câu bất kỳ theo index tuyệt đối (dùng cho màn NHÓM,
+    // nơi nhiều câu cùng hiển thị và trả lời độc lập). Không tự chuyển câu,
+    // không kiểm tra chuyển Part (điều đó xử ở điều hướng group-by-group).
+    const submitAnswerAt = useCallback(async (index, answer) => {
+        setState(prev => ({ ...prev, answers: { ...prev.answers, [index]: answer } }));
+        try {
+            const questionId = state.questions[index]?._id;
+            if (questionId) {
+                await ToeicAPI.submitAnswer(state.attemptId, {
+                    questionId,
+                    userAnswer: answer,
+                    timeSpent: Date.now() - (startTimeRef.current || Date.now()),
+                });
+            }
+        } catch (err) {
+            console.error('Error submitting answer:', err);
+        }
+    }, [state.questions, state.attemptId]);
+
     const goToQuestion = useCallback((index) => {
         setState(prev => ({ ...prev, currentIndex: index }));
+    }, []);
+
+    // Nhảy tới index có KIỂM TRA chuyển Part (full-test): nếu vượt ranh giới Part
+    // lần đầu thì bật modal chuyển phần thay vì nhảy thẳng (modal sẽ nhảy tiếp).
+    const goToQuestionChecked = useCallback((targetIndex) => {
+        let transition = null;
+        setState(prev => {
+            if (targetIndex < 0 || targetIndex >= prev.questions.length) return prev;
+            const cur = prev.questions[prev.currentIndex];
+            const tgt = prev.questions[targetIndex];
+            const isFull = prev.test?.testType === 'full' || prev.test?.testType === 'full-test';
+            if (cur && tgt && cur.part !== tgt.part && isFull) {
+                const key = `${cur.part}-${tgt.part}`;
+                if (!shownTransitionsRef.current.has(key)) {
+                    shownTransitionsRef.current.add(key);
+                    transition = { fromPart: cur.part, toPart: tgt.part, nextIndex: targetIndex };
+                    return prev; // giữ nguyên; modal sẽ nhảy
+                }
+            }
+            return { ...prev, currentIndex: targetIndex };
+        });
+        if (transition) setPendingTransition(transition);
     }, []);
 
     const nextQuestion = useCallback(() => {
@@ -200,7 +241,9 @@ export function useToeicAttempt() {
         startAttempt,
         resumeAttempt,
         submitAnswer,
+        submitAnswerAt,
         goToQuestion,
+        goToQuestionChecked,
         nextQuestion,
         prevQuestion,
         toggleMark,

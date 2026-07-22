@@ -62,6 +62,7 @@ let allTests = []; // Store all tests for filtering
 let currentUsers = [];
 let allUsers = []; // Store all users for filtering
 let lastSelectedPart = null; // Remember last selected part for quick adding
+let currentImageUrls = []; // Ảnh của câu đang sửa (hỗ trợ nhiều ảnh — Part 1/3/4/6/7)
 
 // Highlight state tracking
 let highlightedQuestionId = null; // Currently highlighted question

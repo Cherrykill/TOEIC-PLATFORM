@@ -98,7 +98,7 @@ export default function SettingsScreen({ active }) {
     const updateSetting = useCallback(async (key, value) => {
         setS(prev => ({ ...prev, [key]: value }));
         GameState.state.settings[key] = value;
-        const critical = ['difficulty', 'levelFilter', 'questionsPerSession', 'timePerQuestion', 'timeLimitEnabled', 'questionTransition', 'autoAdvance'];
+        const critical = ['difficulty', 'levelFilter', 'questionsPerSession', 'timePerQuestion', 'questionTime', 'timeLimitEnabled', 'questionTransition', 'autoAdvance', 'toeicPerQuestionTimer', 'toeicPartTime'];
         if (critical.includes(key)) {
             try {
                 const saved = JSON.parse(localStorage.getItem('userSettings') || '{}');

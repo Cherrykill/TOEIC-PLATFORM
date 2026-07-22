@@ -6,9 +6,11 @@ const PartConfigSchema = new mongoose.Schema({
         required: true,
         enum: [1, 2, 3, 4, 5, 6, 7],
     },
+    // Mỗi phần tử là một MÀN hỏi (ToeicQuestionSet); một màn có thể chứa
+    // nhiều câu (Part 3/4/6/7) nên độ dài mảng ≠ số câu — dùng questionsCount.
     questions: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'ToeicQuestion',
+        ref: 'ToeicQuestionSet',
     }],
     questionsCount: {
         type: Number,

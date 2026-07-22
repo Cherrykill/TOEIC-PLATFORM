@@ -7,8 +7,21 @@ import { useToeicTimer } from '../hooks/useToeicTimer.js';
 import { useToeicAudio } from '../hooks/useToeicAudio.js';
 import RunnerHeader from './RunnerHeader.jsx';
 import QuestionView from './QuestionView.jsx';
+import GroupQuestionView from './GroupQuestionView.jsx';
 import QuestionNavPopup from './QuestionNavPopup.jsx';
 import PartTransitionModal from './PartTransitionModal.jsx';
+import { isToeicQuestionTimerOn, getToeicScreenTime } from '../toeicPartTime.js';
+
+// Dải index của nhóm chứa `index` (các câu liền kề cùng groupId). Không nhóm → [i,i].
+function getGroupRange(questions, index) {
+    const q = questions[index];
+    if (!q || !q.groupId) return [index, index];
+    let start = index;
+    let end = index;
+    while (start > 0 && questions[start - 1]?.groupId === q.groupId) start--;
+    while (end < questions.length - 1 && questions[end + 1]?.groupId === q.groupId) end++;
+    return [start, end];
+}
 
 export default function TestRunner({ config, onExit, onShowResults }) {
     const attempt = useToeicAttempt();
@@ -31,6 +44,9 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         const q = attempt.currentQuestion;
         if (!q || q.part > 4) return;
         if (attempt.pendingTransition) return;
+        // Trong NHÓM: không tự nhảy — để người dùng trả lời hết các câu con trước.
+        const [gs, ge] = getGroupRange(attempt.questions, attempt.currentIndex);
+        if (ge > gs) return;
         setTimeout(() => attempt.nextQuestion(), 600);
     }, [attempt]);
 
@@ -127,8 +143,9 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         const isFullTest = attempt.test?.testType === 'full-test';
         const isListening = q && q.part <= 4;
         if (isFullTest && isListening) return; // chỉ đánh dấu, không nhảy
-        if (!attempt.pendingTransition && attempt.currentIndex < attempt.questions.length - 1) {
-            attempt.nextQuestion();
+        if (!attempt.pendingTransition) {
+            const [, end] = getGroupRange(attempt.questions, attempt.currentIndex);
+            if (end < attempt.questions.length - 1) attempt.goToQuestionChecked(end + 1);
         }
     }, [attempt]);
 
@@ -207,6 +224,52 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         }
     }, [attempt, audio]);
 
+    // Điều hướng THEO NHÓM: Next nhảy qua cả nhóm; Prev về đầu nhóm trước đó.
+    const handleNext = useCallback(() => {
+        const [, end] = getGroupRange(attempt.questions, attempt.currentIndex);
+        attempt.goToQuestionChecked(Math.min(end + 1, attempt.questions.length - 1));
+    }, [attempt]);
+    const handlePrev = useCallback(() => {
+        const [start] = getGroupRange(attempt.questions, attempt.currentIndex);
+        if (start <= 0) return;
+        const [ps] = getGroupRange(attempt.questions, start - 1);
+        attempt.goToQuestion(ps);
+    }, [attempt]);
+    const handleNavSelect = useCallback((index) => {
+        const [gs] = getGroupRange(attempt.questions, index);
+        attempt.goToQuestion(gs);
+    }, [attempt]);
+    const handleGroupAnswer = useCallback((absIndex, label) => {
+        attempt.submitAnswerAt(absIndex, label);
+    }, [attempt]);
+
+    // ── Đếm ngược THEO MÀN (Part nhóm = số câu × thời gian mỗi câu) ──────────
+    // Chạy song song đồng hồ tổng; hết giờ màn nào thì tự sang màn kế.
+    const [screenLeft, setScreenLeft] = useState(null);
+    const handleNextRef = useRef(handleNext);
+    handleNextRef.current = handleNext;
+
+    useEffect(() => {
+        if (phase !== 'running' || !isToeicQuestionTimerOn()) { setScreenLeft(null); return; }
+        const qs = attempt.questions;
+        const [gs, ge] = getGroupRange(qs, attempt.currentIndex);
+        const cur = qs[gs];
+        if (!cur) { setScreenLeft(null); return; }
+        const atLast = ge >= qs.length - 1;
+        let left = getToeicScreenTime(cur.part, ge - gs + 1);
+        setScreenLeft(left);
+        const id = setInterval(() => {
+            left -= 1;
+            setScreenLeft(left);
+            if (left <= 0) {
+                clearInterval(id);
+                if (!atLast) handleNextRef.current();  // câu cuối thì để đồng hồ tổng lo
+            }
+        }, 1000);
+        return () => clearInterval(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [attempt.currentIndex, phase, attempt.questions.length]);
+
     if (phase === 'loading') {
         return (
             <div className="toeic-container" style={{ textAlign: 'center', padding: 60 }}>
@@ -217,6 +280,13 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     }
 
     const q = attempt.currentQuestion;
+
+    // Gộp nhóm: nếu câu hiện tại thuộc nhóm (Part 3/4/6/7) → hiện cả nhóm 1 màn.
+    // Không áp dụng ở chế độ "đục lỗ" (fill-blank) — giữ nguyên từng câu.
+    const [gStart, gEnd] = getGroupRange(attempt.questions, attempt.currentIndex);
+    const isGroupView = !attempt.fillInBlankMode && gEnd > gStart;
+    const groupItems = [];
+    for (let i = gStart; i <= gEnd; i++) groupItems.push({ q: attempt.questions[i], index: i });
 
     return (
         <div className="toeic-container">
@@ -231,28 +301,50 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                 onToggleMark={handleToggleMark}
                 onPause={handlePause}
                 onSubmit={handleConfirmSubmit}
-                onPrev={attempt.prevQuestion}
-                onNext={attempt.nextQuestion}
-                canPrev={attempt.currentIndex > 0}
-                canNext={attempt.currentIndex < attempt.questions.length - 1}
+                onPrev={handlePrev}
+                onNext={handleNext}
+                canPrev={gStart > 0}
+                canNext={gEnd < attempt.questions.length - 1}
             />
 
             <div className="toeic-question-container">
-                <QuestionView
-                    question={q}
-                    timer={timer}
-                    onToggleNav={() => setNavOpen(o => !o)}
-                    currentIndex={attempt.currentIndex}
-                    fillInBlankMode={attempt.fillInBlankMode}
-                    selectedAnswer={attempt.answers[attempt.currentIndex]}
-                    audioPlaying={audio.playing}
-                    onPlayAudio={handlePlayAudio}
-                    onSelectAnswer={handleSelectAnswer}
-                    keywordAnswers={attempt.keywordAnswers}
-                    keywordStatus={keywordStatus}
-                    onKeywordChange={attempt.updateKeywordAnswer}
-                    onCheckKeywords={handleCheckKeywords}
-                />
+                {screenLeft !== null && (
+                    <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        margin: '0 0 10px', padding: '6px 12px', borderRadius: 20, fontWeight: 700,
+                        background: screenLeft <= 5 ? 'rgba(220,38,38,.15)' : 'rgba(148,163,184,.15)',
+                        color: screenLeft <= 5 ? '#dc2626' : 'var(--text-secondary)',
+                    }}>
+                        <i className="fas fa-hourglass-half"></i>
+                        {isGroupView ? `Nhóm ${groupItems.length} câu — ` : ''}
+                        còn {Math.max(0, screenLeft)}s
+                    </div>
+                )}
+                {isGroupView ? (
+                    <GroupQuestionView
+                        groupItems={groupItems}
+                        answers={attempt.answers}
+                        onSelectAnswer={handleGroupAnswer}
+                        audioPlaying={audio.playing}
+                        onPlayAudio={handlePlayAudio}
+                    />
+                ) : (
+                    <QuestionView
+                        question={q}
+                        timer={timer}
+                        onToggleNav={() => setNavOpen(o => !o)}
+                        currentIndex={attempt.currentIndex}
+                        fillInBlankMode={attempt.fillInBlankMode}
+                        selectedAnswer={attempt.answers[attempt.currentIndex]}
+                        audioPlaying={audio.playing}
+                        onPlayAudio={handlePlayAudio}
+                        onSelectAnswer={handleSelectAnswer}
+                        keywordAnswers={attempt.keywordAnswers}
+                        keywordStatus={keywordStatus}
+                        onKeywordChange={attempt.updateKeywordAnswer}
+                        onCheckKeywords={handleCheckKeywords}
+                    />
+                )}
             </div>
 
             <QuestionNavPopup
@@ -261,7 +353,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                 currentIndex={attempt.currentIndex}
                 answers={attempt.answers}
                 markedQuestions={attempt.markedQuestions}
-                onSelect={attempt.goToQuestion}
+                onSelect={handleNavSelect}
                 onClose={() => setNavOpen(false)}
             />
 

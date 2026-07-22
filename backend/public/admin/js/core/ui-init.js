@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
         qPromptPartSel.addEventListener('change', updateQuestionJsonPlaceholder);
         updateQuestionJsonPlaceholder(); // set theo Part mặc định khi tải trang
     }
-    document.getElementById('btn-submit-q-json')?.addEventListener('click', submitQuestionJsonImport);
+    document.getElementById('btn-submit-q-json')?.addEventListener('click', () => submitQuestionJsonImport());
     document.getElementById('btn-close-q-json')?.addEventListener('click', closeQuestionModal);
 
     document.getElementById('question-image-file')?.addEventListener('change', (e) => {
@@ -225,6 +225,37 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('question-audio-file')?.addEventListener('change', (e) => {
         const file = e.target.files?.[0];
         if (file) handleAudioUpload(file);
+    });
+
+    // --- TOEIC GROUP BUILDER (nhóm câu hỏi Part 3/4/6/7) ---
+    document.getElementById('btn-add-group')?.addEventListener('click', openGroupModal);
+    document.getElementById('btn-close-group-modal')?.addEventListener('click', closeGroupModal);
+    document.getElementById('btn-submit-group')?.addEventListener('click', submitGroup);
+    document.getElementById('group-part')?.addEventListener('change', groupUpdatePartVisibility);
+    document.getElementById('btn-group-add-q')?.addEventListener('click', () => {
+        document.getElementById('group-questions-container')?.appendChild(makeGroupQuestionRow());
+        renumberGroupQuestions();
+        syncGroupQuestionTextVisibility(document.getElementById('group-part')?.value);
+    });
+    document.getElementById('group-audio-file')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) handleGroupAudioUpload(file);
+    });
+    document.getElementById('group-image-file')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) handleGroupImageUpload(file);
+    });
+    // Group modal: tab Trình dựng / Nhập JSON + copy prompt + import
+    document.getElementById('group-tab-manual')?.addEventListener('click', () => switchGroupTab('manual'));
+    document.getElementById('group-tab-json')?.addEventListener('click', () => switchGroupTab('json'));
+    document.getElementById('btn-group-copy-prompt')?.addEventListener('click', () => {
+        copyQuestionPrompt(
+            document.getElementById('group-json-part').value,
+            document.getElementById('group-json-source').value
+        );
+    });
+    document.getElementById('btn-group-submit-json')?.addEventListener('click', () => {
+        submitQuestionJsonImport('group-json-input', 'group-json-result', 'btn-group-submit-json');
     });
 
     // --- TOEIC TEST EVENTS ---

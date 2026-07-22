@@ -143,7 +143,7 @@ async function loadQuestions(filterPart = '', _page = 1) {
         console.error('Error loading questions:', error);
         const tbody = document.querySelector('#questions-table tbody');
         if (tbody) tbody.innerHTML = `
-            <tr><td colspan="6" class="loading" style="color: red;">
+            <tr><td colspan="7" class="loading" style="color: red;">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Error loading questions</p>
             </td></tr>
@@ -156,7 +156,7 @@ function renderQuestionsTable() {
 
     if (currentQuestions.length === 0) {
         tbody.innerHTML = `
-            <tr><td colspan="6" class="loading">
+            <tr><td colspan="7" class="loading">
                 <i class="fas fa-inbox"></i>
                 <p>No questions found</p>
             </td></tr>
@@ -201,10 +201,16 @@ function renderQuestionsTable() {
 
         const questionTextFull = q.questionText || 'N/A';
 
+        const sourceFull = q.source || '';
+        const sourceDisplay = sourceFull
+            ? `<span style="color: #16a34a; font-size: 0.85em; font-family: monospace;" title="${sourceFull.replace(/"/g, '&quot;')}">${truncate(sourceFull, 18)}</span>`
+            : '<span style="color: var(--text-secondary)">-</span>';
+
         return `
             <tr>
                 <td><span class="part-badge">Part ${q.part}</span></td>
                 <td title="${questionTextFull.replace(/"/g, '&quot;')}">${truncate(questionTextFull, 50)}</td>
+                <td style="text-align: center;">${sourceDisplay}</td>
                 <td style="text-align: center; font-weight: 600; color: #667eea;">${q.correctAnswer}</td>
                 <td style="text-align: center;" title="${firstImage || ''}">${imageDisplay}</td>
                 <td style="text-align: center;" title="${q.audioUrl || ''}">${audioDisplay}</td>
@@ -712,45 +718,136 @@ function formatTestType(type) {
     return types[type] || type;
 }
 
+// Quy tắc ẢNH theo Part (khớp cách nội dung TOEIC thực tế được dựng):
+//   Part 1: đúng 1 ảnh (bắt buộc) · Part 3/4: 0–1 ảnh (chỉ câu có biểu đồ) ·
+//   Part 6: 1 ảnh (bắt buộc) · Part 7: 1–3 ảnh (bản scan đoạn đọc, tối đa 3).
+//   Phần Nghe phát file audio thật (không nhập text); phần Đọc dùng ẢNH thay vì gõ đoạn văn.
+const IMAGE_RULES = {
+    1: { min: 1, max: 1 },
+    3: { min: 0, max: 1 },
+    4: { min: 0, max: 1 },
+    6: { min: 1, max: 1 },
+    7: { min: 1, max: 3 },
+};
+
 function updatePartVisibility() {
     const part = parseInt(document.getElementById('question-part').value);
 
+    // Part 6 (điền chỗ trống) KHÔNG có câu hỏi riêng — giống Part 1.
     const questionTextField = document.getElementById('question-text-field');
-    if (questionTextField) questionTextField.style.display = part >= 2 ? 'block' : 'none';
+    if (questionTextField) questionTextField.style.display = (part >= 2 && part !== 6) ? 'block' : 'none';
 
-    const audioField = document.getElementById('audio-text-field');
-    if (audioField) audioField.style.display = (part === 3 || part === 4) ? 'block' : 'none';
-
+    // Nghe (Part 1-4) chỉ upload file audio thật — không còn ô "Nội dung audio".
     const audioFileField = document.getElementById('audio-file-field');
     if (audioFileField) audioFileField.style.display = (part >= 1 && part <= 4) ? 'block' : 'none';
 
-    const passageField = document.getElementById('passage-field');
-    if (passageField) passageField.style.display = (part === 6 || part === 7) ? 'block' : 'none';
-
+    // Ảnh: hiện theo IMAGE_RULES; dấu * khi bắt buộc (min > 0).
+    const rule = IMAGE_RULES[part];
     const imageField = document.getElementById('image-url-field');
-    if (imageField) imageField.style.display = part === 1 ? 'block' : 'none';
+    if (imageField) imageField.style.display = rule ? 'block' : 'none';
+    const imageStar = document.getElementById('image-required-star');
+    if (imageStar) imageStar.style.display = (rule && rule.min > 0) ? 'inline' : 'none';
+    const hint = document.getElementById('image-hint-text');
+    if (hint && rule) {
+        hint.textContent = rule.max === 1
+            ? `Chọn file để tự upload. Part ${part} cần ${rule.min > 0 ? 'đúng 1 ảnh' : 'tối đa 1 ảnh (tùy chọn)'}.`
+            : `Chọn file để tự upload. Part ${part} cần ${rule.min}–${rule.max} ảnh (bản scan đoạn đọc).`;
+    }
+
+    // Thông tin nhóm (Group ID / Index / Số đoạn) chỉ có nghĩa với Part gộp nhóm 3/4/6/7.
+    const groupInfo = document.getElementById('group-info-section');
+    if (groupInfo) groupInfo.style.display = [3, 4, 6, 7].includes(part) ? 'block' : 'none';
+    const passageCountField = document.getElementById('passage-count-field');
+    if (passageCountField) passageCountField.style.display = part === 7 ? 'block' : 'none';
 
     const keywordFieldPart12 = document.getElementById('keyword-field-part12');
     const keywordFieldPart34 = document.getElementById('keyword-field-part34');
     if (keywordFieldPart12) keywordFieldPart12.style.display = (part === 1 || part === 2) ? 'block' : 'none';
     if (keywordFieldPart34) keywordFieldPart34.style.display = (part === 3 || part === 4) ? 'block' : 'none';
+
+    orderQuestionFields(part);
+}
+
+// Sắp lại THỨ TỰ audio / ảnh / nội dung câu hỏi theo Part (form là grid 2 cột).
+//   Part 3/4: [audio | ảnh] cùng hàng, "Nội dung câu hỏi" xuống dưới.
+//   Part 6/7: ảnh LÊN TRÊN "Nội dung câu hỏi".
+//   Part 1: [audio | ảnh] cùng hàng · Part 2: audio → câu hỏi · Part 5: chỉ câu hỏi.
+function orderQuestionFields(part) {
+    const grid = document.querySelector('#question-form .question-form-grid');
+    const anchor = document.getElementById('options-section'); // mốc: chèn field media TRƯỚC phần đáp án
+    const audio = document.getElementById('audio-file-field');
+    const qtext = document.getElementById('question-text-field');
+    const image = document.getElementById('image-url-field');
+    if (!grid || !anchor) return;
+
+    let seq;
+    if (part === 3 || part === 4) seq = [audio, image, qtext];
+    else if (part === 6 || part === 7) seq = [image, qtext];
+    else if (part === 1) seq = [audio, image];
+    else if (part === 2) seq = [audio, qtext];
+    else seq = [qtext]; // Part 5
+
+    // Mặc định mỗi field chiếm trọn 1 hàng; Part 1/3/4 cho audio & ảnh nửa hàng (cạnh nhau).
+    [audio, qtext, image].forEach(el => { if (el) el.style.gridColumn = '1 / -1'; });
+    if (part === 1 || part === 3 || part === 4) {
+        if (audio) audio.style.gridColumn = 'auto';
+        if (image) image.style.gridColumn = 'auto';
+    }
+
+    // Di chuyển đúng thứ tự mong muốn ra ngay trước phần đáp án.
+    seq.forEach(el => { if (el) grid.insertBefore(el, anchor); });
+}
+
+// ===================================
+// ĐA ẢNH (Part 1/3/4/6/7) — danh sách thumbnail + xóa
+// ===================================
+function renderImageList() {
+    const box = document.getElementById('images-container');
+    if (!box) return;
+    box.innerHTML = currentImageUrls.map((url, i) => `
+        <div style="position:relative;border:2px solid #e0e0e0;border-radius:8px;overflow:hidden">
+            <img src="${url}" alt="" style="width:110px;height:80px;object-fit:cover;display:block"
+                 onerror="this.style.display='none';this.parentNode.querySelector('.img-fallback').style.display='flex'">
+            <div class="img-fallback" style="display:none;width:110px;height:80px;align-items:center;justify-content:center;color:#9ca3af;font-size:11px;text-align:center;padding:4px">${url.split('/').pop()}</div>
+            <button type="button" data-img-idx="${i}" title="Xóa ảnh"
+                style="position:absolute;top:2px;right:2px;background:rgba(220,38,38,.9);color:#fff;border:none;border-radius:50%;width:20px;height:20px;cursor:pointer;line-height:1">×</button>
+        </div>`).join('');
+    box.querySelectorAll('[data-img-idx]').forEach(btn => {
+        btn.onclick = () => {
+            currentImageUrls.splice(parseInt(btn.dataset.imgIdx), 1);
+            renderImageList();
+        };
+    });
+}
+
+// Câu ĐƠN chỉ dùng cho Part 1/2/5; Part nhóm 3/4/6/7 tạo bằng nút "Thêm nhóm".
+// Khi SỬA câu nhóm cũ thì vẫn hiện đủ 7 Part để dropdown không lệch.
+function setPartOptionsMode(editMode) {
+    const sel = document.getElementById('question-part');
+    if (!sel) return;
+    Array.from(sel.options).forEach(o => {
+        const grouped = [3, 4, 6, 7].includes(parseInt(o.value));
+        const hide = grouped && !editMode;
+        o.hidden = hide;
+        o.disabled = hide;
+    });
+    const hint = document.getElementById('question-part-hint');
+    if (hint) hint.style.display = editMode ? 'none' : 'block';
 }
 
 function openQuestionModal(questionId = null) {
     const modal = document.getElementById('question-modal');
     const form = document.getElementById('question-form');
     const title = document.getElementById('question-modal-title');
-    const imagePreview = document.getElementById('image-preview');
-    const previewImg = document.getElementById('preview-img');
     const audioPreview = document.getElementById('audio-preview');
     const previewAudio = document.getElementById('preview-audio');
 
     form.reset();
     document.getElementById('question-id').value = '';
-    imagePreview.style.display = 'none';
-    previewImg.src = '';
     audioPreview.style.display = 'none';
     previewAudio.src = '';
+    currentImageUrls = [];
+    setPartOptionsMode(!!questionId);
 
     if (questionId) {
         title.textContent = 'Edit Question';
@@ -759,9 +856,7 @@ function openQuestionModal(questionId = null) {
             document.getElementById('question-id').value = question._id;
             document.getElementById('question-part').value = question.part;
             document.getElementById('question-text').value = question.questionText || '';
-            document.getElementById('question-audio-text').value = question.audioText || '';
-            document.getElementById('question-passage').value = question.passages?.[0] || '';
-            document.getElementById('question-image-url').value = question.imageUrls?.[0] || '';
+            currentImageUrls = Array.isArray(question.imageUrls) ? [...question.imageUrls] : [];
             document.getElementById('question-audio-url').value = question.audioUrl || '';
             const expVal = typeof question.explanation === 'object'
                 ? JSON.stringify(question.explanation, null, 2)
@@ -774,12 +869,6 @@ function openQuestionModal(questionId = null) {
             if (srcEl) srcEl.value = question.source || '';
             document.getElementById('question-audio-translate').value = question.audioTranslate || '';
             document.getElementById('question-text-translate').value = question.questionTranslate || '';
-
-            const firstImg = question.imageUrls?.[0];
-            if (firstImg) {
-                previewImg.src = firstImg;
-                imagePreview.style.display = 'block';
-            }
 
             if (question.audioUrl) {
                 previewAudio.src = question.audioUrl;
@@ -798,11 +887,13 @@ function openQuestionModal(questionId = null) {
         }
     } else {
         title.textContent = 'Add Question';
-        if (lastSelectedPart !== null) {
-            document.getElementById('question-part').value = lastSelectedPart;
-            updatePartVisibility();
-        }
+        // Chỉ nhớ lại Part nếu là câu đơn (1/2/5); Part nhóm cũ thì mặc định về Part 1.
+        const def = [1, 2, 5].includes(lastSelectedPart) ? lastSelectedPart : 1;
+        document.getElementById('question-part').value = def;
+        updatePartVisibility();
     }
+
+    renderImageList();
 
     // Reset về tab "Nhập tay" mỗi lần mở; xoá JSON cũ
     const qJsonInput = document.getElementById('question-json-input');
@@ -863,7 +954,7 @@ const PART_PROMPTS = {
 {
   "part": 1,
   "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
-  "imageUrls": ["<đường dẫn ảnh, vd /assets/images/ets26t1/ets26t1-01.jpg — để trống nếu admin tự upload>"],
+  "imageUrls": ["<đường dẫn ảnh, vd /assets/images/ets26t1/ets26t1-01.png — để trống nếu admin tự upload>"],
   "audioUrl": "<đường dẫn mp3, vd /assets/audio/ets26t1/ets26t1-01.mp3 — để trống nếu admin tự upload>",
   "options": [
     { "label": "A", "text": "<mô tả A>" },
@@ -877,10 +968,10 @@ const PART_PROMPTS = {
 === LƯU Ý PART 1 (câu 1-6, mỗi câu 1 ảnh + 1 audio đơn) ===
 - KHÔNG có "questionText", KHÔNG cần "audioText" (phát file audio thật).
 - 4 đáp án là 4 câu mô tả tranh.
-- "imageUrls" = ảnh /assets/images/{thư mục đề}/{tên file}.jpg ; "audioUrl" = mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (cùng số thứ tự câu). Để trống nếu admin tự upload.
+- "imageUrls" = ảnh /assets/images/{thư mục đề}/{tên file}.png ; "audioUrl" = mp3 /assets/audio/{thư mục đề}/{tên file}.mp3 (cùng số thứ tự câu). Để trống nếu admin tự upload.
 === VÍ DỤ ===
 [
-  { "part": 1, "imageUrls": ["/assets/images/ets26t1/ets26t1-01.jpg"], "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3",
+  { "part": 1, "imageUrls": ["/assets/images/ets26t1/ets26t1-01.png"], "audioUrl": "/assets/audio/ets26t1/ets26t1-01.mp3",
     "options": [ {"label":"A","text":"The man is reading a newspaper."}, {"label":"B","text":"The man is typing on a laptop."}, {"label":"C","text":"The man is talking on the phone."}, {"label":"D","text":"The man is drinking coffee."} ],
     "correctAnswer": "B",
     "explanation": { "A": "❌ Không cầm báo.", "B": "✅ Đúng: đang gõ laptop.", "C": "❌ Không gọi điện.", "D": "❌ Không uống cà phê." } }
@@ -918,7 +1009,7 @@ const PART_PROMPTS = {
   "groupId": "<vd p3_grp_001 — chung cho các câu cùng đoạn>",
   "questionIndex": "<1, 2, 3...>",
   "audioUrl": "<đường dẫn mp3 theo DẢI SỐ câu của nhóm, vd nhóm câu 32-34 → /assets/audio/ets26t1/ets26t1-32-34.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
-  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-32-34.jpg — CHỈ ở câu 1; để [] nếu không có>"],
+  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-32-34.png — CHỈ ở câu 1; để [] nếu không có>"],
   "questionText": "<câu hỏi>",
   "options": [ {"label":"A","text":"..."}, {"label":"B","text":"..."}, {"label":"C","text":"..."}, {"label":"D","text":"..."} ],
   "correctAnswer": "A|B|C|D",
@@ -927,7 +1018,7 @@ const PART_PROMPTS = {
 === LƯU Ý PART 3 (câu 32-70 — 13 nhóm × 3 câu/đoạn hội thoại) ===
 - Các câu cùng đoạn dùng CHUNG "groupId"; "questionIndex" tăng dần (thường 3 câu).
 - Chỉ câu ĐẦU (questionIndex 1) chứa "audioUrl" và "imageUrls". KHÔNG cần "audioText" (hệ thống phát file audio thật).
-- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 32-34 → "ets26t1-32-34.mp3" (audio), "ets26t1-32-34.jpg" (ảnh). Để [] / để trống nếu không có.
+- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 32-34 → "ets26t1-32-34.mp3" (audio), "ets26t1-32-34.png" (ảnh). Để [] / để trống nếu không có.
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 3, "groupId": "p3_grp_001", "questionIndex": 1,
@@ -950,7 +1041,7 @@ const PART_PROMPTS = {
   "groupId": "<vd p4_grp_001>",
   "questionIndex": "<1, 2, 3...>",
   "audioUrl": "<đường dẫn mp3 theo DẢI SỐ câu của nhóm, vd nhóm câu 71-73 → /assets/audio/ets26t1/ets26t1-71-73.mp3 — CHỈ ở câu 1; để trống nếu admin upload>",
-  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-71-73.jpg — CHỈ ở câu 1; để [] nếu không có>"],
+  "imageUrls": ["<đường dẫn ảnh theo DẢI SỐ câu nếu có hình/biểu đồ, vd /assets/images/ets26t1/ets26t1-71-73.png — CHỈ ở câu 1; để [] nếu không có>"],
   "questionText": "<câu hỏi>",
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
@@ -958,7 +1049,7 @@ const PART_PROMPTS = {
 }
 === LƯU Ý PART 4 (câu 71-100 — 10 nhóm × 3 câu/bài nói) ===
 - Chung "groupId"; "questionIndex" tăng dần. Chỉ câu ĐẦU chứa "audioUrl" và "imageUrls". KHÔNG cần "audioText" (hệ thống phát file audio thật).
-- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 71-73 → "ets26t1-71-73.mp3" (audio), "ets26t1-71-73.jpg" (ảnh). Để [] / để trống nếu không có.
+- Tên file đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 71-73 → "ets26t1-71-73.mp3" (audio), "ets26t1-71-73.png" (ảnh). Để [] / để trống nếu không có.
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 4, "groupId": "p4_grp_001", "questionIndex": 1,
@@ -1002,26 +1093,24 @@ const PART_PROMPTS = {
   "part": 6, "source": "<mã đề, vd official_2024 — BẮT BUỘC; câu cùng đề phải CÙNG source>",
   "groupId": "<vd p6_grp_001>",
   "questionIndex": "<1, 2, 3...>",
-  "imageUrls": ["<ẢNH đoạn văn (cách dùng CHÍNH) theo DẢI SỐ câu, vd nhóm câu 131-134 → /assets/images/ets26t1/ets26t1-131-134.jpg — CHỈ ở câu 1; để [] nếu admin upload sau>"],
-  "passages": ["<TÙY CHỌN: đoạn văn dạng text nếu không dùng ảnh — CHỈ ở câu 1>"],
-  "questionText": "<số chỗ trống tương ứng, vd: (1)>",
+  "imageUrls": ["<ẢNH đoạn văn (cách dùng CHÍNH, đúng 1 ảnh) theo DẢI SỐ câu, vd nhóm câu 131-134 → /assets/images/ets26t1/ets26t1-131-134.png — CHỈ ở câu 1; để [] nếu admin upload sau>"],
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
 === LƯU Ý PART 6 (câu 131-146 — 4 nhóm × 4 câu/đoạn) ===
-- Chung "groupId"; mỗi câu ứng 1 chỗ trống (Part 6 bắt đầu từ câu 131). Chỉ câu ĐẦU chứa "imageUrls" (ẢNH đoạn văn — cách chính); "passages" text là TÙY CHỌN.
-- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 131-134 → "ets26t1-131-134.jpg". Để [] nếu admin upload sau.
+- Chung "groupId"; mỗi câu ứng 1 chỗ trống (Part 6 bắt đầu từ câu 131). Chỉ câu ĐẦU chứa "imageUrls" (ẢNH đoạn văn — cách chính, 1 ảnh).
+- Đọc bằng ẢNH scan — KHÔNG gõ đoạn văn dạng text.
+- KHÔNG có "questionText" (giống Part 1) — mỗi câu chỉ là 1 chỗ trống với 4 đáp án; thứ tự chỗ trống theo "questionIndex".
+- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 131-134 → "ets26t1-131-134.png". Để [] nếu admin upload sau.
 === VÍ DỤ (nhóm 2 câu) ===
 [
   { "part": 6, "groupId": "p6_grp_001", "questionIndex": 1,
-    "imageUrls": ["/assets/images/ets26t1/ets26t1-131-134.jpg"],
-    "questionText": "(1)",
+    "imageUrls": ["/assets/images/ets26t1/ets26t1-131-134.png"],
     "options": [ {"label":"A","text":"arrive"}, {"label":"B","text":"arrives"}, {"label":"C","text":"arrived"}, {"label":"D","text":"arriving"} ],
     "correctAnswer": "A",
     "explanation": { "A": "✅ Đúng: will + V nguyên thể.", "B": "❌ Sai chia.", "C": "❌ Quá khứ.", "D": "❌ V-ing." } },
   { "part": 6, "groupId": "p6_grp_001", "questionIndex": 2,
-    "questionText": "(2)",
     "options": [ {"label":"A","text":"contact"}, {"label":"B","text":"contacts"}, {"label":"C","text":"contacted"}, {"label":"D","text":"contacting"} ],
     "correctAnswer": "A",
     "explanation": { "A": "✅ Đúng: please + V nguyên thể.", "B": "❌ Sai.", "C": "❌ Sai.", "D": "❌ Sai." } }
@@ -1033,20 +1122,20 @@ const PART_PROMPTS = {
   "groupId": "<vd p7_grp_001>",
   "questionIndex": "<1, 2, 3...>",
   "passageCount": "<1 | 2 | 3>",
-  "imageUrls": ["<ẢNH đoạn đọc (cách dùng CHÍNH) theo DẢI SỐ câu, vd nhóm câu 147-148 → /assets/images/ets26t1/ets26t1-147-148.jpg — CHỈ ở câu 1; để [] nếu admin upload sau>"],
-  "passages": ["<TÙY CHỌN: đoạn đọc dạng text nếu không dùng ảnh — CHỈ ở câu 1>"],
+  "imageUrls": ["<ẢNH các đoạn đọc (cách dùng CHÍNH) — SỐ ẢNH = passageCount (1 ảnh single, 2 ảnh double, 3 ảnh triple), tối đa 3; CHỈ ở câu 1; để [] nếu admin upload sau>"],
   "questionText": "<câu hỏi>",
   "options": [ 4 đáp án A-D ],
   "correctAnswer": "A|B|C|D",
   "explanation": { "A": "...", "B": "...", "C": "...", "D": "..." }
 }
 === LƯU Ý PART 7 (câu 147-200 — nhóm tùy: single/double/triple đoạn, dải số theo nhóm) ===
-- Chung "groupId" + "passageCount" (Part 7 bắt đầu từ câu 147). Chỉ câu ĐẦU chứa "imageUrls" (ẢNH đoạn đọc — cách chính); "passages" text là TÙY CHỌN.
-- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 147-148 → "ets26t1-147-148.jpg". Để [] nếu admin upload sau.
+- Chung "groupId" + "passageCount" (Part 7 bắt đầu từ câu 147). Chỉ câu ĐẦU chứa "imageUrls".
+- Đọc bằng ẢNH scan là cách CHÍNH — KHÔNG gõ đoạn văn dạng text. Double = 2 ảnh, triple = 3 ảnh (tối đa 3).
+- Tên file ảnh đặt theo DẢI SỐ câu của nhóm: vd nhóm câu 147-148 → "ets26t1-147-148.png". Để [] nếu admin upload sau.
 === VÍ DỤ ===
 [
   { "part": 7, "groupId": "p7_grp_001", "questionIndex": 1, "passageCount": 1,
-    "imageUrls": ["/assets/images/ets26t1/ets26t1-147-148.jpg"],
+    "imageUrls": ["/assets/images/ets26t1/ets26t1-147-148.png"],
     "questionText": "Why will the library be closed?",
     "options": [ {"label":"A","text":"For a holiday"}, {"label":"B","text":"For repairs"}, {"label":"C","text":"For an event"}, {"label":"D","text":"For cleaning"} ],
     "correctAnswer": "A",
@@ -1073,9 +1162,10 @@ function updateQuestionJsonPlaceholder() {
     ta.placeholder = ex || _defaultJsonPlaceholder;
 }
 
-function copyQuestionPrompt() {
+function copyQuestionPrompt(forcedPart, forcedSource) {
+    // forcedPart/forcedSource: modal NHÓM truyền Part + mã đề đang chọn để prompt sát hơn.
     const partSel = document.getElementById('q-prompt-part');
-    const part = partSel ? partSel.value : 'all';
+    const part = (forcedPart && typeof forcedPart === 'string') ? forcedPart : (partSel ? partSel.value : 'all');
     let prompt = `Bạn là trợ lý tạo câu hỏi TOEIC. Hãy chuyển nội dung câu hỏi tôi cung cấp thành MẢNG JSON đúng schema dưới đây để tôi import vào hệ thống.
 
 === SCHEMA THỐNG NHẤT (áp dụng cho tất cả Part 1-7) ===
@@ -1088,18 +1178,17 @@ function copyQuestionPrompt() {
   "questionIndex": <thứ tự trong nhóm bắt đầu từ 1 — bắt buộc nếu có nhóm>,
 
   // Nội dung câu hỏi
-  "questionText": "<câu hỏi tiếng Anh — bắt buộc với Part 2-7, bỏ với Part 1>",
+  "questionText": "<câu hỏi tiếng Anh — bắt buộc Part 3/4/7 (Part 2/5 tùy); BỎ với Part 1 và Part 6 (chỉ chỗ trống + 4 đáp án)>",
   "questionTranslate": "<bản dịch tiếng Việt của câu hỏi — tùy chọn>",
 
   // Nghe (Part 1-4) — KHÔNG cần "audioText", hệ thống phát file audio thật theo audioUrl
   "audioUrl": "<mp3: Part 1/2 file đơn vd /assets/audio/ets26t1/ets26t1-01.mp3 ; Part 3/4 file dải số nhóm vd ets26t1-32-34.mp3 (chỉ ở câu đầu) — để trống nếu admin upload>",
 
-  // Đọc (Part 6-7) — dùng ẢNH đoạn văn (imageUrls) là chính; "passages" text TÙY CHỌN
-  "passageCount": <1 | 2 | 3 — chỉ Part 7>,
-  "passages": ["<TÙY CHỌN: đoạn văn dạng text nếu không dùng ảnh>"],
+  // Đọc (Part 6-7) — dùng ẢNH đoạn văn (imageUrls) là chính, KHÔNG gõ text
+  "passageCount": <1 | 2 | 3 — chỉ Part 7 (double = 2 ảnh, triple = 3 ảnh)>,
 
-  // Ảnh (Part 1 = tranh; Part 3/4 = biểu đồ nếu có; Part 6/7 = ảnh đoạn văn)
-  "imageUrls": ["<ảnh .jpg: Part 1 file đơn vd ets26t1-01.jpg ; Part 3/4/6/7 file dải số nhóm vd ets26t1-32-34.jpg (chỉ ở câu đầu) — để [] nếu admin upload sau>"],
+  // Ảnh (Part 1 = tranh, đúng 1; Part 3/4 = biểu đồ nếu có, tối đa 1; Part 6 = ảnh đoạn văn 1; Part 7 = ảnh đoạn đọc, tối đa 3)
+  "imageUrls": ["<ảnh .png: Part 1 file đơn vd ets26t1-01.png ; Part 3/4/6/7 file dải số nhóm vd ets26t1-32-34.png (chỉ ở câu đầu) — để [] nếu admin upload sau>"],
 
   // Đáp án
   "options": [
@@ -1125,14 +1214,14 @@ function copyQuestionPrompt() {
 - "source" = MÃ ĐỀ/BỘ ĐỀ (vd: official_2024) — RẤT QUAN TRỌNG: hệ thống gom câu hỏi thành đề thi THEO "source". Câu cùng một đề PHẢI dùng CÙNG một "source".
 - Tối thiểu 3 đáp án (A, B, C); D tùy chọn.
 - "correctAnswer" phải khớp đúng 1 label trong "options".
-- Part 1: bỏ "questionText", để "imageUrls": [] (admin upload sau).
+- Part 1 và Part 6: BỎ "questionText" (chỉ ảnh + 4 đáp án cho mỗi chỗ trống).
 - Part 2: chỉ có A/B/C, không có D.
 - Part 3/4: nhiều câu hỏi cùng 1 audio → cùng "groupId", "questionIndex" tăng dần.
-- Part 6/7: nhiều câu hỏi cùng 1 đoạn → cùng "groupId", chỉ câu đầu tiên (questionIndex: 1) chứa "imageUrls" (ẢNH đoạn văn — cách chính); "passages" text là TÙY CHỌN.
+- Part 6/7: nhiều câu hỏi cùng 1 đoạn → cùng "groupId", chỉ câu đầu tiên (questionIndex: 1) chứa "imageUrls" (ẢNH đoạn văn — cách chính, KHÔNG gõ text). Part 6 = 1 ảnh; Part 7 = số ảnh bằng passageCount (tối đa 3).
 - ĐẶT TÊN FILE audio/ảnh (RẤT QUAN TRỌNG, đúng từng ký tự):
   • Thư mục theo số đề: "ets26t" + số đề, vd đề 1 → ets26t1, đề 2 → ets26t2 (PHẢI có "26", KHÔNG viết "etst2").
   • Part 1/2 (mỗi câu 1 audio/ảnh) → file ĐƠN theo số câu: /assets/audio/ets26t2/ets26t2-01.mp3
-  • Part 3/4/6/7 (nhóm nhiều câu) → file theo DẢI SỐ câu của nhóm: /assets/audio/ets26t2/ets26t2-32-34.mp3 ; ảnh tương tự .jpg. "audioUrl"/"imageUrls" CHỈ đặt ở câu đầu nhóm (questionIndex 1).
+  • Part 3/4/6/7 (nhóm nhiều câu) → file theo DẢI SỐ câu của nhóm: /assets/audio/ets26t2/ets26t2-32-34.mp3 ; ảnh tương tự .png. "audioUrl"/"imageUrls" CHỈ đặt ở câu đầu nhóm (questionIndex 1).
 - Giải thích trong "explanation" viết tiếng Việt; giữ nguyên tiếng Anh trong "questionText", "options".
 - Bỏ qua các trường không liên quan đến part đó (ví dụ: Part 5 không cần audio/ảnh/passages).
 
@@ -1184,6 +1273,15 @@ Nội dung câu hỏi của tôi:
     // Chọn 1 Part cụ thể → dùng prompt RIÊNG, gọn (không gộp chung 7 part).
     if (part !== 'all' && PART_PROMPTS[part]) prompt = PART_PROMPTS[part];
 
+    // Có Source → ép AI dùng đúng mã đề cho MỌI câu (khỏi gõ lệch source).
+    const src = (typeof forcedSource === 'string') ? forcedSource.trim() : '';
+    if (src) {
+        prompt = prompt.replace(
+            'Nội dung câu hỏi của tôi:',
+            `BẮT BUỘC: mọi câu dùng "source": "${src}".\n\nNội dung câu hỏi của tôi:`
+        );
+    }
+
     const done = () => showToast('Đã copy prompt — dán vào ChatGPT/AI rồi lấy JSON về', 'success');
     const fail = () => showToast('Không copy được, hãy chọn và copy thủ công', 'error');
 
@@ -1232,8 +1330,8 @@ function validateImportedQuestion(q, i) {
     // source bắt buộc (gom câu thành đề thi)
     if (!q.source || !String(q.source).trim()) errs.push(`${n}: thiếu "source" (mã đề — bắt buộc)`);
 
-    // questionText bắt buộc với Part 3-7
-    if (part >= 3 && (!q.questionText || !String(q.questionText).trim())) errs.push(`${n}: Part ${part} cần "questionText"`);
+    // questionText bắt buộc với Part 3/4/7 — RIÊNG Part 6 (điền chỗ trống) KHÔNG có câu hỏi (như Part 1).
+    if ([3, 4, 7].includes(part) && (!q.questionText || !String(q.questionText).trim())) errs.push(`${n}: Part ${part} cần "questionText"`);
 
     // Part nhóm: 3,4,6,7 cần groupId + questionIndex. Nội dung (audio/ảnh) đặt ở
     // câu đầu — KHÔNG bắt buộc "audioText"/"passages" (dùng file audio thật + ảnh).
@@ -1251,9 +1349,10 @@ function validateImportedQuestion(q, i) {
     return errs;
 }
 
-async function submitQuestionJsonImport() {
-    const raw = document.getElementById('question-json-input').value.trim();
-    const resultDiv = document.getElementById('question-json-result');
+async function submitQuestionJsonImport(inputId = 'question-json-input', resultId = 'question-json-result', btnId = 'btn-submit-q-json') {
+    // inputId/resultId/btnId cho phép dùng lại cho tab JSON của modal NHÓM.
+    const raw = document.getElementById(inputId).value.trim();
+    const resultDiv = document.getElementById(resultId);
     if (!raw) { showToast('Vui lòng nhập JSON', 'error'); return; }
 
     let questions;
@@ -1265,6 +1364,23 @@ async function submitQuestionJsonImport() {
         return;
     }
     if (questions.length === 0) { showToast('Không có câu hỏi nào trong JSON', 'error'); return; }
+
+    // Nhân MEDIA CHUNG trong mỗi nhóm sang MỌI câu (AI hay chỉ đặt ở câu đầu) →
+    // mỗi câu tự đủ ngữ cảnh khi làm bài / xem lại.
+    const byGroup = {};
+    questions.forEach(q => { if (q && q.groupId) (byGroup[q.groupId] = byGroup[q.groupId] || []).push(q); });
+    Object.values(byGroup).forEach(members => {
+        const audioUrl = members.find(m => m.audioUrl)?.audioUrl;
+        const imageUrls = members.find(m => Array.isArray(m.imageUrls) && m.imageUrls.length)?.imageUrls;
+        const passages = members.find(m => Array.isArray(m.passages) && m.passages.length)?.passages;
+        const passageCount = members.find(m => m.passageCount)?.passageCount;
+        members.forEach(m => {
+            if (audioUrl && !m.audioUrl) m.audioUrl = audioUrl;
+            if (imageUrls && !(m.imageUrls?.length)) m.imageUrls = imageUrls;
+            if (passages && !(m.passages?.length)) m.passages = passages;
+            if (passageCount && !m.passageCount) m.passageCount = passageCount;
+        });
+    });
 
     // PRE-VALIDATE TOÀN BỘ — sai định dạng thì KHÔNG lưu gì cả (import nguyên khối).
     const preErrors = [];
@@ -1282,7 +1398,7 @@ async function submitQuestionJsonImport() {
         return;
     }
 
-    const btn = document.getElementById('btn-submit-q-json');
+    const btn = document.getElementById(btnId);
     btn.disabled = true;
     btn.textContent = 'Đang import...';
     resultDiv.style.display = 'none';
@@ -1357,7 +1473,7 @@ async function submitQuestionJsonImport() {
     // Có câu vào được → xóa luôn JSON trong ô nhập (khỏi dính lần sau). Câu lỗi
     // đã liệt kê ở khung kết quả bên dưới rồi.
     if (ok > 0) {
-        const ta = document.getElementById('question-json-input');
+        const ta = document.getElementById(inputId);
         if (ta) ta.value = '';
     }
 }
@@ -1483,10 +1599,18 @@ function previewQuestion(questionId) {
 
 async function handleImageUpload(file) {
     const uploadStatus = document.getElementById('image-upload-status');
-    const imagePreview = document.getElementById('image-preview');
-    const previewImg = document.getElementById('preview-img');
-    const hiddenUrlInput = document.getElementById('question-image-url');
     const fileInput = document.getElementById('question-image-file');
+
+    // Chặn vượt số ảnh tối đa của Part (vd Part 7 tối đa 3, Part 1 chỉ 1).
+    const part = parseInt(document.getElementById('question-part').value);
+    const max = IMAGE_RULES[part]?.max || 0;
+    if (currentImageUrls.length >= max) {
+        alert(max === 0
+            ? `Part ${part} không dùng hình ảnh.`
+            : `Part ${part} tối đa ${max} ảnh — hãy xóa bớt ảnh trước khi thêm.`);
+        fileInput.value = '';
+        return;
+    }
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
@@ -1501,14 +1625,15 @@ async function handleImageUpload(file) {
         return;
     }
 
-    imagePreview.style.display = 'none';
     uploadStatus.style.display = 'block';
 
     try {
         const formData = new FormData();
         formData.append('image', file);
 
-        const res = await fetch(`${TOEIC_API_BASE}/upload/part1-image`, {
+        // Gửi Source đang chọn → server lưu vào đúng thư mục bộ đề (thay vì đoán từ tên file).
+        const src = encodeURIComponent(document.getElementById('question-source')?.value.trim() || '');
+        const res = await fetch(`${TOEIC_API_BASE}/upload/part1-image?source=${src}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}` },
             body: formData
@@ -1518,10 +1643,11 @@ async function handleImageUpload(file) {
 
         if (!data.success) throw new Error(data.message || 'Upload failed');
 
-        hiddenUrlInput.value = data.imageUrl;
-        previewImg.src = data.imageUrl;
+        // Thêm ảnh vào danh sách (hỗ trợ nhiều ảnh) thay vì ghi đè 1 ảnh duy nhất.
+        currentImageUrls.push(data.imageUrl);
+        renderImageList();
         uploadStatus.style.display = 'none';
-        imagePreview.style.display = 'block';
+        fileInput.value = ''; // cho phép chọn tiếp ảnh khác
     } catch (error) {
         console.error('Error uploading image:', error);
         alert('Failed to upload image: ' + error.message);
@@ -1557,7 +1683,9 @@ async function handleAudioUpload(file) {
         const formData = new FormData();
         formData.append('audio', file);
 
-        const res = await fetch(`${TOEIC_API_BASE}/upload/audio`, {
+        // Gửi Source đang chọn → server lưu vào đúng thư mục bộ đề (thay vì đoán từ tên file).
+        const src = encodeURIComponent(document.getElementById('question-source')?.value.trim() || '');
+        const res = await fetch(`${TOEIC_API_BASE}/upload/audio?source=${src}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${getToken()}` },
             body: formData
@@ -1585,9 +1713,7 @@ async function handleQuestionSubmit(e) {
     const questionId = document.getElementById('question-id').value;
     const part = parseInt(document.getElementById('question-part').value);
     const questionText = document.getElementById('question-text').value.trim();
-    const audioText = document.getElementById('question-audio-text').value.trim();
-    const passageRaw = document.getElementById('question-passage').value.trim();
-    const imageUrlRaw = document.getElementById('question-image-url').value.trim();
+    const imageUrls = currentImageUrls.slice();   // nhiều ảnh (Part 1/3/4/6/7)
     const audioUrl = document.getElementById('question-audio-url').value.trim();
     const explanationRaw = document.getElementById('question-explanation').value.trim();
     const groupIdRaw = document.getElementById('question-group-id').value.trim();
@@ -1613,22 +1739,28 @@ async function handleQuestionSubmit(e) {
         return;
     }
 
-    if (part === 1 && !imageUrlRaw && !audioUrl) {
-        alert('Part 1 requires either an image or audio file! Please select a file (it will auto-upload).');
+    // Ảnh: bắt buộc/giới hạn theo Part (IMAGE_RULES). Phần Đọc (6/7) dùng ảnh scan.
+    const rule = IMAGE_RULES[part];
+    if (rule && rule.min > 0 && imageUrls.length < rule.min) {
+        alert(`Part ${part} cần ít nhất ${rule.min} ảnh. Hãy chọn file (tự upload).`);
+        return;
+    }
+    if (rule && imageUrls.length > rule.max) {
+        alert(`Part ${part} tối đa ${rule.max} ảnh.`);
         return;
     }
 
-    if (part >= 2 && part <= 4 && !audioText && !audioUrl) {
-        alert(`Part ${part} requires audio! Please upload an audio file or provide audio text.`);
+    // Nghe (Part 2-4) phải có file audio thật (không còn nhập text audio).
+    if (part >= 2 && part <= 4 && !audioUrl) {
+        alert(`Part ${part} cần file audio! Hãy chọn file audio (tự upload).`);
         return;
     }
 
     const questionData = { part, correctAnswer, options };
 
     if (questionText && part >= 2) questionData.questionText = questionText;
-    if (audioText) questionData.audioText = audioText;
-    if (passageRaw) questionData.passages = [passageRaw];
-    if (imageUrlRaw) questionData.imageUrls = [imageUrlRaw];
+    // Luôn gửi mảng ảnh (kể cả rỗng) để việc xóa bớt ảnh khi sửa được lưu lại.
+    questionData.imageUrls = imageUrls;
     if (audioUrl) questionData.audioUrl = audioUrl;
     if (explanationRaw) {
         try { questionData.explanation = JSON.parse(explanationRaw); }
@@ -1676,11 +1808,11 @@ async function handleQuestionSubmit(e) {
             document.getElementById('question-part').value = currentPart;
             updatePartVisibility();
 
-            document.getElementById('image-preview').style.display = 'none';
-            document.getElementById('preview-img').src = '';
+            // Dọn media để nhập câu tiếp theo.
+            currentImageUrls = [];
+            renderImageList();
             document.getElementById('audio-preview').style.display = 'none';
             document.getElementById('preview-audio').src = '';
-            document.getElementById('question-image-url').value = '';
             document.getElementById('question-audio-url').value = '';
 
             const firstInput = document.getElementById('question-text');
@@ -1814,6 +1946,36 @@ async function handleAIGenerate(part, count) {
 window.editQuestion = (questionId) => openQuestionModal(questionId);
 window.deleteQuestion = deleteQuestion;
 
+// Nạp danh sách nguồn (distinct từ câu hỏi) vào datalist để tránh gõ lệch.
+async function loadTestSourceOptions() {
+    const dl = document.getElementById('test-source-list');
+    if (!dl) return;
+    try {
+        const res = await fetch(`${TOEIC_API_BASE}/questions/sources`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        if (data.success) {
+            dl.innerHTML = (data.data || [])
+                .map(s => `<option value="${String(s).replace(/"/g, '&quot;')}"></option>`).join('');
+        }
+    } catch (e) {
+        console.error('Không tải được danh sách nguồn:', e);
+    }
+}
+
+// Ô giá xu chỉ có nghĩa với đề premium → ẩn khi đề đang miễn phí.
+function syncTestCoinsField() {
+    const free = document.getElementById('test-is-free');
+    const field = document.getElementById('test-coins-field');
+    if (!free || !field) return;
+    field.style.display = free.checked ? 'none' : 'block';
+    if (!free.dataset.bound) {
+        free.dataset.bound = '1';
+        free.addEventListener('change', syncTestCoinsField);
+    }
+}
+
 function openTestModal(testId = null) {
     const modal = document.getElementById('test-modal');
     const form = document.getElementById('test-form');
@@ -1828,6 +1990,11 @@ function openTestModal(testId = null) {
     document.getElementById('test-source').value = '';
     document.getElementById('test-level').value = 'intermediate';
     document.getElementById('random-question-count').value = '';
+    loadTestSourceOptions();
+    document.getElementById('test-is-free').checked = true;
+    document.getElementById('test-required-coins').value = '0';
+    document.getElementById('test-required-level').value = '1';
+    syncTestCoinsField();
     const defMode = document.querySelector('input[name="q-select-mode"][value="default"]');
     if (defMode) defMode.checked = true;
 
@@ -1915,6 +2082,10 @@ async function editTest(testId) {
         document.getElementById('test-source').value = test.source || '';
         document.getElementById('test-level').value = test.level || 'intermediate';
         document.getElementById('test-duration').value = Math.round(test.totalTime / 60) || '';
+        document.getElementById('test-is-free').checked = test.isFree !== false;
+        document.getElementById('test-required-coins').value = test.requiredCoins || 0;
+        document.getElementById('test-required-level').value = test.requiredLevel || 1;
+        syncTestCoinsField();
 
         const randomQuestionsField = document.getElementById('random-questions-field');
         if (test.testType !== 'full-test') {
@@ -1961,6 +2132,18 @@ async function handleTestSubmit(e) {
 
     const testData = { testName, testType, description, totalTime: duration * 60, level };
     if (source) testData.source = source;
+
+    // Điều kiện vào bài — đề free thì ép giá xu về 0 để không sót giá cũ.
+    testData.isFree = document.getElementById('test-is-free').checked;
+    testData.requiredCoins = testData.isFree
+        ? 0
+        : Math.max(0, parseInt(document.getElementById('test-required-coins').value) || 0);
+    testData.requiredLevel = Math.max(1, parseInt(document.getElementById('test-required-level').value) || 1);
+
+    if (!testData.isFree && testData.requiredCoins < 1) {
+        alert('Đề premium phải có giá xu lớn hơn 0!');
+        return;
+    }
 
     const randomCount = parseInt(document.getElementById('random-question-count').value);
     if (!isNaN(randomCount) && randomCount > 0) testData.randomQuestionCount = randomCount;

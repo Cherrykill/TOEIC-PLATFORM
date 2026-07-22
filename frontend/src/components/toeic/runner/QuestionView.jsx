@@ -69,7 +69,7 @@ export default function QuestionView({
     return (
         <div className="toeic-two-col-layout">
             <div className="toeic-left-panel">
-                <div className="toeic-left-header">Câu {currentIndex + 1}</div>
+                <div className="toeic-left-header">Câu {question.globalQuestionNumber ?? question.questionNumber ?? currentIndex + 1}</div>
                 <div className="toeic-left-body">{leftContent}</div>
             </div>
             <div className="toeic-right-panel">
