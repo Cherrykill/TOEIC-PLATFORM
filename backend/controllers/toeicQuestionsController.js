@@ -14,6 +14,9 @@ const logger = require('../utils/logger');
 // dựng bài thi. Trước đây câu hỏi đánh số 1,2,3… trong TỪNG Part nên Part 6 ra
 // 1–16 thay vì 131–146, lệch hẳn với số ghi trong ảnh đề scan.
 const PART_START = { 1: 1, 2: 7, 3: 32, 4: 71, 5: 101, 6: 131, 7: 147 };
+// Mốc KẾT THÚC — thiếu nó thì Part đầy sẽ tràn sang dải của Part sau
+// (vd Part 5 đủ 30 câu 101-130, câu thứ 31 nhảy lên 131 = dải Part 6).
+const PART_END = { 1: 6, 2: 31, 3: 70, 4: 100, 5: 130, 6: 146, 7: 200 };
 
 /**
  * Số câu kế tiếp — đánh theo TỪNG BỘ ĐỀ (source), không phải toàn ngân hàng.
@@ -30,7 +33,9 @@ async function nextQuestionNumber(part, source) {
     for (const set of sets) for (const q of (set.questions || [])) {
         if (Number.isFinite(q.number) && q.number > max) max = q.number;
     }
-    return Math.max(start, max + 1);
+    const next = Math.max(start, max + 1);
+    // Vượt dải của Part → bộ đề này đã đủ câu cho Part đó.
+    return next > (PART_END[part] || 200) ? null : next;
 }
 
 /**
@@ -152,7 +157,18 @@ exports.createQuestion = async (req, res, next) => {
         const payload = buildSetPayload(req.body);
         // Câu nào chưa có số → đánh tiếp theo chuẩn TOEIC của Part trong bộ đề đó.
         let next = await nextQuestionNumber(payload.part, payload.source);
-        payload.questions.forEach(q => { if (!Number.isFinite(q.number)) q.number = next++; });
+        for (const q of payload.questions) {
+            if (Number.isFinite(q.number)) continue;
+            if (next === null || next > (PART_END[payload.part] || 200)) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Part ${payload.part} của bộ đề "${payload.source || '(không có)'}" đã đủ câu `
+                        + `(${PART_START[payload.part]}–${PART_END[payload.part]}). `
+                        + 'Hãy nhập "Số câu" thủ công nếu muốn ghi đè, hoặc dùng bộ đề khác.',
+                });
+            }
+            q.number = next++;
+        }
 
         const set = await ToeicQuestionSet.create({ ...payload, createdBy: req.user.id });
         res.status(201).json({
