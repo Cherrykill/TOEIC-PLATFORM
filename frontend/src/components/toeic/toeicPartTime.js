@@ -123,3 +123,48 @@ export function getToeicPartTime(part, plan) {
 export function getToeicScreenTime(part, questionCount = 1, plan) {
     return getToeicPartTime(part, plan) * Math.max(1, questionCount);
 }
+
+// ── Chế độ TÙY CHỈNH: mỗi Part Đọc một ngân sách phút RIÊNG (settings) ────────
+// Người dùng đặt tổng thời gian cho từng Part 5·6·7; per-question = tổng Part đó
+// / số câu Part đó − chuyển câu. Khác weight-split (chia một tổng theo trọng số):
+// ở đây mỗi Part là con số TUYỆT ĐỐI người dùng muốn.
+
+/** Ngân sách phút của một Part Đọc từ settings (mặc định nếu chưa đặt). */
+function customPartMinutes(part) {
+    const v = GameState.state?.settings?.toeicCustomPartMin?.[part];
+    return (typeof v === 'number' && v > 0) ? v : ({ 5: 15, 6: 8, 7: 36 }[part] || 15);
+}
+
+/**
+ * Dựng bảng giây/câu cho Part Đọc theo NGÂN SÁCH RIÊNG mỗi Part.
+ * @param {Array} questions danh sách câu đã dàn phẳng (mỗi câu có .part)
+ * @returns {object|null} { [part]: giây mỗi câu }
+ */
+export function buildCustomReadingPlan(questions) {
+    if (!Array.isArray(questions) || !questions.length) return null;
+    const transition = getToeicTransition();
+    const plan = {};
+    for (const part of AUTO_TIME_PARTS) {
+        const count = questions.filter(q => Number(q.part) === part).length;
+        if (!count) continue;
+        const perQ = Math.floor((customPartMinutes(part) * 60) / count) - transition;
+        plan[part] = Math.max(MIN_AUTO_SECONDS, perQ);
+    }
+    return Object.keys(plan).length ? plan : null;
+}
+
+/**
+ * Tổng thời gian (giây) của chế độ TÙY CHỈNH cho một đề: cộng ngân sách các Part
+ * Đọc có mặt + chừa khoảng ước lượng cho Part Nghe (chuẩn ETS). Dùng cho popup
+ * để đặt đồng hồ tổng. `partCounts` = { [part]: số câu } lấy từ test.parts.
+ */
+export function customTotalSeconds(partCounts = {}) {
+    let total = 0;
+    for (const [part, count] of Object.entries(partCounts)) {
+        const p = Number(part);
+        if (!count) continue;
+        if (AUTO_TIME_PARTS.includes(p)) total += customPartMinutes(p) * 60;
+        else total += getToeicPartTimeDefault(p) * count; // Nghe: ước lượng chuẩn
+    }
+    return total;
+}

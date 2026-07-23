@@ -24,7 +24,9 @@ export const DEFAULT_SETTINGS = {
     toeicPerQuestionTimer: false, // bài thi TOEIC: đếm ngược từng câu (CHỈ Part 5·6·7 Đọc)
     toeicAutoAdvance: true,   // hết giờ một câu → tự sang câu kế (chỉ Part Đọc)
     toeicTransition: 1,       // giây nghỉ giữa hai câu (đã trừ khỏi ngân sách mỗi câu)
-    toeicCustomTotalMin: 60,  // thời gian TỔNG tùy chỉnh (phút) — 1 lựa chọn ở popup bắt đầu bài
+    // Thời gian TỔNG tùy chỉnh cho TỪNG Part Đọc (phút) — mức "Tùy chỉnh" ở popup.
+    // Mỗi Part một ngân sách riêng vì độ dài mỗi câu khác nhau (P7 đọc cả đoạn).
+    toeicCustomPartMin: { 5: 15, 6: 8, 7: 36 },
     difficulty: "adaptive",
     levelFilter: null,
     autoSync: true,

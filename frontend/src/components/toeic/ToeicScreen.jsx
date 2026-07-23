@@ -101,10 +101,10 @@ export default function ToeicScreen({ active }) {
         setStartModalCfg({ test, fillInBlankMode });
     }, [tests]);
 
-    const handleStartConfirm = useCallback((customTimeLimit) => {
+    const handleStartConfirm = useCallback((customTimeLimit, timeMode) => {
         const { test, fillInBlankMode } = startModalCfg;
         setStartModalCfg(null);
-        setRunnerConfig({ testId: test._id, fillInBlankMode, customTimeLimit });
+        setRunnerConfig({ testId: test._id, fillInBlankMode, customTimeLimit, timeMode });
         setMode('runner');
     }, [startModalCfg]);
 

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { toeicEnergyCost } from '../toeicCost.js';
-import { GameState } from '@game/state.js';
+import { customTotalSeconds } from '../toeicPartTime.js';
 
 /**
  * Popup chọn thời gian làm bài — 3 loại, hệ thống chia tổng đó ra mỗi câu Đọc:
- *   1. ⚙️ Tùy chỉnh  — thời gian tổng bạn đặt trong Cài đặt (toeicCustomTotalMin)
+ *   1. ⚙️ Tùy chỉnh  — ngân sách riêng từng Part Đọc từ Cài đặt (toeicCustomPartMin)
  *   2. ⭐ Đề xuất    — thời gian admin gợi ý cho đề (test.totalTime)
  *   3. ∞ Không giới hạn — tắt mọi đồng hồ từng câu
  */
@@ -12,19 +12,22 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
     const [selected, setSelected] = useState('suggested');
 
     const suggestedMin = Math.round((test?.totalTime || 7200) / 60);
-    const customMin = Math.max(1, parseInt(GameState.state?.settings?.toeicCustomTotalMin) || 60);
+    // Số câu mỗi Part (từ test.parts) → tính tổng thời gian tùy chỉnh của đề này.
+    const partCounts = {};
+    (test?.parts || []).forEach(p => { partCounts[p.partNumber] = p.questionsCount || 0; });
+    const customSec = customTotalSeconds(partCounts);
+    const customMin = Math.max(1, Math.round(customSec / 60));
 
     const handleStart = () => {
-        let customTimeLimit;
-        if (selected === 'unlimited') customTimeLimit = null;
-        else if (selected === 'custom') customTimeLimit = customMin * 60;
-        else customTimeLimit = test?.totalTime; // 'suggested'
-        onConfirm(customTimeLimit);
+        // Truyền kèm timeMode để runner dựng bảng giây/câu KHỚP với tổng đã chọn.
+        if (selected === 'unlimited') return onConfirm(null, 'unlimited');
+        if (selected === 'custom') return onConfirm(customSec, 'custom');
+        return onConfirm(test?.totalTime, 'suggested');
     };
 
     const OPTIONS = [
         { key: 'suggested', icon: '⭐', label: `Đề xuất (${suggestedMin} phút)`, desc: 'Thời gian admin gợi ý cho đề này' },
-        { key: 'custom', icon: '⚙️', label: `Tùy chỉnh (${customMin} phút)`, desc: 'Thời gian tổng bạn đặt trong Cài đặt → Luyện tập' },
+        { key: 'custom', icon: '⚙️', label: `Tùy chỉnh (${customMin} phút)`, desc: 'Ngân sách riêng cho từng Part 5·6·7 — đặt trong Cài đặt → Luyện tập' },
         { key: 'unlimited', icon: '♾️', label: 'Không giới hạn', desc: 'Không đồng hồ nào cả — thong thả làm bài' },
     ];
 

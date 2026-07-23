@@ -17,6 +17,7 @@ import {
     getToeicScreenTime,
     getToeicTransition,
     buildToeicReadingPlan,
+    buildCustomReadingPlan,
 } from '../toeicPartTime.js';
 
 // Dải index của nhóm chứa `index` (các câu liền kề cùng groupId). Không nhóm → [i,i].
@@ -111,6 +112,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                     await attempt.startAttempt(config.testId, {
                         fillInBlankMode: config.fillInBlankMode,
                         customTimeLimit: config.customTimeLimit,
+                        timeMode: config.timeMode,
                     });
                 }
                 setPhase('running');
@@ -303,10 +305,14 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     const effectiveTotal = attempt.customTimeLimit; // giây, hoặc null/undefined
     const unlimited = effectiveTotal === null || effectiveTotal === undefined;
 
-    // Bảng giờ Part Đọc: dựng MỘT lần cho cả bài, theo thời gian đã chọn.
+    // Bảng giờ Part Đọc, khớp với chế độ đã chọn ở popup:
+    //  - custom: mỗi Part một ngân sách riêng (settings)
+    //  - suggested/khác: chia tổng theo trọng số
     const readingPlan = useMemo(
-        () => buildToeicReadingPlan(effectiveTotal, attempt.questions),
-        [effectiveTotal, attempt.questions],
+        () => attempt.timeMode === 'custom'
+            ? buildCustomReadingPlan(attempt.questions)
+            : buildToeicReadingPlan(effectiveTotal, attempt.questions),
+        [attempt.timeMode, effectiveTotal, attempt.questions],
     );
     const handleNextRef = useRef(handleNext);
     handleNextRef.current = handleNext;

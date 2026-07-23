@@ -40,10 +40,19 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
         }
     };
 
-    // ── Thời gian TỔNG tùy chỉnh cho bài thi TOEIC (phút) ────────────────────
-    // Đây là 1 trong 3 lựa chọn ở popup bắt đầu bài. Hệ thống chia tổng này ra
-    // giây/câu cho Part 5·6·7; Part Nghe do audio dẫn nhịp nên không đặt tay.
-    const customTotal = Math.max(1, parseInt(s.toeicCustomTotalMin) || 60);
+    // ── Thời gian tổng tùy chỉnh cho TỪNG Part Đọc (phút) ────────────────────
+    // Mức "Tùy chỉnh" ở popup. Mỗi Part một ngân sách riêng vì độ dài mỗi câu
+    // khác nhau; hệ thống chia ngân sách đó ra giây/câu. Part Nghe do audio dẫn.
+    const READ_PARTS = [
+        { id: 5, name: 'Part 5 — Hoàn thành câu', def: 15 },
+        { id: 6, name: 'Part 6 — Hoàn thành đoạn', def: 8 },
+        { id: 7, name: 'Part 7 — Đọc hiểu', def: 36 },
+    ];
+    const partMin = s.toeicCustomPartMin || {};
+    const setPartMin = (id, val) => {
+        const v = Math.max(1, Math.min(180, parseInt(val) || 1));
+        updateSetting('toeicCustomPartMin', { ...partMin, [id]: v });
+    };
 
     return (
         <div className="settings-section">
@@ -212,20 +221,28 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                         </div>
                     )}
 
-                    <div className="setting-item" style={NESTED}>
-                        <div className="setting-info">
-                            <h4>Thời gian tổng tùy chỉnh</h4>
-                            <p>Mức "Tùy chỉnh" ở popup bắt đầu bài. Part 5·6·7 chia đều tổng này ra mỗi câu; Part Nghe do audio dẫn</p>
+                    <div className="setting-item" style={{ display: 'block', ...NESTED }}>
+                        <div className="setting-info" style={{ marginBottom: 8 }}>
+                            <h4>Thời gian tổng tùy chỉnh — theo Part Đọc</h4>
+                            <p>Mức "Tùy chỉnh" ở popup. Mỗi Part một ngân sách riêng (chia ra giây/câu); Part Nghe do audio dẫn</p>
                         </div>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                            <input
-                                type="number" min="1" max="600"
-                                value={customTotal}
-                                onChange={e => updateSetting('toeicCustomTotalMin', Math.max(1, Math.min(600, parseInt(e.target.value) || 1)))}
-                                style={{ width: 84, textAlign: 'right' }}
-                            />
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>phút</span>
-                        </div>
+                        {READ_PARTS.map(p => {
+                            const val = typeof partMin[p.id] === 'number' ? partMin[p.id] : p.def;
+                            return (
+                                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0' }}>
+                                    <span style={{ fontSize: '0.9rem' }}>{p.name}</span>
+                                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                        <input
+                                            type="number" min="1" max="180"
+                                            value={val}
+                                            onChange={e => setPartMin(p.id, e.target.value)}
+                                            style={{ width: 76, textAlign: 'right' }}
+                                        />
+                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>phút</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </>
             )}

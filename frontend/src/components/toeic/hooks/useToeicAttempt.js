@@ -11,6 +11,7 @@ const initialState = {
     answers: {},
     markedQuestions: new Set(),
     customTimeLimit: undefined,
+    timeMode: 'suggested', // 'suggested' | 'custom' | 'unlimited' — quyết định cách chia giờ Part Đọc
     fillInBlankMode: false,
     keywordAnswers: {},
 };
@@ -35,7 +36,7 @@ export function useToeicAttempt() {
         shownTransitionsRef.current = new Set();
     }, []);
 
-    const startAttempt = useCallback(async (testId, { fillInBlankMode = false, customTimeLimit } = {}) => {
+    const startAttempt = useCallback(async (testId, { fillInBlankMode = false, customTimeLimit, timeMode = 'suggested' } = {}) => {
         const response = await ToeicAPI.startAttempt(testId, fillInBlankMode);
         const apiData = response.data || response;
         if (!apiData?.success || !apiData.data) {
@@ -59,6 +60,7 @@ export function useToeicAttempt() {
             answers: {},
             markedQuestions: new Set(),
             customTimeLimit,
+            timeMode,
             fillInBlankMode,
             keywordAnswers: {},
         });
@@ -86,6 +88,9 @@ export function useToeicAttempt() {
             customTimeLimit: Number.isFinite(apiData.data.timeRemaining)
                 ? apiData.data.timeRemaining
                 : (apiData.data.test?.totalTime ?? undefined),
+            // Resume không nhớ chế độ đã chọn → chia giờ Part Đọc theo trọng số
+            // từ thời gian còn lại (xấp xỉ, chấp nhận được cho phiên làm dở).
+            timeMode: 'suggested',
             fillInBlankMode: false,
             keywordAnswers: {},
         });
