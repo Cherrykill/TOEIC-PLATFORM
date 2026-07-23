@@ -70,12 +70,14 @@ const READ_WEIGHT = { 5: 1, 6: 1.3, 7: 1.8 };
  * giờ hơn. Đề chỉ có một Part Đọc (mini test) thì mọi trọng số bằng nhau →
  * quay về đúng phép chia đều như trước, không đổi gì.
  *
- * @param {object} test      đề đang làm ({ totalTime })
+ * @param {number} totalSeconds THỜI GIAN THỰC của lượt làm — là con số người
+ *        dùng CHỌN Ở POPUP (nguồn duy nhất), không phải totalTime của admin.
+ *        null/0 = không giới hạn → không dựng bảng (nhịp từng câu tắt).
  * @param {Array}  questions danh sách câu đã dàn phẳng (mỗi câu có .part)
  * @returns {object|null} { [part]: giây mỗi câu } cho các Part Đọc
  */
-export function buildToeicReadingPlan(test, questions) {
-    const total = Number(test?.totalTime);
+export function buildToeicReadingPlan(totalSeconds, questions) {
+    const total = Number(totalSeconds);
     if (!Number.isFinite(total) || total <= 0 || !Array.isArray(questions) || !questions.length) return null;
 
     const reading = questions.filter(q => isAutoTimePart(q.part));

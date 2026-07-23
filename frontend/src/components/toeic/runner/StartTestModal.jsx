@@ -4,7 +4,9 @@ import { toeicEnergyCost } from '../toeicCost.js';
 
 export default function StartTestModal({ test, onConfirm, onCancel }) {
     const [selected, setSelected] = useState('default');
-    const [customValue, setCustomValue] = useState(120);
+    // Số phút mặc định THẬT của đề (admin đặt), không viết cứng "120".
+    const defaultMinutes = Math.round((test?.totalTime || 7200) / 60);
+    const [customValue, setCustomValue] = useState(defaultMinutes);
 
     const handleStart = () => {
         let time = selected;
@@ -58,7 +60,7 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
                                     color: 'var(--text-primary)', cursor: 'pointer',
                                 }}
                             >
-                                <option value="default">⭐ Mặc định (120 phút)</option>
+                                <option value="default">⭐ Mặc định ({defaultMinutes} phút)</option>
                                 <optgroup label="⚡ Luyện nhanh">
                                     {[3, 5, 10, 15, 20, 25, 30].map(n => <option key={n} value={n}>{n} phút</option>)}
                                 </optgroup>

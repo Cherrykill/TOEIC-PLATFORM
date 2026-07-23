@@ -297,17 +297,24 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     // Ngân sách của màn hiện tại — cần để vẽ thanh theo tỉ lệ còn lại.
     const [screenTotal, setScreenTotal] = useState(0);
 
-    // Bảng giờ Part Đọc: dựng MỘT lần cho cả bài (phụ thuộc đề + danh sách câu),
-    // không tính lại mỗi lần đổi câu.
+    // NGUỒN THỜI GIAN DUY NHẤT: con số người dùng chọn ở popup (customTimeLimit).
+    // null = "không giới hạn". Bảng nhịp giây/câu chia theo CHÍNH nó, không phải
+    // totalTime admin — nhờ vậy tổng và từng câu luôn khớp nhau.
+    const effectiveTotal = attempt.customTimeLimit; // giây, hoặc null/undefined
+    const unlimited = effectiveTotal === null || effectiveTotal === undefined;
+
+    // Bảng giờ Part Đọc: dựng MỘT lần cho cả bài, theo thời gian đã chọn.
     const readingPlan = useMemo(
-        () => buildToeicReadingPlan(attempt.test, attempt.questions),
-        [attempt.test, attempt.questions],
+        () => buildToeicReadingPlan(effectiveTotal, attempt.questions),
+        [effectiveTotal, attempt.questions],
     );
     const handleNextRef = useRef(handleNext);
     handleNextRef.current = handleNext;
 
     useEffect(() => {
-        if (phase !== 'running' || !isToeicQuestionTimerOn()) { setScreenLeft(null); return; }
+        // Không giới hạn thời gian → tắt luôn đếm ngược từng câu (kể cả Part Nghe):
+        // tổng vô hạn mà mỗi câu vẫn bị hối là mâu thuẫn.
+        if (phase !== 'running' || unlimited || !isToeicQuestionTimerOn()) { setScreenLeft(null); return; }
         const qs = attempt.questions;
         const [gs, ge] = getGroupRange(qs, attempt.currentIndex);
         const cur = qs[gs];
@@ -335,7 +342,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
 
         return () => { clearInterval(id); if (moveTimer) clearTimeout(moveTimer); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [attempt.currentIndex, phase, attempt.questions.length, readingPlan]);
+    }, [attempt.currentIndex, phase, attempt.questions.length, readingPlan, unlimited]);
 
     if (phase === 'loading') {
         return (

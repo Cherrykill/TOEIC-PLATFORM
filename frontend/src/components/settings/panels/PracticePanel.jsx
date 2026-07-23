@@ -267,8 +267,9 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                             })}
                         </div>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: 8, marginBottom: 0 }}>
-                            Part 5·6·7 (Đọc) lấy thời gian của chính đề đang làm chia đều cho số câu,
-                            rồi trừ thời gian chuyển câu — mỗi đề một khác nên không đặt tay ở đây.
+                            Part 5·6·7 (Đọc) lấy <b>thời gian bạn chọn lúc bắt đầu bài</b> chia theo số câu
+                            (câu nặng nhiều giờ hơn), rồi trừ thời gian chuyển câu — nên không đặt tay ở đây.
+                            Chọn "không giới hạn" thì mọi đồng hồ từng câu tắt hết.
                         </p>
                     </div>
                 </>
