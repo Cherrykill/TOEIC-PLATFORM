@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@game/GameContext.jsx';
+import { useAuth } from '@components/auth/AuthContext.jsx';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Utils } from '@lib/utils.js';
@@ -24,6 +25,7 @@ function computeSessionLabel() {
 
 export default function StatusBar() {
     const { user, resources } = useGame();
+    const { isLoggedIn, setAuthModal } = useAuth();
     const [questionsPerSession, setQuestionsPerSession] = useState('auto');
     const [difficulty, setDifficulty] = useState('adaptive');
     const [sessionLabel, setSessionLabel] = useState(computeSessionLabel);
@@ -64,6 +66,13 @@ export default function StatusBar() {
     const zhLock = lockInfo('feature:lang-zh');
 
     const handleToggleVocabLang = () => {
+        // Khách chưa login: đổi ngôn ngữ ghi vào settings + reload, mà khách
+        // không có hồ sơ server → mời đăng nhập thay vì đổi.
+        if (!isLoggedIn) {
+            Notification.show({ type: 'info', title: '🔒 Đăng nhập để mở khoá', message: 'Đổi ngôn ngữ học cần đăng nhập.', duration: 3000 });
+            setAuthModal('login');
+            return;
+        }
         const next = vocabLang === 'en' ? 'zh' : 'en';
         // Chỉ khoá chiều SANG tiếng Trung — luôn cho quay về tiếng Anh
         // (tránh kẹt nếu đang ở 'zh' mà mốc bị nâng lên).
@@ -181,18 +190,20 @@ export default function StatusBar() {
                     </select>
                 </div>
                 {(() => {
+                    const guestBlocked = !isLoggedIn;
                     const zhBlocked = vocabLang === 'en' && zhLock.locked; // chỉ khoá chiều sang tiếng Trung
+                    const blocked = guestBlocked || zhBlocked;
                     return (
                         <button
                             onClick={handleToggleVocabLang}
-                            title={zhBlocked
-                                ? `Học tiếng Trung mở ở Level ${zhLock.requiredLevel}`
+                            title={guestBlocked ? 'Đăng nhập để đổi ngôn ngữ học'
+                                : zhBlocked ? `Học tiếng Trung mở ở Level ${zhLock.requiredLevel}`
                                 : (vocabLang === 'en' ? 'Đang học Tiếng Anh — bấm để chuyển Tiếng Trung' : 'Đang học Tiếng Trung — bấm để chuyển Tiếng Anh')}
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: zhBlocked ? 'not-allowed' : 'pointer', opacity: zhBlocked ? 0.55 : 1 }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 8px', border: '1px solid var(--border-color)', borderRadius: '20px', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '12px', fontWeight: 500, cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.55 : 1 }}
                         >
                             <FlagIcon lang={vocabLang} size={18} />
                             <span>{vocabLang === 'en' ? 'Tiếng Anh' : 'Tiếng Trung'}</span>
-                            {zhBlocked && <i className="fas fa-lock" style={{ fontSize: 10, marginLeft: 2 }}></i>}
+                            {blocked && <i className="fas fa-lock" style={{ fontSize: 10, marginLeft: 2 }}></i>}
                         </button>
                     );
                 })()}
