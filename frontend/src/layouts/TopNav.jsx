@@ -108,9 +108,17 @@ export default function TopNav() {
         const unsub = EventBus.on(GameEvents.USER_LEVEL_UP, reload);
         return () => unsub?.();
     }, [isLoggedIn]);
-    const uploadLock = isLoggedIn ? lockInfo('feature:upload-vocab') : { locked: false };
-    const favLock = isLoggedIn ? lockInfo('feature:favorites') : { locked: false };
+    // Khách chưa login: các tính năng CẦN TÀI KHOẢN (từ vựng riêng, yêu thích)
+    // hiện ổ khoá, bấm ra popup đăng nhập — không lưu server được thì mở cũng vô ích.
+    const uploadLock = isLoggedIn ? lockInfo('feature:upload-vocab') : { locked: true, guest: true };
+    const favLock = isLoggedIn ? lockInfo('feature:favorites') : { locked: true, guest: true };
     const translateLock = isLoggedIn ? lockInfo('feature:translate') : { locked: false };
+
+    // Bấm nút khoá-khách → mời đăng nhập.
+    const promptLogin = () => {
+        Notification.show({ type: 'info', title: '🔒 Đăng nhập để mở khoá', message: 'Tính năng này cần đăng nhập.', duration: 3000 });
+        setAuthModal('login');
+    };
 
     // Báo mốc còn thiếu (dùng chung cho các nút bị khoá trên nav).
     const warnLocked = (name, requiredLevel) => Notification.show({
@@ -263,8 +271,10 @@ export default function TopNav() {
                 <button
                     id="upload-btn"
                     className={`icon-btn${uploadLock.locked ? ' icon-btn--locked' : ''}`}
-                    title={uploadLock.locked ? `Mở ở Level ${uploadLock.requiredLevel}` : 'Tải lên từ vựng'}
+                    title={uploadLock.guest ? 'Đăng nhập để mở khoá'
+                        : uploadLock.locked ? `Mở ở Level ${uploadLock.requiredLevel}` : 'Tải lên từ vựng'}
                     onClick={() => {
+                        if (uploadLock.guest) return promptLogin();
                         if (uploadLock.locked) {
                             Notification.show({
                                 type: 'warning',
@@ -282,8 +292,10 @@ export default function TopNav() {
                 <button
                     id="nav-favorite-btn"
                     className={`icon-btn${favLock.locked ? ' icon-btn--locked' : ''}`}
-                    title={favLock.locked ? `Mở ở Level ${favLock.requiredLevel}` : 'Danh sách từ yêu thích'}
+                    title={favLock.guest ? 'Đăng nhập để mở khoá'
+                        : favLock.locked ? `Mở ở Level ${favLock.requiredLevel}` : 'Danh sách từ yêu thích'}
                     onClick={() => {
+                        if (favLock.guest) return promptLogin();
                         if (favLock.locked) return warnLocked('Từ vựng yêu thích', favLock.requiredLevel);
                         setFavOpen(true);
                     }}
