@@ -164,6 +164,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                   {loadingShared ? (
                     <p
                       style={{
+                        gridColumn: "1 / -1",
                         textAlign: "center",
                         padding: 20,
                         color: "var(--text-secondary)",
@@ -174,6 +175,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                   ) : filteredShared.length === 0 ? (
                     <p
                       style={{
+                        gridColumn: "1 / -1",
                         textAlign: "center",
                         padding: 20,
                         color: "var(--text-secondary)",
@@ -224,6 +226,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                   {loadingPersonal ? (
                     <p
                       style={{
+                        gridColumn: "1 / -1",
                         textAlign: "center",
                         padding: 20,
                         color: "var(--text-secondary)",
@@ -309,6 +312,7 @@ export default function TopicModal({ open, onClose, onSelected }) {
                   {loadingWrong ? (
                     <p
                       style={{
+                        gridColumn: "1 / -1",
                         textAlign: "center",
                         padding: 20,
                         color: "var(--text-secondary)",
