@@ -2194,12 +2194,13 @@
 }
 
 .toeic-lightbox-img {
-  /* Rộng tới 820px, NHƯNG chiều cao không vượt quá khung để khỏi phải cuộn:
-     ảnh cao hơn 92vh thì tự thu nhỏ lại cho vừa (bề ngang co theo). */
-  width: min(820px, 90vw);
-  max-width: 90vw;
-  max-height: 92vh;
+  /* CHỈ đặt trần, không ép width cứng: ảnh tự co để vừa CẢ bề ngang (tối đa
+     820px) LẪN chiều cao (tối đa 88vh), giữ đúng tỉ lệ — không méo, không cắt.
+     Ép width cứng + max-height cùng lúc là nguyên nhân ảnh bị cắt mất đáy. */
+  width: auto;
   height: auto;
+  max-width: min(820px, 92vw);
+  max-height: 88vh;
   object-fit: contain;
   border-radius: 8px;
   background: #fff;
