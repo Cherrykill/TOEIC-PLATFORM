@@ -143,6 +143,7 @@ function _renderTopicsPage() {
       document.getElementById("topics-table")?.scrollIntoView({ behavior: "smooth", block: "start" });
     },
   });
+  refreshTopicsPublishBtn();
 }
 
 function _setupTopicsSearch() {
@@ -359,34 +360,40 @@ async function saveTopicModal(id, modal) {
 }
 
 /**
- * Xuất bản HÀNG LOẠT mọi đề đang ẩn — giống "Xuất bản tất cả" bên đề thi TOEIC.
- * Bỏ qua đề 0 từ: xuất bản một đề rỗng thì người dùng bấm vào chỉ thấy trống.
+ * Bật/tắt xuất bản HÀNG LOẠT. publish=true: hiện mọi đề đang ẩn (có từ); bỏ qua
+ * đề 0 từ (hiện đề rỗng thì người dùng bấm vào chỉ thấy trống). publish=false:
+ * ẩn mọi đề đang hiện.
  */
-async function publishAllTopics() {
-  const hidden = (_topicsData || []).filter((t) => !t.isPublic);
-  const ready = hidden.filter((t) => (t.wordCount || 0) > 0);
-  const empty = hidden.length - ready.length;
-
-  if (!ready.length) {
-    showToast(
-      hidden.length
-        ? `${hidden.length} đề đang ẩn nhưng chưa có từ nào — sync hoặc thêm từ trước đã.`
-        : "Mọi đề đều đã xuất bản.",
-      "info",
-    );
-    return;
+async function _bulkPublishTopics(publish) {
+  let targets, skipMsg = "";
+  if (publish) {
+    const hidden = (_topicsData || []).filter((t) => !t.isPublic);
+    targets = hidden.filter((t) => (t.wordCount || 0) > 0);
+    const empty = hidden.length - targets.length;
+    if (!targets.length) {
+      showToast(
+        hidden.length
+          ? `${hidden.length} đề đang ẩn nhưng chưa có từ nào — sync hoặc thêm từ trước đã.`
+          : "Mọi đề đều đã xuất bản.",
+        "info",
+      );
+      return;
+    }
+    if (empty) skipMsg = `\n(Bỏ qua ${empty} đề chưa có từ nào.)`;
+  } else {
+    targets = (_topicsData || []).filter((t) => t.isPublic);
+    if (!targets.length) {
+      showToast("Không có đề nào đang hiển thị để ẩn.", "info");
+      return;
+    }
   }
-  if (
-    !confirm(
-      `Xuất bản ${ready.length} đề đang ẩn?` +
-        (empty ? `\n(Bỏ qua ${empty} đề chưa có từ nào.)` : ""),
-    )
-  )
-    return;
+
+  const verb = publish ? "xuất bản" : "ẩn";
+  if (!confirm(`${publish ? "Xuất bản" : "Ẩn"} ${targets.length} đề?` + skipMsg)) return;
 
   let ok = 0;
   const errors = [];
-  for (const t of ready) {
+  for (const t of targets) {
     try {
       const res = await fetch(`${API_URL}/topics/${t._id}/publish`, {
         method: "PUT",
@@ -394,7 +401,7 @@ async function publishAllTopics() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({ isPublic: true }),
+        body: JSON.stringify({ isPublic: publish }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || "lỗi");
@@ -405,10 +412,34 @@ async function publishAllTopics() {
   }
 
   alert(
-    `✅ Đã xuất bản ${ok}/${ready.length} đề.` +
+    `✅ Đã ${verb} ${ok}/${targets.length} đề.` +
       (errors.length ? `\n\n❌ Lỗi:\n${errors.slice(0, 5).join("\n")}` : ""),
   );
   loadTopicsTab();
+}
+
+// Nút tự đổi: còn đề ẩn (có từ) → xuất bản; hết đề ẩn nhưng còn đề hiện → ẩn.
+function refreshTopicsPublishBtn() {
+  const btn = document.getElementById("btn-toggle-publish-all-topics");
+  if (!btn) return;
+  const hasHiddenReady = (_topicsData || []).some((t) => !t.isPublic && (t.wordCount || 0) > 0);
+  const hasPublic = (_topicsData || []).some((t) => t.isPublic);
+
+  const publishMode = hasHiddenReady || !hasPublic;
+  btn.dataset.publish = publishMode ? "1" : "0";
+  btn.className = `btn btn-sm ${publishMode ? "btn-success" : "btn-warning"}`;
+  btn.innerHTML = publishMode
+    ? '<i class="fas fa-upload"></i> Xuất bản tất cả'
+    : '<i class="fas fa-eye-slash"></i> Ngưng xuất bản tất cả';
+  btn.title = publishMode
+    ? "Xuất bản mọi đề đang ẩn (bỏ qua đề 0 từ)"
+    : "Ẩn mọi đề đang hiển thị";
+  btn.disabled = !hasHiddenReady && !hasPublic;
+}
+
+function toggleBulkPublishTopics() {
+  const btn = document.getElementById("btn-toggle-publish-all-topics");
+  return _bulkPublishTopics(btn?.dataset.publish !== "0");
 }
 
 // Xuất bản / gỡ xuất bản một đề. Gửi trạng thái MONG MUỐN để bấm nhanh hai lần
