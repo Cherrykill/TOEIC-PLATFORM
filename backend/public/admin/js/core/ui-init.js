@@ -268,6 +268,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-create-test')?.addEventListener('click', () => openTestModal());
     document.getElementById('btn-generate-test')?.addEventListener('click', generateTest);
     document.getElementById('btn-publish-all-tests')?.addEventListener('click', publishAllDrafts);
+    document.getElementById('btn-unpublish-all-tests')?.addEventListener('click', unpublishAllTests);
     document.getElementById('btn-delete-all-tests')?.addEventListener('click', deleteAllTests);
     document.getElementById('btn-close-test-modal')?.addEventListener('click', closeTestModal);
     document.getElementById('test-form')?.addEventListener('submit', handleTestSubmit);
