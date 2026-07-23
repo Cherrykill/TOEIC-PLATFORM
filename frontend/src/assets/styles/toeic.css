@@ -2178,11 +2178,13 @@
   position: fixed;
   inset: 0;
   z-index: 3000;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
+  /* Cuộn dọc khi ảnh cao hơn màn — ảnh scan đề thường dài, phóng to là tràn. */
+  overflow: auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 24px;
+  padding: 12px;
   cursor: zoom-out;
   animation: toeicLightboxIn 0.15s ease;
 }
@@ -2193,8 +2195,12 @@
 }
 
 .toeic-lightbox-img {
-  max-width: 100%;
-  max-height: 100%;
+  /* Ảnh scan đề là ảnh dọc HẸP nên bị bó bởi chiều cao, chiếm rất ít bề ngang.
+     Cho phép PHÓNG QUA cỡ gốc: rộng tới 1100px (hoặc gần hết bề ngang màn),
+     chữ mới đủ to để đọc. Cao tự co theo. */
+  width: min(1100px, 96vw);
+  max-width: 96vw;
+  height: auto;
   object-fit: contain;
   border-radius: 8px;
   background: #fff;
@@ -2203,14 +2209,17 @@
 }
 
 .toeic-lightbox-close {
-  position: absolute;
+  /* fixed (không absolute): lightbox giờ cuộn được, absolute sẽ trôi mất nút
+     khi cuộn xuống cuối ảnh dài. */
+  position: fixed;
   top: 16px;
   right: 20px;
+  z-index: 1;
   width: 42px;
   height: 42px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.55);
   color: #fff;
   font-size: 20px;
   cursor: pointer;
