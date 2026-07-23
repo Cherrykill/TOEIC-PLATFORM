@@ -17,17 +17,20 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
     (test?.parts || []).forEach(p => { partCounts[p.partNumber] = p.questionsCount || 0; });
     const customSec = customTotalSeconds(partCounts);
     const customMin = Math.max(1, Math.round(customSec / 60));
+    // "Tùy chỉnh" chỉ có nghĩa khi đề CÓ Part Đọc (5·6·7) để chia ngân sách.
+    // Đề chỉ Nghe (vd Part 2) thì ẩn hẳn lựa chọn này.
+    const hasReading = [5, 6, 7].some(p => partCounts[p] > 0);
 
     const handleStart = () => {
         // Truyền kèm timeMode để runner dựng bảng giây/câu KHỚP với tổng đã chọn.
         if (selected === 'unlimited') return onConfirm(null, 'unlimited');
-        if (selected === 'custom') return onConfirm(customSec, 'custom');
+        if (selected === 'custom' && hasReading) return onConfirm(customSec, 'custom');
         return onConfirm(test?.totalTime, 'suggested');
     };
 
     const OPTIONS = [
         { key: 'suggested', icon: '⭐', label: `Đề xuất (${suggestedMin} phút)`, desc: 'Thời gian admin gợi ý cho đề này' },
-        { key: 'custom', icon: '⚙️', label: `Tùy chỉnh (${customMin} phút)`, desc: 'Ngân sách riêng cho từng Part 5·6·7 — đặt trong Cài đặt → Luyện tập' },
+        ...(hasReading ? [{ key: 'custom', icon: '⚙️', label: `Tùy chỉnh (${customMin} phút)`, desc: 'Ngân sách riêng cho từng Part 5·6·7 — đặt trong Cài đặt → Luyện tập' }] : []),
         { key: 'unlimited', icon: '♾️', label: 'Không giới hạn', desc: 'Không đồng hồ nào cả — thong thả làm bài' },
     ];
 
