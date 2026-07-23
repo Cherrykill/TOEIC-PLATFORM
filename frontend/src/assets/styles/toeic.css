@@ -1644,6 +1644,11 @@
   min-width: 74px;
   text-align: center;
 }
+/* "(Part n)" nhạt hơn để không tranh sự chú ý với số câu */
+.toeic-inline-qnav-part {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
 .toeic-inline-qnav .toeic-qnav-arrow {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);

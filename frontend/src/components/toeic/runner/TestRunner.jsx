@@ -360,6 +360,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         // Màn nhóm phủ nhiều câu → hiện DẢI vị trí (vd 5–8) cho đúng thực tế.
         current: gEnd > gStart ? `${gStart + 1}–${gEnd + 1}` : gStart + 1,
         total: attempt.test?.totalQuestions || attempt.questions.length,
+        part: attempt.questions[gStart]?.part, // Part của câu/nhóm hiện tại
         canPrev: gStart > 0,
         canNext: gEnd < attempt.questions.length - 1,
         onPrev: handlePrev,
