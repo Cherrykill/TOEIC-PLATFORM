@@ -2179,9 +2179,11 @@
   inset: 0;
   z-index: 3000;
   background: rgba(0, 0, 0, 0.9);
+  /* Ưu tiên BỀ RỘNG (ảnh phải to hơn lúc chưa zoom), nên ảnh cao thì cuộn dọc
+     thay vì thu nhỏ lại. Neo trên để cuộn từ đầu ảnh. */
   overflow: auto;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   padding: 12px;
   cursor: zoom-out;
@@ -2194,13 +2196,10 @@
 }
 
 .toeic-lightbox-img {
-  /* CHỈ đặt trần, không ép width cứng: ảnh tự co để vừa CẢ bề ngang (tối đa
-     820px) LẪN chiều cao (tối đa 88vh), giữ đúng tỉ lệ — không méo, không cắt.
-     Ép width cứng + max-height cùng lúc là nguyên nhân ảnh bị cắt mất đáy. */
-  width: auto;
+  /* Bề rộng cố định (to hơn lúc chưa zoom), chiều cao tự co theo tỉ lệ. KHÔNG
+     giới hạn chiều cao — ảnh dài thì lightbox cuộn dọc, không thu nhỏ. */
+  width: min(880px, 94vw);
   height: auto;
-  max-width: min(820px, 92vw);
-  max-height: 88vh;
   object-fit: contain;
   border-radius: 8px;
   background: #fff;
