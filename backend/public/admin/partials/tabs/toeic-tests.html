@@ -54,11 +54,9 @@
                   </select>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center">
-                  <button class="btn btn-success btn-sm" id="btn-publish-all-tests" title="Xuất bản mọi đề đang Nháp (đã có câu hỏi)">
+                  <!-- Một nút tự đổi: còn đề Nháp → "Xuất bản tất cả"; mọi đề đã đăng → "Ngưng xuất bản tất cả". -->
+                  <button class="btn btn-success btn-sm" id="btn-toggle-publish-all">
                     <i class="fas fa-upload"></i> Xuất bản tất cả
-                  </button>
-                  <button class="btn btn-warning btn-sm" id="btn-unpublish-all-tests" title="Gỡ xuất bản mọi đề đang hiển thị">
-                    <i class="fas fa-eye-slash"></i> Ngưng xuất bản tất cả
                   </button>
                   <button class="btn btn-ghost btn-sm" id="btn-sync-all-tests" title="Đọc lại số câu từ ngân hàng câu hỏi + dọn tham chiếu chết">
                     <i class="fas fa-sync"></i> Sync số câu

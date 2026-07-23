@@ -493,6 +493,7 @@ function applyTestFilters() {
             document.querySelector('#tests-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
     });
+    refreshBulkPublishBtn();
 }
 
 async function loadTests() {
@@ -2217,6 +2218,36 @@ async function _bulkPublishTests(shouldPublish) {
 
 function publishAllDrafts() { return _bulkPublishTests(true); }
 function unpublishAllTests() { return _bulkPublishTests(false); }
+
+/**
+ * Cập nhật nút xuất-bản-hàng-loạt theo trạng thái danh sách. Còn đề Nháp (đã có
+ * câu) thì ưu tiên MỜI xuất bản; hết Nháp mà còn đề đã đăng thì chuyển sang gỡ.
+ * Trả trạng thái mong muốn để click xử lý mà không phải đoán lại.
+ */
+function refreshBulkPublishBtn() {
+    const btn = document.getElementById('btn-toggle-publish-all');
+    if (!btn) return;
+    const hasDraft = (allTests || []).some(t => !t.isPublished && (t.totalQuestions || 0) > 0);
+    const hasPublished = (allTests || []).some(t => t.isPublished);
+
+    // Còn Nháp → xuất bản. Không còn Nháp nhưng có đề đã đăng → gỡ.
+    const publishMode = hasDraft || !hasPublished;
+    btn.dataset.publish = publishMode ? '1' : '0';
+    btn.className = `btn btn-sm ${publishMode ? 'btn-success' : 'btn-warning'}`;
+    btn.innerHTML = publishMode
+        ? '<i class="fas fa-upload"></i> Xuất bản tất cả'
+        : '<i class="fas fa-eye-slash"></i> Ngưng xuất bản tất cả';
+    btn.title = publishMode
+        ? 'Xuất bản mọi đề đang Nháp (đã có câu hỏi)'
+        : 'Gỡ xuất bản mọi đề đang hiển thị';
+    // Không còn gì để thao tác (chưa có đề nào) → mờ đi.
+    btn.disabled = !hasDraft && !hasPublished;
+}
+
+function toggleBulkPublish() {
+    const btn = document.getElementById('btn-toggle-publish-all');
+    return _bulkPublishTests(btn?.dataset.publish !== '0');
+}
 
 async function deleteTest(testId) {
     if (!confirm('Are you sure you want to delete this test? All associated attempts will remain but the test will be unavailable.')) return;
