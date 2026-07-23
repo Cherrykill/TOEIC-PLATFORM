@@ -83,10 +83,11 @@ export function buildToeicReadingPlan(totalSeconds, questions) {
     const reading = questions.filter(q => isAutoTimePart(q.part));
     if (!reading.length) return null;
 
-    // Phần Nghe ăn trước theo thời gian đặt tay của chính nó.
+    // Phần Nghe KHÔNG bị đếm ngược (audio dẫn nhịp), nhưng vẫn phải chừa cho nó
+    // một khoảng ước lượng theo CHUẨN ETS để không dồn hết tổng cho phần Đọc.
     const listeningTime = questions
         .filter(q => !isAutoTimePart(q.part))
-        .reduce((sum, q) => sum + getToeicPartTimeDefaultOrSet(q.part), 0);
+        .reduce((sum, q) => sum + getToeicPartTimeDefault(q.part), 0);
 
     const transition = getToeicTransition();
     const usable = total - listeningTime - transition * reading.length;
@@ -100,23 +101,15 @@ export function buildToeicReadingPlan(totalSeconds, questions) {
     return plan;
 }
 
-/** Thời gian đặt tay của một Part Nghe (hoặc mặc định của nó). */
-function getToeicPartTimeDefaultOrSet(part) {
-    const v = GameState.state?.settings?.toeicPartTime?.[part];
-    return (typeof v === 'number' && v > 0) ? v : getToeicPartTimeDefault(part);
-}
-
 /**
- * Số giây cho MỘT câu của một Part.
+ * Số giây cho MỘT câu của một Part ĐỌC (5·6·7). Part Nghe không dùng hàm này —
+ * nhịp của nó do audio quyết định, không đếm ngược.
  * @param {number} part
  * @param {object} [plan] bảng giờ Part Đọc do buildToeicReadingPlan dựng
  */
 export function getToeicPartTime(part, plan) {
-    if (isAutoTimePart(part)) {
-        // Không dựng được bảng (thiếu dữ liệu đề) → rơi về mặc định.
-        return plan?.[part] ?? getToeicPartTimeDefault(part);
-    }
-    return getToeicPartTimeDefaultOrSet(part);
+    // Không dựng được bảng (thiếu dữ liệu) → rơi về mặc định chuẩn.
+    return plan?.[part] ?? getToeicPartTimeDefault(part);
 }
 
 /**

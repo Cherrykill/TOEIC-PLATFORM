@@ -319,8 +319,10 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         const [gs, ge] = getGroupRange(qs, attempt.currentIndex);
         const cur = qs[gs];
         if (!cur) { setScreenLeft(null); return; }
+        // Part 1-4 (Nghe): audio dẫn nhịp, KHÔNG đếm ngược câu (tránh cắt audio).
+        // Chỉ Part 5-7 (Đọc) mới chia giờ từ tổng thời gian đã chọn.
+        if (cur.part <= 4) { setScreenLeft(null); return; }
         const atLast = ge >= qs.length - 1;
-        // Part 5/6/7 lấy giờ từ bảng chia theo chính đề này.
         let left = getToeicScreenTime(cur.part, ge - gs + 1, readingPlan);
         setScreenTotal(left);
         setScreenLeft(left);

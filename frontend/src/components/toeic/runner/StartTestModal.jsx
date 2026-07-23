@@ -1,31 +1,32 @@
 import { useState } from 'react';
-import { Notification } from '@ui/Toaster.jsx';
 import { toeicEnergyCost } from '../toeicCost.js';
+import { GameState } from '@game/state.js';
 
+/**
+ * Popup chọn thời gian làm bài — 3 loại, hệ thống chia tổng đó ra mỗi câu Đọc:
+ *   1. ⚙️ Tùy chỉnh  — thời gian tổng bạn đặt trong Cài đặt (toeicCustomTotalMin)
+ *   2. ⭐ Đề xuất    — thời gian admin gợi ý cho đề (test.totalTime)
+ *   3. ∞ Không giới hạn — tắt mọi đồng hồ từng câu
+ */
 export default function StartTestModal({ test, onConfirm, onCancel }) {
-    const [selected, setSelected] = useState('default');
-    // Số phút mặc định THẬT của đề (admin đặt), không viết cứng "120".
-    const defaultMinutes = Math.round((test?.totalTime || 7200) / 60);
-    const [customValue, setCustomValue] = useState(defaultMinutes);
+    const [selected, setSelected] = useState('suggested');
+
+    const suggestedMin = Math.round((test?.totalTime || 7200) / 60);
+    const customMin = Math.max(1, parseInt(GameState.state?.settings?.toeicCustomTotalMin) || 60);
 
     const handleStart = () => {
-        let time = selected;
-        if (selected === 'custom') {
-            const v = parseInt(customValue);
-            if (isNaN(v) || v < 1 || v > 600) {
-                Notification.error('Vui lòng nhập thời gian từ 1 đến 600 phút');
-                return;
-            }
-            time = String(v);
-        }
-
         let customTimeLimit;
-        if (time === 'unlimited') customTimeLimit = null;
-        else if (time === 'default') customTimeLimit = test?.totalTime;
-        else customTimeLimit = parseInt(time) * 60;
-
+        if (selected === 'unlimited') customTimeLimit = null;
+        else if (selected === 'custom') customTimeLimit = customMin * 60;
+        else customTimeLimit = test?.totalTime; // 'suggested'
         onConfirm(customTimeLimit);
     };
+
+    const OPTIONS = [
+        { key: 'suggested', icon: '⭐', label: `Đề xuất (${suggestedMin} phút)`, desc: 'Thời gian admin gợi ý cho đề này' },
+        { key: 'custom', icon: '⚙️', label: `Tùy chỉnh (${customMin} phút)`, desc: 'Thời gian tổng bạn đặt trong Cài đặt → Luyện tập' },
+        { key: 'unlimited', icon: '♾️', label: 'Không giới hạn', desc: 'Không đồng hồ nào cả — thong thả làm bài' },
+    ];
 
     return (
         <div id="modal-container" className="active">
@@ -39,7 +40,7 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
                 </div>
                 <div className="modal-body">
                     <div style={{ padding: 20 }}>
-                        <p style={{ marginBottom: 20, color: 'var(--text-secondary)' }}>
+                        <p style={{ marginBottom: 18, color: 'var(--text-secondary)' }}>
                             Bài thi: <strong>{test?.testName || 'TOEIC Test'}</strong><br />
                             Số câu hỏi: <strong>{test?.totalQuestions || 200}</strong> câu<br />
                             Chi phí: <strong style={{ color: 'var(--warning, #f59e0b)' }}>
@@ -47,65 +48,26 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
                             </strong>
                         </p>
 
-                        <div style={{ marginBottom: 15 }}>
-                            <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>
-                                <i className="fas fa-clock"></i> Chọn thời gian:
-                            </label>
-                            <select
-                                value={selected}
-                                onChange={e => setSelected(e.target.value)}
-                                style={{
-                                    width: '100%', padding: 12, border: '2px solid var(--border-color)',
-                                    borderRadius: 8, fontSize: 16, background: 'var(--bg-secondary)',
-                                    color: 'var(--text-primary)', cursor: 'pointer',
-                                }}
-                            >
-                                <option value="default">⭐ Mặc định ({defaultMinutes} phút)</option>
-                                <optgroup label="⚡ Luyện nhanh">
-                                    {[3, 5, 10, 15, 20, 25, 30].map(n => <option key={n} value={n}>{n} phút</option>)}
-                                </optgroup>
-                                <optgroup label="📚 Luyện trung bình">
-                                    {[40, 45, 50, 60, 75, 90].map(n => <option key={n} value={n}>{n} phút</option>)}
-                                </optgroup>
-                                <optgroup label="🎯 Thi thật TOEIC">
-                                    <option value="45">45 phút (Listening)</option>
-                                    <option value="75">75 phút (Reading)</option>
-                                    <option value="120">120 phút (Full Test)</option>
-                                </optgroup>
-                                <optgroup label="🔥 Luyện dài hạn">
-                                    {[135, 150, 180, 210, 240, 300].map(n => <option key={n} value={n}>{n} phút</option>)}
-                                </optgroup>
-                                <optgroup label="♾️ Tùy chỉnh">
-                                    <option value="custom">⚙️ Tùy chỉnh thời gian...</option>
-                                    <option value="unlimited">∞ Không giới hạn thời gian</option>
-                                </optgroup>
-                            </select>
+                        <div className="toeic-time-options">
+                            {OPTIONS.map(o => (
+                                <button
+                                    key={o.key}
+                                    className={`toeic-time-option${selected === o.key ? ' active' : ''}`}
+                                    onClick={() => setSelected(o.key)}
+                                >
+                                    <span className="toeic-time-option-icon">{o.icon}</span>
+                                    <span className="toeic-time-option-text">
+                                        <b>{o.label}</b>
+                                        <small>{o.desc}</small>
+                                    </span>
+                                    {selected === o.key && <i className="fas fa-check-circle toeic-time-option-check"></i>}
+                                </button>
+                            ))}
                         </div>
 
-                        {selected === 'custom' && (
-                            <div style={{ marginBottom: 15 }}>
-                                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>
-                                    <i className="fas fa-edit"></i> Nhập thời gian tùy chỉnh (phút):
-                                </label>
-                                <input
-                                    type="number" min="1" max="600"
-                                    value={customValue}
-                                    onChange={e => setCustomValue(e.target.value)}
-                                    style={{
-                                        width: '100%', padding: 12, border: '2px solid var(--border-color)',
-                                        borderRadius: 8, fontSize: 16, background: 'var(--bg-secondary)',
-                                        color: 'var(--text-primary)',
-                                    }}
-                                    placeholder="Nhập số phút (1-600)"
-                                />
-                                <p style={{ fontSize: '0.85em', color: 'var(--text-tertiary)', marginTop: 5 }}>
-                                    Tối thiểu 1 phút, tối đa 600 phút (10 giờ)
-                                </p>
-                            </div>
-                        )}
-
-                        <p style={{ fontSize: '0.9em', color: 'var(--text-tertiary)', marginTop: 15 }}>
-                            <i className="fas fa-info-circle"></i> Chọn "Không giới hạn" nếu bạn muốn làm bài không giới hạn thời gian
+                        <p style={{ fontSize: '0.82em', color: 'var(--text-tertiary)', marginTop: 14, marginBottom: 0 }}>
+                            <i className="fas fa-info-circle"></i> Part 5·6·7 (Đọc) chia đều tổng thời gian này ra mỗi câu.
+                            Part Nghe do audio dẫn nhịp. Đổi mức "Tùy chỉnh" trong Cài đặt → Luyện tập.
                         </p>
                     </div>
                 </div>
