@@ -619,6 +619,10 @@ const googleLogin = async (req, res, next) => {
                 passwordHash: randomPassword,
                 username,
                 googleId,
+                // Tên hiển thị lấy thẳng từ Google (payload.name) — có sẵn, khỏi bắt
+                // user nhập lại. Ảnh Google gắn ở dưới. locale Google không lưu vì
+                // app không có gì dùng tới (UI tiếng Việt, ngôn ngữ học chọn riêng).
+                displayName: (payload.name || '').trim(),
             });
             user = created.user;
         }
@@ -626,12 +630,21 @@ const googleLogin = async (req, res, next) => {
         user.lastLoginAt = Date.now();
         await user.save();
 
-        // Lấy avatar Google làm mặc định khi user chưa có ảnh thật (ảnh ngoài, không tự host).
-        if (payload.picture) {
+        // Điền tên hiển thị + avatar từ Google khi user CHƯA có (không đè cái tự đặt).
+        if (payload.name || payload.picture) {
             const profile = await UserProfile.findOne({ userId: user._id });
-            if (profile && !/^(https?:|\/|data:)/.test(profile.avatar || '')) {
-                profile.avatar = payload.picture;
-                await profile.save();
+            if (profile) {
+                let dirty = false;
+                if (payload.name && !profile.displayName) {
+                    profile.displayName = payload.name.trim();
+                    dirty = true;
+                }
+                // Avatar Google (URL ngoài) chỉ dùng khi avatar hiện là chữ cái mặc định.
+                if (payload.picture && !/^(https?:|\/|data:)/.test(profile.avatar || '')) {
+                    profile.avatar = payload.picture;
+                    dirty = true;
+                }
+                if (dirty) await profile.save();
             }
         }
 

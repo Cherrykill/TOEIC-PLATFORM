@@ -180,7 +180,8 @@ async function buildFullState(userId) {
  * @returns {{ user, profile, stats }}
  */
 async function createUserWithDependents(opts) {
-    const { email, passwordHash, username, role = 'user', skipPasswordHash = false, googleId } = opts;
+    const { email, passwordHash, username, role = 'user', skipPasswordHash = false,
+        googleId, displayName } = opts;
 
     const user = new User({ email, password: passwordHash, role, ...(googleId ? { googleId } : {}) });
     if (skipPasswordHash) user.$skipPasswordHash = true;
@@ -190,6 +191,8 @@ async function createUserWithDependents(opts) {
         UserProfile.create({
             userId: user._id,
             username,
+            // Tên hiển thị lấy từ Google (đăng ký thường thì trống, user tự đặt sau).
+            displayName: displayName || '',
             avatar: username.charAt(0).toUpperCase(),
         }),
         UserStats.create({ userId: user._id }),
