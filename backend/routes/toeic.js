@@ -59,6 +59,7 @@ const {
     getAnalyticsOverview,
     getScoreProgress,
     getPartAnalysis,
+    getSpeedAnalysis,
 } = require('../controllers/toeicAnalyticsController');
 
 // Admin practice-history / users-list (split out of toeicController, P4)
@@ -342,6 +343,7 @@ router.get('/analytics/progress', getScoreProgress);
  *         description: Accuracy từng Part
  */
 router.get('/analytics/parts', getPartAnalysis);
+router.get('/analytics/speed', getSpeedAnalysis);
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 

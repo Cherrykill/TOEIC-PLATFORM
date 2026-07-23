@@ -191,5 +191,15 @@ export const ToeicAPI = {
             console.error('Error fetching part analysis:', error);
             throw error;
         }
+    },
+
+    /** Phân tích tốc độ phản hồi mỗi câu (giây/câu theo Part + đoán bừa). */
+    async getSpeedAnalysis() {
+        try {
+            return await Http.get(`${this.baseUrl}/analytics/speed`);
+        } catch (error) {
+            console.error('Error fetching speed analysis:', error);
+            throw error;
+        }
     }
 };

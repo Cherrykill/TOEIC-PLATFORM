@@ -2244,3 +2244,61 @@
 }
 
 .toeic-lightbox-close:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* ===================================================================
+   PHÂN TÍCH TỐC ĐỘ PHẢN HỒI (SpeedSection)
+   Thanh ngang giây/câu theo Part + vạch nhịp chuẩn TOEIC + cờ cảnh báo.
+   =================================================================== */
+.speed-analysis { display: flex; flex-direction: column; gap: 14px; }
+.speed-bars { display: flex; flex-direction: column; gap: 10px; }
+
+.speed-row { display: grid; grid-template-columns: 64px 1fr 46px; align-items: center; gap: 10px; }
+.speed-part { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); }
+
+.speed-track {
+  position: relative;
+  height: 16px;
+  background: var(--bg-tertiary, rgba(148,163,184,.15));
+  border-radius: 8px;
+  overflow: hidden;
+}
+.speed-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 8px;
+  transition: width 0.4s ease;
+}
+.speed-fill.over { background: #f59e0b; } /* chậm hơn nhịp chuẩn → cam */
+
+/* Vạch nhịp chuẩn — nằm đè lên track, không bị overflow cắt */
+.speed-track { overflow: visible; }
+.speed-target-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--text-primary);
+  opacity: 0.55;
+}
+
+.speed-val { font-size: 0.85rem; font-weight: 700; text-align: right; color: var(--primary-color); }
+.speed-val.over { color: #f59e0b; }
+
+.speed-legend { display: flex; gap: 16px; margin: 2px 0 0; font-size: 0.78rem; color: var(--text-secondary); }
+.speed-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+
+.speed-flags { display: flex; flex-direction: column; gap: 8px; }
+.speed-flag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+.speed-flag i { flex-shrink: 0; font-size: 1rem; }
+.speed-flag.warn { background: rgba(245,158,11,.12); color: #b45309; }
+.speed-flag.info { background: rgba(59,130,246,.12); color: #1d4ed8; }
+[data-theme="dark"] .speed-flag.warn { color: #fcd34d; }
+[data-theme="dark"] .speed-flag.info { color: #93c5fd; }

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { ToeicAPI } from '@api/toeic.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Quest } from '@components/quest/quest.js';
@@ -23,6 +23,9 @@ export function useToeicAttempt() {
     const [state, setState] = useState(initialState);
     const [pendingTransition, setPendingTransition] = useState(null); // { fromPart, toPart, nextIndex }
     const startTimeRef = useRef(null);
+    // Mốc bắt đầu MÀN hiện tại — reset mỗi khi đổi câu/nhóm, để timeSpent là
+    // thời gian phản hồi THẬT của câu đó chứ không phải cộng dồn từ đầu bài.
+    const questionStartRef = useRef(Date.now());
     const shownTransitionsRef = useRef(new Set());
 
     const reset = useCallback(() => {
@@ -88,6 +91,13 @@ export function useToeicAttempt() {
         });
     }, []);
 
+    // Đổi câu/nhóm → khởi động lại đồng hồ phản hồi. Chỉ câu đầu tiên của mỗi
+    // màn nhóm được đo từ lúc vào màn; các câu sau đo từ cùng mốc đó (chấp nhận
+    // được — không thể tách khi nhiều câu hiện cùng lúc).
+    useEffect(() => {
+        questionStartRef.current = Date.now();
+    }, [state.currentIndex]);
+
     const submitAnswer = useCallback(async (answer) => {
         let isPartTransition = false;
         let transitionInfo = null;
@@ -119,7 +129,7 @@ export function useToeicAttempt() {
                 await ToeicAPI.submitAnswer(state.attemptId, {
                     questionId,
                     userAnswer: answer,
-                    timeSpent: Date.now() - (startTimeRef.current || Date.now()),
+                    timeSpent: Date.now() - (questionStartRef.current || Date.now()),
                 });
             }
         } catch (err) {
@@ -142,7 +152,7 @@ export function useToeicAttempt() {
                 await ToeicAPI.submitAnswer(state.attemptId, {
                     questionId,
                     userAnswer: answer,
-                    timeSpent: Date.now() - (startTimeRef.current || Date.now()),
+                    timeSpent: Date.now() - (questionStartRef.current || Date.now()),
                 });
             }
         } catch (err) {
