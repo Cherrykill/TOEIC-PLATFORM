@@ -2196,10 +2196,10 @@
 
 .toeic-lightbox-img {
   /* Ảnh scan đề là ảnh dọc HẸP nên bị bó bởi chiều cao, chiếm rất ít bề ngang.
-     Cho phép PHÓNG QUA cỡ gốc: rộng tới 1100px (hoặc gần hết bề ngang màn),
-     chữ mới đủ to để đọc. Cao tự co theo. */
-  width: min(1100px, 96vw);
-  max-width: 96vw;
+     Phóng rộng tới 820px (hoặc 90% bề ngang màn) — đủ to để đọc chữ mà không
+     tràn hết màn hình. Cao tự co theo. */
+  width: min(820px, 90vw);
+  max-width: 90vw;
   height: auto;
   object-fit: contain;
   border-radius: 8px;
