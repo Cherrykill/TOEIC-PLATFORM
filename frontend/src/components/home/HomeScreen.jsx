@@ -1,5 +1,6 @@
 import { Fragment, useState, useEffect, useCallback, useRef } from 'react';
 import { useGame } from '@game/GameContext.jsx';
+import { useAuth } from '@components/auth/AuthContext.jsx';
 import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PracticeManager } from '@components/practice/practiceManager.js';
@@ -18,6 +19,10 @@ const C_EASY = '#10b981, #059669';   // xanh cây
 const C_MED  = '#3b82f6, #2563eb';   // xanh dương
 const C_HARD = '#8b5cf6, #7c3aed';   // tím
 const C_MAX  = '#ef4444, #dc2626';   // đỏ
+
+// Chế độ khách (chưa đăng nhập) được dùng thử — 3 chế độ cơ bản nhất. Bấm chế
+// độ khác thì mời đăng nhập. Đủ để nếm trải nghiệm mà vẫn đẩy tạo tài khoản.
+const GUEST_FREE_MODES = new Set(['flashcard', 'multiple-choice', 'matching']);
 
 const gameModes = [
     { group: 'Học & Nhận diện từ', icon: 'fa-book-open', modes: [
@@ -139,6 +144,7 @@ function getTimeUntilMidnight() {
 
 export default function HomeScreen({ active }) {
     const { showScreen, streak, syncFromState } = useGame();
+    const { isLoggedIn, setAuthModal } = useAuth();
     const [quests, setQuests] = useState([]);
     const [timer, setTimer] = useState(getTimeUntilMidnight());
     const [weekendTimer, setWeekendTimer] = useState(getTimeUntilWeekend());
@@ -210,6 +216,17 @@ export default function HomeScreen({ active }) {
 
     const handleModeClick = (mode) => {
         const modeConfig = gameModes.flatMap(g => g.modes).find(m => m.mode === mode);
+        // Khách chỉ dùng thử vài chế độ cơ bản; chế độ khác → mời đăng nhập.
+        if (!isLoggedIn && !GUEST_FREE_MODES.has(mode)) {
+            Notification.show({
+                type: 'info',
+                title: '🔒 Đăng nhập để mở khoá',
+                message: 'Chế độ này cần đăng nhập. Đăng nhập để chơi đủ 16 chế độ và lưu tiến độ!',
+                duration: 3500,
+            });
+            setAuthModal('login');
+            return;
+        }
         // Khoá theo Level (server cũng chặn — đây là phản hồi tức thì cho người dùng).
         const lv = lockInfo(`mode:${mode}`);
         if (lv.locked) {
@@ -471,11 +488,12 @@ export default function HomeScreen({ active }) {
                                 <i className={`fas ${group.icon}`}></i> {group.group}
                             </div>
                             {group.modes.map(m => {
-                                // 2 loại khoá: theo LEVEL (ưu tiên) và theo cuối tuần.
+                                // 3 loại khoá: khách chưa login, theo LEVEL, theo cuối tuần.
+                                const guestLocked = !isLoggedIn && !GUEST_FREE_MODES.has(m.mode);
                                 const lv = lockInfo(`mode:${m.mode}`);
                                 const levelLocked = lv.locked;
                                 const weekendLocked = m.weekendOnly && !isWeekend();
-                                const locked = levelLocked || weekendLocked;
+                                const locked = guestLocked || levelLocked || weekendLocked;
                                 return (
                                 <div
                                     key={m.mode}
@@ -488,7 +506,11 @@ export default function HomeScreen({ active }) {
                                     </div>
                                     <h3>{m.label}</h3>
                                     <p>{m.desc}</p>
-                                    {levelLocked ? (
+                                    {guestLocked ? (
+                                        <div className="mode-level-badge" title="Đăng nhập để mở khoá">
+                                            <i className="fas fa-lock"></i> Đăng nhập để mở
+                                        </div>
+                                    ) : levelLocked ? (
                                         <div className="mode-level-badge" title={`Cần đạt Level ${lv.requiredLevel}`}>
                                             <i className="fas fa-lock"></i> Mở ở <b>Level {lv.requiredLevel}</b>
                                         </div>
