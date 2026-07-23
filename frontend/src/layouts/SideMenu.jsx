@@ -8,10 +8,10 @@ import { Notification } from '@ui/Toaster.jsx';
 
 // `feature` = key trong FeatureUnlock → khoá theo Level (Hồ sơ/Cài đặt luôn mở).
 const MENU_ITEMS = [
-    { label: 'Luyện tập TOEIC',icon: 'fa-graduation-cap',   screen: 'toeic-screen',        hot: true, feature: 'feature:toeic' },
+    { label: 'Luyện đề test TOEIC',icon: 'fa-graduation-cap', screen: 'toeic-screen',      hot: true, feature: 'feature:toeic' },
     { label: 'Hồ sơ',          icon: 'fa-user',             screen: 'profile-screen' },
     { label: 'Nhiệm vụ',       icon: 'fa-tasks',            screen: 'quest-screen',        badgeKey: 'quest',        feature: 'feature:quest' },
-    { label: 'Bảng xếp hạng',  icon: 'fa-trophy',           screen: 'leaderboard-screen',  badgeKey: 'online',       badgeStyle: 'info', guestOk: true, feature: 'feature:leaderboard' },
+    { label: 'Bảng xếp hạng',  icon: 'fa-trophy',           screen: 'leaderboard-screen',  badgeKey: 'online',       badgeStyle: 'info', feature: 'feature:leaderboard' },
     { label: 'Thành tích',     icon: 'fa-medal',            screen: 'achievements-screen', badgeKey: 'achievement',  feature: 'feature:achievements' },
     { label: 'Thống kê',       icon: 'fa-chart-bar',        screen: 'statistics-screen',   badgeKey: 'statsExport',  badgeStyle: 'dot', feature: 'feature:stats' },
     { label: 'Cửa hàng',       icon: 'fa-shopping-cart',    screen: 'shop-screen',         badgeKey: 'shopDiscount', badgeStyle: 'sale', feature: 'feature:shop' },
