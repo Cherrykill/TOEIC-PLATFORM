@@ -36,6 +36,7 @@ export default function ToeicScreen({ active }) {
     // Bump để remount History/Analytics (chúng tự fetch khi mount) → tải lại dữ liệu.
     const [refreshKey, setRefreshKey] = useState(0);
     const [partFilter, setPartFilter] = useState('all'); // 'all' | 1..7
+    const [sortBy, setSortBy] = useState('default');     // sắp xếp danh sách đề
     const [searchQuery, setSearchQuery] = useState('');  // lọc đề theo tên
     const [searchFocused, setSearchFocused] = useState(false);
 
@@ -221,7 +222,7 @@ export default function ToeicScreen({ active }) {
                             </button>
                         ))}
                     </div>
-                    {/* Bộ lọc theo Part — đặt ngay trên danh sách để dễ hiểu */}
+                    {/* Bộ lọc theo Part + sắp xếp — cùng một hàng, select nằm sát phải */}
                     {PART_FILTER_TABS.includes(activeTab) && (
                         <div className="toeic-part-filters">
                             {PART_FILTERS.map(f => (
@@ -233,12 +234,24 @@ export default function ToeicScreen({ active }) {
                                     {f.label}
                                 </button>
                             ))}
+                            <select
+                                className="toeic-sort-select"
+                                value={sortBy}
+                                onChange={e => setSortBy(e.target.value)}
+                                title="Sắp xếp danh sách đề"
+                            >
+                                <option value="default">Mặc định</option>
+                                <option value="name-asc">Tên A → Z</option>
+                                <option value="name-desc">Tên Z → A</option>
+                                <option value="attempts-desc">Nhiều lượt thi nhất</option>
+                                <option value="attempts-asc">Ít lượt thi nhất</option>
+                            </select>
                         </div>
                     )}
                     <div id="toeic-tab-content">
                         {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} search={searchQuery} onStart={(id) => openStartModal(id, true)} />}
+                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
+                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} search={searchQuery} onStart={(id) => openStartModal(id, true)} />}
                         {activeTab === 'my-history' && <HistoryList key={`history-${refreshKey}`} active={active && activeTab === 'my-history'} partFilter={partFilter} onView={handleViewResults} />}
                         {activeTab === 'analytics'  && <AnalyticsView key={`analytics-${refreshKey}`} active={active && activeTab === 'analytics'} />}
                     </div>

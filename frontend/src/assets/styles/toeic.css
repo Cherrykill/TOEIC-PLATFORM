@@ -44,8 +44,26 @@
 .toeic-part-filters {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-bottom: var(--spacing-lg);
+}
+/* Select sắp xếp: đẩy về sát mép phải, cùng hàng với các nút Part. */
+.toeic-sort-select {
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.toeic-sort-select:hover { border-color: var(--primary-color); }
+/* Màn hẹp: bộ Part xuống dòng, select tự về đầu dòng mới cho gọn. */
+@media (max-width: 560px) {
+  .toeic-sort-select { margin-left: 0; width: 100%; }
 }
 /* Khi đặt trên thanh header (cạnh tiêu đề) thay vì dưới tabs */
 .toeic-part-filters.in-header {
