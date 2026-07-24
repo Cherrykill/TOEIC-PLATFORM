@@ -58,57 +58,67 @@ exports.startAttempt = async (req, res, next) => {
             });
         }
 
-        // ── Thanh toán: VÀNG trước, NĂNG LƯỢNG sau ───────────────────────────
-        // Cả hai đều atomic (điều kiện $gte trong filter) vì `stats` đọc bằng
-        // .lean() nên số dư có thể đã cũ — canUserAccess ở trên chỉ là kiểm tra
-        // sớm để báo lỗi đẹp, KHÔNG được coi là bảo đảm.
-        // Vàng đi trước vì nó là tài nguyên KHÔNG tự hồi: nếu bước sau hỏng thì
-        // hoàn lại vàng dễ và an toàn hơn là hoàn năng lượng.
-        const coinCost = (!test.isFree && test.requiredCoins > 0) ? test.requiredCoins : 0;
-        if (coinCost > 0) {
-            const coinsPaid = await UserStats.findOneAndUpdate(
-                { userId: req.user.id, coins: { $gte: coinCost } },
-                { $inc: { coins: -coinCost } }
-            );
-            if (!coinsPaid) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Không đủ xu! Cần ${coinCost} xu để mở bài thi này.`,
-                    coinsNeeded: coinCost,
-                    currentCoins: stats?.coins ?? 0,
-                });
-            }
-        }
-
-        const energyCost = toeicEnergyCost(test.totalQuestions);
-        const paid = await UserStats.findOneAndUpdate(
-            { userId: req.user.id, energy: { $gte: energyCost } },
-            { $inc: { energy: -energyCost }, $set: { lastEnergyUpdate: new Date() } },
-            { new: true }
-        );
-        if (!paid) {
-            // Thiếu năng lượng → hoàn lại vàng đã trừ, không để user mất trắng.
-            if (coinCost > 0) {
-                await UserStats.updateOne({ userId: req.user.id }, { $inc: { coins: coinCost } });
-            }
-            return res.status(400).json({
-                success: false,
-                message: `Không đủ năng lượng! Cần ${energyCost}⚡ cho bài ${test.totalQuestions} câu.`,
-                energyNeeded: energyCost,
-                currentEnergy: stats?.energy ?? 0,
-            });
-        }
-
-        // Create attempt
-        const attempt = await ToeicAttempt.create({
+        // ĐÃ CÓ BÀI ĐANG LÀM DỞ cho đề này → dùng lại, KHÔNG trừ năng lượng/vàng
+        // lần nữa. Chống double-charge khi client gọi start nhiều lần (remount,
+        // bấm nhanh, StrictMode): trước đây mỗi lần gọi trừ 23⚡ nên vào ra vài
+        // lần là "hết năng lượng" dù ví còn dư.
+        let attempt = await ToeicAttempt.findOne({
             userId: req.user.id,
             testId: test._id,
-            testType: test.testType,
-            testName: test.testName,
-            totalQuestions: test.totalQuestions,
-            fillBlankMode: !!fillBlankMode,
             status: 'in-progress',
-        });
+        }).sort({ createdAt: -1 });
+
+        if (!attempt) {
+            // ── Thanh toán: VÀNG trước, NĂNG LƯỢNG sau ───────────────────────
+            // Cả hai đều atomic (điều kiện $gte trong filter) vì `stats` đọc bằng
+            // .lean() nên số dư có thể đã cũ — canUserAccess ở trên chỉ là kiểm
+            // tra sớm để báo lỗi đẹp, KHÔNG được coi là bảo đảm.
+            // Vàng đi trước vì nó KHÔNG tự hồi: bước sau hỏng thì hoàn vàng an toàn.
+            const coinCost = (!test.isFree && test.requiredCoins > 0) ? test.requiredCoins : 0;
+            if (coinCost > 0) {
+                const coinsPaid = await UserStats.findOneAndUpdate(
+                    { userId: req.user.id, coins: { $gte: coinCost } },
+                    { $inc: { coins: -coinCost } }
+                );
+                if (!coinsPaid) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Không đủ xu! Cần ${coinCost} xu để mở bài thi này.`,
+                        coinsNeeded: coinCost,
+                        currentCoins: stats?.coins ?? 0,
+                    });
+                }
+            }
+
+            const energyCost = toeicEnergyCost(test.totalQuestions);
+            const paid = await UserStats.findOneAndUpdate(
+                { userId: req.user.id, energy: { $gte: energyCost } },
+                { $inc: { energy: -energyCost }, $set: { lastEnergyUpdate: new Date() } },
+                { new: true }
+            );
+            if (!paid) {
+                // Thiếu năng lượng → hoàn lại vàng đã trừ, không để user mất trắng.
+                if (coinCost > 0) {
+                    await UserStats.updateOne({ userId: req.user.id }, { $inc: { coins: coinCost } });
+                }
+                return res.status(400).json({
+                    success: false,
+                    message: `Không đủ năng lượng! Cần ${energyCost}⚡ cho bài ${test.totalQuestions} câu.`,
+                    energyNeeded: energyCost,
+                    currentEnergy: stats?.energy ?? 0,
+                });
+            }
+
+            attempt = await ToeicAttempt.create({
+                userId: req.user.id,
+                testId: test._id,
+                testType: test.testType,
+                testName: test.testName,
+                totalQuestions: test.totalQuestions,
+                fillBlankMode: !!fillBlankMode,
+                status: 'in-progress',
+            });
+        }
 
         // Prepare questions with global numbering
         const questions = [];
