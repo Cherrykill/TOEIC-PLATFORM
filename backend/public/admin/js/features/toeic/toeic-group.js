@@ -247,8 +247,8 @@ function makeGroupQuestionRow(data = null) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-bottom:8px">
             ${opt('A')}${opt('B')}${opt('C')}${opt('D')}
         </div>
-        <textarea class="gq-exp" rows="2" placeholder='Giải thích (tùy chọn) — có thể dán JSON {"A":"...","B":"..."}'
-            style="width:100%;padding:8px;border:1px solid var(--border-color,#e0e0e0);border-radius:6px;font-family:inherit">${_gqAttr(expVal)}</textarea>`;
+        <textarea class="gq-exp" rows="5" placeholder='Giải thích (tùy chọn) — có thể dán JSON {"A":"...","B":"..."}'
+            style="width:100%;padding:8px;border:1px solid var(--border-color,#e0e0e0);border-radius:6px;font-family:inherit;min-height:110px;resize:vertical">${_gqAttr(expVal)}</textarea>`;
     wrap.querySelector('.gq-del').onclick = () => {
         const container = document.getElementById('group-questions-container');
         // Tạo mới thì nhóm phải từ 2 câu; đang SỬA thì cho về 1 (màn cũ có thể 1 câu).
