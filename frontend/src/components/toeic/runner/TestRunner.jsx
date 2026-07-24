@@ -73,6 +73,28 @@ export default function TestRunner({ config, onExit, onShowResults }) {
 
     const audio = useToeicAudio({ onFinished: handleAudioFinished });
 
+    // Ẩn header khi cuộn XUỐNG, hiện lại khi cuộn LÊN (để đọc câu dài rộng hơn).
+    const [headerHidden, setHeaderHidden] = useState(false);
+    useEffect(() => {
+        let lastY = window.scrollY;
+        let ticking = false;
+        const apply = () => {
+            const y = window.scrollY;
+            const dy = y - lastY;
+            if (Math.abs(dy) >= 6) {           // bỏ rung nhỏ
+                if (dy > 0 && y > 80) setHeaderHidden(true);   // xuống + đã qua khỏi đầu → ẩn
+                else if (dy < 0) setHeaderHidden(false);        // lên → hiện
+                lastY = y;
+            }
+            ticking = false;
+        };
+        const onScroll = () => {
+            if (!ticking) { ticking = true; requestAnimationFrame(apply); }
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     // Header đề thi dính (sticky) NGAY DƯỚI hai thanh chung của app (.top-nav +
     // .status-bar) — cả hai cũng sticky. Để top:0 thì nó trượt xuống dưới hai
     // thanh kia và biến mất đúng lúc cuộn xem ảnh. Đo chiều cao thật thay vì
@@ -388,6 +410,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                 testName={attempt.test?.testName || ''}
                 timer={timer}
                 nav={navProps}
+                hidden={headerHidden}
                 pace={{
                     left: screenLeft,
                     total: screenTotal,

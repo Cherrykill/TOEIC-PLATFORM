@@ -2,7 +2,7 @@ import Timer from './Timer.jsx';
 import QuestionNav from './QuestionNav.jsx';
 
 export default function RunnerHeader({
-    testName, timer, isMarked, nav, pace,
+    testName, timer, isMarked, nav, pace, hidden = false,
     onBack, onToggleNav, onToggleMark, onPause, onSubmit,
 }) {
     // Thanh nhịp của câu hiện tại dán vào MÉP DƯỚI header: cùng khối với đồng
@@ -12,7 +12,7 @@ export default function RunnerHeader({
     const pct = showPace ? Math.max(0, Math.min(100, (pace.left / pace.total) * 100)) : 0;
 
     return (
-        <div className="toeic-test-header-bar">
+        <div className={`toeic-test-header-bar${hidden ? ' is-hidden' : ''}`}>
             {/* Trái: quay lại + tên đề */}
             <div className="toeic-header-left">
                 <button className="toeic-back-btn" title="Quay lại" onClick={onBack}>

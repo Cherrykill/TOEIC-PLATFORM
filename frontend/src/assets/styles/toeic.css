@@ -424,6 +424,13 @@
   flex-wrap: wrap;
   gap: var(--spacing-md);
   box-shadow: var(--shadow-small);
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+/* Cuộn xuống → trượt lên khỏi tầm nhìn (chui dưới hai thanh app che nó). */
+.toeic-test-header-bar.is-hidden {
+  transform: translateY(-140%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* 3 vùng header: trái (back + tên) · giữa (nav câu + đồng hồ) · phải (nút) */
