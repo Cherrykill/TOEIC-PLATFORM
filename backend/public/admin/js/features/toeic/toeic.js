@@ -48,6 +48,7 @@ async function loadQuestions(filterPart = '', _page = 1) {
             window.searchFiltersInitialized = true;
         }
 
+        populateSourceFilter();
         applyFiltersAndSort();
 
     } catch (error) {
@@ -201,11 +202,31 @@ function restoreHighlights() {
     }
 }
 
+// Đổ danh sách nguồn (source) vào select lọc — lấy distinct từ dữ liệu đã tải.
+function populateSourceFilter() {
+    const sel = document.getElementById('filter-source');
+    if (!sel) return;
+    const sources = [...new Set((allQuestions || []).map(q => q.source).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b));
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Tất cả nguồn</option>'
+        + sources.map(s => `<option value="${s}">${s}</option>`).join('');
+    if (sources.includes(cur)) sel.value = cur; // giữ lựa chọn sau khi tải lại
+}
+
 function initSearchAndFilters() {
     const searchInput = document.getElementById('question-search');
     const filterPart = document.getElementById('filter-part');
+    const filterSource = document.getElementById('filter-source');
     const sortBy = document.getElementById('sort-by');
     const clearFiltersBtn = document.getElementById('clear-filters');
+
+    if (filterSource) {
+        filterSource.addEventListener('change', (e) => {
+            searchFilters.source = e.target.value;
+            applyFiltersAndSort();
+        });
+    }
 
     let searchTimeout;
     if (searchInput) {
@@ -234,9 +255,10 @@ function initSearchAndFilters() {
 
     if (clearFiltersBtn) {
         clearFiltersBtn.addEventListener('click', () => {
-            searchFilters = { searchText: '', part: '', sortBy: 'newest' };
+            searchFilters = { searchText: '', part: '', source: '', sortBy: 'newest' };
             if (searchInput) searchInput.value = '';
             if (filterPart) filterPart.value = '';
+            if (filterSource) filterSource.value = '';
             if (sortBy) sortBy.value = 'newest';
             applyFiltersAndSort();
         });
@@ -266,6 +288,10 @@ function applyFiltersAndSort() {
 
     if (searchFilters.part) {
         filtered = filtered.filter(q => q.part === parseInt(searchFilters.part));
+    }
+
+    if (searchFilters.source) {
+        filtered = filtered.filter(q => q.source === searchFilters.source);
     }
 
     switch (searchFilters.sortBy) {
@@ -1605,9 +1631,10 @@ async function handleQuestionSubmit(e) {
         const isEditMode = !!questionId;
 
         if (isEditMode) {
-            alert('✅ Question updated successfully!');
+            showToast('Đã lưu thay đổi câu hỏi', 'success');
             closeQuestionModal();
-            loadQuestions();
+            // Sửa xong nhảy thẳng về bảng Câu hỏi TOEIC (đỡ tự chuyển tay).
+            document.querySelector('.sidebar-link[data-main-tab="toeic-questions"]')?.click();
         } else {
             alert('✅ Question created successfully! Form is ready for next question.');
 

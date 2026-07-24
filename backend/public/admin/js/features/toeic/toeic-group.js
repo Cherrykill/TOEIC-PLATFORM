@@ -394,9 +394,15 @@ async function submitGroup() {
         const data = await res.json();
         if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
         showToast(data.message || (isEdit ? 'Đã lưu thay đổi' : 'Đã tạo nhóm'), 'success');
-        // Sửa xong thì ở lại màn vừa sửa; tạo xong thì dọn để nhập nhóm kế tiếp.
-        if (!isEdit) closeGroupModal();
-        if (typeof loadQuestions === 'function') loadQuestions();
+        if (isEdit) {
+            // Sửa xong nhảy thẳng về bảng Câu hỏi TOEIC (tab đó tự loadQuestions).
+            resetGroupBuilder();
+            document.querySelector('.sidebar-link[data-main-tab="toeic-questions"]')?.click();
+        } else {
+            // Tạo xong dọn form để nhập nhóm kế tiếp, tải lại bảng ngầm.
+            closeGroupModal();
+            if (typeof loadQuestions === 'function') loadQuestions();
+        }
     } catch (e) {
         alert((isEdit ? 'Lưu nhóm lỗi: ' : 'Tạo nhóm lỗi: ') + e.message);
     } finally {

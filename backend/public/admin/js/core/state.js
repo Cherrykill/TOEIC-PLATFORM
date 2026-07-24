@@ -72,6 +72,7 @@ let previouslyViewedQuestionIds = new Set(); // Previously viewed questions
 let searchFilters = {
     searchText: '',
     part: '',
+    source: '',
     sortBy: 'newest'
 };
 
