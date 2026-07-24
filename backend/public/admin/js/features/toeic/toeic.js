@@ -117,8 +117,12 @@ function renderQuestionsTable() {
         const numLabel = nums.length
             ? (nums.length === 1 ? String(nums[0]) : `${Math.min(...nums)}–${Math.max(...nums)}`)
             : '-';
+        // "Mới thêm" = tạo trong 2 giờ qua → hàng có viền + nhãn để dễ tìm câu vừa nhập.
+        const isNew = q.createdAt && (Date.now() - new Date(q.createdAt).getTime()) < 2 * 3600 * 1000;
+        const newBadge = isNew ? '<br><small class="q-new-badge">MỚI</small>' : '';
         const numDisplay = `<span style="font-weight:700;color:#e11d48">${numLabel}</span>` +
-            (subs.length > 1 ? `<br><small style="color:var(--text-secondary)">${subs.length} câu</small>` : '');
+            (subs.length > 1 ? `<br><small style="color:var(--text-secondary)">${subs.length} câu</small>` : '')
+            + newBadge;
 
         // Cột nội dung: câu đơn hiện đề bài; màn nhiều câu liệt kê số câu.
         const questionTextFull = subs.length > 1
@@ -134,7 +138,7 @@ function renderQuestionsTable() {
             : '<span style="color: var(--text-secondary)">-</span>';
 
         return `
-            <tr>
+            <tr class="${isNew ? 'q-row-new' : ''}">
                 <td><span class="part-badge">Part ${q.part}</span></td>
                 <td style="text-align: center;">${numDisplay}</td>
                 <td title="${questionTextFull.replace(/"/g, '&quot;')}">${truncate(questionTextFull, 50)}</td>

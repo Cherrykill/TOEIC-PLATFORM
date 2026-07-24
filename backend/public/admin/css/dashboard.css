@@ -1351,6 +1351,25 @@ table tbody tr:hover td { background: var(--hover-bg); }
   border-left: 4px solid #f59e0b !important;
 }
 
+/* Câu MỚI THÊM (trong 2h) — viền + nền xanh lá nhạt để dễ tìm câu vừa nhập */
+#questions-table tr.q-row-new td {
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+#questions-table tr.q-row-new td:first-child {
+  box-shadow: inset 4px 0 0 #10b981;
+}
+.q-new-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: #10b981;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
 .row-previously-viewed {
   background: linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%) !important;
   border-left: 4px solid #3b82f6 !important;
