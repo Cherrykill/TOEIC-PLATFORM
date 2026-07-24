@@ -29,13 +29,17 @@ function pickVoice(part) {
  * Supports: real audio (URL) and TTS (text).
  * Tracks `finished` state and notifies via onFinished callback.
  */
-export function useToeicAudio({ onFinished } = {}) {
+export function useToeicAudio({ onFinished, onProgress } = {}) {
     const [playing, setPlaying] = useState(false);
     const [finished, setFinished] = useState(false);
     const audioRef = useRef(null);
     const speechRef = useRef(null);
     const onFinishedRef = useRef(onFinished);
     onFinishedRef.current = onFinished;
+    // onProgress({ duration, currentTime }) — để vẽ thanh nhịp cho Part Nghe theo
+    // độ dài file audio. Chỉ có với audio THẬT (TTS không biết trước độ dài).
+    const onProgressRef = useRef(onProgress);
+    onProgressRef.current = onProgress;
 
     const stop = useCallback(() => {
         if (speechRef.current) {
@@ -57,6 +61,8 @@ export function useToeicAudio({ onFinished } = {}) {
             audio.preload = 'auto';
             audio.src = url;
             audio.onplay = () => setPlaying(true);
+            audio.onloadedmetadata = () => onProgressRef.current?.({ duration: audio.duration, currentTime: 0 });
+            audio.ontimeupdate = () => onProgressRef.current?.({ duration: audio.duration, currentTime: audio.currentTime });
             audio.onended = () => {
                 setPlaying(false);
                 setFinished(true);

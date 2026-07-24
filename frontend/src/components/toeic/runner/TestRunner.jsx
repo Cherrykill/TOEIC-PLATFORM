@@ -77,7 +77,25 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         }, isGroup ? 2000 : 600);
     }, [attempt]);
 
-    const audio = useToeicAudio({ onFinished: handleAudioFinished });
+    // Thanh nhịp: giây còn lại + tổng của MÀN hiện tại.
+    //  - Part Đọc 5·6·7: chia từ tổng thời gian đã chọn (effect bên dưới).
+    //  - Part Nghe 1·4: theo ĐỘ DÀI FILE AUDIO (handleAudioProgress).
+    const [screenLeft, setScreenLeft] = useState(null);
+    const [screenTotal, setScreenTotal] = useState(0);
+
+    // Vẽ thanh nhịp Part Nghe theo tiến trình audio. Chỉ khi bật đồng hồ từng câu
+    // và có giới hạn thời gian; audio thật mới biết độ dài (TTS bỏ qua).
+    const handleAudioProgress = useCallback(({ duration, currentTime }) => {
+        if (!isToeicQuestionTimerOn()) return;
+        const q = attempt.currentQuestion;
+        if (!q || q.part > 4) return;
+        if (attempt.customTimeLimit == null) return; // "không giới hạn" → không thanh
+        if (!Number.isFinite(duration) || duration <= 0) return;
+        setScreenTotal(Math.ceil(duration));
+        setScreenLeft(Math.max(0, Math.ceil(duration - currentTime)));
+    }, [attempt]);
+
+    const audio = useToeicAudio({ onFinished: handleAudioFinished, onProgress: handleAudioProgress });
 
     // Ẩn header khi cuộn XUỐNG, hiện lại khi cuộn LÊN (để đọc câu dài rộng hơn).
     const [headerHidden, setHeaderHidden] = useState(false);
@@ -322,10 +340,6 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     }, [attempt]);
 
     // ── Đếm ngược THEO MÀN (Part nhóm = số câu × thời gian mỗi câu) ──────────
-    // Chạy song song đồng hồ tổng; hết giờ màn nào thì tự sang màn kế.
-    const [screenLeft, setScreenLeft] = useState(null);
-    // Ngân sách của màn hiện tại — cần để vẽ thanh theo tỉ lệ còn lại.
-    const [screenTotal, setScreenTotal] = useState(0);
 
     // NGUỒN THỜI GIAN DUY NHẤT: con số người dùng chọn ở popup (customTimeLimit).
     // null = "không giới hạn". Bảng nhịp giây/câu chia theo CHÍNH nó, không phải
