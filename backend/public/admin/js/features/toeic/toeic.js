@@ -1335,20 +1335,57 @@ function validateImportedQuestion(set, i) {
     return errs;
 }
 
+/**
+ * Tự vá dấu " lọt giữa chuỗi mà AI hay quên escape.
+ * VD: "...she says, "it's cold"?" → "...she says, \"it's cold\"?"
+ * Cách phân biệt: một dấu " ĐANG TRONG chuỗi là ĐÓNG chuỗi nếu ký tự kế tiếp
+ * (bỏ khoảng trắng) là , } ] : hoặc hết chuỗi; ngược lại là dấu lọt → escape.
+ */
+function sanitizeStrayQuotes(src) {
+    let out = '', inStr = false, esc = false;
+    for (let i = 0; i < src.length; i++) {
+        const ch = src[i];
+        if (!inStr) { out += ch; if (ch === '"') inStr = true; continue; }
+        if (esc) { out += ch; esc = false; continue; }
+        if (ch === '\\') { out += ch; esc = true; continue; }
+        if (ch === '"') {
+            let j = i + 1;
+            while (j < src.length && /\s/.test(src[j])) j++;
+            const nxt = src[j];
+            if (nxt === undefined || nxt === ',' || nxt === '}' || nxt === ']' || nxt === ':') {
+                out += '"'; inStr = false;   // đóng chuỗi thật
+            } else {
+                out += '\\"';                // dấu " lọt → escape
+            }
+            continue;
+        }
+        out += ch;
+    }
+    return out;
+}
+
 async function submitQuestionJsonImport(inputId = 'question-json-input', resultId = 'question-json-result', btnId = 'btn-submit-q-json') {
     // inputId/resultId/btnId cho phép dùng lại cho tab JSON của modal NHÓM.
     const raw = document.getElementById(inputId).value.trim();
     const resultDiv = document.getElementById(resultId);
     if (!raw) { showToast('Vui lòng nhập JSON', 'error'); return; }
 
-    let sets;
+    let sets, autofixed = false;
     try {
         const parsed = JSON.parse(raw);
         sets = Array.isArray(parsed) ? parsed : [parsed];
-    } catch (e) {
-        showToast('JSON không hợp lệ: ' + e.message, 'error');
-        return;
+    } catch (e1) {
+        // Parse hỏng → thử tự escape các dấu " lọt rồi parse lại.
+        try {
+            const parsed = JSON.parse(sanitizeStrayQuotes(raw));
+            sets = Array.isArray(parsed) ? parsed : [parsed];
+            autofixed = true;
+        } catch (e2) {
+            showToast('JSON không hợp lệ: ' + e1.message, 'error');
+            return;
+        }
     }
+    if (autofixed) showToast('Đã tự sửa dấu " lọt trong JSON', 'info');
     if (!sets.length) { showToast('Không có màn hỏi nào trong JSON', 'error'); return; }
 
     // PRE-VALIDATE TOÀN BỘ — sai định dạng thì KHÔNG lưu gì cả (import nguyên khối).
