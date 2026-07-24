@@ -65,10 +65,16 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         const q = attempt.currentQuestion;
         if (!q || q.part > 4) return;
         if (attempt.pendingTransition) return;
-        // Trong NHÓM: không tự nhảy — để người dùng trả lời hết các câu con trước.
+        // Tôn trọng công tắc "Tự động chuyển câu": tắt thì đứng yên cho tự bấm Tiếp.
+        if (!isToeicAutoAdvanceOn()) return;
         const [gs, ge] = getGroupRange(attempt.questions, attempt.currentIndex);
-        if (ge > gs) return;
-        setTimeout(() => attempt.nextQuestion(), 600);
+        const isGroup = ge > gs;
+        // Nghe xong: NHÓM (Part 3/4) nhảy qua CẢ nhóm, câu đơn (Part 1/2) sang câu
+        // kế. Nhóm chừa lâu hơn (2s) để kịp chốt đáp án các câu con.
+        setTimeout(() => {
+            if (isGroup) attempt.goToQuestionChecked(Math.min(ge + 1, attempt.questions.length - 1));
+            else attempt.nextQuestion();
+        }, isGroup ? 2000 : 600);
     }, [attempt]);
 
     const audio = useToeicAudio({ onFinished: handleAudioFinished });
