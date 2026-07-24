@@ -39,6 +39,32 @@ async function nextQuestionNumber(part, source) {
 }
 
 /**
+ * Kiểm tra trùng lặp trước khi tạo màn mới. Trả về CHUỖI LỖI nếu là bản trùng
+ * (mọi số câu định tạo đều đã tồn tại trong cùng source + part), null nếu ok.
+ * Chỉ chặn khi TRÙNG HOÀN TOÀN — trùng một phần có thể là chỉnh sửa hợp lệ.
+ */
+async function rejectIfDuplicate(payload) {
+    const nums = (payload.questions || []).map(q => q.number).filter(Number.isFinite);
+    if (!nums.length) return null;
+
+    const filter = { part: payload.part };
+    if (payload.source) filter.source = payload.source;
+    const existing = await ToeicQuestionSet.find(filter).select('questions.number').lean();
+
+    const taken = new Set();
+    for (const s of existing) for (const q of (s.questions || [])) {
+        if (Number.isFinite(q.number)) taken.add(q.number);
+    }
+    const allExist = nums.every(n => taken.has(n));
+    if (allExist) {
+        const label = nums.length === 1 ? `câu ${nums[0]}` : `các câu ${Math.min(...nums)}–${Math.max(...nums)}`;
+        return `Bộ đề "${payload.source || '(không có)'}" đã có ${label} (Part ${payload.part}). `
+            + 'Bỏ qua để tránh trùng — xoá màn cũ nếu muốn nhập lại.';
+    }
+    return null;
+}
+
+/**
  * Chuẩn hoá payload admin thành MỘT MÀN.
  * Nhận cả hai dạng để giao diện cũ chạy tiếp:
  *   • dạng NHÓM: { questions: [ {...}, ... ] }
@@ -169,6 +195,11 @@ exports.createQuestion = async (req, res, next) => {
             }
             q.number = next++;
         }
+
+        // Chặn IMPORT TRÙNG: nếu MỌI số câu định tạo đã có sẵn trong cùng bộ đề +
+        // Part → đây là lần import lặp lại, từ chối để khỏi đẻ màn trùng.
+        const dupErr = await rejectIfDuplicate(payload);
+        if (dupErr) return res.status(409).json({ success: false, message: dupErr });
 
         const set = await ToeicQuestionSet.create({ ...payload, createdBy: req.user.id });
         res.status(201).json({

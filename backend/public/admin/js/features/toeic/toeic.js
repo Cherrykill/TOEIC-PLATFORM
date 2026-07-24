@@ -1345,6 +1345,7 @@ async function submitQuestionJsonImport(inputId = 'question-json-input', resultI
     let ok = 0;
     let savedQuestions = 0;
     const errors = [];
+    const skipped = []; // màn bị bỏ qua vì TRÙNG (409) — không phải lỗi
 
     for (let i = 0; i < sets.length; i++) {
         const s = sets[i] || {};
@@ -1377,6 +1378,7 @@ async function submitQuestionJsonImport(inputId = 'question-json-input', resultI
                 body: JSON.stringify(payload),
             });
             const data = await res.json();
+            if (res.status === 409) { skipped.push(`Màn #${i + 1}: ${data.message}`); continue; }
             if (!res.ok || !data.success) throw new Error(data.message || 'Server error');
             ok++;
             savedQuestions += payload.questions.length;
@@ -1389,14 +1391,17 @@ async function submitQuestionJsonImport(inputId = 'question-json-input', resultI
     btn.textContent = 'Import JSON';
 
     const total = sets.length;
+    const clean = errors.length === 0; // trùng (skipped) không tính là lỗi
     resultDiv.style.display = 'block';
-    resultDiv.style.background = errors.length === total ? '#fef2f2' : errors.length === 0 ? '#f0fdf4' : '#fffbeb';
-    resultDiv.style.border = `1px solid ${errors.length === total ? '#fca5a5' : errors.length === 0 ? '#86efac' : '#fcd34d'}`;
+    resultDiv.style.background = errors.length === total ? '#fef2f2' : clean ? '#f0fdf4' : '#fffbeb';
+    resultDiv.style.border = `1px solid ${errors.length === total ? '#fca5a5' : clean ? '#86efac' : '#fcd34d'}`;
     resultDiv.style.color = '#1f2937';
     resultDiv.innerHTML = `
-        <b>${total} màn</b> — ✅ ${ok} thêm mới (${savedQuestions} câu) · ❌ ${errors.length} lỗi
-        ${errors.length ? '<ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>' : ''}
-    `;
+        <b>${total} màn</b> — ✅ ${ok} thêm mới (${savedQuestions} câu)`
+        + (skipped.length ? ` · ⏭️ ${skipped.length} bỏ qua (trùng)` : '')
+        + (errors.length ? ` · ❌ ${errors.length} lỗi` : '')
+        + (skipped.length ? '<ul style="margin:8px 0 0;padding-left:18px;color:#b45309">' + skipped.map(e => `<li>${e}</li>`).join('') + '</ul>' : '')
+        + (errors.length ? '<ul style="margin:8px 0 0;padding-left:18px;color:#dc2626">' + errors.map(e => `<li>${e}</li>`).join('') + '</ul>' : '');
 
     if (ok > 0 && typeof loadQuestions === 'function') loadQuestions();
     if (ok > 0) {
