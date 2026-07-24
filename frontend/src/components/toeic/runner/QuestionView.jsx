@@ -75,6 +75,11 @@ export default function QuestionView({
                 {hasAudio && (
                     <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
                 )}
+                {/* Số câu THẬT theo chuẩn TOEIC (7, 101…) — Part đơn 1·2·5 trước đây
+                    không hiện. Part 6·7 có số IN SẴN trong ảnh scan nên bỏ qua. */}
+                {(question.globalQuestionNumber ?? question.questionNumber) != null && question.part !== 6 && question.part !== 7 && (
+                    <div className="toeic-q-number">Câu {question.globalQuestionNumber ?? question.questionNumber}</div>
+                )}
                 {!isListening && question.questionText && (
                     <div className="toeic-question-text" dangerouslySetInnerHTML={{ __html: question.questionText }} />
                 )}
