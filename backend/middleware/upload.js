@@ -75,6 +75,14 @@ const uploadImage = multer({
     fileFilter: imageFilter,
 });
 
+// Bản MEMORY cho ảnh TOEIC — giữ file trong RAM để controller quyết định đẩy
+// lên Cloudinary (nếu có env) hay ghi đĩa (fallback). Cùng filter/limit.
+const uploadImageMem = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: imageFilter,
+});
+
 // ===================================
 // AUDIO UPLOAD CONFIGURATION
 // ===================================
@@ -120,6 +128,13 @@ const uploadAudio = multer({
     limits: {
         fileSize: 10 * 1024 * 1024, // 10MB max for audio
     },
+    fileFilter: audioFilter,
+});
+
+// Bản MEMORY cho audio TOEIC (xem uploadImageMem).
+const uploadAudioMem = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: audioFilter,
 });
 
@@ -188,8 +203,14 @@ const uploadShopImage = multer({
 module.exports = {
     uploadImage,
     uploadAudio,
+    uploadImageMem,
+    uploadAudioMem,
     uploadAvatar,
     uploadShopImage,
     SHOP_IMAGE_ROLES,
     sanitizeRole,
+    // Dùng lại cho nhánh fallback lưu đĩa trong controller.
+    resolveTestFolder,
+    uniqueFilename,
+    sanitizeFolder,
 };

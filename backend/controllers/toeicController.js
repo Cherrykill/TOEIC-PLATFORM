@@ -5,6 +5,10 @@ const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
 const { getScoreInterpretation } = require('../utils/toeicScoreConverter');
 const { logTxn } = require('../utils/economyLog');
+const fs = require('fs');
+const path = require('path');
+const cloud = require('../utils/cloudinary');
+const { resolveTestFolder, uniqueFilename } = require('../middleware/upload');
 
 // ===================================
 // TEST TAKING
@@ -696,25 +700,34 @@ exports.getMyAttempts = async (req, res, next) => {
  * @route   POST /api/toeic/upload/part1-image
  * @access  Private/Admin
  */
+// Ghi buffer xuống đĩa theo đúng quy ước cũ (thư mục theo source, tên không đè).
+// Trả về URL /assets/... như trước. Dùng khi CHƯA cấu hình Cloudinary.
+function saveBufferToDisk(req, kind /* 'images' | 'audio' */) {
+    const folder = resolveTestFolder(req, req.file);
+    const destPath = `public/assets/${kind}/${folder}/`;
+    if (!fs.existsSync(destPath)) fs.mkdirSync(destPath, { recursive: true });
+    const name = uniqueFilename(destPath, req.file.originalname);
+    fs.writeFileSync(path.join(destPath, name), req.file.buffer);
+    return `/assets/${kind}/${folder}/${name}`;
+}
+
 exports.uploadPart1Image = async (req, res, next) => {
     try {
         if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: 'No file uploaded',
-            });
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
+        // Có Cloudinary → đẩy lên cloud (URL https, sống qua mọi lần redeploy).
+        // Không → ghi đĩa như cũ để dev/local vẫn chạy.
+        const folder = resolveTestFolder(req, req.file);
+        const imageUrl = cloud.isConfigured()
+            ? await cloud.uploadBuffer(req.file.buffer, {
+                folder: `toeic/images/${folder}`,
+                resourceType: 'image',
+                publicId: path.parse(req.file.originalname).name,
+            })
+            : saveBufferToDisk(req, 'images');
 
-        // Extract the relative path from the file path
-        // req.file.path = "public/assets/images/e2e9/e2e9p1_1.jpg" (or "public\assets\images\e2e9\e2e9p1_1.jpg" on Windows)
-        // We need to return: "/assets/images/e2e9/e2e9p1_1.jpg"
-        const imageUrl = '/' + req.file.path.replace(/\\/g, '/').replace('public/', '');
-
-        res.json({
-            success: true,
-            message: 'Image uploaded successfully',
-            imageUrl,
-        });
+        res.json({ success: true, message: 'Image uploaded successfully', imageUrl });
     } catch (error) {
         next(error);
     }
@@ -728,22 +741,19 @@ exports.uploadPart1Image = async (req, res, next) => {
 exports.uploadAudio = async (req, res, next) => {
     try {
         if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                message: 'No file uploaded',
-            });
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
         }
+        // Audio để resource_type 'video' trên Cloudinary (họ xếp audio nhóm video).
+        const folder = resolveTestFolder(req, req.file);
+        const audioUrl = cloud.isConfigured()
+            ? await cloud.uploadBuffer(req.file.buffer, {
+                folder: `toeic/audio/${folder}`,
+                resourceType: 'video',
+                publicId: path.parse(req.file.originalname).name,
+            })
+            : saveBufferToDisk(req, 'audio');
 
-        // Extract the relative path from the file path
-        // req.file.path = "public/assets/audio/e2e9/e2e9p1_1.mp3" (or "public\assets\audio\e2e9\e2e9p1_1.mp3" on Windows)
-        // We need to return: "/assets/audio/e2e9/e2e9p1_1.mp3"
-        const audioUrl = '/' + req.file.path.replace(/\\/g, '/').replace('public/', '');
-
-        res.json({
-            success: true,
-            message: 'Audio uploaded successfully',
-            audioUrl,
-        });
+        res.json({ success: true, message: 'Audio uploaded successfully', audioUrl });
     } catch (error) {
         next(error);
     }

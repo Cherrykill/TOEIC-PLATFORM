@@ -72,7 +72,8 @@ const {
 } = require('../controllers/toeicHistoryController');
 
 const { protect, authorize } = require('../middleware/auth');
-const { uploadImage, uploadAudio: uploadAudioMiddleware } = require('../middleware/upload');
+// Bản MEMORY: controller tự đẩy Cloudinary (nếu có env) hoặc ghi đĩa (fallback).
+const { uploadImageMem: uploadImage, uploadAudioMem: uploadAudioMiddleware } = require('../middleware/upload');
 
 // ===================================
 // PUBLIC ROUTES (if any)
