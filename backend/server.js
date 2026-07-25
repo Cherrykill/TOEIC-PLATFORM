@@ -3,19 +3,19 @@ const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
+const logger = require('./utils/logger');
+
 // ===================================
 // VALIDATE REQUIRED ENV VARS
 // ===================================
 const REQUIRED_ENV = ['MONGODB_URI', 'JWT_SECRET'];
 const missingEnv = REQUIRED_ENV.filter(k => !process.env[k]);
 if (missingEnv.length > 0) {
-    // logger chưa init ở đây nên dùng console tạm
     logger.error(`Missing required environment variables: ${missingEnv.join(', ')}`);
     logger.error('Create a .env file based on .env.example');
     process.exit(1);
 }
 
-const logger = require('./utils/logger');
 const { renderAdminDashboard } = require('./utils/renderAdminDashboard');
 const express = require('express');
 const cors = require('cors');
@@ -35,41 +35,7 @@ const { connectRedis, closeRedisConnection } = require('./config/redis');
 // Initialize Express app
 const app = express();
 
-// ===================================
-// METRICS COLLECTOR
-// ===================================
-const metrics = {
-    startTime: Date.now(),
-    totalRequests: 0,
-    statusCodes: { '2xx': 0, '4xx': 0, '5xx': 0 },
-    latencies: [],          // rolling last 1000 request durations (ms)
-    routeStats: {},         // { "METHOD /path": { count, totalMs } }
-    slowRequests: [],       // last 15 requests >300ms
-    // 60-slot circular buffer: each slot = requests in that minute
-    minuteBuffer: new Array(60).fill(0),
-    minuteIdx: 0,
-    cpuUsageSnapshot: process.cpuUsage(),
-    cpuPercent: 0,
-    cpuSampleTime: Date.now(),
-};
-
-// Rotate minute bucket every 60s
-setInterval(() => {
-    metrics.minuteIdx = (metrics.minuteIdx + 1) % 60;
-    metrics.minuteBuffer[metrics.minuteIdx] = 0;
-}, 60000);
-
-// CPU sampling every 5s
-setInterval(() => {
-    const now = Date.now();
-    const elapsed = (now - metrics.cpuSampleTime) * 1000; // µs
-    const usage = process.cpuUsage(metrics.cpuUsageSnapshot);
-    metrics.cpuPercent = elapsed > 0
-        ? Math.min(100, Math.round(((usage.user + usage.system) / elapsed) * 100))
-        : 0;
-    metrics.cpuUsageSnapshot = process.cpuUsage();
-    metrics.cpuSampleTime = now;
-}, 5000);
+const { requestMetricsMiddleware } = require('./utils/requestMetrics');
 
 // ===================================
 // MIDDLEWARE
@@ -120,47 +86,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev', { str
 // ===================================
 // REQUEST METRICS MIDDLEWARE
 // ===================================
-app.use((req, res, next) => {
-    const startHr = process.hrtime.bigint();
-    res.on('finish', () => {
-        const durMs = Number(process.hrtime.bigint() - startHr) / 1e6;
-        metrics.totalRequests++;
-        metrics.minuteBuffer[metrics.minuteIdx]++;
-
-        const code = res.statusCode;
-        if      (code >= 500) metrics.statusCodes['5xx']++;
-        else if (code >= 400) metrics.statusCodes['4xx']++;
-        else                  metrics.statusCodes['2xx']++;
-
-        // Rolling latency buffer
-        metrics.latencies.push(durMs);
-        if (metrics.latencies.length > 1000) metrics.latencies.shift();
-
-        // Per-route stats (API only, normalize IDs)
-        if (req.path.startsWith('/api/')) {
-            const norm = req.path
-                .replace(/\/[0-9a-f]{24}/gi, '/:id')
-                .replace(/\/\d+/g, '/:n');
-            const key = `${req.method} ${norm}`;
-            if (!metrics.routeStats[key]) metrics.routeStats[key] = { count: 0, totalMs: 0 };
-            metrics.routeStats[key].count++;
-            metrics.routeStats[key].totalMs += durMs;
-        }
-
-        // Slow request log (>300ms, API only)
-        if (durMs > 300 && req.path.startsWith('/api/')) {
-            metrics.slowRequests.unshift({
-                method: req.method,
-                path: req.path,
-                status: code,
-                ms: Math.round(durMs),
-                ts: new Date().toISOString(),
-            });
-            if (metrics.slowRequests.length > 15) metrics.slowRequests.pop();
-        }
-    });
-    next();
-});
+app.use(requestMetricsMiddleware);
 
 // ===================================
 // SWAGGER API DOCS
@@ -221,77 +147,9 @@ app.get('/health', async (_, res) => {
 });
 
 // ===================================
-// ADMIN METRICS ENDPOINT
+// ADMIN METRICS + STATS (system metrics, user growth)
 // ===================================
-const { protect, authorize } = require('./middleware/auth');
-
-app.get('/api/admin/metrics', protect, authorize('admin'), (req, res) => {
-    const { mongoose: mg } = require('./config/mongodb');
-    const mem  = process.memoryUsage();
-
-    // Latency percentile helper
-    const sorted = [...metrics.latencies].sort((a, b) => a - b);
-    const pct = (p) => sorted.length
-        ? Math.round(sorted[Math.floor(sorted.length * p)])
-        : 0;
-    const avgLatency = sorted.length
-        ? Math.round(sorted.reduce((s, v) => s + v, 0) / sorted.length)
-        : 0;
-
-    // Reorder minute buffer so index 0 = oldest, 59 = most recent
-    const timeline = [
-        ...metrics.minuteBuffer.slice(metrics.minuteIdx + 1),
-        ...metrics.minuteBuffer.slice(0, metrics.minuteIdx + 1),
-    ];
-
-    // Requests per minute (sum of last 60 slots / 60)
-    const rpm = Math.round(
-        metrics.minuteBuffer.reduce((s, v) => s + v, 0) / 60 * 10
-    ) / 10;
-
-    // Top 10 routes by request count
-    const topRoutes = Object.entries(metrics.routeStats)
-        .map(([route, v]) => ({
-            route,
-            count: v.count,
-            avgMs: Math.round(v.totalMs / v.count),
-        }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
-
-    // Error rate %
-    const total = metrics.totalRequests || 1;
-    const errorRate = Math.round(
-        ((metrics.statusCodes['4xx'] + metrics.statusCodes['5xx']) / total) * 1000
-    ) / 10;
-
-    res.json({
-        uptime:    Math.floor(process.uptime()),
-        cpu:       metrics.cpuPercent,
-        memory: {
-            rss:       Math.round(mem.rss       / 1024 / 1024),
-            heapUsed:  Math.round(mem.heapUsed  / 1024 / 1024),
-            heapTotal: Math.round(mem.heapTotal / 1024 / 1024),
-            external:  Math.round(mem.external  / 1024 / 1024),
-        },
-        requests: {
-            total,
-            rpm,
-            timeline,
-        },
-        latency: {
-            avg: avgLatency,
-            p50: pct(0.50),
-            p95: pct(0.95),
-            p99: pct(0.99),
-        },
-        statusCodes:  { ...metrics.statusCodes },
-        errorRate,
-        topRoutes,
-        slowRequests: metrics.slowRequests.slice(0, 10),
-        mongo: mg.connection.readyState === 1 ? 'connected' : 'disconnected',
-    });
-});
+app.use('/api/admin', require('./routes/adminMetrics'));
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -319,42 +177,6 @@ app.use('/api/notifications', require('./routes/notifications')); // In-app noti
 app.use('/api/spin', require('./routes/spin'));              // Lucky spin wheel (1 lần/ngày)
 app.use('/api/season', require('./routes/season'));          // Mùa giải: đếm ngược + reset mùa
 app.use('/api/inventory', require('./routes/inventory'));    // Túi đồ: item_definitions + inventory_items
-
-// ===================================
-// ADMIN STATS: USER GROWTH
-// ===================================
-app.get('/api/admin/stats/growth', protect, authorize('admin'), async (req, res) => {
-    try {
-        const User = require('./models/User');
-        const days = Math.min(90, Math.max(7, parseInt(req.query.days) || 30));
-        const since = new Date(Date.now() - days * 86400000);
-
-        const raw = await User.aggregate([
-            { $match: { createdAt: { $gte: since } } },
-            {
-                $group: {
-                    _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-                    count: { $sum: 1 },
-                },
-            },
-            { $sort: { _id: 1 } },
-        ]);
-
-        // Fill missing days with 0
-        const map = {};
-        raw.forEach(r => { map[r._id] = r.count; });
-        const result = [];
-        for (let i = days - 1; i >= 0; i--) {
-            const d = new Date(Date.now() - i * 86400000);
-            const key = d.toISOString().slice(0, 10);
-            result.push({ date: key, count: map[key] || 0 });
-        }
-
-        res.json({ success: true, data: result });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
-    }
-});
 
 // ===================================
 // DASHBOARD & SPA (Catch-all)
@@ -395,63 +217,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 let emailWorker = null;
 
-async function migrateUserDependents() {
-    try {
-        const User        = require('./models/User');
-        const UserProfile = require('./models/UserProfile');
-        const UserStats   = require('./models/UserStats');
-
-        const users = await User.find({}).select('_id email').lean();
-        let created = 0;
-
-        for (const u of users) {
-            const [profile, stats] = await Promise.all([
-                UserProfile.findOne({ userId: u._id }).lean(),
-                UserStats.findOne({ userId: u._id }).lean(),
-            ]);
-
-            if (!profile) {
-                const base = u.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '').substring(0, 18) || 'user';
-                const exists = await UserProfile.findOne({ username: base }).lean();
-                const username = exists ? base + '_' + String(u._id).slice(-4) : base;
-                await UserProfile.create({ userId: u._id, username, displayName: username, avatar: username.charAt(0).toUpperCase() });
-                created++;
-            }
-            if (!stats) {
-                await UserStats.create({ userId: u._id });
-                created++;
-            }
-        }
-
-        if (created > 0) logger.info(`Migration: created ${created} missing UserProfile/UserStats documents`);
-    } catch (err) {
-        logger.warn('Migration migrateUserDependents failed (non-fatal):', err.message);
-    }
-}
-
-async function seedAchievementDefinitions() {
-    try {
-        const AchievementDefinition = require('./models/AchievementDefinition');
-        const count = await AchievementDefinition.countDocuments();
-        if (count > 0) return; // already seeded
-
-        const DEFINITIONS = [
-            { code: 'learning1', name: 'Người mới bắt đầu', description: 'Học 10 từ vựng đầu tiên', icon: '📖', category: 'learning', conditionType: 'words-learned', conditionValue: 10, rewardCoins: 100, rewardXp: 0, rewardGems: 0, isActive: true, order: 1 },
-            { code: 'learning2', name: 'Học sinh chăm chỉ', description: 'Học 50 từ vựng', icon: '🎓', category: 'learning', conditionType: 'words-learned', conditionValue: 50, rewardCoins: 300, rewardXp: 0, rewardGems: 5, isActive: true, order: 2 },
-            { code: 'learning3', name: 'Bậc thầy từ vựng', description: 'Học 200 từ vựng', icon: '🏆', category: 'learning', conditionType: 'words-learned', conditionValue: 200, rewardCoins: 1000, rewardXp: 0, rewardGems: 20, isActive: true, order: 3 },
-            { code: 'practice1', name: 'Tay mơ', description: 'Hoàn thành 5 bài luyện tập', icon: '🎮', category: 'practice', conditionType: 'total-sessions', conditionValue: 5, rewardCoins: 50, rewardXp: 0, rewardGems: 0, isActive: true, order: 10 },
-            { code: 'practice2', name: 'Điểm số hoàn hảo', description: 'Đạt 10 vòng hoàn hảo (không sai)', icon: '⭐', category: 'practice', conditionType: 'perfect-rounds', conditionValue: 10, rewardCoins: 500, rewardXp: 0, rewardGems: 10, isActive: true, order: 11 },
-            { code: 'practice3', name: 'Tốc độ ánh sáng', description: 'Trả lời 100 câu trong chế độ tốc độ', icon: '⚡', category: 'speed', conditionType: 'total-answers', conditionValue: 100, rewardCoins: 300, rewardXp: 0, rewardGems: 0, isActive: true, order: 12 },
-            { code: 'special1', name: 'Streaker', description: 'Học liên tục 7 ngày', icon: '🔥', category: 'streak', conditionType: 'streak', conditionValue: 7, rewardCoins: 500, rewardXp: 0, rewardGems: 15, isActive: true, order: 20 },
-            { code: 'special2', name: 'Huyền thoại', description: 'Đạt level 50', icon: '👑', category: 'skill', conditionType: 'level', conditionValue: 50, rewardCoins: 0, rewardXp: 0, rewardGems: 100, isActive: true, order: 21 },
-        ];
-
-        await AchievementDefinition.insertMany(DEFINITIONS);
-        logger.info(`Seeded ${DEFINITIONS.length} achievement definitions`);
-    } catch (err) {
-        logger.warn('seedAchievementDefinitions failed (non-fatal):', err.message);
-    }
-}
+const { migrateUserDependents, seedAchievementDefinitions } = require('./services/startupTasks');
 
 async function startServer() {
     logger.info('Connecting to databases...');
