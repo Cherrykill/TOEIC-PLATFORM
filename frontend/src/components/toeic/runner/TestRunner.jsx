@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { Modal } from '@ui/Modal.jsx';
 import { Notification } from '@ui/Toaster.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { registerToeicExitGuard, clearToeicExitGuard } from '../toeicRunGuard.js';
 import { EnergyShop } from '@game/energyShop.js';
 import { useToeicAttempt } from '../hooks/useToeicAttempt.js';
 import { useToeicTimer } from '../hooks/useToeicTimer.js';
@@ -202,6 +203,9 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     const doSubmit = useCallback(async () => {
         timer.pause();
         audio.stop();
+        // Nộp bài tự điều hướng sang màn kết quả — gỡ guard để không bị hỏi
+        // "Thoát bài thi?" nhầm khi đang chấm.
+        clearToeicExitGuard();
         Modal.show({
             title: 'Đang chấm bài...',
             content: '<div style="text-align:center;padding:20px"><i class="fas fa-spinner fa-spin" style="font-size:48px;color:var(--primary-color)"></i></div>',
@@ -308,6 +312,26 @@ export default function TestRunner({ config, onExit, onShowResults }) {
             ],
         });
     }, [timer, audio, onExit]);
+
+    // Đăng ký chốt chặn: bấm avatar/Trang chủ/menu khi đang làm bài → hỏi trước
+    // (showScreen trong GameContext gọi hàm này). Chỉ bật lúc đang chạy.
+    useEffect(() => {
+        if (phase !== 'running') return;
+        registerToeicExitGuard((proceed) => {
+            Modal.show({
+                title: 'Thoát bài thi?',
+                content: '<p>Bài làm của bạn sẽ được lưu lại (có thể tiếp tục sau). Bạn có chắc muốn thoát?</p>',
+                buttons: [
+                    {
+                        text: 'Thoát', className: 'btn-danger',
+                        onClick: () => { Modal.close(); timer.pause(); audio.stop(); proceed(); },
+                    },
+                    { text: 'Ở lại', className: 'btn-primary', onClick: () => Modal.close() },
+                ],
+            });
+        });
+        return () => clearToeicExitGuard();
+    }, [phase, timer, audio]);
 
     const handlePlayAudio = useCallback(() => {
         const q = attempt.currentQuestion;

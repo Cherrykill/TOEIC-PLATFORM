@@ -14,6 +14,7 @@ import { TopicSelector } from '@components/vocab/topic/topicSelector.js';
 import { WrongWordsManager } from '@components/vocab/wrongWords/wrongWordsManager.js';
 import { SessionService } from '@components/practice/sessionService.js';
 import { PracticeManager } from '@components/practice/practiceManager.js';
+import { getToeicExitGuard } from '@components/toeic/toeicRunGuard.js';
 
 const GameContext = createContext(null);
 
@@ -131,6 +132,17 @@ export function GameProvider({ children }) {
         if (screenId !== 'practice-screen' && sess && !sess.completed) {
             setMenuOpen(false); // close side menu so the confirm modal is visible
             PracticeManager.exit(screenId); // confirms, then navigates on accept
+            return;
+        }
+        // Cùng logic cho bài thi TOEIC (chạy trong toeic-screen, không qua
+        // PracticeManager): rời màn khi đang làm bài → hỏi trước.
+        const toeicConfirm = getToeicExitGuard();
+        if (screenId !== 'toeic-screen' && toeicConfirm) {
+            setMenuOpen(false);
+            toeicConfirm(() => {
+                setCurrentScreen(screenId);
+                EventBus.emit(GameEvents.SCREEN_CHANGED, { screen: screenId });
+            });
             return;
         }
         setCurrentScreen(screenId);
