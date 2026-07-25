@@ -37,7 +37,7 @@
                   <p style="font-size: 12px; color: var(--text-secondary); margin: 0">
                     Dán 1 object hoặc mảng <strong>MÀN HỎI</strong>. Bí thì bấm <b>Copy prompt</b> rồi đưa cho AI.
                   </p>
-                  <div style="display: flex; align-items: center; gap: 8px">
+                  <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
                     <select id="q-prompt-part" title="Chọn Part để lấy prompt phù hợp" class="filter-select"
                       style="width: auto; min-width: 190px">
                       <option value="all">Tất cả Part</option>
@@ -45,6 +45,9 @@
                       <option value="2">Part 2 — Hỏi & đáp</option>
                       <option value="5" selected>Part 5 — Hoàn thành câu</option>
                     </select>
+                    <input type="text" id="q-json-source" list="test-source-list" autocomplete="off"
+                      placeholder="Source (mã đề), vd ets26t1"
+                      style="padding: 7px 10px; border: 1px solid var(--border-color); border-radius: 8px; min-width: 170px" />
                     <button type="button" id="btn-copy-q-prompt" class="btn btn-secondary btn-sm">
                       <i class="fas fa-robot"></i> Copy prompt cho AI
                     </button>

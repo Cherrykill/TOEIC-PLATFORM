@@ -213,7 +213,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Question modal: Nhập tay / Nhập JSON + Copy prompt
     document.getElementById('q-tab-manual')?.addEventListener('click', () => switchQuestionModalTab('manual'));
     document.getElementById('q-tab-json')?.addEventListener('click', () => switchQuestionModalTab('json'));
-    document.getElementById('btn-copy-q-prompt')?.addEventListener('click', copyQuestionPrompt);
+    document.getElementById('btn-copy-q-prompt')?.addEventListener('click', () => {
+        // Truyền Source đang nhập để prompt ép AI dùng đúng mã đề (giống bên nhóm).
+        copyQuestionPrompt(
+            document.getElementById('q-prompt-part')?.value,
+            document.getElementById('q-json-source')?.value
+        );
+    });
     // Đổi Part → placeholder ô JSON cập nhật theo Part đó
     const qPromptPartSel = document.getElementById('q-prompt-part');
     if (qPromptPartSel) {
