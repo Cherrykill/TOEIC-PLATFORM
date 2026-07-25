@@ -13,4 +13,8 @@ public/images/pages/
 uploads/
 cache.json
 
+# Ảnh/audio TOEIC đã migrate lên Cloudinary — không track nữa (xem docs/backend)
+backend/public/images/
+backend/public/assets/
+
 node_modules
