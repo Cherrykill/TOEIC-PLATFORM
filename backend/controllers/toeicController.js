@@ -176,10 +176,26 @@ exports.startAttempt = async (req, res, next) => {
         const listeningQuestions = questions.filter(q => q.section === 'listening').length;
         const readingQuestions = questions.filter(q => q.section === 'reading').length;
 
+        // Trả về số dư MỚI (server-authoritative) để client cập nhật thanh năng
+        // lượng/ví ngay. Nếu tạo attempt mới thì energy/xu đã bị trừ ở trên; nếu
+        // dùng lại bài dở thì số dư không đổi — cả hai đều phản ánh đúng ở đây.
+        const freshStats = await UserStats.findOne({ userId: req.user.id })
+            .select('energy maxEnergy coins gems hints shields timeFreezes lastEnergyUpdate').lean();
+
         res.json({
             success: true,
             message: 'Test started successfully',
             data: {
+                resources: freshStats ? {
+                    energy: freshStats.energy,
+                    maxEnergy: freshStats.maxEnergy,
+                    coins: freshStats.coins,
+                    gems: freshStats.gems,
+                    hints: freshStats.hints,
+                    shields: freshStats.shields,
+                    timeFreezes: freshStats.timeFreezes,
+                    lastEnergyUpdate: freshStats.lastEnergyUpdate,
+                } : undefined,
                 attemptId: attempt._id,
                 test: {
                     id: test._id,

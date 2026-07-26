@@ -2,6 +2,23 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { ToeicAPI } from '@api/toeic.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Quest } from '@components/quest/quest.js';
+import { GameState } from '@game/state.js';
+import { EventBus, GameEvents } from '@game/eventBus.js';
+
+// Áp số dư SỰ THẬT từ server (sau khi bắt đầu bài) vào GameState để thanh năng
+// lượng/ví cập nhật ngay. Bài TOEIC trừ năng lượng SERVER-SIDE (không như luyện
+// tập thường trừ ở client), nên nếu không đồng bộ thì UI đứng im → tưởng không trừ.
+function syncResourcesFromServer(resources) {
+    if (!resources) return;
+    const R = GameState.state.resources;
+    for (const k of ['coins', 'gems', 'energy', 'maxEnergy', 'hints', 'shields', 'timeFreezes']) {
+        if (typeof resources[k] === 'number') R[k] = resources[k];
+    }
+    if (resources.lastEnergyUpdate) R.lastEnergyUpdate = new Date(resources.lastEnergyUpdate).getTime();
+    EventBus.emit(GameEvents.ENERGY_CHANGED, { current: R.energy, max: R.maxEnergy });
+    EventBus.emit(GameEvents.COINS_CHANGED, { total: R.coins });
+    EventBus.emit(GameEvents.STATE_CHANGED);
+}
 
 const initialState = {
     attemptId: null,
@@ -64,6 +81,8 @@ export function useToeicAttempt() {
             fillInBlankMode,
             keywordAnswers: {},
         });
+        // Server đã trừ năng lượng/xu khi tạo attempt mới → cập nhật UI ngay.
+        syncResourcesFromServer(apiData.data.resources);
         return apiData.data;
     }, []);
 
