@@ -124,7 +124,18 @@ export const EnergyShop = {
                 </div>
             `,
             onClose: () => this._stopCountdown(),
-            buttons: [{ text: 'Đóng', className: 'btn-secondary', onClick: () => Modal.close() }],
+            buttons: [
+                {
+                    text: '🛒 Vào cửa hàng', className: 'btn-primary',
+                    onClick: () => {
+                        this._stopCountdown();
+                        Modal.close();
+                        // Điều hướng sang màn Cửa hàng (bridge React expose ở GameContext).
+                        window._reactShowScreen?.('shop-screen');
+                    },
+                },
+                { text: 'Đóng', className: 'btn-secondary', onClick: () => Modal.close() },
+            ],
         });
 
         setTimeout(() => {

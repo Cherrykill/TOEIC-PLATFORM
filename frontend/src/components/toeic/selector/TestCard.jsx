@@ -1,5 +1,6 @@
 import { useGame } from '@game/GameContext.jsx';
 import { toeicEnergyCost } from '../toeicCost.js';
+import { EnergyShop } from '@game/energyShop.js';
 
 export default function TestCard({ test, onStart }) {
     const { resources } = useGame();
@@ -78,9 +79,16 @@ export default function TestCard({ test, onStart }) {
                 )}
                 <button
                     className="toeic-start-btn"
-                    disabled={!test.canAccess || notEnoughEnergy || notEnoughCoins}
-                    title={notEnoughEnergy ? 'Không đủ năng lượng' : (notEnoughCoins ? 'Không đủ xu' : undefined)}
-                    onClick={(e) => { e.stopPropagation(); onStart?.(test._id); }}
+                    // Thiếu ⚡ KHÔNG khoá nút — bấm vào mở popup mua/vào cửa hàng
+                    // (đỡ phải tự đi tìm cửa hàng). Chỉ khoá khi bị Level-lock hoặc
+                    // thiếu xu (đề premium — xu phải cày, không mua ngay được).
+                    disabled={!test.canAccess || notEnoughCoins}
+                    title={notEnoughEnergy ? 'Thiếu năng lượng — bấm để nạp' : (notEnoughCoins ? 'Không đủ xu' : undefined)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (notEnoughEnergy) { EnergyShop.showModal({ needed: energyCost }); return; }
+                        onStart?.(test._id);
+                    }}
                 >
                     {!test.canAccess ? 'Locked' : (notEnoughEnergy ? 'Thiếu ⚡' : (notEnoughCoins ? 'Thiếu xu' : 'Bắt đầu'))}
                 </button>
