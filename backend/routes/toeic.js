@@ -72,6 +72,7 @@ const {
 } = require('../controllers/toeicHistoryController');
 
 const { protect, authorize } = require('../middleware/auth');
+const { requireLevel } = require('../services/featureUnlock');
 // Bản MEMORY: controller tự đẩy Cloudinary (nếu có env) hoặc ghi đĩa (fallback).
 const { uploadImageMem: uploadImage, uploadAudioMem: uploadAudioMiddleware } = require('../middleware/upload');
 
@@ -150,7 +151,9 @@ router.get('/tests/:id', cacheMiddleware(300), getTest);
  *       409:
  *         description: Đang có bài thi chưa hoàn thành
  */
-router.post('/attempts/start', startAttempt);
+// Chưa mở feature:toeic thì KHÔNG bắt đầu bài (chặn ở start là đủ — không có
+// attempt thì answer/submit/thưởng cũng không chạy được).
+router.post('/attempts/start', requireLevel('feature:toeic'), startAttempt);
 
 /**
  * @swagger
