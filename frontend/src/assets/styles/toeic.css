@@ -814,12 +814,14 @@
   color: var(--text-secondary);
 }
 
-/* Hàng chip lọc theo Part — flex wrap, bấm để lọc, đỡ cuộn. */
+/* Hàng chip lọc theo Part — nằm ở header, lấp khoảng trống giữa tiêu đề và X. */
 .toeic-nav-partfilter {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);
-  margin-bottom: var(--spacing-md);
+  flex: 1;
+  justify-content: flex-end;
+  margin: 0 var(--spacing-md);
 }
 
 .toeic-nav-partchip {

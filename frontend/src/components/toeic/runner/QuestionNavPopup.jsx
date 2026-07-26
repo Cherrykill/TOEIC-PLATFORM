@@ -60,6 +60,27 @@ export default function QuestionNavPopup({ open, questions, currentIndex, answer
                     <span className="toeic-nav-title">
                         <i className="fas fa-list"></i> Điều hướng câu hỏi
                     </span>
+                    {/* Lọc nhanh theo Part — nằm ở khoảng trống giữa tiêu đề và dấu X. */}
+                    {groups.length > 1 && (
+                        <div className="toeic-nav-partfilter">
+                            <button
+                                className={`toeic-nav-partchip${filterPart == null ? ' active' : ''}`}
+                                onClick={() => setFilterPart(null)}
+                            >
+                                Tất cả
+                            </button>
+                            {groups.map((g) => (
+                                <button
+                                    key={g.part}
+                                    className={`toeic-nav-partchip${filterPart === g.part ? ' active' : ''}`}
+                                    title={PART_LABEL[g.part] || `Part ${g.part}`}
+                                    onClick={() => setFilterPart(filterPart === g.part ? null : g.part)}
+                                >
+                                    P{g.part}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                     <button className="toeic-nav-popup-close" onClick={onClose}>
                         <i className="fas fa-times"></i>
                     </button>
@@ -72,27 +93,6 @@ export default function QuestionNavPopup({ open, questions, currentIndex, answer
                             <span className="toeic-legend-item"><span className="toeic-legend-dot answered"></span>Đã trả lời</span>
                             <span className="toeic-legend-item"><span className="toeic-legend-dot marked"></span>Đánh dấu</span>
                         </div>
-                        {/* Lọc nhanh theo Part — bấm để chỉ hiện Part đó, khỏi cuộn cả bài. */}
-                        {groups.length > 1 && (
-                            <div className="toeic-nav-partfilter">
-                                <button
-                                    className={`toeic-nav-partchip${filterPart == null ? ' active' : ''}`}
-                                    onClick={() => setFilterPart(null)}
-                                >
-                                    Tất cả
-                                </button>
-                                {groups.map((g) => (
-                                    <button
-                                        key={g.part}
-                                        className={`toeic-nav-partchip${filterPart === g.part ? ' active' : ''}`}
-                                        title={PART_LABEL[g.part] || `Part ${g.part}`}
-                                        onClick={() => setFilterPart(filterPart === g.part ? null : g.part)}
-                                    >
-                                        P{g.part}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
                         <div className="toeic-nav-groups">
                             {shownGroups.map((g) => (
                                 <div key={`${g.part}-${g.items[0]?.i}`} className="toeic-nav-part-group">
