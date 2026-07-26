@@ -2,6 +2,7 @@ import { Config } from '@game/config.js';
 import { GameState } from '@game/state.js';
 import { Storage } from '@lib/storage.js';
 import { Utils } from '@lib/utils.js';
+import { logger } from '@lib/logger.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { GameLogic, vocabLang } from '@game/gameLogic.js';
 import { Http } from '@api/http.js';
@@ -38,6 +39,7 @@ import { ContextLearning } from './modes/contextLearning.js';
 import { SynonymCheck } from './modes/synonymCheck.js';
 import { SpeedQuiz } from './modes/speedQuiz.js';
 import { ReviewMistakes } from './modes/reviewMistakes.js';
+import { MILESTONES, getMilestoneMessage } from './milestoneMessages.js';
 
 // Các chế độ thực sự xử lý gợi ý (lắng nghe GameEvents.HINT_USED). Ngoài danh
 // sách này (flashcard, matching, pronunciation, dictation, speed-quiz) thì nút
@@ -75,7 +77,7 @@ export const PracticeManager = {
     },
 
     start(mode) {
-        console.log('🚀 PracticeManager.start() called with mode:', mode);
+        logger.log('🚀 PracticeManager.start() called with mode:', mode);
 
         if (this.currentSession && this.currentSession.mode) {
             this.cleanupMode(this.currentSession.mode);
@@ -218,10 +220,10 @@ export const PracticeManager = {
                     ? GameLogic.vocabularyData.filter(w => w.level && settings.levelFilter.includes(w.level))
                     : GameLogic.vocabularyData);
             userQuestionCount = pool.length || 10;
-            console.log(`🎲 Auto Mode: ${userQuestionCount} questions (full pool${selectedPart ? ' of ' + selectedPart : ''})`);
+            logger.log(`🎲 Auto Mode: ${userQuestionCount} questions (full pool${selectedPart ? ' of ' + selectedPart : ''})`);
         } else {
             userQuestionCount = rawCount;
-            console.log(`🎲 ${selectedPart ? 'Part' : 'Random'} Mode: ${userQuestionCount} questions`);
+            logger.log(`🎲 ${selectedPart ? 'Part' : 'Random'} Mode: ${userQuestionCount} questions`);
         }
         actualQuestionsPerRound = userQuestionCount;
         actualPairsCount = Math.min(Math.floor(userQuestionCount / 2), 20);
@@ -230,10 +232,10 @@ export const PracticeManager = {
             // Thời gian mỗi câu giờ đặt RIÊNG theo chế độ (Cài đặt → Luyện tập).
             const timePerQuestion = getQuestionTime(mode);
             actualTimeLimit = actualQuestionsPerRound * timePerQuestion;
-            console.log(`⏱️ Time limit enabled: ${actualTimeLimit} seconds (${actualQuestionsPerRound} questions × ${timePerQuestion}s — chế độ ${mode})`);
+            logger.log(`⏱️ Time limit enabled: ${actualTimeLimit} seconds (${actualQuestionsPerRound} questions × ${timePerQuestion}s — chế độ ${mode})`);
         } else {
             actualTimeLimit = 0;
-            console.log(`⏱️ Time limit disabled`);
+            logger.log(`⏱️ Time limit disabled`);
         }
 
         const config = {
@@ -428,78 +430,7 @@ export const PracticeManager = {
         if (wrongEl) wrongEl.textContent = wrong;
     },
 
-    milestones: [5, 10, 15, 20, 25, 30, 40, 50, 75, 100, 150, 200],
-
-    milestoneMessages: {
-        5: [
-            'Bước đầu vững chắc! Mỗi từ học được là một viên gạch xây nên nền tảng. 📚',
-            'Năm từ đầu tiên đã xong! Hành trình ngàn dặm bắt đầu từ bước chân đầu tiên. 🚶',
-            'Khởi đầu tốt đẹp! Não bộ đang bắt đầu ghi nhớ rồi đấy. 🧠'
-        ],
-        10: [
-            'Hai con số rồi! Bạn đang tạo thói quen học tập tốt. 💪',
-            'Mười từ không phải ít đâu! Kiên trì sẽ tạo nên sự khác biệt. 🌱',
-            'Đã đi được 10 bước! Nhớ rằng học ít nhưng đều đặn tốt hơn học nhiều rồi bỏ. 📖'
-        ],
-        15: [
-            'Bạn đang duy trì tốt! Sự kiên trì này sẽ mang lại kết quả. ⏳',
-            '15 từ là một cột mốc đáng ghi nhận. Tiếp tục nhịp độ này! 🎯',
-            'Não bộ đang dần quen với việc học từ mới. Cảm giác khó khăn ban đầu sẽ giảm dần. 🔄'
-        ],
-        20: [
-            'Hai mươi từ! Đây là số lượng đủ để bạn thấy sự tiến bộ thực sự. 📈',
-            'Bạn đã học được số từ tương đương một bài học TOEIC. Ấn tượng! 🏆',
-            'Consistency is key! Bạn đang làm rất tốt việc duy trì học tập. ✨'
-        ],
-        25: [
-            'Một phần tư trăm! Mỗi từ vựng là một công cụ mới trong hành trang của bạn. 🧰',
-            'Bạn đang chứng minh rằng mình có thể kiên trì. Đó là phẩm chất quý giá. 💎',
-            '25 từ đúng cho thấy bạn đang hiểu bài. Tiếp tục giữ vững! 🛡️'
-        ],
-        30: [
-            'Ba mươi từ! Bạn đang xây dựng vốn từ vựng vững chắc. 🏗️',
-            'Ở mốc này, nhiều người đã bỏ cuộc. Bạn thì không! 🔥',
-            'Từ vựng của bạn đang mở rộng đáng kể. Những nỗ lực này sẽ được đền đáp. 🌟'
-        ],
-        40: [
-            'Bốn mươi từ là thành tích đáng tự hào. Bạn đang nghiêm túc với việc học! 📚',
-            'Não bộ bạn đang hoạt động hiệu quả. Tiếp tục nạp năng lượng cho nó! 🧠⚡',
-            'Sự kiên nhẫn của bạn đang được chuyển hóa thành kiến thức thực sự. 🔮'
-        ],
-        50: [
-            'NỬA TRĂM TỪ! Đây là cột mốc lớn đầu tiên. Bạn xứng đáng được ghi nhận! 🎉',
-            'Fifty words! Vốn từ vựng này sẽ giúp bạn rất nhiều trong bài thi. 📝',
-            '50 từ đúng nghĩa là bạn đã nắm vững một lượng kiến thức đáng kể. Tự hào đi! 🏅'
-        ],
-        75: [
-            'Bảy mươi lăm từ! Bạn đang ở top những người học nghiêm túc nhất. 🥇',
-            'Ba phần tư đường đến 100! Đích đến đã ở trước mắt. 🏁',
-            'Sự cố gắng này sẽ phản ánh trong điểm TOEIC của bạn. Tin tưởng đi! 📊'
-        ],
-        100: [
-            '🎊 MỘT TRĂM TỪ! Đây là thành tích phi thường. Bạn thực sự nghiêm túc!',
-            'Century milestone! 100 từ là vốn từ vựng của cả một chủ đề TOEIC. 👑',
-            'Bạn đã chứng minh rằng mình có kỷ luật và quyết tâm. Điều này quý hơn bất kỳ điểm số nào. 💯'
-        ],
-        150: [
-            '150 từ! Đây là level mà chỉ những người thực sự kiên trì mới đạt được. 🌟',
-            'Bạn đang ở nhóm 1% những người học chăm chỉ nhất. Respect! 🙌',
-            'One hundred fifty! Vốn từ vựng của bạn đang trở nên rất vững chắc. 📚'
-        ],
-        200: [
-            '🏆 HAI TRĂM TỪ! Bạn là LEGEND thực sự! Sự kiên trì này sẽ mang lại thành công!',
-            'Đây là thành tích hiếm có! Bạn đã vượt qua mọi giới hạn của bản thân. 🚀',
-            '200 từ đúng trong một phiên! Bạn xứng đáng nhận mọi lời khen ngợi. 👏👏👏'
-        ]
-    },
-
-    getMilestoneMessage(milestone) {
-        const messages = this.milestoneMessages[milestone];
-        if (!messages || messages.length === 0) {
-            return 'Tuyệt vời! Tiếp tục cố gắng! 🎉';
-        }
-        return messages[Math.floor(Math.random() * messages.length)];
-    },
+    milestones: MILESTONES,
 
     recordAnswer(isCorrect, word, meta = {}) {
         if (!this.currentSession) return;
@@ -566,7 +497,7 @@ export const PracticeManager = {
         const wrongCount = this.currentSession.wrongAnswers;
 
         if (this.milestones.includes(correctCount)) {
-            const message = this.getMilestoneMessage(correctCount);
+            const message = getMilestoneMessage(correctCount);
 
             const total = correctCount + wrongCount;
             const accuracy = total > 0 ? Math.round((correctCount / total) * 100) : 100;
@@ -583,7 +514,7 @@ export const PracticeManager = {
                 duration: 5000
             });
 
-            console.log(`🎊 Milestone reached: ${correctCount} correct answers!`);
+            logger.log(`🎊 Milestone reached: ${correctCount} correct answers!`);
         }
     },
 
@@ -850,7 +781,7 @@ export const PracticeManager = {
     cleanupMode(mode) {
         if (!mode) return;
 
-        console.log('🧹 Cleaning up mode:', mode);
+        logger.log('🧹 Cleaning up mode:', mode);
 
         const modeMap = {
             'multiple-choice': MultipleChoice,
@@ -884,10 +815,10 @@ export const PracticeManager = {
     },
 
     exit(targetScreenId = 'home-screen') {
-        console.log('🚪 PracticeManager.exit() called with targetScreenId:', targetScreenId);
+        logger.log('🚪 PracticeManager.exit() called with targetScreenId:', targetScreenId);
 
         if (this.currentSession && !this.currentSession.completed) {
-            console.log('⚠️ Session is active and not completed, showing exit confirmation modal');
+            logger.log('⚠️ Session is active and not completed, showing exit confirmation modal');
             Modal.show({
                 title: 'Thoát luyện tập?',
                 content: '<p>Tiến trình của bạn sẽ không được lưu. Bạn có chắc chắn muốn thoát?</p>',
@@ -896,7 +827,7 @@ export const PracticeManager = {
                         text: 'Hủy',
                         className: 'btn-secondary',
                         onClick: () => {
-                            console.log('❌ User cancelled exit');
+                            logger.log('❌ User cancelled exit');
                             Modal.close();
                         }
                     },
@@ -904,7 +835,7 @@ export const PracticeManager = {
                         text: 'Thoát',
                         className: 'btn-primary',
                         onClick: () => {
-                            console.log('✅ User confirmed exit, cleaning up...');
+                            logger.log('✅ User confirmed exit, cleaning up...');
 
                             if (typeof Utils !== 'undefined' && Utils.stopAllSounds) {
                                 Utils.stopAllSounds();
@@ -916,15 +847,15 @@ export const PracticeManager = {
                             this.cleanupKeyboardShortcuts();
 
                             this.currentSession = null;
-                            console.log('🧹 Session cleared');
+                            logger.log('🧹 Session cleared');
 
                             Modal.close();
 
                             setTimeout(() => {
-                                console.log('🏠 Navigating to:', targetScreenId);
+                                logger.log('🏠 Navigating to:', targetScreenId);
                                 if (typeof UI !== 'undefined' && UI.showScreen) {
                                     UI.showScreen(targetScreenId);
-                                    console.log('✅ Navigation complete');
+                                    logger.log('✅ Navigation complete');
                                 } else {
                                     console.error('❌ UI.showScreen is not available!');
                                 }
@@ -934,7 +865,7 @@ export const PracticeManager = {
                 ]
             });
         } else {
-            console.log('ℹ️ No active session, navigating directly to:', targetScreenId);
+            logger.log('ℹ️ No active session, navigating directly to:', targetScreenId);
             if (typeof Utils !== 'undefined' && Utils.stopAllSounds) {
                 Utils.stopAllSounds();
             }
@@ -944,7 +875,7 @@ export const PracticeManager = {
             this.currentSession = null;
             if (typeof UI !== 'undefined' && UI.showScreen) {
                 UI.showScreen(targetScreenId);
-                console.log('✅ Navigation complete');
+                logger.log('✅ Navigation complete');
             }
         }
     },
@@ -953,7 +884,7 @@ export const PracticeManager = {
         this.stopTimer();
 
         if (!timeLimit || timeLimit === 0) {
-            console.log('⏱️ Timer disabled (timeLimit = 0)');
+            logger.log('⏱️ Timer disabled (timeLimit = 0)');
             this.updateTimerDisplay(0, true);
             return;
         }
@@ -961,7 +892,7 @@ export const PracticeManager = {
         this.timeLimit = timeLimit;
         this.timeRemaining = timeLimit;
 
-        console.log(`⏱️ Starting timer: ${timeLimit} seconds`);
+        logger.log(`⏱️ Starting timer: ${timeLimit} seconds`);
 
         this.updateTimerDisplay(this.timeRemaining, false);
 
@@ -1081,7 +1012,7 @@ export const PracticeManager = {
     // Hết giờ ĐỒNG HỒ CẢ LƯỢT — chỉ còn dùng cho các chế độ đặc biệt.
     // 9 chế độ hỏi–đáp hết giờ theo TỪNG CÂU (xem questionTimer + onQuestionTimeout).
     onTimeUp() {
-        console.log('⏰ Time is up!');
+        logger.log('⏰ Time is up!');
 
         Notification.show({
             type: 'warning',

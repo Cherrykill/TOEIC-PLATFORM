@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Quest } from '@components/quest/quest.js';
-import { calculateProgress } from '@components/achievements/AchievementsScreen.jsx';
+import { calculateProgress } from '@components/achievements/achievementsProgress.js';
 import { authHeaders } from '@/auth/token.js';
 import { CheckinAPI } from '@api/checkin.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
