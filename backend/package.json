@@ -7,15 +7,8 @@
     "dev": "nodemon server.js",
     "optimize-images": "node scripts/optimize-images.js",
     "clean-uploads": "node scripts/clean-uploads.js",
-    "seed": "node utils/seedDatabase.js",
-    "seed:vocab": "node utils/seedVocabulary.js",
-    "seed:vocab:dry": "node utils/seedVocabulary.js --dry-run",
-    "seed:vocab:clear": "node utils/seedVocabulary.js --clear",
-    "seed:vocab:list": "node utils/seedVocabulary.js --list",
-    "seed:vocab:ets2024": "node utils/seedVocabulary.js --file=ETS2024.json",
-    "seed:vocab:ets2026": "node utils/seedVocabulary.js --file=ETS2026.json",
-    "create-admin": "node create-admin.js",
-    "change-password": "node change-password.js",
+    "create-admin": "node scripts/admin/create-admin.js",
+    "change-password": "node scripts/admin/change-password.js",
     "test": "jest --testPathPattern=tests/"
   },
   "dependencies": {
