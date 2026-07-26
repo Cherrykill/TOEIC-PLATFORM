@@ -2,7 +2,6 @@ import { useEffect, lazy, Suspense } from 'react';
 import { GameProvider, useGame } from '@game/GameContext.jsx';
 import { AuthProvider, useAuth } from '@components/auth/AuthContext.jsx';
 import { applyUiTheme, applySavedColorTheme } from '@/services/theme.js';
-import { startLeakMonitor } from '@lib/leakMonitor.js';
 import { InventoryAPI } from '@api/inventory.js';
 import { registerFrameCosmetics } from '@game/frames.js';
 import { registerBackgroundCosmetics } from '@game/backgrounds.js';
@@ -13,6 +12,7 @@ import { STORAGE_KEYS } from '@/constants/storageKeys.js';
 import './assets/styles/index.css';
 
 import LoadingScreen from '@ui/LoadingScreen.jsx';
+import ErrorBoundary from '@ui/ErrorBoundary.jsx';
 import TopNav from '@layouts/TopNav.jsx';
 import StatusBar from '@layouts/StatusBar.jsx';
 import SideMenu from '@layouts/SideMenu.jsx';
@@ -65,7 +65,10 @@ function AppInner() {
     const { validateToken, isServerSynced } = useAuth();
 
     useEffect(() => {
-        startLeakMonitor(); // chỉ chạy khi bật cờ ?debug=leaks / localStorage.debugLeaks
+        // Tách chunk riêng, chỉ tải khi bật cờ ?debug=leaks / localStorage.debugLeaks
+        if (location.search.includes('debug=leaks') || localStorage.getItem('debugLeaks') === '1') {
+            import('@lib/leakMonitor.js').then(m => m.startLeakMonitor());
+        }
         const savedTheme = localStorage.getItem(STORAGE_KEYS.THEME) || 'light';
         applyUiTheme(savedTheme);
         applySavedColorTheme();
@@ -162,10 +165,12 @@ function AppInner() {
 
 export default function App() {
     return (
-        <GameProvider>
-            <AuthProvider>
-                <AppInner />
-            </AuthProvider>
-        </GameProvider>
+        <ErrorBoundary>
+            <GameProvider>
+                <AuthProvider>
+                    <AppInner />
+                </AuthProvider>
+            </GameProvider>
+        </ErrorBoundary>
     );
 }
