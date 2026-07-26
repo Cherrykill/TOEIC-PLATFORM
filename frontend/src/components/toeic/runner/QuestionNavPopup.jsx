@@ -1,5 +1,28 @@
 import { useState } from 'react';
 
+// Nhãn từng Part cho lưới điều hướng — hiện rõ câu nào thuộc Part nào.
+const PART_LABEL = {
+    1: 'Part 1 · Photographs',
+    2: 'Part 2 · Question-Response',
+    3: 'Part 3 · Conversations',
+    4: 'Part 4 · Talks',
+    5: 'Part 5 · Incomplete Sentences',
+    6: 'Part 6 · Text Completion',
+    7: 'Part 7 · Reading Comprehension',
+};
+
+// Gom các câu (giữ index gốc) thành từng cụm Part liên tiếp, đúng thứ tự đề.
+function groupByPart(questions) {
+    const groups = [];
+    let cur = null;
+    questions.forEach((q, i) => {
+        const part = q?.part ?? 0;
+        if (!cur || cur.part !== part) { cur = { part, items: [] }; groups.push(cur); }
+        cur.items.push({ q, i });
+    });
+    return groups;
+}
+
 export default function QuestionNavPopup({ open, questions, currentIndex, answers, markedQuestions, onSelect, onClose }) {
     const [hover, setHover] = useState(null);
     if (!open) return null;
@@ -7,6 +30,25 @@ export default function QuestionNavPopup({ open, questions, currentIndex, answer
     // Preview theo câu đang hover; không hover thì lấy câu hiện tại.
     const previewIdx = hover != null ? hover : currentIndex;
     const pq = questions[previewIdx];
+    const groups = groupByPart(questions);
+
+    const renderBtn = ({ i }) => {
+        const classes = ['toeic-nav-btn'];
+        if (i === currentIndex) classes.push('current');
+        if (answers[i] !== undefined) classes.push('answered');
+        if (markedQuestions.has(i)) classes.push('marked');
+        return (
+            <button
+                key={i}
+                className={classes.join(' ')}
+                onClick={() => { onSelect(i); onClose(); }}
+                onMouseEnter={() => setHover(i)}
+                onMouseLeave={() => setHover(null)}
+            >
+                {i + 1}
+            </button>
+        );
+    };
 
     return (
         <div className="toeic-nav-popup" onClick={onClose}>
@@ -20,31 +62,25 @@ export default function QuestionNavPopup({ open, questions, currentIndex, answer
                     </button>
                 </div>
                 <div className="toeic-nav-body">
-                    {/* Cột trái: lưới số câu (cuộn riêng nếu nhiều) */}
+                    {/* Cột trái: lưới số câu TÁCH THEO TỪNG PART (cuộn riêng nếu nhiều) */}
                     <div className="toeic-nav-left">
                         <div className="toeic-nav-legend">
                             <span className="toeic-legend-item"><span className="toeic-legend-dot current"></span>Hiện tại</span>
                             <span className="toeic-legend-item"><span className="toeic-legend-dot answered"></span>Đã trả lời</span>
                             <span className="toeic-legend-item"><span className="toeic-legend-dot marked"></span>Đánh dấu</span>
                         </div>
-                        <div className="toeic-nav-grid">
-                            {questions.map((q, i) => {
-                                const classes = ['toeic-nav-btn'];
-                                if (i === currentIndex) classes.push('current');
-                                if (answers[i] !== undefined) classes.push('answered');
-                                if (markedQuestions.has(i)) classes.push('marked');
-                                return (
-                                    <button
-                                        key={i}
-                                        className={classes.join(' ')}
-                                        onClick={() => { onSelect(i); onClose(); }}
-                                        onMouseEnter={() => setHover(i)}
-                                        onMouseLeave={() => setHover(null)}
-                                    >
-                                        {i + 1}
-                                    </button>
-                                );
-                            })}
+                        <div className="toeic-nav-groups">
+                            {groups.map((g) => (
+                                <div key={`${g.part}-${g.items[0]?.i}`} className="toeic-nav-part-group">
+                                    <div className="toeic-nav-part-label">
+                                        {PART_LABEL[g.part] || `Part ${g.part}`}
+                                        <span className="toeic-nav-part-count">{g.items.length} câu</span>
+                                    </div>
+                                    <div className="toeic-nav-grid">
+                                        {g.items.map(renderBtn)}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -52,7 +88,10 @@ export default function QuestionNavPopup({ open, questions, currentIndex, answer
                     <div className="toeic-nav-right">
                         {pq && (
                             <div className="toeic-nav-preview">
-                                <div className="toeic-nav-preview-title">Câu {previewIdx + 1}</div>
+                                <div className="toeic-nav-preview-title">
+                                    Câu {previewIdx + 1}
+                                    {pq.part ? <span className="toeic-nav-preview-part"> · {PART_LABEL[pq.part] || `Part ${pq.part}`}</span> : null}
+                                </div>
                                 {pq.questionText
                                     ? <div className="toeic-nav-preview-q" dangerouslySetInnerHTML={{ __html: pq.questionText }} />
                                     : <div className="toeic-nav-preview-q toeic-nav-preview-muted">(Câu nghe — không có đề chữ)</div>}
