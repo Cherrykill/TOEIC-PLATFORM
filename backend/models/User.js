@@ -34,6 +34,9 @@ const UserSchema = new mongoose.Schema(
         },
         isActive: { type: Boolean, default: true },
         isLocked: { type: Boolean, default: false },
+        // Ngoại lệ mở khoá theo Level: bỏ qua mọi mốc FeatureUnlock, dùng full
+        // tính năng bất kể Level (tài khoản demo/test, admin tự thêm ở dashboard).
+        bypassFeatureLock: { type: Boolean, default: false },
         loginAttempts: { type: Number, default: 0 },
         lockUntil: { type: Date, default: null },
         lastLoginAt: { type: Date, default: Date.now },

@@ -16,9 +16,15 @@ const { requiredLevelFor } = require('../services/featureUnlock');
 async function eligibleByUnlock(userIds) {
     const need = await requiredLevelFor('feature:leaderboard');
     if (need <= 1) return null; // không khoá → không lọc
-    const ok = await UserProfile.find({ userId: { $in: userIds }, level: { $gte: need } })
-        .select('userId').lean();
-    return new Set(ok.map(p => String(p.userId)));
+    const [ok, bypass] = await Promise.all([
+        UserProfile.find({ userId: { $in: userIds }, level: { $gte: need } }).select('userId').lean(),
+        // Tài khoản ngoại lệ vẫn lên bảng dù chưa đủ Level.
+        User.find({ _id: { $in: userIds }, bypassFeatureLock: true }).select('_id').lean(),
+    ]);
+    return new Set([
+        ...ok.map(p => String(p.userId)),
+        ...bypass.map(u => String(u._id)),
+    ]);
 }
 
 const SORT_FIELD_MAP = { score: 'highestScore', xp: 'xp', totalXp: 'totalXp', streak: 'streakCurrent', accuracy: 'accuracy', playtime: 'totalPlayTime' };

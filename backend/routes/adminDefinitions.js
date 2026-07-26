@@ -11,6 +11,8 @@ const Category = require('../models/Category');
 const ChannelConfig = require('../models/ChannelConfig');
 const GameConfig = require('../models/GameConfig');
 const FeatureUnlock = require('../models/FeatureUnlock');
+const User = require('../models/User');
+const UserProfile = require('../models/UserProfile');
 const { clearUnlockCache } = require('../services/featureUnlock');
 const { clearGameConfigCache } = require('../services/gameConfig');
 const adminCtrl = require('../controllers/adminController');
@@ -492,6 +494,61 @@ router.delete('/feature-unlocks/:id', admin, async (req, res) => {
         if (!data) return res.status(404).json({ success: false, message: 'Not found' });
         clearUnlockCache();
         res.json({ success: true, message: 'Đã xóa mốc mở khoá' });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+
+// ===== Tài khoản ngoại lệ (bỏ qua mốc Level, dùng full tính năng) =====
+// Cờ nằm trên User.bypassFeatureLock — middleware auth đọc sẵn nên
+// requireLevel() không tốn thêm query nào.
+
+router.get('/feature-unlock-exceptions', admin, async (req, res) => {
+    try {
+        const users = await User.find({ bypassFeatureLock: true })
+            .select('email role createdAt').sort({ createdAt: -1 }).lean();
+        // Ghép Level + tên hiển thị để admin biết đang miễn cho ai.
+        const profiles = await UserProfile.find({ userId: { $in: users.map(u => u._id) } })
+            .select('userId username displayName level').lean();
+        const byUser = new Map(profiles.map(p => [String(p.userId), p]));
+        const data = users.map(u => {
+            const p = byUser.get(String(u._id)) || {};
+            return {
+                _id: u._id,
+                email: u.email,
+                role: u.role,
+                username: p.displayName || p.username || '',
+                level: p.level || 1,
+            };
+        });
+        res.json({ success: true, data });
+    } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+router.post('/feature-unlock-exceptions', admin, async (req, res) => {
+    try {
+        const email = String(req.body.email || '').trim().toLowerCase();
+        if (!email) return res.status(400).json({ success: false, message: 'Thiếu email' });
+
+        const user = await User.findOne({ email }).select('email bypassFeatureLock');
+        if (!user) return res.status(404).json({ success: false, message: `Không tìm thấy tài khoản: ${email}` });
+        if (user.bypassFeatureLock) {
+            return res.status(409).json({ success: false, message: `${email} đã ở trong danh sách ngoại lệ` });
+        }
+
+        user.bypassFeatureLock = true;
+        await user.save();
+        res.status(201).json({ success: true, message: `Đã thêm ${email} vào ngoại lệ (mở full tính năng)` });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+
+router.delete('/feature-unlock-exceptions/:userId', admin, async (req, res) => {
+    try {
+        const user = await User.findByIdAndUpdate(
+            req.params.userId,
+            { $set: { bypassFeatureLock: false } },
+            { new: true },
+        ).select('email');
+        if (!user) return res.status(404).json({ success: false, message: 'Not found' });
+        res.json({ success: true, message: `Đã gỡ ${user.email} khỏi ngoại lệ (áp lại mốc Level)` });
     } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 });
 

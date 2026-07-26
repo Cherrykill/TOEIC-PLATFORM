@@ -40,6 +40,7 @@ const protect = async (req, res, next) => {
         req.user = {
             id: user._id,
             role: user.role,
+            bypassFeatureLock: user.bypassFeatureLock === true,
         };
 
         next();

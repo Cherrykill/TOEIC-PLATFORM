@@ -15,11 +15,14 @@ router.get('/unlocks', protect, async (req, res, next) => {
             UserProfile.findOne({ userId: req.user.id }).select('level').lean(),
         ]);
         const level = profile?.level || 1;
+        // Ngoại lệ: coi như đã mở hết — UI không vẽ ổ khoá (server cũng cho qua).
+        const bypass = req.user?.bypassFeatureLock === true;
         res.json({
             success: true,
             data: {
                 level,
-                unlocks: list.map(u => ({ ...u, unlocked: level >= u.requiredLevel })),
+                bypass,
+                unlocks: list.map(u => ({ ...u, unlocked: bypass || level >= u.requiredLevel })),
             },
         });
     } catch (err) { next(err); }

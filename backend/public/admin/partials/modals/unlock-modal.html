@@ -43,3 +43,22 @@
         </form>
       </div>
     </div>
+
+    <!-- Thêm tài khoản ngoại lệ (bỏ qua mốc Level) modal -->
+    <div id="exception-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+      <div style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border-color);border-radius:14px;padding:24px;width:min(460px,94vw)">
+        <h3 style="margin:0 0 6px;font-size:18px;color:var(--primary)">Thêm tài khoản ngoại lệ</h3>
+        <p style="margin:0 0 16px;font-size:13px;color:var(--text-secondary)">
+          Tài khoản này sẽ dùng được <b>full tính năng</b>, bỏ qua mọi mốc Level.
+        </p>
+        <form id="exception-form">
+          <label style="font-size:12px;font-weight:600;color:var(--text-secondary)">Email tài khoản *</label>
+          <input type="email" id="exception-email" required placeholder="vd: demo@example.com"
+                 style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px;margin-top:4px;margin-bottom:16px">
+          <div style="display:flex;gap:10px;justify-content:flex-end">
+            <button type="button" id="btn-exception-cancel" class="btn btn-ghost">Hủy</button>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-user-shield"></i> Thêm</button>
+          </div>
+        </form>
+      </div>
+    </div>

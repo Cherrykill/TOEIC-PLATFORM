@@ -120,8 +120,75 @@
     });
   }
 
+  // ===== Tài khoản ngoại lệ (bỏ qua mốc Level) =====
+  async function loadExceptions() {
+    const tbody = document.getElementById('exception-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+    try {
+      const r = await fetch(`${API_URL}/admin/feature-unlock-exceptions`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const j = await r.json();
+      renderExceptions(j.success ? (j.data || []) : []);
+    } catch (e) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--danger)">${e.message}</td></tr>`;
+    }
+  }
+
+  function renderExceptions(list) {
+    const tbody = document.getElementById('exception-tbody');
+    if (!tbody) return;
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:20px">Chưa có tài khoản ngoại lệ nào</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(u => `<tr>
+        <td><strong>${esc(u.email)}</strong></td>
+        <td>${esc(u.username) || '<small style="color:var(--text-secondary)">—</small>'}</td>
+        <td><span class="badge neutral">Lv. ${u.level}</span></td>
+        <td>${u.role === 'admin' ? '<span class="badge success">admin</span>' : '<span class="badge neutral">user</span>'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-sm exc-del" data-id="${u._id}" data-email="${esc(u.email)}"
+                  style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5"><i class="fas fa-user-minus"></i> Gỡ</button>
+        </td>
+      </tr>`).join('');
+
+    tbody.querySelectorAll('.exc-del').forEach(b => b.onclick = async () => {
+      if (!confirm(`Gỡ "${b.dataset.email}" khỏi ngoại lệ? (Tài khoản sẽ bị khoá lại theo Level)`)) return;
+      const r = await fetch(`${API_URL}/admin/feature-unlock-exceptions/${b.dataset.id}`, {
+        method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const j = await r.json();
+      showToast(j.message || 'Đã gỡ', j.success ? 'success' : 'error');
+      if (j.success) loadExceptions();
+    });
+  }
+
+  function initExceptionModal() {
+    const modal = document.getElementById('exception-modal');
+    document.getElementById('btn-add-exception')?.addEventListener('click', () => {
+      document.getElementById('exception-email').value = '';
+      if (modal) modal.style.display = 'flex';
+    });
+    document.getElementById('btn-exception-cancel')?.addEventListener('click', () => {
+      if (modal) modal.style.display = 'none';
+    });
+    document.getElementById('exception-form')?.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const email = document.getElementById('exception-email').value.trim();
+      if (!email) return;
+      const r = await fetch(`${API_URL}/admin/feature-unlock-exceptions`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const j = await r.json();
+      showToast(j.message || 'Đã thêm', j.success ? 'success' : 'error');
+      if (j.success) { if (modal) modal.style.display = 'none'; loadExceptions(); }
+    });
+  }
+
   window.loadFeatureUnlocks = function () {
-    if (!inited) { inited = true; initModal(); }
+    if (!inited) { inited = true; initModal(); initExceptionModal(); }
     load();
+    loadExceptions();
   };
 })();

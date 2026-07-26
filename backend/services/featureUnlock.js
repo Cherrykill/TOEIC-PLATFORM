@@ -33,6 +33,9 @@ async function getUserLevel(userId) {
 function requireLevel(keyOf) {
     return async (req, res, next) => {
         try {
+            // Tài khoản ngoại lệ: full tính năng, không xét Level.
+            if (req.user?.bypassFeatureLock) return next();
+
             const key = typeof keyOf === 'function' ? keyOf(req) : keyOf;
             if (!key) return next();
 
