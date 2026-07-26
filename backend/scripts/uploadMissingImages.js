@@ -54,6 +54,7 @@ const LOCAL = '/assets/images/';
             // Dynamic folder mode: ép vị trí hiển thị về phẳng theo đề.
             try { await cloudinary.api.update(`${testId}/${base}`, { resource_type: 'image', asset_folder: testId }); } catch (_) {}
             uses.forEach(({ doc, i }) => { doc.imageUrls[i] = secureUrl; dirty.add(doc); });
+            fs.unlinkSync(abs); // Đã lên cloud (nguồn chính) → xoá bản local thừa.
         }
         uploaded++;
     }

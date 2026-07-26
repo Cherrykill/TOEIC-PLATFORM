@@ -56,6 +56,7 @@ const expectedFilename = (source, nums) => {
             try { await cloudinary.api.update(`${SOURCE}/${base}`, { resource_type: 'video', asset_folder: SOURCE }); } catch (_) {}
             doc.audioUrl = url;
             await doc.save();
+            fs.unlinkSync(abs); // Đã lên cloud (nguồn chính) → xoá bản local thừa.
         }
         uploaded++;
     }

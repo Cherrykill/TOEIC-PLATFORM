@@ -28,3 +28,5 @@ File mp3 **không** được commit (xem `.gitignore`).
 - Trên **đĩa local**, audio và ảnh nằm 2 đường riêng (`assets/audio/…` vs
   `assets/images/…`). Chỉ **trên Cloudinary** chúng mới chung 1 folder theo đề.
 - Nhóm câu đã có audio sẽ được bỏ qua khi upload (không đè).
+- Sau khi upload thành công, file local trong `assets/` **tự động bị xoá**
+  (Cloudinary là nguồn chính). Muốn dọn thủ công: `node scripts/pruneLocalAssets.js --apply`.
