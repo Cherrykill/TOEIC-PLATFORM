@@ -4,6 +4,7 @@ import { Config } from '@game/config.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { EnergyShop } from '@game/energyShop.js';
+import { logger } from '@lib/logger.js';
 
 export const Energy = {
 
@@ -113,11 +114,11 @@ export const Energy = {
     },
 
     onEnergyChanged(data) {
-        console.log('Energy changed:', data);
+        logger.log('Energy changed:', data);
     },
 
     onEnergyDepleted() {
-        console.log('Energy depleted!');
+        logger.log('Energy depleted!');
 
         Notification.show({
             type: 'warning',
@@ -129,7 +130,7 @@ export const Energy = {
     },
 
     onEnergyFull() {
-        console.log('Energy full!');
+        logger.log('Energy full!');
 
         Notification.show({
             type: 'success',

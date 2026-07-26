@@ -5,6 +5,7 @@
 import { Config } from '@game/config.js';
 import { EventBus } from '@game/eventBus.js';
 import { getVocabLang, normalizeVocabularyWords } from '@api/vocabulary.js';
+import { logger } from '@lib/logger.js';
 
 export const Http = {
 
@@ -49,7 +50,7 @@ export const Http = {
 
             config.signal = controller.signal;
 
-            console.log('🌐 HTTP Request:', config.method, fullUrl);
+            logger.log('🌐 HTTP Request:', config.method, fullUrl);
 
             const response = await fetch(fullUrl, config);
 
@@ -81,7 +82,7 @@ export const Http = {
                 throw new Error(data.message || `HTTP Error: ${response.status}`);
             }
 
-            console.log('✅ HTTP Response:', response.status);
+            logger.log('✅ HTTP Response:', response.status);
 
             return { success: true, data, status: response.status };
 
@@ -224,7 +225,7 @@ export const API = {
                         .replace(/undefined/g, 'null'); // Thay thế undefined bằng null
 
                     state.quests.daily = JSON.parse(jsonString);
-                    console.log('✅ Successfully parsed dailyQuests back to array.');
+                    logger.log('✅ Successfully parsed dailyQuests back to array.');
                 } catch (e) {
                     console.error('❌ Failed to parse dailyQuests string on client before sending:', e);
                 }

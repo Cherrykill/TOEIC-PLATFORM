@@ -3,6 +3,7 @@
 // ===================================
 
 import { API } from '@api/http.js';
+import { logger } from './logger.js';
 
 export const ServerStorage = {
     token: null,
@@ -18,7 +19,7 @@ export const ServerStorage = {
         // Token is now managed by Auth and Http modules.
         // We just need to read it when necessary.
         this.token = this.getToken();
-        console.log('ServerStorage initialized.');
+        logger.log('ServerStorage initialized.');
     },
 
     getToken() {
@@ -38,13 +39,13 @@ export const ServerStorage = {
         this.token = token;
         // Also update localStorage for consistency on reload
         localStorage.setItem('authToken', JSON.stringify({ token }));
-        console.log('🔑 ServerStorage: Token updated.');
+        logger.log('🔑 ServerStorage: Token updated.');
     },
 
     clearToken() {
         this.token = null;
         localStorage.removeItem('authToken');
-        console.log('🔑 ServerStorage: Token cleared.');
+        logger.log('🔑 ServerStorage: Token cleared.');
     },
 
     isCacheValid() {
@@ -56,7 +57,7 @@ export const ServerStorage = {
     // Game State
     // -------------------------------
     async getGameState() {
-        console.log('🌐 Fetching game state from server via API module...');
+        logger.log('🌐 Fetching game state from server via API module...');
         // ✅ FIX: Pass the token explicitly to the API call
         const response = await API.user.getState({
             headers: { Authorization: `Bearer ${this.token}` }
@@ -116,7 +117,7 @@ export const ServerStorage = {
     // ✅ NEW: Sync Settings to Server
     // -------------------------------
     async syncSettings(settings) {
-        console.log('📤 Syncing settings to server via API module...');
+        logger.log('📤 Syncing settings to server via API module...');
         const response = await API.auth.syncProgress({ settings }, {
             headers: { Authorization: `Bearer ${this.token}` }
         });
@@ -155,7 +156,7 @@ export const ServerStorage = {
     // -------------------------------
     clearCache() {
         this.cache.lastFetch = null;
-        console.log('🗑️ Cache cleared');
+        logger.log('🗑️ Cache cleared');
     },
 
     async syncToServer() {
@@ -166,7 +167,7 @@ export const ServerStorage = {
         }
 
         const state = JSON.parse(localState);
-        console.log('🔄 Syncing local state to server...');
+        logger.log('🔄 Syncing local state to server...');
         return await this.saveGameState(state);
     }
 };

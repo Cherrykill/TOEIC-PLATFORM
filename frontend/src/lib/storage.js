@@ -4,6 +4,7 @@
 
 import { ServerStorage } from './serverStorage.js';
 import { Utils } from './utils.js';
+import { logger } from './logger.js';
 
 export const Storage = {
     mode: 'local', // 'local' or 'server'
@@ -23,7 +24,7 @@ export const Storage = {
             this.mode = 'local';
             await this.set('storageMode', 'LOCAL');
         }
-        console.log(`📦 Storage initialized in ${this.mode.toUpperCase()} mode.`);
+        logger.log(`📦 Storage initialized in ${this.mode.toUpperCase()} mode.`);
     },
 
     /**
@@ -79,9 +80,9 @@ export const Storage = {
         try {
             // ✅ DEBUG: Log what we're saving
             if (key === 'gameState') {
-                console.log('💾 Storage.set(gameState): coins =', value.resources?.coins);
-                console.log('💾 Storage.set(gameState): has success field?', !!value.success);
-                console.log('💾 Storage.set(gameState): has data field?', !!value.data);
+                logger.log('💾 Storage.set(gameState): coins =', value.resources?.coins);
+                logger.log('💾 Storage.set(gameState): has success field?', !!value.success);
+                logger.log('💾 Storage.set(gameState): has data field?', !!value.data);
             }
 
             // Always save to localStorage first as a reliable backup
@@ -132,8 +133,8 @@ export const Storage = {
                 const state = await ServerStorage.getGameState();
                 if (state) {
                     // ✅ DEBUG: Log what we got from server
-                    console.log('🌐 Storage.get(gameState) from server: coins =', state.resources?.coins);
-                    console.log('🌐 Storage.get(gameState) from server: has success?', !!state.success);
+                    logger.log('🌐 Storage.get(gameState) from server: coins =', state.resources?.coins);
+                    logger.log('🌐 Storage.get(gameState) from server: has success?', !!state.success);
 
                     // Cache the server state locally
                     localStorage.setItem(key, JSON.stringify(state));

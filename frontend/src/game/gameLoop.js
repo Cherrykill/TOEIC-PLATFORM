@@ -2,6 +2,7 @@ import { GameState } from './state.js';
 import { Config } from '@game/config.js';
 import { Utils } from '@lib/utils.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
+import { logger } from '@lib/logger.js';
 
 export const GameLoop = {
 
@@ -161,7 +162,7 @@ export const EnergySystem = {
             this.regenerateEnergy();
         }, Config.game.energyRegenInterval);
 
-        console.log('Energy regeneration started');
+        logger.log('Energy regeneration started');
     },
 
     stopRegeneration() {
@@ -249,7 +250,7 @@ export const AutoSave = {
             this.save();
         }, Config.ui.autoSaveInterval);
 
-        console.log('Auto-save started');
+        logger.log('Auto-save started');
     },
 
     stop() {
@@ -264,7 +265,7 @@ export const AutoSave = {
         const isPracticing = currentScreen === 'practice-screen';
 
         if (isPracticing) {
-            console.log('⏸️ Auto-save skipped: Practice mode active');
+            logger.log('⏸️ Auto-save skipped: Practice mode active');
             return;
         }
 
@@ -281,7 +282,7 @@ export const GameSystems = {
         BoostChecker.start();
         AutoSave.start();
 
-        console.log('All game systems initialized');
+        logger.log('All game systems initialized');
     },
 
     stop() {
@@ -291,7 +292,7 @@ export const GameSystems = {
         BoostChecker.stop();
         AutoSave.stop();
 
-        console.log('All game systems stopped');
+        logger.log('All game systems stopped');
     },
 
     pause() {

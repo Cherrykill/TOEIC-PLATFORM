@@ -6,6 +6,7 @@ import { Config } from '@game/config.js';
 import { Utils } from '@lib/utils.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { Storage } from '@lib/storage.js';
+import { logger } from '@lib/logger.js';
 
 // Canonical default settings — single source for both the initial state
 // and "restore default settings" (avoids the two drifting apart).
@@ -134,7 +135,7 @@ export const GameState = {
     },
 
     async init() {
-        console.log('🚀 Initializing GameState...');
+        logger.log('🚀 Initializing GameState...');
 
         await Storage.init();
 
@@ -143,18 +144,18 @@ export const GameState = {
         let needsSave = false;
 
         if (savedState) {
-            console.log('📦 Loading saved state...');
-            console.log('🔍 DEBUG: savedState type:', typeof savedState, 'has success:', !!savedState.success, 'has data:', !!savedState.data);
-            console.log('🔍 DEBUG: savedState.resources?.coins:', savedState.resources?.coins);
-            console.log('🔍 DEBUG: savedState.data?.resources?.coins:', savedState.data?.resources?.coins);
+            logger.log('📦 Loading saved state...');
+            logger.log('🔍 DEBUG: savedState type:', typeof savedState, 'has success:', !!savedState.success, 'has data:', !!savedState.data);
+            logger.log('🔍 DEBUG: savedState.resources?.coins:', savedState.resources?.coins);
+            logger.log('🔍 DEBUG: savedState.data?.resources?.coins:', savedState.data?.resources?.coins);
 
             let cleanState = savedState;
             if (savedState.success && savedState.data) {
-                console.log('📤 Detected response wrapper, extracting data...');
+                logger.log('📤 Detected response wrapper, extracting data...');
                 cleanState = savedState.data;
             }
 
-            console.log('🔍 DEBUG: cleanState.resources?.coins:', cleanState.resources?.coins);
+            logger.log('🔍 DEBUG: cleanState.resources?.coins:', cleanState.resources?.coins);
             this.state = Utils.deepMerge(this.state, cleanState);
             // Luôn reset về Toàn bộ mỗi lần load — không giữ số câu cũ.
             this.state.settings.questionsPerSession = 'auto';
@@ -186,14 +187,14 @@ export const GameState = {
 
                 if (!existsInSavedState && this.state.settings[key] === undefined) {
                     this.state.settings[key] = defaultValue;
-                    console.log(`✅ Added missing setting: ${key} = ${defaultValue}`);
+                    logger.log(`✅ Added missing setting: ${key} = ${defaultValue}`);
                     needsSave = true;
                 } else if (existsInSavedState) {
-                    console.log(`✓ Setting "${key}" exists in saved state:`, cleanState.settings[key]);
+                    logger.log(`✓ Setting "${key}" exists in saved state:`, cleanState.settings[key]);
                 }
             }
         } else {
-            console.log('🆕 Initializing new user...');
+            logger.log('🆕 Initializing new user...');
             this.initializeNewUser();
             needsSave = true;
         }
@@ -241,7 +242,7 @@ export const GameState = {
         if (this._monthlyStatsMaintenance()) needsSave = true;
 
         if (this.state.achievements.length === 0 && !navigator.onLine) {
-            console.log('📡 Offline: initializing achievements from config...');
+            logger.log('📡 Offline: initializing achievements from config...');
             this.initializeAchievements();
             needsSave = true;
         }
@@ -250,20 +251,20 @@ export const GameState = {
             needsSave = true;
         }
 
-        console.log('⏭️ Skipping initial save to preserve server data');
+        logger.log('⏭️ Skipping initial save to preserve server data');
         needsSave = false;
 
         this._justInitialized = true;
         this._initBlockUntil = Date.now() + 5000;
-        console.log('🔒 Save operations BLOCKED for 5 seconds after init');
+        logger.log('🔒 Save operations BLOCKED for 5 seconds after init');
 
         setTimeout(() => {
             this._justInitialized = false;
-            console.log('🔓 Save operations UNBLOCKED - auto-save can now proceed normally');
+            logger.log('🔓 Save operations UNBLOCKED - auto-save can now proceed normally');
         }, 5000);
 
         EventBus.emit(GameEvents.GAME_INITIALIZED, this.state);
-        console.log('✅ GameState initialized successfully');
+        logger.log('✅ GameState initialized successfully');
     },
 
     /**
@@ -314,7 +315,7 @@ export const GameState = {
             const timeRemaining = Math.ceil((this._initBlockUntil - Date.now()) / 1000);
             // Not an error — intentional guard so a stray save() right after init
             // can't overwrite fresh server data. Logged at info level on purpose.
-            console.log(`⏭️ Save skipped (post-init guard, ${timeRemaining}s left) — server data preserved.`);
+            logger.log(`⏭️ Save skipped (post-init guard, ${timeRemaining}s left) — server data preserved.`);
             return false;
         }
 
@@ -324,7 +325,7 @@ export const GameState = {
 
         if (this._isSaving) {
             this._pendingSave = true;
-            console.log('⏳ Save in progress, will retry after completion...');
+            logger.log('⏳ Save in progress, will retry after completion...');
             return;
         }
 
@@ -342,10 +343,10 @@ export const GameState = {
             delete cleanState.success;
             delete cleanState.data;
 
-            console.log('💾 GameState._performSave() - About to save:');
-            console.log('   cleanState.resources.coins:', cleanState.resources?.coins);
-            console.log('   cleanState.resources.gems:', cleanState.resources?.gems);
-            console.log('   cleanState.user.level:', cleanState.user?.level);
+            logger.log('💾 GameState._performSave() - About to save:');
+            logger.log('   cleanState.resources.coins:', cleanState.resources?.coins);
+            logger.log('   cleanState.resources.gems:', cleanState.resources?.gems);
+            logger.log('   cleanState.user.level:', cleanState.user?.level);
 
             await Storage.set('gameState', cleanState);
             EventBus.emit(GameEvents.DATA_SAVED, cleanState);
@@ -353,7 +354,7 @@ export const GameState = {
             this._isSaving = false;
 
             if (this._pendingSave) {
-                console.log('🔁 Performing pending save...');
+                logger.log('🔁 Performing pending save...');
                 this._pendingSave = false;
                 await this._performSave();
             }
@@ -519,7 +520,7 @@ export const GameState = {
         const minutesPassed = Math.floor((now - lastUpdate) / 60000);
 
         if (minutesPassed > 0 && this.state.resources.energy < this.state.resources.maxEnergy) {
-            console.log(`⚡ Regenerating ${minutesPassed} energy...`);
+            logger.log(`⚡ Regenerating ${minutesPassed} energy...`);
 
             await this.addEnergy(minutesPassed);
             this.state.resources.lastEnergyUpdate = now;

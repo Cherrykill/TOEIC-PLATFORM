@@ -7,6 +7,7 @@ import { Utils } from '@lib/utils.js';
 import { Config } from '@game/config.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { PartSelector } from '@components/vocab/part/partSelector.js';
+import { logger } from '@lib/logger.js';
 
 export function vocabLang() {
     return GameState.state?.settings?.vocabLang || getVocabLang() || 'en';
@@ -40,13 +41,13 @@ export const GameLogic = {
         }
 
         this.vocabularyData = normalizeVocabularyWords(result.data);
-        console.log(`Loaded ${this.vocabularyData.length} vocabulary words`);
+        logger.log(`Loaded ${this.vocabularyData.length} vocabulary words`);
         EventBus.emit('vocab:loaded');
         return true;
     },
 
     async loadVocabularyBySource(source) {
-        console.log(`🔄 GameLogic: Loading vocabulary for source "${source}"...`);
+        logger.log(`🔄 GameLogic: Loading vocabulary for source "${source}"...`);
         try {
             const words = await VocabularyAPI.getWordsBySource(source);
             if (!Array.isArray(words) || words.length === 0) {
@@ -54,7 +55,7 @@ export const GameLogic = {
                 return false;
             }
             this.vocabularyData = normalizeVocabularyWords(words);
-            console.log(`✅ GameLogic: Loaded ${this.vocabularyData.length} words (source: ${source})`);
+            logger.log(`✅ GameLogic: Loaded ${this.vocabularyData.length} words (source: ${source})`);
             EventBus.emit('vocab:loaded');
             return true;
         } catch (err) {
@@ -71,14 +72,14 @@ export const GameLogic = {
         if (PartSelector.retryWords && PartSelector.retryWords.length > 0) {
             const words = [...PartSelector.retryWords];
             PartSelector.retryWords = null;
-            console.log(`🔁 Retry mode (getRandomWords): returning ${words.length} wrong words`);
+            logger.log(`🔁 Retry mode (getRandomWords): returning ${words.length} wrong words`);
             return words;
         }
 
         const settings = GameState.state?.settings || {};
         const levelFilter = settings.levelFilter;
 
-        console.log('🔍 getRandomWords DEBUG:', {
+        logger.log('🔍 getRandomWords DEBUG:', {
             difficulty: settings.difficulty,
             levelFilter: levelFilter,
             totalVocab: this.vocabularyData.length
@@ -91,10 +92,10 @@ export const GameLogic = {
                 return word.level && levelFilter.includes(word.level);
             });
 
-            console.log(`🎯 Filtered vocabulary by levels [${levelFilter.join(', ')}]: ${filteredData.length} words`);
+            logger.log(`🎯 Filtered vocabulary by levels [${levelFilter.join(', ')}]: ${filteredData.length} words`);
 
             if (filteredData.length > 0) {
-                console.log('📋 Sample filtered words:', filteredData.slice(0, 3).map(w => `${w.en} (${w.level})`));
+                logger.log('📋 Sample filtered words:', filteredData.slice(0, 3).map(w => `${w.en} (${w.level})`));
             }
 
             if (filteredData.length === 0) {
@@ -117,7 +118,7 @@ export const GameLogic = {
                 });
             }
         } else {
-            console.log('ℹ️ No level filter applied (adaptive mode or not set)');
+            logger.log('ℹ️ No level filter applied (adaptive mode or not set)');
         }
 
         return Utils.randomSample(filteredData, count);
@@ -131,13 +132,13 @@ export const GameLogic = {
         const settings = GameState.state?.settings || {};
         const levelFilter = settings.levelFilter;
 
-        console.log(`🔍 getWordsByPart("${part}") DEBUG:`, {
+        logger.log(`🔍 getWordsByPart("${part}") DEBUG:`, {
             difficulty: settings.difficulty,
             levelFilter: levelFilter
         });
 
         let words = this.vocabularyData.filter(word => word.part === part);
-        console.log(`📚 Total words in ${part}: ${words.length}`);
+        logger.log(`📚 Total words in ${part}: ${words.length}`);
 
         if (levelFilter && Array.isArray(levelFilter) && levelFilter.length > 0) {
             const beforeFilter = words.length;
@@ -145,7 +146,7 @@ export const GameLogic = {
                 return word.level && levelFilter.includes(word.level);
             });
 
-            console.log(`🎯 Filtered ${part} by levels [${levelFilter.join(', ')}]: ${beforeFilter} → ${words.length} words`);
+            logger.log(`🎯 Filtered ${part} by levels [${levelFilter.join(', ')}]: ${beforeFilter} → ${words.length} words`);
 
             if (words.length === 0) {
                 console.warn(`⚠️ No words found in ${part} with levels ${levelFilter.join(', ')}`);
@@ -157,10 +158,10 @@ export const GameLogic = {
                 });
             }
             else if (words.length > 0) {
-                console.log('📋 Sample words:', words.slice(0, 3).map(w => `${w.en} (${w.level})`));
+                logger.log('📋 Sample words:', words.slice(0, 3).map(w => `${w.en} (${w.level})`));
             }
         } else {
-            console.log('ℹ️ No level filter applied to Part');
+            logger.log('ℹ️ No level filter applied to Part');
         }
 
         return words;

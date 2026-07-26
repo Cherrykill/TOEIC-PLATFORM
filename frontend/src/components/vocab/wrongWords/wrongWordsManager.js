@@ -1,5 +1,6 @@
 import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
+import { logger } from '@lib/logger.js';
 
 export const WrongWordsManager = {
     baseURL: '/api/wrong-words',
@@ -22,10 +23,10 @@ export const WrongWordsManager = {
     async request(endpoint, options = {}) {
         const token = this.getToken();
 
-        console.log('🔑 WrongWordsManager.request() DEBUG:');
-        console.log('   Endpoint:', endpoint);
-        console.log('   Token exists:', !!token);
-        console.log('   Token value:', token ? token.substring(0, 30) + '...' : 'NULL');
+        logger.log('🔑 WrongWordsManager.request() DEBUG:');
+        logger.log('   Endpoint:', endpoint);
+        logger.log('   Token exists:', !!token);
+        logger.log('   Token value:', token ? token.substring(0, 30) + '...' : 'NULL');
 
         if (!token) {
             console.error('❌ NO AUTH TOKEN - Request aborted!');
@@ -44,14 +45,14 @@ export const WrongWordsManager = {
             }
         };
 
-        console.log('📤 Sending fetch request to:', url);
+        logger.log('📤 Sending fetch request to:', url);
 
         try {
             const response = await fetch(url, config);
-            console.log('📥 Response status:', response.status, response.statusText);
+            logger.log('📥 Response status:', response.status, response.statusText);
 
             const data = await response.json();
-            console.log('📥 Response data:', data);
+            logger.log('📥 Response data:', data);
 
             if (!response.ok) {
                 console.error(`API Error [${response.status}]:`, data);
@@ -66,7 +67,7 @@ export const WrongWordsManager = {
     },
 
     async addWrongWord(word) {
-        console.log('📝 Adding wrong word - Full object:', word);
+        logger.log('📝 Adding wrong word - Full object:', word);
 
         const wordId = word.id || word.wordId || word.en;
         const wordText = word.en || word.word;
@@ -91,7 +92,7 @@ export const WrongWordsManager = {
             image: word.image
         };
 
-        console.log('📤 Sending payload:', payload);
+        logger.log('📤 Sending payload:', payload);
 
         const result = await this.request('/', {
             method: 'POST',
@@ -107,7 +108,7 @@ export const WrongWordsManager = {
     },
 
     async recordCorrect(wordId) {
-        console.log('✅ Recording correct:', wordId);
+        logger.log('✅ Recording correct:', wordId);
 
         const result = await this.request(`/${wordId}/correct`, {
             method: 'POST'
@@ -141,17 +142,17 @@ export const WrongWordsManager = {
     },
 
     async getAllWrongWords(forceRefresh = false) {
-        console.log('🔍 getAllWrongWords() called, forceRefresh:', forceRefresh);
+        logger.log('🔍 getAllWrongWords() called, forceRefresh:', forceRefresh);
         const now = Date.now();
 
         if (!forceRefresh && this.cache && (now - this.lastFetch < this.cacheDuration)) {
-            console.log('   Using cached data:', this.cache);
+            logger.log('   Using cached data:', this.cache);
             return this.cache;
         }
 
-        console.log('   Calling API GET /api/wrong-words...');
+        logger.log('   Calling API GET /api/wrong-words...');
         const result = await this.request('/');
-        console.log('   API Response:', result);
+        logger.log('   API Response:', result);
 
         if (result.success) {
             this.cache = result.data || [];
@@ -186,7 +187,7 @@ export const WrongWordsManager = {
     },
 
     async bulkUpdate(words) {
-        console.log(`📦 Bulk updating ${words.length} words...`);
+        logger.log(`📦 Bulk updating ${words.length} words...`);
 
         const result = await this.request('/bulk', {
             method: 'POST',
@@ -195,7 +196,7 @@ export const WrongWordsManager = {
 
         if (result.success) {
             this.invalidateCache();
-            console.log('✅ Bulk update complete');
+            logger.log('✅ Bulk update complete');
         }
 
         return result;
@@ -205,11 +206,11 @@ export const WrongWordsManager = {
         const oldWrongWords = GameState.state?.progress?.wrongWords;
 
         if (!oldWrongWords || oldWrongWords.length === 0) {
-            console.log('ℹ️ No old wrong words to migrate');
+            logger.log('ℹ️ No old wrong words to migrate');
             return;
         }
 
-        console.log(`🔄 Migrating ${oldWrongWords.length} words from GameState...`);
+        logger.log(`🔄 Migrating ${oldWrongWords.length} words from GameState...`);
 
         const result = await this.bulkUpdate(oldWrongWords);
 
@@ -235,29 +236,29 @@ export const WrongWordsManager = {
 
     async updateUI() {
         try {
-            console.log('🎨 updateUI() called');
+            logger.log('🎨 updateUI() called');
             const words = await this.getAllWrongWords(true);
-            console.log(`   Found ${words.length} words to display`);
+            logger.log(`   Found ${words.length} words to display`);
 
             const wrongWordsCountEl = document.querySelector('#wrong-words-count span');
-            console.log('   wrongWordsCountEl:', wrongWordsCountEl);
+            logger.log('   wrongWordsCountEl:', wrongWordsCountEl);
 
             if (wrongWordsCountEl) {
                 wrongWordsCountEl.textContent = words.length;
-                console.log(`   ✅ Updated UI: ${words.length} words`);
+                logger.log(`   ✅ Updated UI: ${words.length} words`);
             } else {
                 console.error('   ❌ Element #wrong-words-count span NOT FOUND in DOM!');
             }
 
             const reviewCard = document.querySelector('.game-mode-card[data-mode="review-mistakes"]');
-            console.log('   reviewCard:', reviewCard);
+            logger.log('   reviewCard:', reviewCard);
 
             if (reviewCard && words.length > 0) {
                 reviewCard.style.border = '2px solid #f39c12';
-                console.log('   ✅ Updated card border (has words)');
+                logger.log('   ✅ Updated card border (has words)');
             } else if (reviewCard) {
                 reviewCard.style.border = '2px solid #ddd';
-                console.log('   ⚪ Updated card border (no words)');
+                logger.log('   ⚪ Updated card border (no words)');
             }
         } catch (error) {
             console.error('Error updating UI:', error);
@@ -265,11 +266,11 @@ export const WrongWordsManager = {
     },
 
     async init() {
-        console.log('🔧 Initializing WrongWordsManager...');
+        logger.log('🔧 Initializing WrongWordsManager...');
 
         const token = this.getToken();
         if (!token) {
-            console.log('👤 Guest mode - WrongWords disabled');
+            logger.log('👤 Guest mode - WrongWords disabled');
             return;
         }
 
@@ -279,11 +280,11 @@ export const WrongWordsManager = {
         }
 
         const wrongWords = await this.getAllWrongWords(true);
-        console.log(`📦 Preloaded ${wrongWords.length} wrong words from MongoDB`);
+        logger.log(`📦 Preloaded ${wrongWords.length} wrong words from MongoDB`);
 
-        console.log('⏭️ Skipping updateUI() - will be called by main.js after DOM ready');
+        logger.log('⏭️ Skipping updateUI() - will be called by main.js after DOM ready');
 
-        console.log('✅ WrongWordsManager initialized');
+        logger.log('✅ WrongWordsManager initialized');
     }
 };
 
