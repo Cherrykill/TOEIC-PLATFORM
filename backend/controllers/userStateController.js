@@ -6,7 +6,7 @@ const AchievementDefinition = require('../models/AchievementDefinition');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const logger = require('../utils/logger');
-const { buildFullState, applyEnergyRegen, applyLevelUp } = require('../utils/userStateHelper');
+const { buildFullState, applyEnergyRegen, applyLevelUp, awardXp } = require('../utils/userStateHelper');
 const Inventory = require('../services/inventoryService');
 const ItemDefinition = require('../models/ItemDefinition');
 const { logTxn } = require('../utils/economyLog');
@@ -242,10 +242,12 @@ exports.unlockAchievement = async (req, res, next) => {
 
         const stats = await UserStats.findOne({ userId });
         if (!stats) return res.status(404).json({ success: false, message: 'User not found' });
+        const profile = await UserProfile.findOne({ userId });
 
         // Grant rewards
         if (def.rewardCoins) stats.coins += def.rewardCoins;
-        if (def.rewardXp) { stats.xp += def.rewardXp; stats.totalXp += def.rewardXp; }
+        // Cộng XP có áp lên cấp ngay (giữ level khớp xp) — xem awardXp.
+        if (def.rewardXp && profile) awardXp(profile, stats, def.rewardXp);
         if (def.rewardGems) stats.gems += def.rewardGems;
         const achName = `Thành tích: ${def.name}`;
         if (def.rewardCoins) logTxn(userId, { type: 'achievement', direction: 'in', name: achName, amount: def.rewardCoins, currency: 'coins', balanceAfter: stats.coins });
@@ -275,6 +277,7 @@ exports.unlockAchievement = async (req, res, next) => {
                 claimedRewards: { xp: def.rewardXp, coins: def.rewardCoins, gems: def.rewardGems, items: rewardItems },
             }),
             stats.save(),
+            profile?.save(),
             Notification.create({
                 userId,
                 type: 'achievement',

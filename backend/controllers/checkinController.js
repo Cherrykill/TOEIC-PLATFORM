@@ -8,7 +8,9 @@
  */
 const UserCheckin = require('../models/UserCheckin');
 const UserStats = require('../models/UserStats');
+const UserProfile = require('../models/UserProfile');
 const { getPeriodKey } = require('../services/questPeriod');
+const { awardXp } = require('../utils/userStateHelper');
 const { logTxn } = require('../utils/economyLog');
 
 // Phần thưởng 7 ngày (mix coins/xp/gems, tăng dần, ngày 7 combo lớn).
@@ -76,10 +78,12 @@ exports.claim = async (req, res, next) => {
         // Cộng thưởng vào UserStats
         const stats = await UserStats.findOne({ userId });
         if (stats) {
+            const profile = await UserProfile.findOne({ userId });
             if (reward.coins) stats.coins += reward.coins;
-            if (reward.xp) { stats.xp += reward.xp; stats.totalXp = (stats.totalXp || 0) + reward.xp; }
+            // Cộng XP có áp lên cấp ngay (giữ level khớp xp) — xem awardXp.
+            if (reward.xp && profile) awardXp(profile, stats, reward.xp);
             if (reward.gems) stats.gems += reward.gems;
-            await stats.save();
+            await Promise.all([stats.save(), profile?.save()]);
             if (reward.coins) logTxn(userId, { type: 'checkin', direction: 'in', name: `Điểm danh ngày ${day}`, amount: reward.coins, currency: 'coins', balanceAfter: stats.coins });
             if (reward.gems)  logTxn(userId, { type: 'checkin', direction: 'in', name: `Điểm danh ngày ${day}`, amount: reward.gems, currency: 'gems', balanceAfter: stats.gems });
         }

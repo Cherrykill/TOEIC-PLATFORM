@@ -50,6 +50,27 @@ function applyLevelUp(profile, stats) {
 }
 
 /**
+ * Cộng XP từ các nguồn thưởng phụ (điểm danh, nhiệm vụ, quà, thành tích, vòng quay…)
+ * rồi ÁP DỤNG LÊN CẤP NGAY để `UserProfile.level` luôn khớp với `UserStats.xp`.
+ *
+ * Vì sao cần: level là nguồn sự thật cho khoá tính năng (feature unlock). Nếu chỉ
+ * `stats.xp += ...` mà quên áp lên cấp thì xp dồn lại nhưng level đứng yên → user
+ * đủ điều kiện mở tính năng nhưng server vẫn khoá (bug lệch level).
+ *
+ * Mutate profile + stats TẠI CHỖ (không tự save — caller lưu cả hai).
+ * Trả về { leveledUp, newLevel, coinsReward, xp }.
+ */
+function awardXp(profile, stats, amount) {
+    const xp = Math.max(0, Math.floor(Number(amount) || 0));
+    if (!xp) return { leveledUp: false, newLevel: profile.level, coinsReward: 0, xp: 0 };
+    stats.xp += xp;
+    stats.totalXp = (stats.totalXp || 0) + xp;
+    const r = applyLevelUp(profile, stats);
+    if (r.leveledUp) stats.coins += r.coinsReward;
+    return { ...r, xp };
+}
+
+/**
  * Build the full game state response (same shape as old User.getPublicProfile).
  * Fetches from all relevant collections.
  */
@@ -66,6 +87,16 @@ async function buildFullState(userId) {
     ]);
 
     if (!user || !profile || !stats) return null;
+
+    // Tự-chữa lệch level: nếu xp đã vượt ngưỡng mà level chưa lên (do một nguồn
+    // thưởng phụ trước đây cộng xp mà quên áp lên cấp), áp NGAY và lưu lại. Giữ
+    // bất biến `UserProfile.level` luôn khớp `UserStats.xp` — nguồn sự thật cho
+    // khoá tính năng. Idempotent: đã khớp thì applyLevelUp không đổi gì.
+    const heal = applyLevelUp(profile, stats);
+    if (heal.leveledUp) {
+        stats.coins += heal.coinsReward;
+        await Promise.all([profile.save(), stats.save()]);
+    }
 
     // Merge achievement definitions with user unlock status
     const unlockedMap = new Map(userAchs.map(a => [a.code, a]));
@@ -205,6 +236,7 @@ module.exports = {
     buildFullState,
     applyEnergyRegen,
     applyLevelUp,
+    awardXp,
     createUserWithDependents,
     XP_FORMULA,
 };

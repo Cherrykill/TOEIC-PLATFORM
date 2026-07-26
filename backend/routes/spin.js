@@ -3,7 +3,9 @@ const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const UserSpin = require('../models/UserSpin');
 const UserStats = require('../models/UserStats');
+const UserProfile = require('../models/UserProfile');
 const SpinConfig = require('../models/SpinConfig');
+const { applyLevelUp } = require('../utils/userStateHelper');
 const ItemDefinition = require('../models/ItemDefinition');
 const ChannelConfig = require('../models/ChannelConfig');
 const Inventory = require('../services/inventoryService');
@@ -189,6 +191,22 @@ router.post('/', protect, requireLevel('feature:spin'), async (req, res) => {
         if (mode === 'gem' && cost.gem)  logTxn(userId, { type: 'spin', direction: 'out', name: 'Vòng quay (đá)', amount: cost.gem, currency: 'gems', balanceAfter: upStats?.gems || 0 });
         if (prize.type === 'coins') logTxn(userId, { type: 'spin', direction: 'in', name: 'Trúng Vòng quay', amount: prize.amount, currency: 'coins', balanceAfter: upStats?.coins || 0 });
         if (prize.type === 'gems')  logTxn(userId, { type: 'spin', direction: 'in', name: 'Trúng Vòng quay', amount: prize.amount, currency: 'gems', balanceAfter: upStats?.gems || 0 });
+
+        // Trúng XP: $inc ở trên chỉ cộng xp, chưa áp lên cấp. Áp NGAY để level
+        // khớp xp (khoá tính năng đọc UserProfile.level). Xem awardXp/applyLevelUp.
+        if (prize.type === 'xp' && prize.amount > 0) {
+            const [profile, statsDoc] = await Promise.all([
+                UserProfile.findOne({ userId }),
+                UserStats.findOne({ userId }),
+            ]);
+            if (profile && statsDoc) {
+                const r = applyLevelUp(profile, statsDoc);
+                if (r.leveledUp) {
+                    statsDoc.coins += r.coinsReward;
+                    await Promise.all([profile.save(), statsDoc.save()]);
+                }
+            }
+        }
 
         // Phần thưởng là VẬT PHẨM inventory (dùng chung kho với shop/quest).
         if (prize.type === 'item' && prize.itemId) {

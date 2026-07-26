@@ -1,7 +1,9 @@
 const Notification = require('../models/Notification');
 const UserStats    = require('../models/UserStats');
+const UserProfile  = require('../models/UserProfile');
 const Inventory    = require('../services/inventoryService');
 const ItemDefinition = require('../models/ItemDefinition');
+const { awardXp }  = require('../utils/userStateHelper');
 const { logTxn }   = require('../utils/economyLog');
 
 const TAB_TYPES = {
@@ -128,10 +130,12 @@ exports.claimGift = async (req, res, next) => {
 
         const stats = await UserStats.findOne({ userId: req.user.id });
         if (stats) {
+            const profile = await UserProfile.findOne({ userId: req.user.id });
             if (coins) stats.coins += coins;
             if (gems)  stats.gems  += gems;
-            if (xp) { stats.xp += xp; stats.totalXp = (stats.totalXp || 0) + xp; }
-            await stats.save();
+            // Cộng XP có áp lên cấp ngay (giữ level khớp xp) — xem awardXp.
+            if (xp && profile) awardXp(profile, stats, xp);
+            await Promise.all([stats.save(), profile?.save()]);
             if (coins) logTxn(req.user.id, { type: 'gift', direction: 'in', name: 'Quà thông báo', amount: coins, currency: 'coins', balanceAfter: stats.coins });
             if (gems)  logTxn(req.user.id, { type: 'gift', direction: 'in', name: 'Quà thông báo', amount: gems, currency: 'gems', balanceAfter: stats.gems });
         }

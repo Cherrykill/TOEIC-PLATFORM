@@ -1,6 +1,8 @@
 const UserQuest = require('../models/UserQuest');
 const UserStats = require('../models/UserStats');
+const UserProfile = require('../models/UserProfile');
 const QuestDefinition = require('../models/QuestDefinition');
+const { awardXp } = require('../utils/userStateHelper');
 const logger = require('../utils/logger');
 // Period math moved to services/questPeriod.js (Phase 3).
 const { getPeriodKey, getNextReset } = require('../services/questPeriod');
@@ -283,11 +285,12 @@ const claimReward = async (req, res, next) => {
 
         const stats = await UserStats.findOne({ userId });
         if (stats) {
+            const profile = await UserProfile.findOne({ userId });
             stats.coins += q.rewardCoins;
-            stats.xp    += q.rewardXp;
-            stats.totalXp += q.rewardXp;
+            // Cộng XP có áp lên cấp ngay (giữ level khớp xp) — xem awardXp.
+            if (q.rewardXp && profile) awardXp(profile, stats, q.rewardXp);
             stats.gems  += q.rewardGems;
-            await stats.save();
+            await Promise.all([stats.save(), profile?.save()]);
             const qName = `Nhiệm vụ: ${q.name || q.code || ''}`.trim();
             if (q.rewardCoins) logTxn(userId, { type: 'quest', direction: 'in', name: qName, amount: q.rewardCoins, currency: 'coins', balanceAfter: stats.coins });
             if (q.rewardGems)  logTxn(userId, { type: 'quest', direction: 'in', name: qName, amount: q.rewardGems, currency: 'gems', balanceAfter: stats.gems });
