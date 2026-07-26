@@ -25,12 +25,15 @@ function groupByPart(questions) {
 
 export default function QuestionNavPopup({ open, questions, currentIndex, answers, markedQuestions, onSelect, onClose }) {
     const [hover, setHover] = useState(null);
+    // Lọc theo Part để đỡ cuộn: null = xem tất cả, hoặc chỉ 1 Part.
+    const [filterPart, setFilterPart] = useState(null);
     if (!open) return null;
 
     // Preview theo câu đang hover; không hover thì lấy câu hiện tại.
     const previewIdx = hover != null ? hover : currentIndex;
     const pq = questions[previewIdx];
     const groups = groupByPart(questions);
+    const shownGroups = filterPart == null ? groups : groups.filter(g => g.part === filterPart);
 
     const renderBtn = ({ i }) => {
         const classes = ['toeic-nav-btn'];
@@ -69,8 +72,29 @@ export default function QuestionNavPopup({ open, questions, currentIndex, answer
                             <span className="toeic-legend-item"><span className="toeic-legend-dot answered"></span>Đã trả lời</span>
                             <span className="toeic-legend-item"><span className="toeic-legend-dot marked"></span>Đánh dấu</span>
                         </div>
+                        {/* Lọc nhanh theo Part — bấm để chỉ hiện Part đó, khỏi cuộn cả bài. */}
+                        {groups.length > 1 && (
+                            <div className="toeic-nav-partfilter">
+                                <button
+                                    className={`toeic-nav-partchip${filterPart == null ? ' active' : ''}`}
+                                    onClick={() => setFilterPart(null)}
+                                >
+                                    Tất cả
+                                </button>
+                                {groups.map((g) => (
+                                    <button
+                                        key={g.part}
+                                        className={`toeic-nav-partchip${filterPart === g.part ? ' active' : ''}`}
+                                        title={PART_LABEL[g.part] || `Part ${g.part}`}
+                                        onClick={() => setFilterPart(filterPart === g.part ? null : g.part)}
+                                    >
+                                        P{g.part}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         <div className="toeic-nav-groups">
-                            {groups.map((g) => (
+                            {shownGroups.map((g) => (
                                 <div key={`${g.part}-${g.items[0]?.i}`} className="toeic-nav-part-group">
                                     <div className="toeic-nav-part-label">
                                         {PART_LABEL[g.part] || `Part ${g.part}`}

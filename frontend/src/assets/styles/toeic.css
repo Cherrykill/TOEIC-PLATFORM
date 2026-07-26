@@ -814,6 +814,37 @@
   color: var(--text-secondary);
 }
 
+/* Hàng chip lọc theo Part — flex wrap, bấm để lọc, đỡ cuộn. */
+.toeic-nav-partfilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.toeic-nav-partchip {
+  padding: 4px 10px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toeic-nav-partchip:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.toeic-nav-partchip.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
+}
+
 .toeic-nav-btn {
   width: 40px;
   height: 40px;
