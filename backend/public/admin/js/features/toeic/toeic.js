@@ -962,7 +962,7 @@ ${_SET_SHAPE}
 ${_SET_SHAPE}
 === LƯU Ý PART 3 (câu 32-70 — thường 3 câu/đoạn) ===
 - "audioUrl" đặt ở CẤP MÀN (dùng chung cho mọi câu), tên theo dải số: nhóm 32-34 → ets26t1-32-34.mp3.
-- "imageUrls" chỉ khi có biểu đồ/bảng, cũng ở cấp màn.
+- "imageUrls" LUÔN để rỗng []. TUYỆT ĐỐI KHÔNG tự bịa đường dẫn ảnh — Part 3 nghe là chính; nếu đoạn có biểu đồ/bảng thì admin tự upload ở tab "Trình dựng".
 === VÍ DỤ (màn 2 câu) ===
 [
   { "part": 3, "source": "ets26t1", "audioUrl": "/assets/audio/ets26t1/ets26t1-32-34.mp3", "imageUrls": [],
@@ -981,6 +981,7 @@ ${_SET_SHAPE}
 ${_SET_SHAPE}
 === LƯU Ý PART 4 (câu 71-100 — thường 3 câu/bài) ===
 - "audioUrl" ở CẤP MÀN, tên theo dải số: nhóm 71-73 → ets26t1-71-73.mp3.
+- "imageUrls" LUÔN để rỗng []. TUYỆT ĐỐI KHÔNG tự bịa đường dẫn ảnh — Part 4 nghe là chính; nếu bài có biểu đồ/bảng thì admin tự upload ở tab "Trình dựng".
 === VÍ DỤ (màn 2 câu) ===
 [
   { "part": 4, "source": "ets26t1", "audioUrl": "/assets/audio/ets26t1/ets26t1-71-73.mp3", "imageUrls": [],
@@ -1050,8 +1051,8 @@ ${_SET_SHAPE}
 === SỐ CÂU & SỐ CÂU MỖI MÀN THEO PART ===
 - Part 1 (1-6): 1 câu/màn · 1 ảnh + 1 audio · KHÔNG có "questionText"
 - Part 2 (7-31): 1 câu/màn · 1 audio · CHỈ 3 đáp án A/B/C
-- Part 3 (32-70): ~3 câu/màn · audio chung ở cấp màn
-- Part 4 (71-100): ~3 câu/màn · audio chung ở cấp màn
+- Part 3 (32-70): ~3 câu/màn · audio chung ở cấp màn · "imageUrls" LUÔN [] (không bịa đường dẫn ảnh)
+- Part 4 (71-100): ~3 câu/màn · audio chung ở cấp màn · "imageUrls" LUÔN [] (không bịa đường dẫn ảnh)
 - Part 5 (101-130): 1 câu/màn · không audio/ảnh
 - Part 6 (131-146): 4 câu/màn · 1 ảnh đoạn văn · KHÔNG có "questionText"
 - Part 7 (147-200): nhiều câu/màn · thêm "passageCount" 1-3, số ảnh = passageCount` + _Q_FOOTER,
