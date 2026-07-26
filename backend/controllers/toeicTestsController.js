@@ -100,7 +100,7 @@ exports.getTest = async (req, res, next) => {
 exports.createTest = async (req, res, next) => {
     try {
         const { testName, testType, description, source, level, totalTime: customTotalTime, questionSelectMode,
-            isFree, requiredCoins, requiredLevel } = req.body;
+            isFree, requiredCoins, requiredLevel, allowReuseQuestions } = req.body;
 
         // Điều kiện vào bài, chuẩn hoá 1 lần rồi dùng cho cả full-test lẫn mini-test.
         const accessFields = {
@@ -126,7 +126,9 @@ exports.createTest = async (req, res, next) => {
                     source: source || null,
                     createdBy: req.user.id,
                     isPublished: false,
-                    allowReuseQuestions: allowReuseQuestions || false,
+                    // undefined (form không gửi) → createFullTest chỉ chặn khi === false,
+                    // nên mặc định CHO reuse — khớp với nút "Generate" (generateFullTest).
+                    allowReuseQuestions,
                 });
 
                 // Override totalTime if custom time provided
