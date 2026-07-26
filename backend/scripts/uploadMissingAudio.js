@@ -36,8 +36,12 @@ const expectedFilename = (source, nums) => {
     console.log(`DB: ${mongoose.connection.name} | source: ${SOURCE} | mode: ${APPLY ? 'APPLY' : 'DRY-RUN'}\n`);
 
     const docs = await Q.find({ source: SOURCE, part: { $in: LISTENING } });
-    // Chỉ doc chưa có audioUrl
-    const missing = docs.filter(d => !d.audioUrl || !String(d.audioUrl).trim());
+    // "Thiếu" = chưa có audioUrl HOẶC audioUrl còn trỏ đường đĩa local (chưa lên
+    // cloud). Bản cloud thì bỏ qua (không đè).
+    const missing = docs.filter(d => {
+        const a = d.audioUrl;
+        return !a || !String(a).trim() || a.includes('/assets/');
+    });
     if (!missing.length) { console.log('Tất cả nhóm Listening đã có audio. Không cần làm gì.'); await mongoose.disconnect(); return; }
 
     let uploaded = 0; const noFile = [];
