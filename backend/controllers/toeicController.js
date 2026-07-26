@@ -62,14 +62,18 @@ exports.startAttempt = async (req, res, next) => {
             });
         }
 
-        // ĐÃ CÓ BÀI ĐANG LÀM DỞ cho đề này → dùng lại, KHÔNG trừ năng lượng/vàng
-        // lần nữa. Chống double-charge khi client gọi start nhiều lần (remount,
-        // bấm nhanh, StrictMode): trước đây mỗi lần gọi trừ 23⚡ nên vào ra vài
-        // lần là "hết năng lượng" dù ví còn dư.
+        // Dùng lại bài dở CHỈ khi nó vừa được tạo trong ít giây gần đây — để chống
+        // double-charge do client gọi start trùng (StrictMode/remount/double-click,
+        // đều cách nhau <1s). KHÔNG dùng lại bài dở CŨ: bỏ dở phiên trước rồi bấm
+        // "Bắt đầu" lại là bắt đầu MỚI → phải trừ năng lượng như thường (nếu muốn
+        // làm tiếp bài cũ thì dùng nút "Tiếp tục" = resume, không trừ). Trước đây
+        // reuse vô thời hạn nên vào lại bài bỏ dở là miễn phí mãi.
+        const REUSE_WINDOW_MS = 5 * 1000;
         let attempt = await ToeicAttempt.findOne({
             userId: req.user.id,
             testId: test._id,
             status: 'in-progress',
+            createdAt: { $gte: new Date(Date.now() - REUSE_WINDOW_MS) },
         }).sort({ createdAt: -1 });
 
         if (!attempt) {
@@ -112,6 +116,14 @@ exports.startAttempt = async (req, res, next) => {
                     currentEnergy: stats?.energy ?? 0,
                 });
             }
+
+            // Bắt đầu MỚI (đã trừ năng lượng) → bỏ mọi bài dở CŨ của đề này để
+            // không tích tụ nhiều bài in-progress (bài cũ 0 câu = mất mát bằng 0;
+            // nếu có câu thì user đã chủ động chọn "Bắt đầu" thay vì "Tiếp tục").
+            await ToeicAttempt.updateMany(
+                { userId: req.user.id, testId: test._id, status: 'in-progress' },
+                { $set: { status: 'abandoned' } }
+            );
 
             attempt = await ToeicAttempt.create({
                 userId: req.user.id,
