@@ -53,6 +53,13 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
         const v = Math.max(1, Math.min(180, parseInt(val) || 1));
         updateSetting('toeicCustomPartMin', { ...partMin, [id]: v });
     };
+    // Phần Đọc của TOEIC thật chỉ có 75' cho cả Part 5·6·7 — đặt quá mức đó là
+    // luyện sai nhịp, đến khi thi thật sẽ không kịp giờ. Chỉ CẢNH BÁO chứ không
+    // chặn: có người muốn tập chậm lúc mới bắt đầu.
+    const READING_BUDGET_MIN = 75;
+    const partMinValue = (p) => (typeof partMin[p.id] === 'number' ? partMin[p.id] : p.def);
+    const totalReadMin = READ_PARTS.reduce((sum, p) => sum + partMinValue(p), 0);
+    const overBudget = totalReadMin - READING_BUDGET_MIN;
 
     return (
         <div className="settings-section">
@@ -227,7 +234,7 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                             <p>Mức "Tùy chỉnh" ở popup. Mỗi Part một ngân sách riêng (chia ra giây/câu); Part Nghe do audio dẫn</p>
                         </div>
                         {READ_PARTS.map(p => {
-                            const val = typeof partMin[p.id] === 'number' ? partMin[p.id] : p.def;
+                            const val = partMinValue(p);
                             return (
                                 <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0' }}>
                                     <span style={{ fontSize: '0.9rem' }}>{p.name}</span>
@@ -243,6 +250,33 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                                 </div>
                             );
                         })}
+
+                        {/* Tổng 3 Part Đọc so với 75' của đề thi thật */}
+                        <div
+                            style={{
+                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                marginTop: 10, paddingTop: 10,
+                                borderTop: '1px solid var(--border-color, rgba(0,0,0,.08))',
+                                fontSize: '0.9rem', fontWeight: 600,
+                                color: overBudget > 0 ? 'var(--danger-color, #dc2626)' : 'var(--text-primary)',
+                            }}
+                        >
+                            <span>Tổng phần Đọc</span>
+                            <span>{totalReadMin} / {READING_BUDGET_MIN} phút</span>
+                        </div>
+
+                        {overBudget > 0 && (
+                            <p
+                                style={{
+                                    margin: '8px 0 0', fontSize: '0.85rem', lineHeight: 1.5,
+                                    color: 'var(--danger-color, #dc2626)',
+                                }}
+                            >
+                                <i className="fas fa-triangle-exclamation"></i>{' '}
+                                Vượt <strong>{overBudget} phút</strong> so với đề thi thật (Part 5·6·7 chỉ có {READING_BUDGET_MIN} phút).
+                                Hãy giảm bớt thời gian một trong các Part để luyện đúng nhịp thi.
+                            </p>
+                        )}
                     </div>
                 </>
             )}
