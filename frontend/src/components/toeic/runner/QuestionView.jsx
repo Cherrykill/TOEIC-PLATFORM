@@ -69,12 +69,16 @@ export default function QuestionView({
     return (
         <div className={`toeic-two-col-layout${isListening ? '' : ' reading'}`}>
             <div className="toeic-left-panel">
-                <div className="toeic-left-body">{leftContent}</div>
+                <div className="toeic-left-body">
+                    {/* Nút nghe thuộc cột "Câu hỏi" — giống màn nhóm (Part 3·4·6·7).
+                        Part 2 không có ảnh nên cột trái trước đây trống trơn. */}
+                    {hasAudio && (
+                        <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
+                    )}
+                    {leftContent}
+                </div>
             </div>
             <div className="toeic-right-panel">
-                {hasAudio && (
-                    <AudioPlayer part={question.part} playing={audioPlaying} onPlay={onPlayAudio} />
-                )}
                 {/* Số câu THẬT theo chuẩn TOEIC (7, 101…) — Part đơn 1·2·5 trước đây
                     không hiện. Part 6·7 có số IN SẴN trong ảnh scan nên bỏ qua. */}
                 {(question.globalQuestionNumber ?? question.questionNumber) != null && question.part !== 6 && question.part !== 7 && (
