@@ -10,7 +10,7 @@ const PART_NAMES = {
     7: 'Part 7: Reading Comprehension',
 };
 
-export default function PartTransitionModal({ fromPart, toPart, onContinue, onPauseForBreak }) {
+export default function PartTransitionModal({ fromPart, toPart, onContinue }) {
     const isListeningToReading = fromPart === 4 && toPart === 5;
     const directions = getPartDirections(toPart);
 
@@ -82,20 +82,11 @@ export default function PartTransitionModal({ fromPart, toPart, onContinue, onPa
                         }}
                     >
                         <i className="fas fa-info-circle" style={{ color: 'var(--info-color)' }}></i>{' '}
-                        Bạn có thể tạm dừng để nghỉ ngơi trước khi vào phần Reading
+                        Phần Đọc có 75 phút, đồng hồ bắt đầu chạy khi bạn vào Part 5
                     </p>
                 )}
 
                 <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {isListeningToReading && (
-                        <button
-                            className="toeic-action-btn"
-                            style={{ padding: 'var(--spacing-md) var(--spacing-xl)', fontSize: '1rem' }}
-                            onClick={onPauseForBreak}
-                        >
-                            <i className="fas fa-pause"></i> Tạm dừng nghỉ
-                        </button>
-                    )}
                     <button
                         className="toeic-action-btn primary"
                         style={{ padding: 'var(--spacing-md) var(--spacing-xl)', fontSize: '1rem' }}

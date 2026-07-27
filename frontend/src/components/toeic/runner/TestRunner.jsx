@@ -567,7 +567,6 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                     fromPart={attempt.pendingTransition.fromPart}
                     toPart={attempt.pendingTransition.toPart}
                     onContinue={() => attempt.acknowledgeTransition(true)}
-                    onPauseForBreak={() => { attempt.acknowledgeTransition(false); handlePause(); }}
                 />
             )}
         </div>
