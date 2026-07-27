@@ -180,10 +180,9 @@ export default function TestRunner({ config, onExit, onShowResults }) {
 
     // Khoá thanh tìm kiếm trên header CHỈ khi đang làm Full Test (mini/đục lỗ không khoá).
     useEffect(() => {
-        const lock = phase === 'running' && attempt.test?.testType === 'full-test';
-        EventBus.emit(GameEvents.TOEIC_SEARCH_LOCK, lock);
+        EventBus.emit(GameEvents.TOEIC_SEARCH_LOCK, phase === 'running' && isFullTest);
         return () => EventBus.emit(GameEvents.TOEIC_SEARCH_LOCK, false);
-    }, [phase, attempt.test?.testType]);
+    }, [phase, isFullTest]);
 
     // Start or resume attempt on mount
     useEffect(() => {
@@ -275,29 +274,31 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     const handleSelectAnswer = useCallback((answer) => {
         const q = attempt.currentQuestion;
         attempt.submitAnswer(answer);
-        // Reading: auto-advance after 1s (unless last / transition pending)
-        if (q && q.part >= 5) {
+        // Part Đọc: chọn xong tự sang câu kế sau 1s.
+        // TRỪ Full Test — thi thật phần Đọc tự quản lý thời gian, được quay lại
+        // sửa/bỏ qua câu tuỳ ý, nên không giật câu khỏi tay người làm bài.
+        // (Phần Nghe 1-4 vẫn tự chuyển vì audio dẫn nhịp.)
+        if (q && q.part >= 5 && !isFullTest) {
             setTimeout(() => {
                 if (!attempt.pendingTransition && attempt.currentIndex < attempt.questions.length - 1) {
                     attempt.nextQuestion();
                 }
             }, 1000);
         }
-    }, [attempt]);
+    }, [attempt, isFullTest]);
 
     // Đánh dấu rồi nhảy sang câu tiếp. Riêng FULL TEST: chỉ nhảy ở phần Đọc
     // (Part 5-7); phần Nghe (Part 1-4) tự chuyển theo audio nên chỉ đánh dấu.
     const handleToggleMark = useCallback(() => {
         attempt.toggleMark();
         const q = attempt.currentQuestion;
-        const isFullTest = attempt.test?.testType === 'full-test';
         const isListening = q && q.part <= 4;
         if (isFullTest && isListening) return; // chỉ đánh dấu, không nhảy
         if (!attempt.pendingTransition) {
             const [, end] = getGroupRange(attempt.questions, attempt.currentIndex);
             if (end < attempt.questions.length - 1) attempt.goToQuestionChecked(end + 1);
         }
-    }, [attempt]);
+    }, [attempt, isFullTest]);
 
     const handleCheckKeywords = useCallback(() => {
         const inputs = document.querySelectorAll('.keyword-blank-input');
@@ -463,7 +464,9 @@ export default function TestRunner({ config, onExit, onShowResults }) {
             clearInterval(id);
             // Câu cuối thì để đồng hồ tổng lo; tắt tự chuyển thì dừng ở 0 cho
             // người dùng tự bấm Tiếp (vẫn sửa được đáp án, không khoá gì).
-            if (atLast || !isToeicAutoAdvanceOn()) return;
+            // FULL TEST: phần Đọc KHÔNG bao giờ tự nhảy — thanh nhịp chỉ để
+            // liệu sức, còn 75' là của người làm bài tự chia.
+            if (atLast || isFullTest || !isToeicAutoAdvanceOn()) return;
             // Chờ đúng khoảng chuyển câu đã trừ khỏi ngân sách mỗi câu — có
             // trừ thì phải có nghỉ thật, không thì phép tính chỉ là lý thuyết.
             moveTimer = setTimeout(() => handleNextRef.current(), getToeicTransition() * 1000);
@@ -471,7 +474,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
 
         return () => { clearInterval(id); if (moveTimer) clearTimeout(moveTimer); };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [attempt.currentIndex, phase, attempt.questions.length, readingPlan, unlimited]);
+    }, [attempt.currentIndex, phase, attempt.questions.length, readingPlan, unlimited, isFullTest]);
 
     if (phase === 'loading') {
         return (
