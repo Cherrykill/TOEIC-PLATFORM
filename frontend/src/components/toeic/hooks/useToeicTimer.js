@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-function formatTime(seconds) {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
+/**
+ * Đồng hồ bài thi luôn đọc theo PHÚT, không tách giờ: chặng Đọc 75' hiện
+ * "75:00" thay vì "1:15:00". Đề TOEIC nói bằng phút (45'/75'/120') nên hiện
+ * dạng giờ khiến người làm bài không đối chiếu được với mốc mình biết.
+ */
+export function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
