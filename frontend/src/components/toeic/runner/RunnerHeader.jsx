@@ -2,7 +2,7 @@ import Timer from './Timer.jsx';
 import QuestionNav from './QuestionNav.jsx';
 
 export default function RunnerHeader({
-    testName, timer, isMarked, nav, pace, hidden = false,
+    testName, timer, isMarked, nav, pace, hidden = false, timerSectionLabel,
     onBack, onToggleNav, onToggleMark, onPause, onSubmit,
 }) {
     // Thanh nhịp của câu hiện tại dán vào MÉP DƯỚI header: cùng khối với đồng
@@ -34,7 +34,14 @@ export default function RunnerHeader({
                         <i className="fas fa-th"></i> Câu hỏi
                     </button>
                 )}
-                {timer && <Timer display={timer.display} warning={timer.warning} isUnlimited={timer.isUnlimited} />}
+                {timer && (
+                    <Timer
+                        display={timer.display}
+                        warning={timer.warning}
+                        isUnlimited={timer.isUnlimited}
+                        sectionLabel={timerSectionLabel}
+                    />
+                )}
                 <button className={`toeic-action-btn${isMarked ? ' active' : ''}`} onClick={onToggleMark}>
                     <i className="fas fa-bookmark"></i> Đánh dấu
                 </button>

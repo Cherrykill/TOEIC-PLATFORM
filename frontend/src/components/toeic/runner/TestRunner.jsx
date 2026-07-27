@@ -19,6 +19,10 @@ import {
     getToeicTransition,
     buildToeicReadingPlan,
     buildCustomReadingPlan,
+    buildFullTestReadingPlan,
+    isFullTestType,
+    FULL_TEST_LISTENING_SECONDS,
+    FULL_TEST_READING_SECONDS,
 } from '../toeicPartTime.js';
 
 // Dải index của nhóm chứa `index` (các câu liền kề cùng groupId). Không nhóm → [i,i].
@@ -55,12 +59,36 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     // Ref trỏ tới doSubmit MỚI NHẤT — tránh stale closure khi hết giờ (onTimeUp
     // deps [] sẽ ôm doSubmit của render đầu lúc attemptId còn null → submit lỗi).
     const doSubmitRef = useRef(null);
+
+    // ── FULL TEST: 2 chặng giờ chuẩn ETS, KHÔNG theo popup/Cài đặt ──────────
+    // Nghe 45' xuyên suốt Part 1-4, rồi Đọc 75' cho Part 5-7 (đồng hồ chạy lại
+    // từ đầu khi sang chặng Đọc), thay vì một đồng hồ tổng như đề thường.
+    const isFullTest = isFullTestType(attempt.test);
+    const section = (attempt.currentQuestion?.part ?? 1) <= 4 ? 'listening' : 'reading';
+    const timerTotal = isFullTest
+        ? (section === 'listening' ? FULL_TEST_LISTENING_SECONDS : FULL_TEST_READING_SECONDS)
+        : attempt.customTimeLimit;
+
+    // onTimeUp có deps [] nên đọc qua ref để không ôm giá trị của render đầu.
+    const isFullTestRef = useRef(false);
+    const sectionRef = useRef('listening');
+    const jumpToReadingRef = useRef(null);
+    isFullTestRef.current = isFullTest;
+    sectionRef.current = section;
+
     const onTimeUp = useCallback(() => {
+        // Hết 45' phần Nghe của Full Test → sang phần Đọc như thi thật,
+        // KHÔNG nộp bài. Chỉ hết giờ phần Đọc (hoặc đề thường) mới nộp.
+        if (isFullTestRef.current && sectionRef.current === 'listening') {
+            Notification.warning('Hết 45 phút phần Nghe — chuyển sang phần Đọc!');
+            jumpToReadingRef.current?.();
+            return;
+        }
         Notification.warning('Hết giờ! Tự động nộp bài...');
         setTimeout(() => doSubmitRef.current?.(), 2000);
     }, []);
 
-    const timer = useToeicTimer({ totalSeconds: attempt.customTimeLimit, onTimeUp });
+    const timer = useToeicTimer({ totalSeconds: timerTotal, onTimeUp });
 
     const handleAudioFinished = useCallback(() => {
         const q = attempt.currentQuestion;
@@ -90,13 +118,23 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         if (!isToeicQuestionTimerOn()) return;
         const q = attempt.currentQuestion;
         if (!q || q.part > 4) return;
-        if (attempt.customTimeLimit == null) return; // "không giới hạn" → không thanh
+        // "không giới hạn" → không thanh. Full Test luôn có giờ nên bỏ qua kiểm tra này.
+        if (!isFullTestType(attempt.test) && attempt.customTimeLimit == null) return;
         if (!Number.isFinite(duration) || duration <= 0) return;
         setScreenTotal(Math.ceil(duration));
         setScreenLeft(Math.max(0, Math.ceil(duration - currentTime)));
     }, [attempt]);
 
     const audio = useToeicAudio({ onFinished: handleAudioFinished, onProgress: handleAudioProgress });
+
+    // Hết giờ phần Nghe → cắt audio, nhảy thẳng tới câu Part 5 đầu tiên.
+    // Đổi part kéo theo đổi `section` → effect bên dưới đặt lại đồng hồ 75'.
+    jumpToReadingRef.current = () => {
+        const idx = attempt.questions.findIndex(q => Number(q.part) >= 5);
+        if (idx < 0) { doSubmitRef.current?.(); return; }  // đề không có phần Đọc
+        audio.stop();
+        attempt.goToQuestion(idx);
+    };
 
     // Ẩn header khi cuộn XUỐNG, hiện lại khi cuộn LÊN (để đọc câu dài rộng hơn).
     const [headerHidden, setHeaderHidden] = useState(false);
@@ -183,6 +221,18 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         if (phase === 'running') timer.start();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [phase]);
+
+    // Full Test: sang chặng Đọc thì đồng hồ chạy lại từ đầu với ngân sách 75'.
+    // (useToeicTimer chốt totalSeconds trong closure của start → phải start lại.)
+    const prevSectionRef = useRef(section);
+    useEffect(() => {
+        if (!isFullTest || phase !== 'running') return;
+        if (prevSectionRef.current === section) return;
+        prevSectionRef.current = section;
+        timer.reset();
+        timer.start();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [section, isFullTest, phase]);
 
     // Auto-play audio on question change (listening parts)
     useEffect(() => {
@@ -368,17 +418,22 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     // NGUỒN THỜI GIAN DUY NHẤT: con số người dùng chọn ở popup (customTimeLimit).
     // null = "không giới hạn". Bảng nhịp giây/câu chia theo CHÍNH nó, không phải
     // totalTime admin — nhờ vậy tổng và từng câu luôn khớp nhau.
-    const effectiveTotal = attempt.customTimeLimit; // giây, hoặc null/undefined
-    const unlimited = effectiveTotal === null || effectiveTotal === undefined;
+    // Riêng FULL TEST: ngân sách của CHẶNG hiện tại (45'/75'), không giới hạn
+    // cũng không áp dụng — giờ thi thật là cố định.
+    const effectiveTotal = isFullTest ? timerTotal : attempt.customTimeLimit;
+    const unlimited = !isFullTest && (effectiveTotal === null || effectiveTotal === undefined);
 
     // Bảng giờ Part Đọc, khớp với chế độ đã chọn ở popup:
+    //  - full test: chia đúng ngân sách 75' của chặng Đọc
     //  - custom: mỗi Part một ngân sách riêng (settings)
     //  - suggested/khác: chia tổng theo trọng số
     const readingPlan = useMemo(
-        () => attempt.timeMode === 'custom'
-            ? buildCustomReadingPlan(attempt.questions)
-            : buildToeicReadingPlan(effectiveTotal, attempt.questions),
-        [attempt.timeMode, effectiveTotal, attempt.questions],
+        () => isFullTest
+            ? buildFullTestReadingPlan(attempt.questions)
+            : attempt.timeMode === 'custom'
+                ? buildCustomReadingPlan(attempt.questions)
+                : buildToeicReadingPlan(effectiveTotal, attempt.questions),
+        [isFullTest, attempt.timeMode, effectiveTotal, attempt.questions],
     );
     const handleNextRef = useRef(handleNext);
     handleNextRef.current = handleNext;
@@ -453,6 +508,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
             <RunnerHeader
                 testName={attempt.test?.testName || ''}
                 timer={timer}
+                timerSectionLabel={isFullTest ? (section === 'listening' ? 'Nghe' : 'Đọc') : undefined}
                 nav={navProps}
                 hidden={headerHidden}
                 pace={{

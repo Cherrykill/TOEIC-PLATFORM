@@ -13,6 +13,18 @@ import { GameState } from '@game/state.js';
 // Part Đọc: thời gian mỗi câu suy ra từ đề, không cho đặt tay.
 export const AUTO_TIME_PARTS = [5, 6, 7];
 
+// ── FULL TEST: giờ chuẩn ETS, chia 2 chặng, KHÔNG theo settings ──────────────
+// Thi thật tính giờ riêng từng phần: Nghe 45' (Part 1-4) rồi Đọc 75' (Part 5-7),
+// không phải một đồng hồ tổng. Đây là con số cố định của kỳ thi nên mọi lựa
+// chọn thời gian ở popup / Cài đặt đều không áp lên Full Test.
+export const FULL_TEST_LISTENING_SECONDS = 45 * 60;
+export const FULL_TEST_READING_SECONDS = 75 * 60;
+
+/** Đề có phải Full Test không (backend dùng cả 'full' lẫn 'full-test'). */
+export function isFullTestType(test) {
+    return test?.testType === 'full' || test?.testType === 'full-test';
+}
+
 export const TOEIC_PART_TIMES = [
     { id: 1, name: 'Part 1 — Mô tả tranh',     def: 25 },
     { id: 2, name: 'Part 2 — Hỏi & đáp',       def: 20 },
@@ -91,14 +103,31 @@ export function buildToeicReadingPlan(totalSeconds, questions) {
 
     const transition = getToeicTransition();
     const usable = total - listeningTime - transition * reading.length;
+    return splitReadingByWeight(usable, reading);
+}
 
-    const weightSum = reading.reduce((sum, q) => sum + (READ_WEIGHT[q.part] || 1), 0);
+/** Chia một ngân sách giây cho các Part Đọc theo trọng số READ_WEIGHT. */
+function splitReadingByWeight(usable, readingQuestions) {
+    const weightSum = readingQuestions.reduce((sum, q) => sum + (READ_WEIGHT[q.part] || 1), 0);
+    if (!weightSum) return null;
     const plan = {};
     for (const part of AUTO_TIME_PARTS) {
         const w = READ_WEIGHT[part] || 1;
         plan[part] = Math.max(MIN_AUTO_SECONDS, Math.floor((usable * w) / weightSum));
     }
     return plan;
+}
+
+/**
+ * Bảng giây/câu Part Đọc cho FULL TEST: chia đúng ngân sách 75' của chặng Đọc
+ * (không trừ phần Nghe — chặng Nghe có đồng hồ 45' riêng).
+ */
+export function buildFullTestReadingPlan(questions) {
+    if (!Array.isArray(questions) || !questions.length) return null;
+    const reading = questions.filter(q => isAutoTimePart(q.part));
+    if (!reading.length) return null;
+    const usable = FULL_TEST_READING_SECONDS - getToeicTransition() * reading.length;
+    return splitReadingByWeight(usable, reading);
 }
 
 /**

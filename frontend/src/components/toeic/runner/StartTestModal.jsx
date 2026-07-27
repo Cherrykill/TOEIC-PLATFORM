@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toeicEnergyCost } from '../toeicCost.js';
-import { customTotalSeconds } from '../toeicPartTime.js';
+import { customTotalSeconds, isFullTestType } from '../toeicPartTime.js';
 
 /**
  * Popup chọn thời gian làm bài — 3 loại, hệ thống chia tổng đó ra mỗi câu Đọc:
@@ -21,7 +21,12 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
     // Đề chỉ Nghe (vd Part 2) thì ẩn hẳn lựa chọn này.
     const hasReading = [5, 6, 7].some(p => partCounts[p] > 0);
 
+    // Full Test tính giờ theo chuẩn ETS (Nghe 45' + Đọc 75'), runner tự áp —
+    // popup không cho chọn để khỏi hiểu nhầm là đổi được.
+    const isFullTest = isFullTestType(test);
+
     const handleStart = () => {
+        if (isFullTest) return onConfirm(undefined, 'full');
         // Truyền kèm timeMode để runner dựng bảng giây/câu KHỚP với tổng đã chọn.
         if (selected === 'unlimited') return onConfirm(null, 'unlimited');
         if (selected === 'custom' && hasReading) return onConfirm(customSec, 'custom');
@@ -54,27 +59,54 @@ export default function StartTestModal({ test, onConfirm, onCancel }) {
                             </strong>
                         </p>
 
-                        <div className="toeic-time-options">
-                            {OPTIONS.map(o => (
-                                <button
-                                    key={o.key}
-                                    className={`toeic-time-option${selected === o.key ? ' active' : ''}`}
-                                    onClick={() => setSelected(o.key)}
-                                >
-                                    <span className="toeic-time-option-icon">{o.icon}</span>
-                                    <span className="toeic-time-option-text">
-                                        <b>{o.label}</b>
-                                        <small>{o.desc}</small>
-                                    </span>
-                                    {selected === o.key && <i className="fas fa-check-circle toeic-time-option-check"></i>}
-                                </button>
-                            ))}
-                        </div>
+                        {isFullTest ? (
+                            <>
+                                <div className="toeic-time-options">
+                                    <div className="toeic-time-option active" style={{ cursor: 'default' }}>
+                                        <span className="toeic-time-option-icon">🎧</span>
+                                        <span className="toeic-time-option-text">
+                                            <b>Phần Nghe — 45 phút</b>
+                                            <small>Part 1 → 4, đếm ngược xuyên suốt</small>
+                                        </span>
+                                    </div>
+                                    <div className="toeic-time-option active" style={{ cursor: 'default' }}>
+                                        <span className="toeic-time-option-icon">📖</span>
+                                        <span className="toeic-time-option-text">
+                                            <b>Phần Đọc — 75 phút</b>
+                                            <small>Part 5 → 7, đồng hồ chạy lại từ đầu</small>
+                                        </span>
+                                    </div>
+                                </div>
+                                <p style={{ fontSize: '0.82em', color: 'var(--text-tertiary)', marginTop: 14, marginBottom: 0 }}>
+                                    <i className="fas fa-info-circle"></i> Full Test tính giờ theo chuẩn ETS (45' + 75' = 120')
+                                    nên không đổi được, kể cả trong Cài đặt. Hết 45' phần Nghe sẽ tự chuyển sang phần Đọc.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <div className="toeic-time-options">
+                                    {OPTIONS.map(o => (
+                                        <button
+                                            key={o.key}
+                                            className={`toeic-time-option${selected === o.key ? ' active' : ''}`}
+                                            onClick={() => setSelected(o.key)}
+                                        >
+                                            <span className="toeic-time-option-icon">{o.icon}</span>
+                                            <span className="toeic-time-option-text">
+                                                <b>{o.label}</b>
+                                                <small>{o.desc}</small>
+                                            </span>
+                                            {selected === o.key && <i className="fas fa-check-circle toeic-time-option-check"></i>}
+                                        </button>
+                                    ))}
+                                </div>
 
-                        <p style={{ fontSize: '0.82em', color: 'var(--text-tertiary)', marginTop: 14, marginBottom: 0 }}>
-                            <i className="fas fa-info-circle"></i> Part 5·6·7 (Đọc) chia đều tổng thời gian này ra mỗi câu.
-                            Part Nghe do audio dẫn nhịp. Đổi mức "Tùy chỉnh" trong Cài đặt → Luyện tập.
-                        </p>
+                                <p style={{ fontSize: '0.82em', color: 'var(--text-tertiary)', marginTop: 14, marginBottom: 0 }}>
+                                    <i className="fas fa-info-circle"></i> Part 5·6·7 (Đọc) chia đều tổng thời gian này ra mỗi câu.
+                                    Part Nghe do audio dẫn nhịp. Đổi mức "Tùy chỉnh" trong Cài đặt → Luyện tập.
+                                </p>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className="modal-footer">
