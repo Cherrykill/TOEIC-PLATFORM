@@ -130,27 +130,60 @@ function buildSetPayload(body) {
  * @route   GET /api/toeic/questions
  * @access  Private/Admin
  */
+// Thứ tự sắp xếp cho bảng câu hỏi admin. Mặc định 'newest' — thêm màn xong
+// phải thấy nó ngay đầu bảng; sắp theo `source` như trước khiến màn mới của đề
+// có mã đứng cuối bảng chữ cái bị đẩy ra tận cuối danh sách.
+const QUESTION_SORTS = {
+    newest: { createdAt: -1 },
+    oldest: { createdAt: 1 },
+    'part-asc': { part: 1, 'questions.0.number': 1 },
+    'part-desc': { part: -1, 'questions.0.number': 1 },
+    'most-used': { 'questions.0.timesUsed': -1 },
+    'least-used': { 'questions.0.timesUsed': 1 },
+    source: { source: 1, part: 1, 'questions.0.number': 1 },
+};
+
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 exports.getQuestions = async (req, res, next) => {
     try {
-        const { part, topic, source, page = 1, limit = 20 } = req.query;
+        const { part, topic, source, search, sort = 'newest', page = 1, limit = 20 } = req.query;
         const query = {};
         if (part) query.part = parseInt(part);
         if (topic) query.topic = topic;
         if (source) query.source = source;
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        // Tìm theo nội dung — LỌC Ở SERVER để quét toàn bộ kho, không phải chỉ
+        // phần đã tải về trang hiện tại.
+        if (search && String(search).trim()) {
+            const rx = new RegExp(escapeRegex(String(search).trim()), 'i');
+            query.$or = [
+                { 'questions.questionText': rx },
+                { 'questions.options.text': rx },
+                { passages: rx },
+                { audioText: rx },
+            ];
+        }
+
+        const perPage = Math.min(200, Math.max(1, parseInt(limit) || 20));
+        const curPage = Math.max(1, parseInt(page) || 1);
+        const skip = (curPage - 1) * perPage;
+
         // Một dòng = một MÀN (Part 1/2/5 là màn 1 câu).
-        const sets = await ToeicQuestionSet.find(query)
-            .sort({ source: 1, part: 1, 'questions.0.number': 1 })
-            .limit(parseInt(limit)).skip(skip).lean();
-        const total = await ToeicQuestionSet.countDocuments(query);
+        const [sets, total] = await Promise.all([
+            ToeicQuestionSet.find(query)
+                .sort(QUESTION_SORTS[sort] || QUESTION_SORTS.newest)
+                .limit(perPage).skip(skip).lean(),
+            ToeicQuestionSet.countDocuments(query),
+        ]);
 
         res.json({
             success: true,
             count: sets.length,
             total,
-            page: parseInt(page),
-            pages: Math.ceil(total / parseInt(limit)),
+            page: curPage,
+            limit: perPage,
+            pages: Math.ceil(total / perPage),
             data: sets,
         });
     } catch (error) {

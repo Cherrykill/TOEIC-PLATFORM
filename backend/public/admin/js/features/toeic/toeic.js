@@ -26,11 +26,26 @@ async function loadToeicStats() {
     }
 }
 
-async function loadQuestions(filterPart = '', _page = 1) {
+async function loadQuestions(filterPart = '', page = 1) {
     try {
         questionsPagination.filterPart = filterPart;
+        if (filterPart) searchFilters.part = filterPart;
+        questionsPagination.currentPage = page;
 
-        const res = await fetch(`${TOEIC_API_BASE}/questions?limit=1000`, {
+        // LỌC/PHÂN TRANG Ở SERVER. Trước đây tải cứng 1000 màn rồi lọc tại chỗ:
+        // kho có 1800+ màn nên phần dôi ra không bao giờ tải về — lọc theo Part
+        // ra thiếu, và màn vừa thêm của đề có mã đứng cuối bảng chữ cái thì
+        // không bao giờ hiện.
+        const params = new URLSearchParams({
+            page: questionsPagination.currentPage,
+            limit: questionsPagination.limit,
+            sort: searchFilters.sortBy || 'newest',
+        });
+        if (searchFilters.part) params.set('part', searchFilters.part);
+        if (searchFilters.source) params.set('source', searchFilters.source);
+        if (searchFilters.searchText) params.set('search', searchFilters.searchText);
+
+        const res = await fetch(`${TOEIC_API_BASE}/questions?${params}`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
 
@@ -42,14 +57,16 @@ async function loadQuestions(filterPart = '', _page = 1) {
 
         allQuestions = data.data || [];
         currentQuestions = [...allQuestions];
+        questionsPagination.total = data.total || 0;
+        questionsPagination.totalPages = data.pages || 1;
 
         if (!window.searchFiltersInitialized) {
             initSearchAndFilters();
             window.searchFiltersInitialized = true;
         }
 
-        populateSourceFilter();
-        applyFiltersAndSort();
+        await populateSourceFilter();
+        renderQuestionsAndPager();
 
     } catch (error) {
         console.error('Error loading questions:', error);
@@ -206,16 +223,25 @@ function restoreHighlights() {
     }
 }
 
-// Đổ danh sách nguồn (source) vào select lọc — lấy distinct từ dữ liệu đã tải.
-function populateSourceFilter() {
+// Đổ danh sách nguồn (source) vào select lọc. Lấy DISTINCT TỪ SERVER — suy ra
+// từ dữ liệu đã tải chỉ cho ra các nguồn có mặt trong trang hiện tại, thiếu hẳn
+// những đề còn lại trong kho.
+let _sourceOptionsLoaded = false;
+async function populateSourceFilter() {
     const sel = document.getElementById('filter-source');
-    if (!sel) return;
-    const sources = [...new Set((allQuestions || []).map(q => q.source).filter(Boolean))]
-        .sort((a, b) => a.localeCompare(b));
-    const cur = sel.value;
-    sel.innerHTML = '<option value="">Tất cả nguồn</option>'
-        + sources.map(s => `<option value="${s}">${s}</option>`).join('');
-    if (sources.includes(cur)) sel.value = cur; // giữ lựa chọn sau khi tải lại
+    if (!sel || _sourceOptionsLoaded) return;
+    try {
+        const res = await fetch(`${TOEIC_API_BASE}/questions/sources`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+        });
+        const data = await res.json();
+        const sources = data.success ? (data.data || []) : [];
+        const cur = sel.value;
+        sel.innerHTML = '<option value="">Tất cả nguồn</option>'
+            + sources.map(s => `<option value="${s}">${s}</option>`).join('');
+        if (sources.includes(cur)) sel.value = cur; // giữ lựa chọn sau khi tải lại
+        _sourceOptionsLoaded = true;
+    } catch (_) { /* để nguyên "Tất cả nguồn" nếu tải hỏng */ }
 }
 
 function initSearchAndFilters() {
@@ -269,55 +295,14 @@ function initSearchAndFilters() {
     }
 }
 
+// Đổi bộ lọc → luôn về trang 1 rồi hỏi lại server (lọc/sắp/phân trang đều ở
+// server nên kết quả tính trên TOÀN BỘ kho, không phải phần đã tải).
 function applyFiltersAndSort() {
-    let filtered = [...allQuestions];
+    loadQuestions(searchFilters.part || '', 1);
+}
 
-    if (searchFilters.searchText) {
-        const t = searchFilters.searchText;
-        filtered = filtered.filter(q => {
-            const inText = q.questionText && q.questionText.toLowerCase().includes(t);
-            // passages: mảng (mới) hoặc passage chuỗi (cũ)
-            const passageStr = Array.isArray(q.passages) ? q.passages.join(' ') : (q.passage || '');
-            const inPassage = passageStr.toLowerCase().includes(t);
-            // explanation: object {A,B,C,D} (mới) hoặc chuỗi (cũ)
-            const explStr = (q.explanation && typeof q.explanation === 'object')
-                ? Object.values(q.explanation).join(' ') : (q.explanation || '');
-            const inExpl = String(explStr).toLowerCase().includes(t);
-            // options: object {label,text} (mới) hoặc chuỗi (cũ)
-            const inOptions = Array.isArray(q.options)
-                && q.options.some(opt => String(opt?.text ?? opt ?? '').toLowerCase().includes(t));
-            return inText || inPassage || inExpl || inOptions;
-        });
-    }
-
-    if (searchFilters.part) {
-        filtered = filtered.filter(q => q.part === parseInt(searchFilters.part));
-    }
-
-    if (searchFilters.source) {
-        filtered = filtered.filter(q => q.source === searchFilters.source);
-    }
-
-    switch (searchFilters.sortBy) {
-        case 'newest': filtered.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)); break;
-        case 'oldest': filtered.sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0)); break;
-        case 'most-used': filtered.sort((a, b) => (b.timesUsed || 0) - (a.timesUsed || 0)); break;
-        case 'least-used': filtered.sort((a, b) => (a.timesUsed || 0) - (b.timesUsed || 0)); break;
-        case 'part-asc': filtered.sort((a, b) => a.part - b.part); break;
-        case 'part-desc': filtered.sort((a, b) => b.part - a.part); break;
-    }
-
-    questionsPagination.total = filtered.length;
-    questionsPagination.totalPages = Math.ceil(filtered.length / questionsPagination.limit);
-
-    if (questionsPagination.currentPage > questionsPagination.totalPages) {
-        questionsPagination.currentPage = 1;
-    }
-
-    const start = (questionsPagination.currentPage - 1) * questionsPagination.limit;
-    const end = start + questionsPagination.limit;
-    currentQuestions = filtered.slice(start, end);
-
+// Vẽ bảng + thanh phân trang từ trang server vừa trả về.
+function renderQuestionsAndPager() {
     renderQuestionsTable();
     renderPager('questions-pagination', {
         page: questionsPagination.currentPage,
@@ -325,8 +310,7 @@ function applyFiltersAndSort() {
         total: questionsPagination.total,
         itemName: 'màn',
         onPage: (page) => {
-            questionsPagination.currentPage = page;
-            applyFiltersAndSort();
+            loadQuestions(searchFilters.part || '', page);
             document.querySelector('#questions-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
     });
