@@ -1,4 +1,4 @@
-// Quét bảng đáp án từ ảnh → đối chiếu → sửa đáp án câu hỏi.
+// Nạp bộ đáp án dạng JSON → đối chiếu → sửa đáp án câu hỏi. Không gọi AI ở server.
 (function () {
     let inited = false;
     let lastCompare = null;   // kết quả đối chiếu gần nhất { source, comparison }
@@ -24,7 +24,7 @@
         const tbody = document.getElementById('ak-tbody');
         if (!tbody) return;
         if (!list.length) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:20px">Chưa quét bộ đáp án nào</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:20px">Chưa nạp bộ đáp án nào</td></tr>';
             return;
         }
         tbody.innerHTML = list.map(k => `<tr>
@@ -41,7 +41,7 @@
 
         tbody.querySelectorAll('.ak-compare').forEach(b => b.onclick = () => compareSource(b.dataset.src));
         tbody.querySelectorAll('.ak-del').forEach(b => b.onclick = async () => {
-            if (!confirm(`Xoá bộ đáp án của "${b.dataset.src}"? (Câu hỏi giữ nguyên, chỉ xoá bản đáp án đã quét)`)) return;
+            if (!confirm(`Xoá bộ đáp án của "${b.dataset.src}"? (Câu hỏi giữ nguyên, chỉ xoá bộ đáp án đã nạp)`)) return;
             const r = await fetch(`${TOEIC_API_BASE}/answer-keys/${encodeURIComponent(b.dataset.src)}`, {
                 method: 'DELETE', headers: auth(),
             });
@@ -51,42 +51,120 @@
         });
     }
 
-    // ── Quét ảnh ────────────────────────────────────────────────────────────
-    async function scan(btn) {
-        const source = document.getElementById('ak-source')?.value.trim();
-        const range = document.getElementById('ak-range')?.value.trim();
-        const file = document.getElementById('ak-image')?.files?.[0];
+    const target = () => ({
+        source: document.getElementById('ak-source')?.value.trim() || '',
+        range: document.getElementById('ak-range')?.value.trim() || '',
+    });
 
-        if (!source) return showToast('Nhập mã đề trước đã', 'error');
-        if (!file) return showToast('Chọn ảnh bảng đáp án', 'error');
+    function onLoaded(j) {
+        showToast(j.message, 'success');
+        lastCompare = { source: j.data.source, ...j.data };
+        renderResult(j.data);
+        loadKeys();
+        // Nhập xong thì dọn ô nhập: nạp tiếp phần sau (101-200) khỏi phải tự xoá,
+        // và tránh bấm nhầm lần hai với đúng bộ vừa nhập. Chỉ xoá khi THÀNH CÔNG
+        // — lỗi mà mất nội dung vừa dán thì phải đi copy lại từ đầu.
+        const ta = document.getElementById('ak-json');
+        if (ta) ta.value = '';
+    }
 
+    /** Khoá nút + hiện trạng thái trong lúc chờ, luôn trả lại nguyên trạng. */
+    async function withBusy(btn, label, fn) {
         const original = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI đang đọc ảnh...';
-        try {
-            const fd = new FormData();
-            fd.append('image', file);
-            fd.append('source', source);
-            if (range) fd.append('range', range);
-
-            const r = await fetch(`${TOEIC_API_BASE}/answer-keys/scan`, {
-                method: 'POST', headers: auth(), body: fd,
-            });
-            const j = await r.json();
-            if (!j.success) {
-                showToast(j.message || 'Quét lỗi', 'error');
-                return;
-            }
-            showToast(j.message, 'success');
-            lastCompare = { source: j.data.source, ...j.data };
-            renderResult(j.data);
-            loadKeys();
-        } catch (e) {
-            showToast(`Quét lỗi: ${e.message}`, 'error');
-        } finally {
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${label}`;
+        try { await fn(); } finally {
             btn.disabled = false;
             btn.innerHTML = original;
         }
+    }
+
+    // ── Nhập đáp án đã dán ──────────────────────────────────────────────────
+    async function importJson(btn) {
+        const { source, range } = target();
+        const text = document.getElementById('ak-json')?.value.trim();
+
+        if (!source) return showToast('Nhập mã đề trước đã', 'error');
+        if (!text) return showToast('Dán đáp án vào ô JSON đã', 'error');
+
+        await withBusy(btn, 'Đang nhập...', async () => {
+            try {
+                const r = await fetch(`${TOEIC_API_BASE}/answer-keys/import`, {
+                    method: 'POST',
+                    headers: { ...auth(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source, range: range || undefined, answers: text }),
+                });
+                const j = await r.json();
+                if (!j.success) return showToast(j.message || 'Nhập lỗi', 'error');
+                onLoaded(j);
+            } catch (e) {
+                showToast(`Nhập lỗi: ${e.message}`, 'error');
+            }
+        });
+    }
+
+    // ── Prompt để admin tự nhờ chat AI đọc ảnh ──────────────────────────────
+    // Server KHÔNG gọi AI nữa: admin dán ảnh vào DeepSeek/ChatGPT kèm prompt này
+    // rồi mang JSON về. Prompt phải ép ra JSON thuần vì dán thẳng vào ô nhập.
+    function buildPrompt() {
+        const { range } = target();
+        const rangeLine = range
+            ? `\n- Chỉ lấy các câu trong khoảng ${range}. Câu ngoài khoảng thì BỎ QUA.`
+            : '';
+
+        return `Bạn đang đọc BẢNG ĐÁP ÁN của một đề thi TOEIC trong ảnh tôi gửi kèm.
+Nhiệm vụ: đọc TOÀN BỘ cặp "số câu → đáp án" nhìn thấy trong ảnh.
+
+QUY TẮC:
+- Trả về DUY NHẤT một object JSON, key là số câu (chuỗi số), value là "A"/"B"/"C"/"D".
+- KHÔNG bọc trong khối markdown, KHÔNG giải thích, KHÔNG viết thêm chữ nào ngoài JSON.
+- Giữ nguyên số câu in trên đề, tuyệt đối không tự đánh số lại từ 1.
+- Chỉ đọc thứ NHÌN THẤY RÕ. Ô nào mờ hoặc không chắc thì BỎ QUA, không được đoán.
+- Part 2 của TOEIC chỉ có A/B/C — không bịa ra D.
+- Đọc hết ảnh, không được dừng giữa chừng hay tóm tắt kiểu "...".${rangeLine}
+
+Ví dụ định dạng kết quả: {"101":"A","102":"C","103":"B"}`;
+    }
+
+    /** Clipboard API cần https/localhost — có fallback để admin chạy IP nội bộ vẫn copy được. */
+    async function copyText(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch (_) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.cssText = 'position:fixed;opacity:0';
+            document.body.appendChild(ta);
+            ta.select();
+            const ok = document.execCommand('copy');
+            ta.remove();
+            return ok;
+        }
+    }
+
+    async function copyPrompt() {
+        const { range } = target();
+        const ok = await copyText(buildPrompt());
+        if (!ok) return showToast('Trình duyệt chặn copy — bấm "Xem prompt" rồi copy tay', 'error');
+        showToast(
+            range
+                ? `Đã copy prompt (kèm khoảng ${range}). Dán vào chat AI cùng với ảnh.`
+                : 'Đã copy prompt. Dán vào chat AI cùng với ảnh.',
+            'success',
+        );
+    }
+
+    // Xem trước để biết prompt đang kèm khoảng nào, và để copy tay khi cần.
+    function togglePrompt(btn) {
+        const box = document.getElementById('ak-prompt-preview');
+        if (!box) return;
+        const showing = box.style.display !== 'none';
+        box.style.display = showing ? 'none' : 'block';
+        box.textContent = showing ? '' : buildPrompt();
+        btn.innerHTML = showing
+            ? '<i class="fas fa-eye"></i> Xem prompt'
+            : '<i class="fas fa-eye-slash"></i> Ẩn prompt';
     }
 
     async function compareSource(source) {
@@ -120,10 +198,10 @@
             ${stat('Khớp', (c.matched || []).length, 'var(--success, #16a34a)')}
             ${stat('LỆCH — cần sửa', mism.length, 'var(--danger, #dc2626)')}
             ${stat('Đề chưa có câu này', (c.notInTest || []).length, 'var(--text-secondary)')}
-            ${stat('Câu chưa quét đáp án', (c.notInKey || []).length, 'var(--text-secondary)')}
+            ${stat('Câu chưa có đáp án', (c.notInKey || []).length, 'var(--text-secondary)')}
           </div>
           ${(d.skipped || []).length ? `<div style="font-size:12px;color:var(--warning,#f59e0b);margin-bottom:10px">
-            <i class="fas fa-triangle-exclamation"></i> Bỏ qua ${d.skipped.length} mục AI đọc không chắc/ngoài dải.
+            <i class="fas fa-triangle-exclamation"></i> Bỏ qua ${d.skipped.length} mục không hợp lệ hoặc ngoài dải.
           </div>` : ''}
           ${mism.length ? `
             <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
@@ -208,7 +286,18 @@
     window.loadAnswerKeysTab = function () {
         if (!inited) {
             inited = true;
-            document.getElementById('btn-ak-scan')?.addEventListener('click', (e) => scan(e.currentTarget));
+            document.getElementById('btn-ak-import')?.addEventListener('click', (e) => importJson(e.currentTarget));
+            document.getElementById('btn-ak-copy-prompt')?.addEventListener('click', copyPrompt);
+            document.getElementById('btn-ak-toggle-prompt')?.addEventListener('click', (e) => togglePrompt(e.currentTarget));
+            // Đổi khoảng số câu thì prompt đang mở phải đổi theo, không thì copy nhầm dải cũ.
+            document.getElementById('ak-range')?.addEventListener('input', () => {
+                const box = document.getElementById('ak-prompt-preview');
+                if (box && box.style.display !== 'none') box.textContent = buildPrompt();
+            });
+            document.getElementById('btn-ak-json-clear')?.addEventListener('click', () => {
+                const ta = document.getElementById('ak-json');
+                if (ta) { ta.value = ''; ta.focus(); }
+            });
             document.getElementById('btn-ak-reload')?.addEventListener('click', loadKeys);
             loadSourceHints();
         }
