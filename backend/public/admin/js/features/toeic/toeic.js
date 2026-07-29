@@ -2180,6 +2180,28 @@ async function refillTest(testId, btn) {
 }
 
 /**
+ * Tải lại bảng câu hỏi từ server, GIỮ NGUYÊN bộ lọc/trang đang xem — dùng khi
+ * vừa thêm/sửa màn ở tab khác (hoặc máy khác) và muốn thấy ngay, khỏi F5 cả
+ * trang. Cũng nạp lại danh sách nguồn vì đề mới sinh ra mã nguồn mới.
+ */
+async function reloadQuestionsTable(btn) {
+    const original = btn?.innerHTML;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-rotate fa-spin"></i> Đang tải...';
+    }
+    try {
+        _sourceOptionsLoaded = false; // ép lấy lại danh sách nguồn
+        await loadQuestions(searchFilters.part || '', questionsPagination.currentPage || 1);
+        showToast(`Đã tải lại — ${questionsPagination.total} màn`, 'success');
+    } catch (err) {
+        showToast(`Tải lại lỗi: ${err.message}`, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    }
+}
+
+/**
  * Đồng bộ THẬT: bắt server đọc lại số câu từ ngân hàng câu hỏi và dọn tham
  * chiếu trỏ vào màn hỏi đã xoá. Trước đây nút này chỉ gọi loadTests() — tải
  * lại danh sách chứ không sửa gì, nên số câu lệch vẫn nguyên số lệch.

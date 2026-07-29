@@ -561,6 +561,10 @@ async function initDashboard() {
   });
 
   document
+    .getElementById("btn-reload-questions")
+    ?.addEventListener("click", (e) => reloadQuestionsTable(e.currentTarget));
+
+  document
     .getElementById("btn-sync-all-questions")
     ?.addEventListener("click", (e) => checkQuestionsHealth(e.currentTarget));
 
