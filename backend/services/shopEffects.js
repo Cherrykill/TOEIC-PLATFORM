@@ -12,6 +12,12 @@ function applyShopEffect(stats, effect) {
         case 'energy':
             stats.energy = Math.min(stats.energy + effect.amount, stats.maxEnergy);
             break;
+        // Nạp ĐẦY, không cộng theo số cố định: maxEnergy đổi theo người chơi nên
+        // một gói "đầy bình" đúng nghĩa phải bám trần hiện tại, không phải một
+        // con số ghi cứng trong catalog.
+        case 'energy_full':
+            stats.energy = stats.maxEnergy;
+            break;
         case 'hints':
             stats.hints += effect.amount;
             break;
@@ -37,6 +43,19 @@ function applyShopEffect(stats, effect) {
                 stats.coinsBoostActive = true;
                 stats.coinsBoostMultiplier = effect.multiplier;
                 stats.coinsBoostExpiresAt = expiresAt;
+            } else if (effect.boostType === 'energy') {
+                // Dùng thẻ mạnh hơn khi đang có thẻ yếu → giữ hệ số CAO NHẤT,
+                // không hạ cấp boost đang chạy. Hạn thì luôn lấy mốc xa hơn.
+                const current = stats.energyBoostActive
+                    && stats.energyBoostExpiresAt
+                    && new Date(stats.energyBoostExpiresAt) > new Date();
+                stats.energyBoostActive = true;
+                stats.energyBoostMultiplier = current
+                    ? Math.max(stats.energyBoostMultiplier || 1, effect.multiplier)
+                    : effect.multiplier;
+                stats.energyBoostExpiresAt = current
+                    ? new Date(Math.max(new Date(stats.energyBoostExpiresAt).getTime(), expiresAt.getTime()))
+                    : expiresAt;
             }
             break;
         }

@@ -108,7 +108,9 @@ export const GameState = {
 
         boosts: {
             xp: { active: false, multiplier: 1, expiresAt: null },
-            coins: { active: false, multiplier: 1, expiresAt: null }
+            coins: { active: false, multiplier: 1, expiresAt: null },
+            // Tăng TỐC ĐỘ hồi ⚡ (x2/x3), không cộng thẳng ⚡ — trần maxEnergy giữ nguyên.
+            energy: { active: false, multiplier: 1, expiresAt: null }
         },
 
         // VIP (server-authoritative): active + mốc hết hạn (ms). Khi active →
@@ -514,15 +516,27 @@ export const GameState = {
         return !!(vip?.active && vip.expiresAt && Date.now() < vip.expiresAt);
     },
 
+    /**
+     * ⚡ hồi mỗi phút, đã tính thẻ tăng tốc. Một chỗ duy nhất để mọi nơi
+     * (vòng lặp game, heartbeat, đồng hồ đếm ngược) ra cùng con số — lệch nhau
+     * là client ghi đè mất phần server đã cộng.
+     */
+    energyRegenPerMinute() {
+        const b = this.state.boosts?.energy;
+        const alive = b?.active && (!b.expiresAt || Date.now() < new Date(b.expiresAt).getTime());
+        return alive ? Math.max(1, b.multiplier || 1) : 1;
+    },
+
     async regenerateEnergy() {
         const now = Date.now();
         const lastUpdate = this.state.resources.lastEnergyUpdate;
         const minutesPassed = Math.floor((now - lastUpdate) / 60000);
 
         if (minutesPassed > 0 && this.state.resources.energy < this.state.resources.maxEnergy) {
-            logger.log(`⚡ Regenerating ${minutesPassed} energy...`);
+            const gain = minutesPassed * this.energyRegenPerMinute();
+            logger.log(`⚡ Regenerating ${gain} energy...`);
 
-            await this.addEnergy(minutesPassed);
+            await this.addEnergy(gain);
             this.state.resources.lastEnergyUpdate = now;
         }
     },

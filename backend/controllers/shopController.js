@@ -144,6 +144,19 @@ exports.purchaseItem = async (req, res, next) => {
         // Số gói mua (1–99). Vật phẩm có cooldown → ép về 1.
         let quantity = Math.max(1, Math.min(99, parseInt(req.body.quantity, 10) || 1));
         if (cooldownDays > 0) quantity = 1;
+
+        // "Nạp đầy" chỉ có nghĩa một lần: mua 2 gói vẫn chỉ đầy bình mà mất tiền
+        // gấp đôi, và mua lúc đang đầy là mất tiền lấy không. Chặn cả hai ở đây
+        // thay vì tin client gửi đúng.
+        if (item.effect?.type === 'energy_full') {
+            quantity = 1;
+            if (stats.energy >= stats.maxEnergy) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Năng lượng đang đầy — chưa cần nạp',
+                });
+            }
+        }
         // Số đơn vị/gói (bundle) → tổng đơn vị nhận = bundle × số gói. Nhân cả giá lẫn đồ.
         const bundle = item.quantity || 1;
         const units = bundle * quantity;
@@ -176,8 +189,15 @@ exports.purchaseItem = async (req, res, next) => {
         if (item.currency === 'coins') stats.coins -= totalPrice;
         else stats.gems -= totalPrice;
 
-        // Áp hiệu ứng theo TỔNG đơn vị (consumable cộng dồn; VIP cộng dồn hạn).
-        for (let i = 0; i < units; i++) applyShopEffect(stats, item.effect);
+        // "Thẻ" (durationType 'on_use') mua về phải NẰM TRONG KHO để người chơi
+        // tự chọn lúc kích hoạt — đó là toàn bộ ý nghĩa của thẻ. Áp hiệu ứng
+        // ngay lúc mua thì thẻ mua lúc nửa đêm cháy vô ích. Các loại khác
+        // (gói tài nguyên, VIP, nạp ⚡) vẫn áp thẳng như cũ.
+        const isCard = item.durationType === 'on_use';
+        if (!isCard) {
+            // Áp hiệu ứng theo TỔNG đơn vị (consumable cộng dồn; VIP cộng dồn hạn).
+            for (let i = 0; i < units; i++) applyShopEffect(stats, item.effect);
+        }
 
         // Ghi mốc thời gian mua để áp cooldown cho lần sau.
         if (cooldownDays > 0) {
@@ -189,6 +209,7 @@ exports.purchaseItem = async (req, res, next) => {
 
         // Grant vật phẩm inventory theo TỔNG đơn vị (effect type 'item' / combo) — vd Vé quay.
         try {
+            if (isCard) await Inventory.grant(req.user.id, itemId, units, { source: 'shop' });
             for (let i = 0; i < units; i++) await grantItemsFromEffect(req.user.id, item.effect);
         } catch (e) {
             logger.error('Grant inventory item failed:', e.message);

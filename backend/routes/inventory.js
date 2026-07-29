@@ -39,18 +39,28 @@ router.post('/use', protect, async (req, res, next) => {
 
         // Kích hoạt on_use có hiệu ứng (vd thẻ boost) → áp vào UserStats.
         let boosts = null;
+        let resources = null;
         if (def.durationType === 'on_use' && def.effect && def.effect.type) {
             const stats = await UserStats.findOne({ userId: req.user.id });
             if (stats) {
                 applyShopEffect(stats, def.effect);
                 await stats.save();
+                // Thẻ hồi ⚡ đổi thẳng tài nguyên → phải trả số mới, không thì
+                // client giữ số cũ rồi saveState ghi đè mất phần vừa hồi.
+                resources = {
+                    energy: stats.energy, maxEnergy: stats.maxEnergy,
+                    coins: stats.coins, gems: stats.gems,
+                    hints: stats.hints, shields: stats.shields, timeFreezes: stats.timeFreezes,
+                    lastEnergyUpdate: stats.lastEnergyUpdate,
+                };
                 boosts = {
                     xp: { active: stats.xpBoostActive, multiplier: stats.xpBoostMultiplier, expiresAt: stats.xpBoostExpiresAt },
                     coins: { active: stats.coinsBoostActive, multiplier: stats.coinsBoostMultiplier, expiresAt: stats.coinsBoostExpiresAt },
+                    energy: { active: stats.energyBoostActive, multiplier: stats.energyBoostMultiplier, expiresAt: stats.energyBoostExpiresAt },
                 };
             }
         }
-        res.json({ success: true, boosts });
+        res.json({ success: true, boosts, resources });
     } catch (err) { next(err); }
 });
 

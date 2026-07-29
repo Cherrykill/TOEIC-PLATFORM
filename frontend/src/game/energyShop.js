@@ -22,18 +22,33 @@ import { ShopCatalogAPI } from '@/api/shopCatalog.js';
 let _packsCache = null;
 
 export const EnergyShop = {
-    /** Các gói năng lượng đang bày bán, rẻ trước. */
+    /**
+     * Các gói năng lượng đang bày bán, rẻ trước.
+     *
+     * Hai kiểu gói: cộng thêm N⚡ (`effect.type === 'energy'`) và nạp ĐẦY BÌNH
+     * (`energy_full`) — loại sau không có `amount` vì trần năng lượng mỗi người
+     * mỗi khác, server tự set về maxEnergy.
+     */
     async loadPacks({ force = false } = {}) {
         if (_packsCache && !force) return _packsCache;
         const res = await ShopCatalogAPI.items();
-        const items = (res?.success && Array.isArray(res.data)) ? res.data : [];
+        // GET /api/shop/items trả về { success, items } — đọc nhầm sang `data`
+        // là popup luôn báo "chưa bày bán gói nào" dù cửa hàng có hàng thật.
+        // Vẫn nhận `data` để phòng endpoint đổi shape sau này.
+        const items = res?.success
+            ? (Array.isArray(res.items) ? res.items : (Array.isArray(res.data) ? res.data : []))
+            : [];
         _packsCache = items
-            .filter(it => it?.effect?.type === 'energy' && it.effect.amount > 0)
+            .filter(it => (it?.effect?.type === 'energy' && it.effect.amount > 0)
+                || it?.effect?.type === 'energy_full')
             .map(it => ({
                 id: it.itemId || it.id,
                 name: it.name,
                 icon: it.icon || '⚡',
-                amount: it.effect.amount * (it.quantity || 1),
+                full: it.effect.type === 'energy_full',
+                amount: it.effect.type === 'energy_full'
+                    ? 0
+                    : it.effect.amount * (it.quantity || 1),
                 price: it.totalPrice ?? it.unitPrice ?? it.price,
                 currency: it.currency || 'coins',
             }))
@@ -62,10 +77,13 @@ export const EnergyShop = {
             if (GameState.state?.settings?.soundEnabled !== false) {
                 Utils.playSound(Config.sounds.buyItem, 0.6, { ignoreSettings: true });
             }
+            const now = GameState.getResources();
             Notification.show({
                 type: 'success',
                 title: 'Đã nạp năng lượng',
-                message: `+${pack.amount}⚡ · còn ${GameState.getResources().energy}⚡`,
+                message: pack.full
+                    ? `Đầy bình · ${now.energy}⚡`
+                    : `+${pack.amount}⚡ · còn ${now.energy}⚡`,
             });
             return true;
         } catch (err) {
@@ -90,7 +108,7 @@ export const EnergyShop = {
         const fmt = (sec) => Utils.formatTime(Math.max(0, sec));
 
         const secondsUntilEnough = () => {
-            const interval = Config.game.energyRegenInterval;
+            const interval = Config.game.energyRegenInterval / GameState.energyRegenPerMinute();
             const missing = Math.max(0, (needed || r.maxEnergy) - r.energy);
             if (missing <= 0) return 0;
             const sinceLast = Date.now() - (r.lastEnergyUpdate || Date.now());
@@ -98,15 +116,23 @@ export const EnergyShop = {
             return Math.max(0, Math.ceil((toNext + (missing - 1) * interval) / 1000));
         };
 
+        // Đang đầy bình thì gói "nạp đầy" là mua lấy không — server cũng chặn,
+        // nhưng khoá sẵn ở đây để không ai bấm vào rồi ăn thông báo lỗi.
+        const isFull = r.energy >= r.maxEnergy;
+
         const packButtons = packs.length
             ? packs.map((p, i) => {
-                const afford = p.currency === 'coins' ? coins >= p.price : (r.gems ?? 0) >= p.price;
+                const enough = p.currency === 'coins' ? coins >= p.price : (r.gems ?? 0) >= p.price;
+                const afford = enough && !(p.full && isFull);
                 const cur = p.currency === 'gems' ? '💎' : '🪙';
+                const why = !enough
+                    ? `Không đủ ${p.currency === 'gems' ? 'gems' : 'xu'}`
+                    : (p.full && isFull ? 'Năng lượng đang đầy' : '');
                 return `
-                    <button class="btn ${afford ? 'btn-primary' : 'btn-secondary'} energy-pack-btn"
+                    <button class="btn ${afford ? 'btn-primary' : 'btn-secondary'} energy-pack-btn${p.full ? ' energy-pack-full' : ''}"
                         data-pack="${i}" ${afford ? '' : 'disabled'}
-                        title="${afford ? '' : `Không đủ ${p.currency === 'gems' ? 'gems' : 'xu'}`}">
-                        <span>${p.icon} +${p.amount}⚡</span>
+                        title="${why || p.name}">
+                        <span>${p.icon} ${p.full ? `Nạp đầy ⚡${r.maxEnergy}` : `+${p.amount}⚡`}</span>
                         <strong>${p.price} ${cur}</strong>
                     </button>`;
             }).join('')

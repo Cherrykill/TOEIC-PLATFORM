@@ -143,7 +143,9 @@ export const Energy = {
     getSecondsUntilFull() {
         const r = GameState.getResources();
         if (r.energy >= r.maxEnergy) return 0;
-        const interval = Config.game.energyRegenInterval; // ms cho +1 năng lượng
+        // Thẻ tăng tốc rút ngắn khoảng cách giữa hai lần +1⚡ → đồng hồ phải
+        // ngắn lại theo, không thì người chơi mua thẻ mà vẫn thấy chờ y như cũ.
+        const interval = Config.game.energyRegenInterval / GameState.energyRegenPerMinute();
         const needed = r.maxEnergy - r.energy;
         const sinceLast = Date.now() - (r.lastEnergyUpdate || Date.now());
         const timeToNext = interval - (((sinceLast % interval) + interval) % interval);

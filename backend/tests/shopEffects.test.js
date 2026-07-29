@@ -23,6 +23,42 @@ describe('applyShopEffect', () => {
         expect(s2.energy).toBe(70);
     });
 
+    test('energy_full nạp tới trần HIỆN TẠI, không phải con số ghi cứng', () => {
+        const s = { ...baseStats(), energy: 2, maxEnergy: 60 };
+        applyShopEffect(s, { type: 'energy_full' });
+        expect(s.energy).toBe(60);
+
+        // Trần cao hơn (người chơi level cao) thì nạp lên đúng trần đó.
+        const s2 = { ...baseStats(), energy: 0, maxEnergy: 150 };
+        applyShopEffect(s2, { type: 'energy_full' });
+        expect(s2.energy).toBe(150);
+    });
+
+    test('energy_full áp nhiều lần không vượt trần (mua nhầm 2 gói vẫn chỉ đầy)', () => {
+        const s = { ...baseStats(), energy: 10, maxEnergy: 100 };
+        applyShopEffect(s, { type: 'energy_full' });
+        applyShopEffect(s, { type: 'energy_full' });
+        expect(s.energy).toBe(100);
+    });
+
+    test('thẻ hồi ⚡ bật boost tốc độ, KHÔNG cộng thẳng năng lượng', () => {
+        const s = { ...baseStats(), energy: 10 };
+        applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 3600 });
+        expect(s.energyBoostActive).toBe(true);
+        expect(s.energyBoostMultiplier).toBe(2);
+        expect(s.energy).toBe(10); // trần & số ⚡ giữ nguyên, chỉ tốc độ đổi
+    });
+
+    test('dùng thẻ x3 khi đang chạy x2 → giữ hệ số CAO NHẤT, không bị hạ cấp', () => {
+        const s = baseStats();
+        applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 3, duration: 7200 });
+        const until = new Date(s.energyBoostExpiresAt).getTime();
+
+        applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 60 });
+        expect(s.energyBoostMultiplier).toBe(3);                       // không tụt về 2
+        expect(new Date(s.energyBoostExpiresAt).getTime()).toBe(until); // không rút ngắn hạn
+    });
+
     test('consumable counters add by amount', () => {
         const s = baseStats();
         applyShopEffect(s, { type: 'hints', amount: 3 });

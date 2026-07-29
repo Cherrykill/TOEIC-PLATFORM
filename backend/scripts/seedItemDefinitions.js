@@ -12,11 +12,21 @@ const ITEMS = [
     { itemId: 'shield', category: 'consumable', name: 'Khiên bảo vệ streak', description: 'Giữ streak khi bạn nghỉ 1 ngày', icon: 'fa-shield-halved', type: 'consumable', rarity: 'rare', stackable: true, effect: { type: 'resource', field: 'shields' }, order: 2 },
     { itemId: 'time-freeze', category: 'consumable', name: 'Dừng thời gian', description: 'Tạm dừng đồng hồ khi luyện tập', icon: 'fa-pause', type: 'consumable', rarity: 'rare', stackable: true, effect: { type: 'resource', field: 'timeFreezes' }, order: 3 },
     { itemId: 'spin-ticket', category: 'ticket', name: 'Vé quay may mắn', description: 'Dùng để quay Vòng quay may mắn (không tốn lượt/xu)', icon: 'fa-ticket', type: 'consumable', rarity: 'epic', stackable: true, effect: { type: 'spin' }, order: 4 },
+    // Nạp đầy bình: bán ngay trong popup "Hết năng lượng" để không phải rời bài
+    // thi. effect.type = 'energy_full' → server set energy = maxEnergy.
+    { itemId: 'energy-refill-full', category: 'energy', name: 'Nạp đầy năng lượng', description: 'Hồi ⚡ lên mức tối đa ngay lập tức', icon: 'fa-bolt', type: 'consumable', rarity: 'rare', stackable: false, effect: { type: 'energy_full' }, order: 5 },
 
     // ===== Boost (thẻ kích hoạt — on_use, 2 ngày) =====
     { itemId: 'boost-xp-card', category: 'boost', name: 'Thẻ x2 XP', description: 'Kích hoạt để nhân đôi XP trong 24 giờ', icon: 'fa-bolt', type: 'boost', rarity: 'epic', stackable: true, durationType: 'on_use', durationSec: 86400, effect: { type: 'boost', boostType: 'xp', multiplier: 2, duration: 86400 }, order: 10 },
     { itemId: 'boost-coins-card', category: 'boost', name: 'Thẻ x2 Coins', description: 'Kích hoạt để nhân đôi Coins trong 24 giờ', icon: 'fa-coins', type: 'boost', rarity: 'epic', stackable: true, durationType: 'on_use', durationSec: 86400, effect: { type: 'boost', boostType: 'coins', multiplier: 2, duration: 86400 }, order: 11 },
     { itemId: 'boost-xp3-card', category: 'boost', name: 'Thẻ x3 XP', description: 'Kích hoạt để nhân ba XP trong 24 giờ', icon: 'fa-rocket', type: 'boost', rarity: 'legendary', stackable: true, durationType: 'on_use', durationSec: 86400, effect: { type: 'boost', boostType: 'xp', multiplier: 3, duration: 86400 }, order: 12 },
+    // Thẻ tăng TỐC ĐỘ hồi ⚡ — không cộng thẳng ⚡ nên trần maxEnergy vẫn chặn,
+    // giá trị nằm ở chỗ rút ngắn thời gian chờ giữa các lượt.
+    { itemId: 'boost-energy-x2-card', category: 'boost', name: 'Thẻ hồi ⚡ x2', description: 'Hồi năng lượng nhanh gấp đôi trong 24 giờ', icon: 'fa-battery-half', type: 'boost', rarity: 'rare', stackable: true, durationType: 'on_use', durationSec: 86400, effect: { type: 'boost', boostType: 'energy', multiplier: 2, duration: 86400 }, order: 13 },
+    { itemId: 'boost-energy-x3-card', category: 'boost', name: 'Thẻ hồi ⚡ x3', description: 'Hồi năng lượng nhanh gấp ba trong 24 giờ', icon: 'fa-battery-full', type: 'boost', rarity: 'epic', stackable: true, durationType: 'on_use', durationSec: 86400, effect: { type: 'boost', boostType: 'energy', multiplier: 3, duration: 86400 }, order: 14 },
+    // Thẻ hồi đầy — bản CẦM TRONG KHO của gói nạp đầy, dùng lúc nào cũng được
+    // (và làm được phần thưởng nhiệm vụ/thành tích, khác với gói mua ngay).
+    { itemId: 'energy-full-card', category: 'consumable', name: 'Thẻ hồi đầy ⚡', description: 'Dùng để hồi năng lượng lên mức tối đa ngay lập tức', icon: 'fa-bolt', type: 'consumable', rarity: 'rare', stackable: true, durationType: 'on_use', effect: { type: 'energy_full' }, order: 6 },
 
     // ===== Cosmetic — nền =====
     { itemId: 'bg-vip-week', category: 'background', name: 'Nền Hoàng gia VIP', description: 'Nền hồ sơ & bảng xếp hạng dành cho VIP', icon: 'fa-crown', type: 'cosmetic_background', rarity: 'legendary', stackable: false, durationType: 'from_grant', durationSec: 604800, effect: { slot: 'background', key: 'vip-royal' }, order: 1 },
@@ -39,6 +49,10 @@ const PRICES = {
     'shield':           { price: 500,  currency: 'coins' },
     'time-freeze':      { price: 300,  currency: 'coins' },
     'spin-ticket':      { price: 1000, currency: 'coins' },
+    'energy-refill-full':    { price: 200, currency: 'coins' },
+    'boost-energy-x2-card':  { price: 150, currency: 'coins' },
+    'boost-energy-x3-card':  { price: 400, currency: 'coins' },
+    'energy-full-card':      { price: 250, currency: 'coins' },
     'boost-xp-card':    { price: 2000, currency: 'coins' },
     'boost-coins-card': { price: 2000, currency: 'coins' },
     'boost-xp3-card':   { price: 3000, currency: 'coins' },

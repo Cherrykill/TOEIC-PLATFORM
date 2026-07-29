@@ -75,6 +75,11 @@ const userStatsSchema = new mongoose.Schema(
         coinsBoostActive: { type: Boolean, default: false },
         coinsBoostMultiplier: { type: Number, default: 1 },
         coinsBoostExpiresAt: { type: Date, default: null },
+        // Tăng TỐC ĐỘ HỒI năng lượng (x2/x3) — không phải cộng thẳng ⚡, nên
+        // trần maxEnergy vẫn chặn: boost chỉ rút ngắn thời gian chờ.
+        energyBoostActive: { type: Boolean, default: false },
+        energyBoostMultiplier: { type: Number, default: 1 },
+        energyBoostExpiresAt: { type: Date, default: null },
 
         // VIP: hết hạn = null/đã qua. Khi còn hạn → năng lượng không trừ + x2 XP/Coins.
         vipExpiresAt: { type: Date, default: null },

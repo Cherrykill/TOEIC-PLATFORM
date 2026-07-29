@@ -93,7 +93,7 @@ export function GameProvider({ children }) {
             if (r && r.lastEnergyUpdate && r.energy < r.maxEnergy) {
                 const mins = Math.floor((Date.now() - r.lastEnergyUpdate) / 60000);
                 if (mins > 0) {
-                    GameState.addEnergy(mins);
+                    GameState.addEnergy(mins * GameState.energyRegenPerMinute());
                     r.lastEnergyUpdate += mins * 60000; // giữ phần dư giây cho chính xác
                 }
             }

@@ -10,8 +10,21 @@ const XP_FORMULA = (level) => Math.floor(100 * Math.pow(level, 1.5));
 const ENERGY_REGEN_PER_MIN = 1;
 
 /**
+ * Hệ số hồi năng lượng đang có hiệu lực (thẻ tăng tốc x2/x3). Hết hạn → 1.
+ * Tính ở server vì đây là thứ quyết định người chơi được bao nhiêu ⚡.
+ */
+function energyRegenMultiplier(stats, at = Date.now()) {
+    if (!stats?.energyBoostActive || !stats.energyBoostExpiresAt) return 1;
+    if (new Date(stats.energyBoostExpiresAt).getTime() <= at) return 1;
+    return Math.max(1, stats.energyBoostMultiplier || 1);
+}
+
+/**
  * Regenerate energy based on time elapsed since last update.
  * Mutates stats object in place (does not save).
+ *
+ * Thẻ tăng tốc chỉ nhân phần thời gian THỰC SỰ nằm trong hạn thẻ — nghỉ 10 giờ
+ * với thẻ x2 còn 1 giờ thì chỉ 1 giờ đó được nhân đôi, không phải cả 10.
  */
 function applyEnergyRegen(stats) {
     const now = Date.now();
@@ -19,11 +32,25 @@ function applyEnergyRegen(stats) {
     const minutesPassed = Math.floor((now - lastUpdate) / 60000);
 
     if (minutesPassed > 0 && stats.energy < stats.maxEnergy) {
+        const mult = energyRegenMultiplier(stats, lastUpdate);
+        let boostedMinutes = 0;
+        if (mult > 1) {
+            const until = new Date(stats.energyBoostExpiresAt).getTime();
+            boostedMinutes = Math.max(0, Math.min(minutesPassed, Math.floor((until - lastUpdate) / 60000)));
+        }
+        const gained = boostedMinutes * mult + (minutesPassed - boostedMinutes);
+
         stats.energy = Math.min(
             stats.maxEnergy,
-            stats.energy + minutesPassed * ENERGY_REGEN_PER_MIN
+            stats.energy + gained * ENERGY_REGEN_PER_MIN
         );
         stats.lastEnergyUpdate = new Date(now);
+    }
+
+    // Thẻ hết hạn thì tắt cờ luôn, khỏi để giao diện khoe một boost đã chết.
+    if (stats.energyBoostActive && energyRegenMultiplier(stats, now) === 1) {
+        stats.energyBoostActive = false;
+        stats.energyBoostMultiplier = 1;
     }
 }
 
@@ -192,6 +219,13 @@ async function buildFullState(userId) {
                 multiplier: stats.coinsBoostMultiplier,
                 expiresAt: stats.coinsBoostExpiresAt,
             },
+            // Client cũng hồi ⚡ để header chạy realtime — không gửi hệ số xuống
+            // thì nó tính theo 1/phút rồi saveState ghi đè mất phần server cộng.
+            energy: {
+                active: stats.energyBoostActive,
+                multiplier: stats.energyBoostMultiplier,
+                expiresAt: stats.energyBoostExpiresAt,
+            },
         },
         vip: {
             active: !!(stats.vipExpiresAt && new Date(stats.vipExpiresAt) > new Date()),
@@ -235,6 +269,7 @@ async function createUserWithDependents(opts) {
 module.exports = {
     buildFullState,
     applyEnergyRegen,
+    energyRegenMultiplier,
     applyLevelUp,
     awardXp,
     createUserWithDependents,

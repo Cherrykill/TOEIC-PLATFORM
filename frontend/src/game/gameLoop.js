@@ -176,7 +176,7 @@ export const EnergySystem = {
         const resources = GameState.getResources();
 
         if (resources.energy < resources.maxEnergy) {
-            GameState.addEnergy(Config.game.energyRegenRate);
+            GameState.addEnergy(Config.game.energyRegenRate * GameState.energyRegenPerMinute());
 
             if (resources.energy >= resources.maxEnergy) {
                 EventBus.emit(GameEvents.ENERGY_FULL);
