@@ -11,6 +11,7 @@ import HistoryList from './selector/HistoryList.jsx';
 import AnalyticsView from './selector/AnalyticsView.jsx';
 import StartTestModal from './runner/StartTestModal.jsx';
 import { listTestSeries, listTestLevels, TEST_LEVELS } from './selector/testSeries.js';
+import { isFullTestType } from './toeicPartTime.js';
 import TestRunner from './runner/TestRunner.jsx';
 import { GameState } from '@game/state.js';
 
@@ -29,8 +30,9 @@ const PART_FILTERS = [
 ];
 const PART_FILTER_TABS = ['mini-test', 'fill-blank', 'my-history'];
 const LIST_TABS = ['full-test', 'mini-test', 'fill-blank'];
-// Gợi ý nhanh — bấm để điền vào ô tìm kiếm.
-const SEARCH_SUGGESTIONS = ['ETS 2026', 'ETS 2025', 'ETS 2024', 'ETS 2023', 'ETS 2022', 'ETS 2021', 'ETS 2020', 'ETS 2019', 'ETS 2018'];
+// Gợi ý ô tìm kiếm suy TỪ ĐỀ CÓ THẬT (xem seriesSuggestions bên dưới).
+// Trước đây liệt kê cứng ETS 2018→2026, trong khi kho chỉ có 2022→2026 —
+// bấm vào bốn gợi ý cuối là ra danh sách trắng.
 
 export default function ToeicScreen({ active }) {
     const { showScreen } = useGame();
@@ -45,6 +47,12 @@ export default function ToeicScreen({ active }) {
     // và không đổ ra lựa chọn mà không đề nào thuộc về.
     const seriesOptions = useMemo(() => listTestSeries(tests), [tests]);
     const levelOptions = useMemo(() => listTestLevels(tests), [tests]);
+    // Ô tìm chỉ lọc Full Test → gợi ý cũng chỉ lấy bộ đề CÓ Full Test, gợi ý bộ
+    // chỉ có mini test thì bấm vào ra danh sách rỗng.
+    const seriesSuggestions = useMemo(
+        () => listTestSeries((tests || []).filter(t => isFullTestType(t) && t.isPublished === true)),
+        [tests],
+    );
     const [sortBy, setSortBy] = useState('default');     // sắp xếp danh sách đề
     const [searchQuery, setSearchQuery] = useState('');  // lọc đề theo tên
     const [searchFocused, setSearchFocused] = useState(false);
@@ -183,7 +191,7 @@ export default function ToeicScreen({ active }) {
                         </button>
                     )}
                     {searchFocused && (() => {
-                        const sug = SEARCH_SUGGESTIONS.filter(s =>
+                        const sug = seriesSuggestions.filter(s =>
                             !searchQuery || (s.toLowerCase().includes(searchQuery.toLowerCase()) && s.toLowerCase() !== searchQuery.toLowerCase())
                         );
                         return sug.length > 0 && (
