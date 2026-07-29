@@ -162,6 +162,10 @@ exports.getQuestions = async (req, res, next) => {
                 { 'questions.options.text': rx },
                 { passages: rx },
                 { audioText: rx },
+                // explanation là Mixed ({A,B,C,D} hoặc {note}) nên phải liệt kê
+                // từng khoá — regex không tự quét hết field của một object.
+                // Ô tìm ghi rõ "…, explanation" nên thiếu chỗ này là sai lời hứa.
+                ...['A', 'B', 'C', 'D', 'note'].map(k => ({ [`questions.explanation.${k}`]: rx })),
             ];
         }
 
