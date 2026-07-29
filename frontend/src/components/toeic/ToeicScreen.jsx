@@ -30,7 +30,6 @@ const PART_FILTERS = [
 ];
 const PART_FILTER_TABS = ['mini-test', 'fill-blank', 'my-history'];
 const LIST_TABS = ['full-test', 'mini-test', 'fill-blank'];
-// Gợi ý ô tìm kiếm suy TỪ ĐỀ CÓ THẬT (xem seriesSuggestions bên dưới).
 // Trước đây liệt kê cứng ETS 2018→2026, trong khi kho chỉ có 2022→2026 —
 // bấm vào bốn gợi ý cuối là ra danh sách trắng.
 
@@ -47,15 +46,10 @@ export default function ToeicScreen({ active }) {
     // và không đổ ra lựa chọn mà không đề nào thuộc về.
     const seriesOptions = useMemo(() => listTestSeries(tests), [tests]);
     const levelOptions = useMemo(() => listTestLevels(tests), [tests]);
-    // Ô tìm chỉ lọc Full Test → gợi ý cũng chỉ lấy bộ đề CÓ Full Test, gợi ý bộ
-    // chỉ có mini test thì bấm vào ra danh sách rỗng.
-    const seriesSuggestions = useMemo(
-        () => listTestSeries((tests || []).filter(t => isFullTestType(t) && t.isPublished === true)),
-        [tests],
-    );
+    // Full Test ít đề nên bày hết thành menu ngang thay cho ô tìm kiếm.
+    const fullTests = useMemo(() => (tests || []).filter(isFullTestType), [tests]);
     const [sortBy, setSortBy] = useState('default');     // sắp xếp danh sách đề
-    const [searchQuery, setSearchQuery] = useState('');  // lọc đề theo tên
-    const [searchFocused, setSearchFocused] = useState(false);
+    const [fullTestId, setFullTestId] = useState('');    // '' = xem hết
 
     const [mode, setMode] = useState('selector');       // selector | runner
     const [runnerConfig, setRunnerConfig] = useState(null);
@@ -172,43 +166,9 @@ export default function ToeicScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-graduation-cap"></i> Luyện tập TOEIC</h2>
-                {/* Tìm theo tên chỉ có nghĩa ở Full Test — các tab kia lọc bằng
-                    nút Part / select bên dưới, để ô tìm ở đó chỉ gây nhiễu. */}
-                <div className="toeic-search-bar in-header" style={activeTab === 'full-test' ? undefined : { visibility: 'hidden' }}>
-                    <i className="fas fa-search"></i>
-                    <input
-                        type="text"
-                        placeholder="Tìm đề thi theo tên..."
-                        tabIndex={activeTab === 'full-test' ? 0 : -1}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => setSearchFocused(true)}
-                        onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
-                    />
-                    {searchQuery && (
-                        <button className="toeic-search-clear" onClick={() => setSearchQuery('')} title="Xóa">
-                            <i className="fas fa-times"></i>
-                        </button>
-                    )}
-                    {searchFocused && (() => {
-                        const sug = seriesSuggestions.filter(s =>
-                            !searchQuery || (s.toLowerCase().includes(searchQuery.toLowerCase()) && s.toLowerCase() !== searchQuery.toLowerCase())
-                        );
-                        return sug.length > 0 && (
-                            <div className="toeic-search-suggest">
-                                {sug.map(s => (
-                                    <button
-                                        key={s}
-                                        className="toeic-search-suggest-item"
-                                        onMouseDown={() => { setSearchQuery(s); setSearchFocused(false); }}
-                                    >
-                                        <i className="fas fa-magnifying-glass"></i> {s}
-                                    </button>
-                                ))}
-                            </div>
-                        );
-                    })()}
-                </div>
+                {/* Bỏ ô tìm theo tên: Full Test nay liệt kê thẳng mọi đề thành
+                    thanh menu ngang bên dưới, gõ tên để lọc một danh sách nhìn
+                    thấy hết là thừa. */}
                 <button
                     className={`toeic-header-btn${activeTab === 'my-history' ? ' active' : ''}`}
                     style={{ marginLeft: 'auto' }}
@@ -242,6 +202,31 @@ export default function ToeicScreen({ active }) {
                             </button>
                         ))}
                     </div>
+                    {/* Full Test: bày thẳng mọi đề thành menu ngang, cùng kiểu khối
+                        pill với hàng Part bên Mini Test. Chỉ hiện khi có từ 2 đề
+                        trở lên — một đề thì thanh chọn chẳng để làm gì. */}
+                    {activeTab === 'full-test' && fullTests.length > 1 && (
+                        <div className="toeic-part-filters">
+                            <div className="toeic-part-group">
+                                <button
+                                    className={`toeic-part-btn${fullTestId === '' ? ' active' : ''}`}
+                                    onClick={() => setFullTestId('')}
+                                >
+                                    Tất cả ({fullTests.length})
+                                </button>
+                                {fullTests.map(t => (
+                                    <button
+                                        key={t._id}
+                                        className={`toeic-part-btn${String(fullTestId) === String(t._id) ? ' active' : ''}`}
+                                        onClick={() => setFullTestId(t._id)}
+                                        title={t.testName || t.title}
+                                    >
+                                        {t.testName || t.title}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {/* Hàng lọc: pill chọn Part gom thành một khối (giống thanh tab
                         phía trên), ba ô lọc/sắp xếp gom thành khối thứ hai đẩy sát
                         phải — hai cụm tách bạch thay vì một dãy dài lẫn lộn.
@@ -310,9 +295,7 @@ export default function ToeicScreen({ active }) {
                         </div>
                     )}
                     <div id="toeic-tab-content">
-                        {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
-                        {/* Không truyền search: ô tìm chỉ phục vụ Full Test, để lọt sang
-                            đây thì gõ ở tab kia rồi quay lại sẽ thấy danh sách hụt vô cớ. */}
+                        {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} selectedId={fullTestId} onStart={(id) => openStartModal(id, false)} />}
                         {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} level={levelFilter} onStart={(id) => openStartModal(id, false)} />}
                         {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} level={levelFilter} onStart={(id) => openStartModal(id, true)} />}
                         {activeTab === 'my-history' && <HistoryList key={`history-${refreshKey}`} active={active && activeTab === 'my-history'} partFilter={partFilter} onView={handleViewResults} />}

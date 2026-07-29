@@ -136,11 +136,23 @@
   outline: 2px solid var(--primary-color);
   outline-offset: 1px;
 }
-/* Đang khác mặc định → tô sáng, để danh sách ngắn đi là biết do mình lọc. */
+/* Danh sách xổ ra là <option> của trình duyệt: nó ăn theo màu chữ/nền của chính
+   thẻ select. Trạng thái "đang lọc" bên dưới tô chữ màu primary, không ghi đè ở
+   đây thì cả danh sách thành chữ hồng trên nền hồng — dark mode gần như không
+   đọc nổi. Ép màu đặc, đúng cho cả hai theme. */
+.toeic-sort-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Đang khác mặc định → tô sáng, để danh sách ngắn đi là biết do mình lọc.
+   Nền pha ĐẶC với bg-secondary chứ không pha với transparent: nền trong suốt
+   khiến trình duyệt lấy nhầm nền cho khung xổ xuống. */
 .toeic-filter.is-set { color: var(--primary-color); }
 .toeic-filter.is-set .toeic-sort-select {
   border-color: var(--primary-color);
-  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 14%, var(--bg-secondary));
 }
 .toeic-filter.is-set::after { opacity: 0.9; }
 
@@ -2208,76 +2220,6 @@
   }
 }
 
-/* Thanh tìm đề thi (thay banner giới thiệu) */
-.toeic-search-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--bg-secondary);
-  border: 1.5px solid var(--border-color);
-  border-radius: 12px;
-  padding: 11px 16px;
-  margin-bottom: var(--spacing-md);
-}
-
-/* Dropdown gợi ý dưới ô tìm kiếm */
-.toeic-search-suggest {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
-  padding: 6px;
-  z-index: 60;
-  max-height: 280px;
-  overflow-y: auto;
-}
-.toeic-search-suggest-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 9px 12px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  color: var(--text-primary);
-  cursor: pointer;
-  text-align: left;
-}
-.toeic-search-suggest-item:hover { background: var(--bg-secondary); }
-.toeic-search-suggest-item i { color: var(--text-tertiary, #94a3b8); font-size: 0.85rem; }
-.toeic-search-bar:focus-within { border-color: var(--primary-color); }
-.toeic-search-bar > i { color: var(--primary-color, #E11D48); font-size: 1.05rem; }
-.toeic-search-bar input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  outline: none;
-  font-size: 0.95rem;
-  color: var(--text-primary);
-}
-.toeic-search-clear {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-tertiary, #94a3b8);
-  padding: 2px 6px;
-}
-.toeic-search-clear:hover { color: var(--text-primary); }
-
-/* Thanh tìm đề khi đặt trên header (cạnh tiêu đề) */
-.toeic-search-bar.in-header {
-  flex: 1;
-  margin: 0 16px;
-  padding: 8px 14px;
-  max-width: 520px;
-}
 
 /* Badge Part trên thẻ đề (Mini Test) */
 .toeic-test-badge.part {

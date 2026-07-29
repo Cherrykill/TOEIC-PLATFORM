@@ -2,7 +2,7 @@ import EmptyState from './EmptyState.jsx';
 import TestCard from './TestCard.jsx';
 import { isFullTestType } from '../toeicPartTime.js';
 
-export default function FullTestList({ tests, loading, onStart, search = '' }) {
+export default function FullTestList({ tests, loading, onStart, selectedId = '' }) {
     if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: 40 }}>
@@ -11,22 +11,14 @@ export default function FullTestList({ tests, loading, onStart, search = '' }) {
         );
     }
 
-    const q = search.trim().toLowerCase();
     // isFullTestType: backend đặt cả 'full' lẫn 'full-test', so tay một chuỗi sẽ sót.
+    // selectedId rỗng = xem hết; chọn một đề trên thanh menu thì chỉ còn đề đó.
     const fullTests = tests.filter(t =>
-        isFullTestType(t)
-        && (!q || (t.testName || t.title || '').toLowerCase().includes(q))
+        isFullTestType(t) && (!selectedId || String(t._id) === String(selectedId)),
     );
 
     if (fullTests.length === 0) {
-        // Rỗng vì TÌM KIẾM khác hẳn rỗng vì chưa có đề — nói đúng nguyên nhân
-        // thì người dùng biết xoá ô tìm, không tưởng hệ thống chưa có bài.
-        return q ? (
-            <EmptyState
-                title={`Không có Full Test nào khớp "${search.trim()}"`}
-                text="Thử từ khoá khác hoặc xoá ô tìm kiếm"
-            />
-        ) : (
+        return (
             <EmptyState
                 title="Chưa có bài thi Full Test"
                 text="Hệ thống đang cập nhật các bài thi mới"
