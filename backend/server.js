@@ -171,6 +171,7 @@ app.use('/api/admin', require('./routes/adminDefinitions')); // Achievement + Qu
 app.use('/api/categories', require('./routes/categories')); // Danh mục (public GET để dựng tab)
 app.use('/api/features', require('./routes/features'));     // Mốc mở khoá theo Level
 app.use('/api/admin/db', require('./routes/adminDb'));       // MongoDB collection manager (admin)
+app.use('/api/admin/cloudinary', require('./routes/adminCloudinary')); // Kho ảnh/audio trên Cloudinary (admin)
 app.use('/api/quests', require('./routes/quests'));          // Quest system (daily/weekly/monthly/special)
 app.use('/api/checkin', require('./routes/checkin'));        // Weekly check-in (điểm danh hằng tuần)
 app.use('/api/notifications', require('./routes/notifications')); // In-app notification center
