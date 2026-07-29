@@ -1,0 +1,65 @@
+          <!-- ===== QUÉT ĐÁP ÁN TỪ ẢNH ===== -->
+          <div id="main-tab-answer-keys" class="main-tab-content">
+            <div class="card">
+              <div class="card-header">
+                <h2><i class="fas fa-list-check"></i> Quét đáp án từ ảnh</h2>
+              </div>
+              <div style="padding: 0 4px 14px; font-size: 13px; color: var(--text-secondary)">
+                Tải ảnh <b>bảng đáp án</b> của đề in → AI đọc ra cặp "số câu → đáp án", lưu lại thành
+                <b>bộ đáp án</b> của mã đề rồi đối chiếu với đáp án đang lưu trong ngân hàng câu hỏi.
+                Ảnh chỉ dùng để đọc, không lưu lên server.
+              </div>
+
+              <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px">
+                <div>
+                  <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary)">Mã đề *</label>
+                  <input type="text" id="ak-source" class="filter-select" list="ak-source-list"
+                    placeholder="vd: ets26t10" style="width: 180px; margin-top: 4px" />
+                  <datalist id="ak-source-list"></datalist>
+                </div>
+                <div>
+                  <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary)">Khoảng số câu</label>
+                  <input type="text" id="ak-range" class="filter-select"
+                    placeholder="vd: 1-100" style="width: 150px; margin-top: 4px" />
+                </div>
+                <div>
+                  <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary)">Ảnh bảng đáp án *</label>
+                  <input type="file" id="ak-image" accept="image/*" class="filter-select"
+                    style="width: 260px; margin-top: 4px; padding: 5px" />
+                </div>
+                <button class="btn btn-primary btn-sm" id="btn-ak-scan" style="height: 38px">
+                  <i class="fas fa-wand-magic-sparkles"></i> Quét ảnh
+                </button>
+              </div>
+
+              <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px">
+                <i class="fas fa-circle-info"></i> Bỏ trống khoảng số câu = lấy hết những gì đọc được.
+                Điền vào (vd <code>101-200</code>) thì câu ngoài dải sẽ bị loại — tránh AI đọc lẫn số câu
+                của phần khác rồi ghi đè nhầm. Quét nhiều lần cho cùng mã đề sẽ <b>cộng dồn</b>.
+              </div>
+
+              <div id="ak-result"></div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2><i class="fas fa-key"></i> Bộ đáp án đã lưu</h2>
+                <div class="card-header-actions">
+                  <button class="btn btn-ghost btn-sm" id="btn-ak-reload">
+                    <i class="fas fa-rotate"></i> Tải lại
+                  </button>
+                </div>
+              </div>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr>
+                    <th>Mã đề</th><th style="width:110px">Số đáp án</th>
+                    <th>Dải đã quét</th><th style="width:170px">Cập nhật</th><th style="width:190px">Thao tác</th>
+                  </tr></thead>
+                  <tbody id="ak-tbody">
+                    <tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>

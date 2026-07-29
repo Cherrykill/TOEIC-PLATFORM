@@ -419,6 +419,14 @@ router.delete('/tests/:id', authorize('admin'), deleteTest);
 router.post('/upload/part1-image', authorize('admin'), uploadImage.single('image'), uploadPart1Image);
 router.post('/upload/audio', authorize('admin'), uploadAudioMiddleware.single('audio'), uploadAudio);
 
+// ── Bộ đáp án quét từ ảnh đề in ─────────────────────────────────────────────
+const answerKeyCtrl = require('../controllers/answerKeyController');
+router.get('/answer-keys', authorize('admin'), answerKeyCtrl.listAnswerKeys);
+router.post('/answer-keys/scan', authorize('admin'), uploadImage.single('image'), answerKeyCtrl.scanAnswerKey);
+router.get('/answer-keys/:source/compare', authorize('admin'), answerKeyCtrl.compareAnswerKey);
+router.post('/answer-keys/:source/apply', authorize('admin'), answerKeyCtrl.applyAnswerKey);
+router.delete('/answer-keys/:source', authorize('admin'), answerKeyCtrl.deleteAnswerKey);
+
 router.get('/admin/practice-history', authorize('admin'), getAllPracticeHistory);
 router.get('/admin/users-list', authorize('admin'), getUsersList);
 router.delete('/admin/practice-history/all', authorize('admin'), deleteAllHistory);

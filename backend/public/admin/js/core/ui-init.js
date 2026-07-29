@@ -50,6 +50,7 @@ function initMainTabs() {
         economy:             'Bảng kinh tế (faucet / sink)',
         'game-config':       'Hằng số game (tinh chỉnh cân bằng)',
         'feature-unlocks':   'Mở khoá theo Level',
+        'answer-keys':       'Quét đáp án từ ảnh',
         monitor:             'Giám sát hệ thống',
         broadcast:           'Gửi thông báo',
         'upload-management': 'Nội dung người dùng',
@@ -116,6 +117,8 @@ function initMainTabs() {
             window.loadGameConfig?.();
         } else if (tab === 'feature-unlocks') {
             window.loadFeatureUnlocks?.();
+        } else if (tab === 'answer-keys') {
+            window.loadAnswerKeysTab?.();
         } else if (tab === 'monitor') {
             startMetricsPolling();
             initApiReference();
