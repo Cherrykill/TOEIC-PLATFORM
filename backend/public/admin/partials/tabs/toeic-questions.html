@@ -34,9 +34,26 @@
                   style="flex: 1; margin: 0"
                   placeholder="Question text, passage, explanation..."
                 />
-                <select id="filter-source" class="filter-select" style="width: auto; min-width: 140px; flex-shrink: 0">
-                  <option value="">Tất cả nguồn</option>
-                </select>
+                <!-- Nguồn: dropdown tự dựng (không dùng <select>) — 40+ mã đề thì
+                     danh sách gốc của trình duyệt đổ dài quá màn hình, CSS không
+                     chặn chiều cao được. Ở đây tự chặn 280px + có ô lọc nhanh. -->
+                <div style="position: relative; flex-shrink: 0" id="source-filter-wrapper">
+                  <button type="button" id="source-filter-btn" class="filter-select"
+                    style="width: auto; min-width: 140px; display: flex; align-items: center; gap: 6px; cursor: pointer; text-align: left">
+                    <span id="source-filter-label">Tất cả nguồn</span>
+                    <i class="fas fa-chevron-down" style="font-size: 9px; opacity: .6; margin-left: auto"></i>
+                  </button>
+                  <div id="source-filter-dropdown"
+                    style="display: none; position: absolute; top: calc(100% + 4px); left: 0; min-width: 220px;
+                           background: var(--bg-card, #1e293b); border: 1px solid var(--border-color, #334155);
+                           border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.35); z-index: 999; padding: 8px">
+                    <input type="text" id="source-filter-search" placeholder="Lọc mã đề..."
+                      style="width: 100%; padding: 6px 8px; margin-bottom: 6px; border-radius: 6px;
+                             border: 1px solid var(--border-color, #334155); background: var(--bg-secondary, #0f172a);
+                             color: inherit; font-size: 13px" />
+                    <div id="source-filter-list" style="max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px"></div>
+                  </div>
+                </div>
                 <select id="filter-part" class="filter-select" style="width: auto; min-width: 130px; flex-shrink: 0">
                   <option value="">Tất cả Part</option>
                   <option value="1">Part 1</option>

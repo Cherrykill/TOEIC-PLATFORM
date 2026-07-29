@@ -1031,6 +1031,32 @@ body {
   box-shadow: 0 0 0 3px rgba(225,29,72,0.08);
 }
 
+/* Mục chọn trong dropdown "Nguồn" tự dựng (thay <select> vì 40+ mã đề làm
+   danh sách gốc của trình duyệt đổ dài quá màn hình, CSS không chặn được). */
+.source-opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.source-opt:hover {
+  background: var(--bg-secondary);
+}
+
+.source-opt.active {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+
 .filter-input::placeholder { color: var(--text-secondary); opacity: 0.7; }
 
 /* Vocab file selector — special style */

@@ -227,35 +227,76 @@ function restoreHighlights() {
 // từ dữ liệu đã tải chỉ cho ra các nguồn có mặt trong trang hiện tại, thiếu hẳn
 // những đề còn lại trong kho.
 let _sourceOptionsLoaded = false;
+let _allSources = [];
 async function populateSourceFilter() {
-    const sel = document.getElementById('filter-source');
-    if (!sel || _sourceOptionsLoaded) return;
+    if (_sourceOptionsLoaded) return;
     try {
         const res = await fetch(`${TOEIC_API_BASE}/questions/sources`, {
             headers: { 'Authorization': `Bearer ${getToken()}` },
         });
         const data = await res.json();
-        const sources = data.success ? (data.data || []) : [];
-        const cur = sel.value;
-        sel.innerHTML = '<option value="">Tất cả nguồn</option>'
-            + sources.map(s => `<option value="${s}">${s}</option>`).join('');
-        if (sources.includes(cur)) sel.value = cur; // giữ lựa chọn sau khi tải lại
+        _allSources = data.success ? (data.data || []) : [];
+        renderSourceOptions();
         _sourceOptionsLoaded = true;
     } catch (_) { /* để nguyên "Tất cả nguồn" nếu tải hỏng */ }
+}
+
+// Vẽ danh sách mã đề trong dropdown, lọc theo chữ đang gõ ở ô tìm của dropdown.
+function renderSourceOptions(keyword = '') {
+    const list = document.getElementById('source-filter-list');
+    if (!list) return;
+    const kw = keyword.trim().toLowerCase();
+    const shown = kw ? _allSources.filter(s => s.toLowerCase().includes(kw)) : _allSources;
+    const cur = searchFilters.source || '';
+
+    const row = (val, text) => `
+        <button type="button" class="source-opt${cur === val ? ' active' : ''}" data-val="${val}">${text}</button>`;
+
+    list.innerHTML = row('', 'Tất cả nguồn')
+        + (shown.length
+            ? shown.map(s => row(s, s)).join('')
+            : '<div style="padding:8px;font-size:12px;color:var(--text-secondary)">Không có mã đề khớp</div>');
+
+    list.querySelectorAll('.source-opt').forEach(btn => {
+        btn.onclick = () => {
+            searchFilters.source = btn.dataset.val;
+            const label = document.getElementById('source-filter-label');
+            if (label) label.textContent = btn.dataset.val || 'Tất cả nguồn';
+            closeSourceDropdown();
+            applyFiltersAndSort();
+        };
+    });
+}
+
+function closeSourceDropdown() {
+    const dd = document.getElementById('source-filter-dropdown');
+    if (dd) dd.style.display = 'none';
 }
 
 function initSearchAndFilters() {
     const searchInput = document.getElementById('question-search');
     const filterPart = document.getElementById('filter-part');
-    const filterSource = document.getElementById('filter-source');
     const sortBy = document.getElementById('sort-by');
     const clearFiltersBtn = document.getElementById('clear-filters');
 
-    if (filterSource) {
-        filterSource.addEventListener('change', (e) => {
-            searchFilters.source = e.target.value;
-            applyFiltersAndSort();
+    // Dropdown nguồn tự dựng: mở/đóng + ô lọc nhanh bên trong.
+    const srcBtn = document.getElementById('source-filter-btn');
+    const srcDropdown = document.getElementById('source-filter-dropdown');
+    const srcSearch = document.getElementById('source-filter-search');
+    if (srcBtn && srcDropdown) {
+        srcBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const open = srcDropdown.style.display === 'block';
+            srcDropdown.style.display = open ? 'none' : 'block';
+            if (!open) {
+                if (srcSearch) { srcSearch.value = ''; srcSearch.focus(); }
+                renderSourceOptions();
+            }
         });
+        srcDropdown.addEventListener('click', (e) => e.stopPropagation());
+        // Bấm ra ngoài thì đóng — dropdown tự dựng không tự tắt như <select>.
+        document.addEventListener('click', closeSourceDropdown);
+        srcSearch?.addEventListener('input', (e) => renderSourceOptions(e.target.value));
     }
 
     let searchTimeout;
@@ -288,8 +329,11 @@ function initSearchAndFilters() {
             searchFilters = { searchText: '', part: '', source: '', sortBy: 'newest' };
             if (searchInput) searchInput.value = '';
             if (filterPart) filterPart.value = '';
-            if (filterSource) filterSource.value = '';
             if (sortBy) sortBy.value = 'newest';
+            // Nguồn là dropdown tự dựng → phải tự trả nhãn về mặc định.
+            const srcLabel = document.getElementById('source-filter-label');
+            if (srcLabel) srcLabel.textContent = 'Tất cả nguồn';
+            closeSourceDropdown();
             applyFiltersAndSort();
         });
     }
