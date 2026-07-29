@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toeicQuestionNumber } from '../toeicPartTime.js';
 
 function QuestionReviewItem({ q, index, expanded, onToggle }) {
     const isCorrect = q.userAnswer === q.correctAnswer;
@@ -15,7 +16,7 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
             <div className="review-question-header" onClick={onToggle} style={{ cursor: 'pointer' }}>
                 <div className="review-question-number">
                     <i className={`fas ${statusIcon}`}></i>
-                    <span>Câu {index + 1}</span>
+                    <span>Câu {toeicQuestionNumber(q, index)}</span>
                 </div>
                 <div className="review-answers">
                     <span className="answer-label">Đáp án đúng:</span>
@@ -34,6 +35,17 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
                     <div className="review-detail-2col">
                         <div className="review-detail-left">
                             <div className="review-detail-left-title">Câu hỏi</div>
+                            {/* Part Nghe: cho nghe lại/tua audio ngay trong phần xem lại —
+                                không nghe lại thì không hiểu vì sao mình chọn sai. */}
+                            {q.audioUrl && (
+                                <audio
+                                    src={q.audioUrl}
+                                    controls
+                                    preload="none"
+                                    className="review-detail-audio"
+                                    style={{ width: '100%', marginBottom: 10 }}
+                                />
+                            )}
                             {imageUrl && (
                                 <img src={imageUrl} alt="Question" className="review-detail-img" />
                             )}
@@ -42,7 +54,13 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
                                     <span dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }} />
                                 </div>
                             ))}
-                            {!imageUrl && passageList.length === 0 && (
+                            {/* Transcript (nếu đề có) — đọc kèm lúc nghe lại. */}
+                            {q.audioText && (
+                                <div className="question-passage" style={{ whiteSpace: 'pre-wrap' }}>
+                                    {q.audioText}
+                                </div>
+                            )}
+                            {!q.audioUrl && !q.audioText && !imageUrl && passageList.length === 0 && (
                                 <div className="review-detail-left-empty">(Câu không có hình / đoạn văn)</div>
                             )}
                         </div>

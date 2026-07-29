@@ -21,6 +21,8 @@ import {
     buildCustomReadingPlan,
     buildFullTestReadingPlan,
     isFullTestType,
+    toeicQuestionNumber,
+    TOEIC_TOTAL_QUESTIONS,
     FULL_TEST_LISTENING_SECONDS,
     FULL_TEST_READING_SECONDS,
 } from '../toeicPartTime.js';
@@ -274,11 +276,12 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     const handleSelectAnswer = useCallback((answer) => {
         const q = attempt.currentQuestion;
         attempt.submitAnswer(answer);
-        // Part Đọc: chọn xong tự sang câu kế sau 1s.
+        // Part Đọc: chọn xong tự sang câu kế sau 1s — chỉ khi công tắc "Tự động
+        // chuyển câu" đang bật (tắt thì người dùng tự bấm Tiếp, đúng như mô tả).
         // TRỪ Full Test — thi thật phần Đọc tự quản lý thời gian, được quay lại
         // sửa/bỏ qua câu tuỳ ý, nên không giật câu khỏi tay người làm bài.
         // (Phần Nghe 1-4 vẫn tự chuyển vì audio dẫn nhịp.)
-        if (q && q.part >= 5 && !isFullTest) {
+        if (q && q.part >= 5 && !isFullTest && isToeicAutoAdvanceOn()) {
             setTimeout(() => {
                 if (!attempt.pendingTransition && attempt.currentIndex < attempt.questions.length - 1) {
                     attempt.nextQuestion();
@@ -495,10 +498,13 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     for (let i = gStart; i <= gEnd; i++) groupItems.push({ q: attempt.questions[i], index: i });
 
     // Điều hướng câu giờ nằm trên thanh tiêu đề khung nội dung, không ở header đề.
+    // Số câu THẬT (Part 3 → 32, Part 5 → 101…), không phải vị trí trong đề: mini
+    // test lấy riêng một Part nên đánh từ 1 sẽ lệch hẳn với số câu lúc thi thật.
+    const navNum = (i) => toeicQuestionNumber(attempt.questions[i], i);
     const navProps = {
-        // Màn nhóm phủ nhiều câu → hiện DẢI vị trí (vd 5–8) cho đúng thực tế.
-        current: gEnd > gStart ? `${gStart + 1}–${gEnd + 1}` : gStart + 1,
-        total: attempt.test?.totalQuestions || attempt.questions.length,
+        // Màn nhóm phủ nhiều câu → hiện DẢI số câu (vd 32–34) cho đúng thực tế.
+        current: gEnd > gStart ? `${navNum(gStart)}–${navNum(gEnd)}` : navNum(gStart),
+        total: TOEIC_TOTAL_QUESTIONS,
         part: attempt.questions[gStart]?.part, // Part của câu/nhóm hiện tại
         canPrev: gStart > 0,
         canNext: gEnd < attempt.questions.length - 1,

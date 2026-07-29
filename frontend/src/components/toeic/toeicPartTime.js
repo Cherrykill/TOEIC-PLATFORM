@@ -25,6 +25,16 @@ export function isFullTestType(test) {
     return test?.testType === 'full' || test?.testType === 'full-test';
 }
 
+// Đề TOEIC luôn 200 câu. Mini test tuy chỉ lấy một Part nhưng số câu vẫn đánh
+// theo dải chuẩn (Part 3 = 32-70…) nên mẫu số phải là 200, không phải số câu
+// của riêng Part — có vậy người học mới quen mặt số câu như lúc thi thật.
+export const TOEIC_TOTAL_QUESTIONS = 200;
+
+/** Số câu THẬT theo chuẩn TOEIC của một câu hỏi (fallback về vị trí nếu thiếu). */
+export function toeicQuestionNumber(q, fallbackIndex) {
+    return q?.globalQuestionNumber ?? q?.questionNumber ?? (fallbackIndex + 1);
+}
+
 export const TOEIC_PART_TIMES = [
     { id: 1, name: 'Part 1 — Mô tả tranh',     def: 25 },
     { id: 2, name: 'Part 2 — Hỏi & đáp',       def: 20 },

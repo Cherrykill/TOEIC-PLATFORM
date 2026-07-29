@@ -554,6 +554,9 @@ exports.submitAttempt = async (req, res, next) => {
                 correctAnswer: ans.correctAnswer,
                 isCorrect: ans.isCorrect,
                 part: ans.partNumber,
+                // Số câu THẬT chuẩn TOEIC — thiếu nó thì màn kết quả phải đánh
+                // số theo vị trí (Câu 1, 2…) không khớp số câu lúc làm bài.
+                questionNumber: q?.questionNumber ?? null,
                 questionText: q?.questionText || '',
                 imageUrls: q?.imageUrls || [],
                 passages: q?.passages || [],
