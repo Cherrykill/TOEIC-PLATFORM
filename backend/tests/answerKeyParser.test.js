@@ -1,49 +1,12 @@
 /**
- * Unit test cho phần THUẦN của tính năng quét bảng đáp án (không gọi API,
- * không chạm DB): đọc dải câu, lọc kết quả AI, và đối chiếu với đề.
+ * Unit test cho việc nạp BỘ ĐÁP ÁN (toàn hàm thuần, không gọi AI, không chạm DB):
+ * đọc dải câu, đọc thứ admin dán vào, và đối chiếu với đề.
  *
- * Chốt lại điểm dễ hỏng nhất: AI đọc lẫn số câu ngoài dải. Giữ lại những số đó
- * là ghi đè nhầm sang phần đề khác — hỏng dữ liệu mà không ai biết.
+ * Chốt lại điểm dễ hỏng nhất: số câu ngoài dải. Giữ lại những số đó là ghi đè
+ * nhầm sang phần đề khác — hỏng dữ liệu mà không ai biết.
  */
-const sharp = require('sharp');
-const { parseRange, normalizeAnswers, toSupportedPng } = require('../services/answerKeyScanner');
+const { parseRange, normalizeAnswers, parseAnswerText } = require('../services/answerKeyParser');
 const { compareAnswers } = require('../controllers/answerKeyController');
-
-// Ảnh đặc, kích thước tuỳ ý — đủ để kiểm tra khâu nắn định dạng.
-const makeImage = (fmt, w = 300, h = 200) =>
-    sharp({ create: { width: w, height: h, channels: 3, background: { r: 255, g: 255, b: 255 } } })[fmt]().toBuffer();
-
-describe('toSupportedPng', () => {
-    test('TIFF (đặt tên .png) được nắn về PNG — OpenAI đọc header nên không nhận TIFF', async () => {
-        const tiff = await makeImage('tiff');
-        const { buffer, sourceFormat } = await toSupportedPng(tiff);
-        expect(sourceFormat).toBe('tiff');
-        expect((await sharp(buffer).metadata()).format).toBe('png');
-    });
-
-    test('WebP cũng nắn về PNG', async () => {
-        const { buffer } = await toSupportedPng(await makeImage('webp'));
-        expect((await sharp(buffer).metadata()).format).toBe('png');
-    });
-
-    test('ảnh quá to bị thu nhỏ để khỏi phình token', async () => {
-        const { buffer } = await toSupportedPng(await makeImage('png', 5000, 3000));
-        const m = await sharp(buffer).metadata();
-        expect(Math.max(m.width, m.height)).toBeLessThanOrEqual(2200);
-        expect(m.width / m.height).toBeCloseTo(5000 / 3000, 1); // giữ tỉ lệ
-    });
-
-    test('ảnh nhỏ không bị phóng to', async () => {
-        const { buffer } = await toSupportedPng(await makeImage('png', 400, 300));
-        const m = await sharp(buffer).metadata();
-        expect(m.width).toBe(400);
-    });
-
-    test('file không phải ảnh → báo lỗi dễ hiểu, không ném lỗi thư viện', async () => {
-        await expect(toSupportedPng(Buffer.from('day khong phai anh')))
-            .rejects.toThrow(/không phải ảnh đọc được/);
-    });
-});
 
 describe('parseRange', () => {
     test('đọc được các kiểu gạch nối thường gặp', () => {
@@ -89,6 +52,76 @@ describe('normalizeAnswers', () => {
     test('không có dải thì không lọc theo dải', () => {
         const { answers } = normalizeAnswers({ 1: 'A', 200: 'D' }, null);
         expect(answers).toEqual({ 1: 'A', 200: 'D' });
+    });
+});
+
+describe('parseAnswerText (dán tay — đường duy nhất nạp đáp án)', () => {
+    test('object JSON — dạng thường dùng nhất', () => {
+        const r = parseAnswerText('{"101":"A","102":"c"}', null);
+        expect(r.answers).toEqual({ 101: 'A', 102: 'C' });
+        expect(r.format).toBe('object');
+    });
+
+    test('nhận cả object JS sẵn (client gửi JSON thật, không phải chuỗi)', () => {
+        expect(parseAnswerText({ 1: 'A', 2: 'B' }, null).answers).toEqual({ 1: 'A', 2: 'B' });
+    });
+
+    test('bóc lớp bọc {"answers": {...}}', () => {
+        expect(parseAnswerText('{"answers":{"5":"D"}}', null).answers).toEqual({ 5: 'D' });
+    });
+
+    test('mảng chữ cái đánh số từ ĐẦU DẢI — dán riêng phần 101-200 không lệch số câu', () => {
+        const r = parseAnswerText('["A","C","B"]', { from: 101, to: 200 });
+        expect(r.answers).toEqual({ 101: 'A', 102: 'C', 103: 'B' });
+        expect(r.format).toBe('array');
+    });
+
+    test('mảng chữ cái không có dải thì đánh số từ câu 1', () => {
+        expect(parseAnswerText('["A","B"]', null).answers).toEqual({ 1: 'A', 2: 'B' });
+    });
+
+    test('mảng object, tên trường nào cũng nhận', () => {
+        const r = parseAnswerText('[{"number":101,"answer":"A"},{"q":102,"ans":"D"}]', null);
+        expect(r.answers).toEqual({ 101: 'A', 102: 'D' });
+        expect(r.format).toBe('array-object');
+    });
+
+    // Dán thẳng từ khung chat AI: hay dính rào ```json và lời dẫn hai đầu.
+    test('gỡ được rào ```json quanh kết quả', () => {
+        const r = parseAnswerText('```json\n{"101":"A","102":"B"}\n```', null);
+        expect(r.answers).toEqual({ 101: 'A', 102: 'B' });
+        expect(r.format).toBe('object');
+    });
+
+    test('gỡ được lời dẫn của AI hai đầu', () => {
+        const r = parseAnswerText('Đây là kết quả nhé:\n{"101":"A"}\nBạn cần gì nữa không?', null);
+        expect(r.answers).toEqual({ 101: 'A' });
+    });
+
+    test('không phải JSON thì vớt cặp số–chữ từ text tự do', () => {
+        const r = parseAnswerText('101. A\n102) C\n103 - B', null);
+        expect(r.answers).toEqual({ 101: 'A', 102: 'C', 103: 'B' });
+        expect(r.format).toBe('text');
+    });
+
+    test('text tự do không đọc nhầm chữ cái mở đầu một TỪ', () => {
+        // "102. Answer" phải bị bỏ qua chứ không được hiểu thành 102 → A.
+        const r = parseAnswerText('101. B\n102. Answer chưa có', null);
+        expect(r.answers).toEqual({ 101: 'B' });
+    });
+
+    test('LOẠI câu ngoài dải — dán nhầm phần khác không ghi đè lung tung', () => {
+        const r = parseAnswerText('{"101":"A","55":"B"}', { from: 101, to: 200 });
+        expect(r.answers).toEqual({ 101: 'A' });
+        expect(r.skipped[0].reason).toMatch(/ngoài dải/);
+    });
+
+    test('rỗng / rác / không còn đáp án hợp lệ → lỗi 400 dễ hiểu, không phải 500', () => {
+        expect(() => parseAnswerText('', null)).toThrow(/Chưa nhập/);
+        expect(() => parseAnswerText('không có gì ở đây', null)).toThrow(/Không đọc được/);
+        const err = (() => { try { parseAnswerText('{"101":"Z"}', null); } catch (e) { return e; } })();
+        expect(err.statusCode).toBe(400);
+        expect(err.message).toMatch(/A\/B\/C\/D/);
     });
 });
 

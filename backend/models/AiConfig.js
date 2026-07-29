@@ -21,8 +21,8 @@ const aiConfigSchema = new mongoose.Schema(
         model: { type: String, default: '' },   // rỗng = dùng model mặc định của hãng
 
         // Ghi đè riêng cho từng tính năng, vd:
-        //   { 'toeic-answer-key-scan': { provider: 'google', model: 'gemini-2.5-pro' } }
-        // Quét ảnh cần model đọc ảnh tốt, trong khi điền từ vựng thì model rẻ là đủ.
+        //   { 'toeic-question-generate': { provider: 'anthropic', model: 'claude-sonnet-4-5' } }
+        // Sinh đề cần model mạnh, trong khi điền từ vựng thì model rẻ là đủ.
         overrides: { type: mongoose.Schema.Types.Mixed, default: {} },
 
         updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

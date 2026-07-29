@@ -419,10 +419,10 @@ router.delete('/tests/:id', authorize('admin'), deleteTest);
 router.post('/upload/part1-image', authorize('admin'), uploadImage.single('image'), uploadPart1Image);
 router.post('/upload/audio', authorize('admin'), uploadAudioMiddleware.single('audio'), uploadAudio);
 
-// ── Bộ đáp án quét từ ảnh đề in ─────────────────────────────────────────────
+// ── Bộ đáp án của đề (nhập dạng JSON, server không gọi AI) ──────────────────
 const answerKeyCtrl = require('../controllers/answerKeyController');
 router.get('/answer-keys', authorize('admin'), answerKeyCtrl.listAnswerKeys);
-router.post('/answer-keys/scan', authorize('admin'), uploadImage.single('image'), answerKeyCtrl.scanAnswerKey);
+router.post('/answer-keys/import', authorize('admin'), answerKeyCtrl.importAnswerKey);
 router.get('/answer-keys/:source/compare', authorize('admin'), answerKeyCtrl.compareAnswerKey);
 router.post('/answer-keys/:source/apply', authorize('admin'), answerKeyCtrl.applyAnswerKey);
 router.delete('/answer-keys/:source', authorize('admin'), answerKeyCtrl.deleteAnswerKey);

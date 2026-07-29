@@ -1,6 +1,6 @@
 const ToeicAnswerKey = require('../models/ToeicAnswerKey');
 const ToeicQuestionSet = require('../models/ToeicQuestionSet');
-const { scanAnswerKeyImage, parseRange } = require('../services/answerKeyScanner');
+const { parseRange, parseAnswerText } = require('../services/answerKeyParser');
 const logger = require('../utils/logger');
 
 /**
@@ -56,64 +56,77 @@ function compareAnswers(answerMap, questions) {
 }
 
 /**
- * @desc    Quét ảnh bảng đáp án → lưu bộ đáp án + đối chiếu ngay
- * @route   POST /api/toeic/answer-keys/scan
- * @access  Private/Admin
+ * Đọc mã đề + dải câu từ body, báo lỗi rõ ràng nếu sai.
+ * @returns {{ error?: string, source: string, rangeText: string, range: object|null }}
  */
-exports.scanAnswerKey = async (req, res, next) => {
+function readTarget(body) {
+    const source = String(body.source || '').trim();
+    const rangeText = String(body.range || '').trim();
+    if (!source) return { error: 'Thiếu mã đề', source, rangeText, range: null };
+    const range = parseRange(rangeText);
+    if (rangeText && !range) {
+        return {
+            error: `Khoảng số câu "${rangeText}" không hợp lệ — nhập dạng 1-100 (trong phạm vi 1..200)`,
+            source, rangeText, range: null,
+        };
+    }
+    return { source, rangeText, range };
+}
+
+/**
+ * Gộp đáp án mới vào bộ đáp án của mã đề rồi đối chiếu với ngân hàng câu hỏi.
+ * Nhập từng phần (1-100 rồi 101-200) phải CỘNG DỒN, không được xoá phần trước.
+ */
+async function mergeAndCompare({ source, rangeText, answers, userId }) {
+    const doc = await ToeicAnswerKey.findOne({ source })
+        || new ToeicAnswerKey({ source, answers: new Map() });
+    for (const [num, ans] of Object.entries(answers)) doc.answers.set(String(num), ans);
+    if (rangeText && !doc.scannedRanges.includes(rangeText)) doc.scannedRanges.push(rangeText);
+    doc.updatedBy = userId;
+    await doc.save();
+
+    const questions = await loadQuestionsBySource(source);
+    return {
+        totalInKey: doc.answers.size,
+        questionsInTest: questions.length,
+        comparison: compareAnswers(Object.fromEntries(doc.answers), questions),
+    };
+}
+
+/**
+ * @desc    Nhập bộ đáp án dạng JSON/text dán tay — đường DUY NHẤT để nạp đáp án.
+ *          Server không gọi AI: muốn đọc ảnh thì admin tự dán ảnh vào chat AI
+ *          kèm prompt có sẵn ở tab admin rồi dán JSON về đây.
+ * @route   POST /api/toeic/answer-keys/import
+ * @access  Private/Admin
+ * @body    { source, range?, answers }  — answers: object/mảng/chuỗi JSON/text
+ */
+exports.importAnswerKey = async (req, res, next) => {
     try {
-        const source = String(req.body.source || '').trim();
-        const rangeText = String(req.body.range || '').trim();
+        const { error, source, rangeText, range } = readTarget(req.body);
+        if (error) return res.status(400).json({ success: false, message: error });
 
-        if (!source) return res.status(400).json({ success: false, message: 'Thiếu mã đề' });
-        if (!req.file?.buffer) return res.status(400).json({ success: false, message: 'Chưa chọn ảnh bảng đáp án' });
+        // parseAnswerText ném lỗi kèm statusCode 400 khi dán sai định dạng.
+        const { answers, skipped, format } = parseAnswerText(req.body.answers, range);
+        const merged = await mergeAndCompare({ source, rangeText, answers, userId: req.user.id });
 
-        const range = parseRange(rangeText);
-        if (rangeText && !range) {
-            return res.status(400).json({
-                success: false,
-                message: `Khoảng số câu "${rangeText}" không hợp lệ — nhập dạng 1-100 (trong phạm vi 1..200)`,
-            });
-        }
-
-        const { answers, skipped } = await scanAnswerKeyImage(
-            req.file.buffer, req.file.mimetype, range, { userId: req.user.id },
-        );
-
-        if (!Object.keys(answers).length) {
-            return res.status(422).json({
-                success: false,
-                message: 'Không đọc được đáp án nào từ ảnh. Thử ảnh rõ hơn hoặc cắt sát bảng đáp án.',
-                skipped,
-            });
-        }
-
-        // Gộp vào bộ đáp án đã có: quét từng phần (1-100 rồi 101-200) phải cộng
-        // dồn, không được xoá phần quét trước.
-        const doc = await ToeicAnswerKey.findOne({ source })
-            || new ToeicAnswerKey({ source, answers: new Map() });
-        for (const [num, ans] of Object.entries(answers)) doc.answers.set(String(num), ans);
-        if (rangeText && !doc.scannedRanges.includes(rangeText)) doc.scannedRanges.push(rangeText);
-        doc.updatedBy = req.user.id;
-        await doc.save();
-
-        const questions = await loadQuestionsBySource(source);
-        const comparison = compareAnswers(Object.fromEntries(doc.answers), questions);
+        const count = Object.keys(answers).length;
+        const numbers = Object.keys(answers).map(Number);
+        logger.info('Nhập bộ đáp án dạng JSON', { source, count, format, by: String(req.user.id) });
 
         res.json({
             success: true,
-            message: `Đọc được ${Object.keys(answers).length} đáp án từ ảnh`,
+            message: `Đã nhập ${count} đáp án (câu ${Math.min(...numbers)}–${Math.max(...numbers)}), không tốn token AI`,
             data: {
                 source,
-                scannedNow: Object.keys(answers).length,
-                totalInKey: doc.answers.size,
+                scannedNow: count,
+                format,
                 skipped,
-                questionsInTest: questions.length,
-                comparison,
+                ...merged,
             },
         });
     } catch (error) {
-        logger.error('Quét bảng đáp án lỗi', { error: error.message });
+        logger.error('Nhập bộ đáp án lỗi', { error: error.message });
         next(error);
     }
 };

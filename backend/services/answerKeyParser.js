@@ -1,10 +1,9 @@
-const logger = require('../utils/logger');
-
 /**
- * Quét ảnh BẢNG ĐÁP ÁN đề TOEIC → map { số câu: 'A'|'B'|'C'|'D' }.
+ * Đọc BỘ ĐÁP ÁN đề TOEIC admin dán vào → map { số câu: 'A'|'B'|'C'|'D' }.
  *
- * Tách hàm thuần (parseRange, normalizeAnswers) khỏi phần gọi API để test được
- * mà không tốn tiền token.
+ * Toàn bộ file là hàm thuần, KHÔNG gọi AI: server không trả tiền token cho việc
+ * đọc bảng đáp án. Muốn lấy JSON từ ảnh thì admin tự dán ảnh vào chat AI kèm
+ * prompt sẵn ở tab admin, rồi dán kết quả về đây.
  */
 
 /** "1-100" / "1 – 100" / "1,100" → { from: 1, to: 100 }. Sai định dạng → null. */
@@ -49,135 +48,130 @@ function normalizeAnswers(raw, range) {
     return { answers: out, skipped };
 }
 
-const SCAN_PROMPT = `Bạn đang đọc BẢNG ĐÁP ÁN của một đề thi TOEIC.
-Nhiệm vụ: đọc TOÀN BỘ cặp "số câu → đáp án" nhìn thấy trong ảnh.
+/** Lỗi người dùng sửa được → errorHandler trả 400 kèm lời nhắn, không phải 500 trống. */
+function badInput(message) {
+    const e = new Error(message);
+    e.statusCode = 400;
+    return e;
+}
 
-QUY TẮC:
-- Trả về DUY NHẤT một object JSON, key là số câu (chuỗi số), value là "A"/"B"/"C"/"D".
-- KHÔNG bọc trong markdown, KHÔNG giải thích gì thêm.
-- Chỉ đọc thứ NHÌN THẤY RÕ. Ô nào mờ/không chắc thì BỎ QUA, tuyệt đối không đoán.
-- Part 2 của TOEIC chỉ có A/B/C — không bịa ra D.
+// Tên trường hay gặp khi copy JSON đáp án từ nơi khác về.
+const NUMBER_FIELDS = ['number', 'num', 'n', 'no', 'q', 'question', 'stt', 'cau', 'câu'];
+const ANSWER_FIELDS = ['answer', 'ans', 'correct', 'correctanswer', 'value', 'key', 'dapan', 'đápán'];
 
-Ví dụ kết quả: {"101":"A","102":"C","103":"B"}`;
-
-// OpenAI chỉ nhận png/jpeg/gif/webp và TỰ ĐỌC HEADER file, không tin phần mở
-// rộng. Ảnh chụp/scan hay là tiff/heif/bmp đặt tên .png → nó trả
-// "unsupported image". Vậy nên luôn nắn về PNG thật bằng sharp thay vì gửi
-// thẳng buffer người dùng tải lên.
-const MAX_EDGE = 2200; // đủ nét để đọc bảng đáp án in, không phình token vô ích
-
-async function toSupportedPng(imageBuffer) {
-    const sharp = require('sharp');
-    let meta;
-    try {
-        meta = await sharp(imageBuffer).metadata();
-    } catch (err) {
-        // statusCode để errorHandler trả 400 kèm lời nhắn này, thay vì 500 trống
-        // khiến người dùng không biết ảnh hỏng ở đâu.
-        const e = new Error(
-            'File tải lên không phải ảnh đọc được (hoặc đã hỏng). '
-            + 'Hãy mở ảnh rồi "Save as" sang PNG/JPG và thử lại. '
-            + `(chi tiết: ${err.message})`,
-        );
-        e.statusCode = 400;
-        throw e;
+function pickField(obj, names) {
+    for (const k of Object.keys(obj)) {
+        if (names.includes(k.trim().toLowerCase())) return obj[k];
     }
-
-    // Bọc CẢ khâu chuyển đổi, không chỉ đọc metadata: định dạng như HEIF/SVG
-    // đọc được header nhưng lúc encode mới hỏng (thiếu thư viện nền) — để lọt
-    // ra ngoài là thành 500 trống, người dùng không biết vì sao.
-    try {
-        let img = sharp(imageBuffer).rotate(); // theo EXIF, ảnh chụp bằng điện thoại hay bị xoay
-        if (Math.max(meta.width || 0, meta.height || 0) > MAX_EDGE) {
-            img = img.resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true });
-        }
-        const buffer = await img.png().toBuffer();
-        return { buffer, sourceFormat: meta.format, width: meta.width, height: meta.height };
-    } catch (err) {
-        const e = new Error(
-            `Không chuyển được ảnh "${meta.format || 'không rõ định dạng'}" sang PNG. `
-            + 'Hãy mở ảnh rồi "Save as" sang PNG/JPG và thử lại. '
-            + `(chi tiết: ${err.message})`,
-        );
-        e.statusCode = 400;
-        throw e;
-    }
+    return undefined;
 }
 
 /**
- * Gọi model đọc ảnh. `imageBuffer` là Buffer ảnh (định dạng nào sharp đọc được).
- * @returns {Promise<{answers: object, skipped: array, usage: object}>}
+ * Gỡ rào markdown và lời dẫn quanh JSON.
+ *
+ * Chat AI rất hay trả về ```json ... ``` hoặc "Đây là kết quả: {...}" dù prompt
+ * đã dặn đừng. Bắt admin ngồi xoá tay là vô nghĩa — cắt hộ ngay tại đây.
  */
-async function scanAnswerKeyImage(imageBuffer, mimeType, range, { userId } = {}) {
-    const { OpenAI } = require('openai');
-    const { logUsage } = require('./aiUsageLogger');
+function stripJsonWrapper(text) {
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const body = (fenced ? fenced[1] : text).trim();
 
-    if (!process.env.OPENAI_API_KEY) {
-        throw new Error('Chưa cấu hình OPENAI_API_KEY — không quét ảnh được');
-    }
+    // Còn lời dẫn hai đầu thì lấy đoạn từ dấu mở tới dấu đóng ngoài cùng. Phải
+    // xét dấu mở nào ĐỨNG TRƯỚC, không thì mảng [{...},{...}] sẽ bị cắt mất hai
+    // đầu ngoặc vuông và thành JSON hỏng.
+    const candidates = [['{', '}'], ['[', ']']]
+        .map(([open, close]) => ({ from: body.indexOf(open), to: body.lastIndexOf(close) }))
+        .filter(c => c.from !== -1 && c.to > c.from)
+        .sort((a, b) => a.from - b.from);
 
-    const { buffer: pngBuffer, sourceFormat, width, height } = await toSupportedPng(imageBuffer);
-    logger.info('Quét bảng đáp án: đã nắn ảnh về PNG', {
-        sourceFormat, uploadedMime: mimeType, width, height, bytes: pngBuffer.length,
-    });
-
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-    const dataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`;
-
-    const rangeHint = range
-        ? `\n\nChỉ lấy các câu trong khoảng ${range.from} đến ${range.to}.`
-        : '';
-
-    let res;
-    try {
-        res = await openai.chat.completions.create({
-            model,
-            temperature: 0, // đọc số liệu: cần lặp lại y hệt, không sáng tạo
-            max_tokens: 4000,
-            response_format: { type: 'json_object' },
-            messages: [{
-                role: 'user',
-                content: [
-                    { type: 'text', text: SCAN_PROMPT + rangeHint },
-                    { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
-                ],
-            }],
-        });
-    } catch (err) {
-        // Lỗi từ OpenAI (model không đọc được ảnh, hết hạn mức, sai key…) nếu để
-        // nguyên sẽ thành 500 trống — người dùng không biết phải sửa gì.
-        logger.error('OpenAI từ chối ảnh bảng đáp án', {
-            status: err.status, code: err.code, message: err.message, model, sourceFormat,
-        });
-        const e = new Error(`AI không xử lý được ảnh: ${err.message}`);
-        e.statusCode = err.status && err.status < 500 ? 400 : 502;
-        throw e;
-    }
-
-    try {
-        await logUsage({
-            feature: 'toeic-answer-key-scan',
-            model,
-            usage: res.usage,
-            userId,
-        });
-    } catch (err) {
-        logger.warn('Không ghi được log token quét đáp án', { error: err.message });
-    }
-
-    let parsed = {};
-    try {
-        parsed = JSON.parse(res.choices?.[0]?.message?.content || '{}');
-    } catch (err) {
-        throw new Error('AI trả về dữ liệu không phải JSON hợp lệ');
-    }
-
-    // Model đôi khi bọc thêm một lớp {"answers": {...}}.
-    if (parsed.answers && typeof parsed.answers === 'object') parsed = parsed.answers;
-
-    const { answers, skipped } = normalizeAnswers(parsed, range);
-    return { answers, skipped, usage: res.usage || {} };
+    return candidates.length ? body.slice(candidates[0].from, candidates[0].to + 1) : body;
 }
 
-module.exports = { scanAnswerKeyImage, toSupportedPng, parseRange, normalizeAnswers, SCAN_PROMPT };
+/**
+ * Vớt cặp "số câu – đáp án" từ text tự do: "101. A", "102) C", "103 - B".
+ * Chặn chữ cái dính từ (vd "101. Answer") bằng lookahead, khỏi đọc nhầm.
+ */
+function parseLoosePairs(text) {
+    const out = {};
+    const re = /(\d{1,3})\s*[.):\-–—=]?\s*([A-Da-d])(?![A-Za-z])/g;
+    let m;
+    while ((m = re.exec(text)) !== null) out[parseInt(m[1], 10)] = m[2].toUpperCase();
+    return out;
+}
+
+/**
+ * Đọc bộ đáp án admin DÁN TAY — đường duy nhất để nạp đáp án.
+ *
+ * Nhận mọi dạng thường gặp khi copy đáp án từ nơi khác về:
+ *   • object      {"101":"A","102":"C"}   (hoặc bọc {"answers":{...}})
+ *   • mảng chữ    ["A","C","B"]           → đánh số liên tiếp từ đầu dải (mặc định 1)
+ *   • mảng object [{"number":101,"answer":"A"}]
+ *   • text tự do  "101. A  102) C"        → vớt cặp số–chữ
+ *
+ * Dán JSON do AI đọc hộ cũng vào đúng đường này — model hay bọc thêm markdown
+ * hoặc lớp {"answers":{...}}, nên phần đọc phải chịu được mấy kiểu đó.
+ *
+ * @returns {{answers: object, skipped: array, format: string}}
+ */
+function parseAnswerText(input, range) {
+    let data = input;
+
+    if (typeof input !== 'object' || input === null) {
+        const text = String(input ?? '').trim();
+        if (!text) throw badInput('Chưa nhập nội dung đáp án');
+        try {
+            const j = JSON.parse(stripJsonWrapper(text));
+            data = (j && typeof j === 'object') ? j : null;
+        } catch (_) {
+            data = null; // không phải JSON → thử đọc như text tự do
+        }
+        if (data === null) {
+            const loose = parseLoosePairs(text);
+            if (!Object.keys(loose).length) {
+                throw badInput(
+                    'Không đọc được đáp án nào. Dán JSON dạng {"101":"A","102":"C"} '
+                    + 'hoặc ["A","C",...] hoặc danh sách "101. A  102. C".',
+                );
+            }
+            return { ...normalizeAnswers(loose, range), format: 'text' };
+        }
+    }
+
+    // Model/API khác hay bọc thêm một lớp {"answers": {...}}.
+    if (!Array.isArray(data) && data.answers && typeof data.answers === 'object') data = data.answers;
+
+    // Mảng chữ cái không mang số câu → phải tự đánh số, lấy mốc từ dải đã khai
+    // báo. Không có dải thì mặc định câu 1 (và nói rõ ở thông báo trả về).
+    const start = range ? range.from : 1;
+    let raw = {};
+    let format;
+
+    if (Array.isArray(data)) {
+        if (data.every(x => x === null || typeof x !== 'object')) {
+            format = 'array';
+            data.forEach((v, i) => { raw[start + i] = v; });
+        } else {
+            format = 'array-object';
+            data.forEach((item, i) => {
+                if (!item || typeof item !== 'object') return;
+                const num = pickField(item, NUMBER_FIELDS);
+                raw[num === undefined || num === null || num === '' ? start + i : num] =
+                    pickField(item, ANSWER_FIELDS);
+            });
+        }
+    } else {
+        format = 'object';
+        raw = data;
+    }
+
+    const result = normalizeAnswers(raw, range);
+    if (!Object.keys(result.answers).length) {
+        throw badInput(
+            'Không có đáp án hợp lệ nào (chỉ nhận A/B/C/D'
+            + (range ? `, trong khoảng ${range.from}-${range.to}` : '') + ')',
+        );
+    }
+    return { ...result, format };
+}
+
+module.exports = { parseRange, normalizeAnswers, parseAnswerText };
