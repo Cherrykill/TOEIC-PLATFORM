@@ -242,57 +242,71 @@ export default function ToeicScreen({ active }) {
                             </button>
                         ))}
                     </div>
-                    {/* Bộ lọc theo Part + sắp xếp — cùng một hàng, select nằm sát phải */}
+                    {/* Hàng lọc: pill chọn Part gom thành một khối (giống thanh tab
+                        phía trên), ba ô lọc/sắp xếp gom thành khối thứ hai đẩy sát
+                        phải — hai cụm tách bạch thay vì một dãy dài lẫn lộn.
+                        Ô nào đang khác mặc định thì tô sáng để biết danh sách đang
+                        bị lọc, khỏi tưởng kho đề hụt. */}
                     {PART_FILTER_TABS.includes(activeTab) && (
                         <div className="toeic-part-filters">
-                            {PART_FILTERS.map(f => (
-                                <button
-                                    key={f.key}
-                                    className={`toeic-part-btn${partFilter === f.key ? ' active' : ''}`}
-                                    onClick={() => setPartFilter(f.key)}
-                                >
-                                    {f.label}
-                                </button>
-                            ))}
-                            {/* Lọc theo bộ đề — thay vai trò ô tìm kiếm (nay chỉ còn ở
-                                Full Test) để lần ra đề của một bộ cụ thể. */}
-                            <select
-                                className="toeic-sort-select"
-                                value={seriesFilter}
-                                onChange={e => setSeriesFilter(e.target.value)}
-                                title="Lọc theo bộ đề"
-                            >
-                                <option value="">Tất cả bộ đề</option>
-                                {seriesOptions.map(s => <option key={s} value={s}>{s}</option>)}
-                            </select>
-                            {/* Đủ 3 mức, kể cả mức chưa đề nào dùng — mức nào đang
-                                trống thì ghi rõ "(chưa có đề)" để chọn vào thấy
-                                danh sách rỗng là hiểu ngay, không tưởng lỗi. */}
-                            <select
-                                className="toeic-sort-select"
-                                value={levelFilter}
-                                onChange={e => setLevelFilter(e.target.value)}
-                                title="Lọc theo độ khó"
-                            >
-                                <option value="">Mọi độ khó</option>
-                                {TEST_LEVELS.map(l => (
-                                    <option key={l.key} value={l.key}>
-                                        {l.label}{levelOptions.some(o => o.key === l.key) ? '' : ' (chưa có đề)'}
-                                    </option>
+                            <div className="toeic-part-group">
+                                {PART_FILTERS.map(f => (
+                                    <button
+                                        key={f.key}
+                                        className={`toeic-part-btn${partFilter === f.key ? ' active' : ''}`}
+                                        onClick={() => setPartFilter(f.key)}
+                                    >
+                                        {f.label}
+                                    </button>
                                 ))}
-                            </select>
-                            <select
-                                className="toeic-sort-select"
-                                value={sortBy}
-                                onChange={e => setSortBy(e.target.value)}
-                                title="Sắp xếp danh sách đề"
-                            >
-                                <option value="default">Mặc định</option>
-                                <option value="name-asc">Tên A → Z</option>
-                                <option value="name-desc">Tên Z → A</option>
-                                <option value="attempts-desc">Nhiều lượt thi nhất</option>
-                                <option value="attempts-asc">Ít lượt thi nhất</option>
-                            </select>
+                            </div>
+                            <div className="toeic-filter-group">
+                                {/* Lọc theo bộ đề — thay vai trò ô tìm kiếm (nay chỉ còn ở
+                                    Full Test) để lần ra đề của một bộ cụ thể. */}
+                                <span className={`toeic-filter${seriesFilter ? ' is-set' : ''}`}>
+                                    <select
+                                        className="toeic-sort-select"
+                                        value={seriesFilter}
+                                        onChange={e => setSeriesFilter(e.target.value)}
+                                        title="Lọc theo bộ đề"
+                                    >
+                                        <option value="">Tất cả bộ đề</option>
+                                        {seriesOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </span>
+                                {/* Đủ 3 mức, kể cả mức chưa đề nào dùng — mức nào đang
+                                    trống thì ghi rõ "(chưa có đề)" để chọn vào thấy
+                                    danh sách rỗng là hiểu ngay, không tưởng lỗi. */}
+                                <span className={`toeic-filter${levelFilter ? ' is-set' : ''}`}>
+                                    <select
+                                        className="toeic-sort-select"
+                                        value={levelFilter}
+                                        onChange={e => setLevelFilter(e.target.value)}
+                                        title="Lọc theo độ khó"
+                                    >
+                                        <option value="">Mọi độ khó</option>
+                                        {TEST_LEVELS.map(l => (
+                                            <option key={l.key} value={l.key}>
+                                                {l.label}{levelOptions.some(o => o.key === l.key) ? '' : ' (chưa có đề)'}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </span>
+                                <span className={`toeic-filter${sortBy !== 'default' ? ' is-set' : ''}`}>
+                                    <select
+                                        className="toeic-sort-select"
+                                        value={sortBy}
+                                        onChange={e => setSortBy(e.target.value)}
+                                        title="Sắp xếp danh sách đề"
+                                    >
+                                        <option value="default">Mặc định</option>
+                                        <option value="name-asc">Tên A → Z</option>
+                                        <option value="name-desc">Tên Z → A</option>
+                                        <option value="attempts-desc">Nhiều lượt thi nhất</option>
+                                        <option value="attempts-asc">Ít lượt thi nhất</option>
+                                    </select>
+                                </span>
+                            </div>
                         </div>
                     )}
                     <div id="toeic-tab-content">

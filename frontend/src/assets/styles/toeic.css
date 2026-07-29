@@ -40,30 +40,124 @@
   min-height: 60vh;
 }
 
-/* Bộ lọc theo Part (Tất cả / Part 1-7) — kết hợp với tab để lọc kết quả */
+/* Hàng lọc dưới thanh tab: HAI CỤM tách bạch — pill chọn Part bên trái, ô lọc
+   và sắp xếp bên phải. Trước đây 8 pill và 3 select xếp chung một dãy, cao thấp
+   so le nên đọc ra như một chuỗi dài không đầu không cuối. */
 .toeic-part-filters {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: var(--spacing-lg);
 }
-/* Select sắp xếp: đẩy về sát mép phải, cùng hàng với các nút Part. */
-.toeic-sort-select {
+
+/* Khối pill Part: nền chìm ôm cả cụm, giống thanh tab ngay phía trên để hai
+   hàng đọc ra cùng một hệ. */
+.toeic-part-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg-secondary);
+  border-radius: 999px;
+}
+/* Trong khối thì pill bỏ viền/nền riêng — nền của khối đã đủ, giữ viền nữa
+   thành ra hộp lồng hộp. Cao 30px + 4px đệm của khối = đúng 38px, bằng chiều
+   cao ô select bên phải nên hai cụm nằm ngang nhau. */
+.toeic-part-group .toeic-part-btn {
+  height: 30px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.toeic-part-group .toeic-part-btn:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+.toeic-part-group .toeic-part-btn.active {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.toeic-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin-left: auto;
-  padding: 6px 12px;
+}
+
+/* Mũi tên tự vẽ bằng border thay cho mũi tên mặc định của trình duyệt: nó ăn
+   theo currentColor nên đổi màu đúng ở cả trạng thái "đang lọc" lẫn dark mode,
+   thứ mà ảnh nền data-URI không làm được. */
+.toeic-filter {
+  position: relative;
+  display: inline-flex;
+  color: var(--text-primary);
+}
+.toeic-filter::after {
+  content: '';
+  position: absolute;
+  right: 13px;
+  top: calc(50% - 4px);
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.toeic-sort-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 38px;
+  max-width: 168px;
+  padding: 0 30px 0 14px;
   border: 1px solid var(--border-color);
   border-radius: 999px;
   background: var(--bg-secondary);
-  color: var(--text-primary);
+  color: inherit;
   font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1;
   cursor: pointer;
+  /* Select rộng theo option dài nhất ("Nhiều lượt thi nhất") — chặn lại để ba ô
+     không so le nhau. */
+  text-overflow: ellipsis;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 .toeic-sort-select:hover { border-color: var(--primary-color); }
-/* Màn hẹp: bộ Part xuống dòng, select tự về đầu dòng mới cho gọn. */
+.toeic-sort-select:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+/* Đang khác mặc định → tô sáng, để danh sách ngắn đi là biết do mình lọc. */
+.toeic-filter.is-set { color: var(--primary-color); }
+.toeic-filter.is-set .toeic-sort-select {
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+}
+.toeic-filter.is-set::after { opacity: 0.9; }
+
+/* Màn hẹp: pill Part chiếm trọn dòng, ba ô lọc xuống dưới chia đôi — hai ô đầu
+   ngắn nằm cạnh nhau, ô sắp xếp (chữ dài nhất) ăn trọn dòng dưới. */
 @media (max-width: 560px) {
-  .toeic-sort-select { margin-left: 0; width: 100%; }
+  .toeic-part-filters { gap: 8px; }
+  .toeic-part-group { width: 100%; justify-content: center; }
+  .toeic-filter-group {
+    width: 100%;
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .toeic-filter:last-child { grid-column: 1 / -1; }
+  .toeic-filter,
+  .toeic-sort-select { width: 100%; max-width: none; }
 }
 /* Khi đặt trên thanh header (cạnh tiêu đề) thay vì dưới tabs */
 .toeic-part-filters.in-header {
