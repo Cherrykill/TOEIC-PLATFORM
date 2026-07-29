@@ -157,13 +157,18 @@ function renderVocabularyPagination(_currentPage, _limit, total, filteredCount) 
     const totalPages = Math.ceil(total / vocabCurrentLimit);
     const hasFilter = vocabCurrentPart || vocabSearchTerm || vocabCurrentSource || vocabCurrentType;
 
-    if (total === 0) {
-        container.innerHTML = `<span style="color:#999;">Không có từ vựng nào.</span>`;
-        if (clearBtn) clearBtn.style.display = hasFilter ? 'inline-block' : 'none';
-        return;
+    // Nút "Xóa lọc" hiện thường trực (giống tab Câu hỏi TOEIC) — trước đây chỉ
+    // hiện khi ĐANG lọc nên lúc cần tìm nó thì không thấy đâu. Mờ đi khi không
+    // có gì để xoá, vẫn bấm được mà không gây hiểu nhầm là hỏng.
+    if (clearBtn) {
+        clearBtn.style.display = 'inline-block';
+        clearBtn.style.opacity = hasFilter ? '1' : '0.5';
     }
 
-    if (clearBtn) clearBtn.style.display = hasFilter ? 'inline-block' : 'none';
+    if (total === 0) {
+        container.innerHTML = `<span style="color:#999;">Không có từ vựng nào.</span>`;
+        return;
+    }
 
     const from = (_currentPage - 1) * vocabCurrentLimit + 1;
     const to = Math.min(_currentPage * vocabCurrentLimit, total);
@@ -224,6 +229,15 @@ function clearVocabFilters() {
     if (pickerLabel) pickerLabel.textContent = 'Tất cả';
     if (sourceSelect) sourceSelect.value = '';
     if (typeSelect) typeSelect.value = '';
+
+    // Bộ lọc Part là nhãn + pill (không phải select), trước đây không được dọn:
+    // dữ liệu về hết nhưng nút vẫn ghi "Part 3" và pill vẫn sáng → tưởng chưa xoá.
+    const partLabel = document.getElementById('part-filter-label');
+    if (partLabel) partLabel.textContent = 'Tất cả Part';
+    document.querySelectorAll('#part-filter-pills .part-pill')
+        .forEach(b => b.classList.remove('part-pill--active'));
+    const partDropdown = document.getElementById('part-filter-dropdown');
+    if (partDropdown) partDropdown.style.display = 'none';
 
     // Reset active card
     document.querySelectorAll('.vocab-picker-card').forEach(c => c.classList.remove('active'));
