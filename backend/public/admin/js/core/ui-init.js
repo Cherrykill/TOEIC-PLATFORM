@@ -32,10 +32,10 @@ function activateActivitySubtab(subtab) {
 function initMainTabs() {
     const TAB_TITLES = {
         overview:            'Dashboard',
-        topics:              'Chủ đề luyện tập',
-        vocabulary:          'Từ vựng TOEIC',
+        topics:              'Bộ đề từ vựng',
+        vocabulary:          'Kho từ vựng TOEIC',
         users:               'Tài khoản người dùng',
-        'toeic-questions':   'Câu hỏi TOEIC',
+        'toeic-questions':   'Ngân hàng câu hỏi TOEIC',
         'toeic-single':      'Tạo câu đơn TOEIC (Part 1·2·5)',
         'toeic-group':       'Tạo nhóm câu TOEIC (Part 3·4·6·7)',
         'toeic-tests':       'Đề thi TOEIC',
@@ -50,12 +50,13 @@ function initMainTabs() {
         economy:             'Bảng kinh tế (faucet / sink)',
         'game-config':       'Hằng số game (tinh chỉnh cân bằng)',
         'feature-unlocks':   'Mở khoá theo Level',
-        'answer-keys':       'Quét đáp án từ ảnh',
+        'answer-keys':       'Bộ đáp án đề thi',
         monitor:             'Giám sát hệ thống',
         broadcast:           'Gửi thông báo',
         'upload-management': 'Nội dung người dùng',
         'token-management':  'Chi phí AI',
         'db-manager':        'Quản lý Database',
+        cloudinary:          'Kho ảnh/audio trên Cloudinary',
     };
 
     const sidebarLinks = document.querySelectorAll('.sidebar-link[data-main-tab]');
@@ -130,6 +131,8 @@ function initMainTabs() {
             loadNotifHistory();
         } else if (tab === 'db-manager') {
             initDbManager();
+        } else if (tab === 'cloudinary') {
+            window.loadCloudinaryTab?.();
         } else {
             stopMetricsPolling();
         }
