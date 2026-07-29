@@ -10,7 +10,7 @@ import FillBlankList from './selector/FillBlankList.jsx';
 import HistoryList from './selector/HistoryList.jsx';
 import AnalyticsView from './selector/AnalyticsView.jsx';
 import StartTestModal from './runner/StartTestModal.jsx';
-import { listTestSeries } from './selector/testSeries.js';
+import { listTestSeries, listTestLevels } from './selector/testSeries.js';
 import TestRunner from './runner/TestRunner.jsx';
 import { GameState } from '@game/state.js';
 
@@ -40,8 +40,11 @@ export default function ToeicScreen({ active }) {
     const [refreshKey, setRefreshKey] = useState(0);
     const [partFilter, setPartFilter] = useState('new'); // 'new' (9 đề mới nhất) | 1..7
     const [seriesFilter, setSeriesFilter] = useState(''); // '' = mọi bộ đề
-    // Danh sách bộ đề suy từ chính dữ liệu — thêm bộ mới ở admin là tự có mặt.
+    const [levelFilter, setLevelFilter] = useState('');   // '' = mọi độ khó
+    // Danh sách bộ đề / độ khó suy từ chính dữ liệu — thêm ở admin là tự có mặt,
+    // và không đổ ra lựa chọn mà không đề nào thuộc về.
     const seriesOptions = useMemo(() => listTestSeries(tests), [tests]);
+    const levelOptions = useMemo(() => listTestLevels(tests), [tests]);
     const [sortBy, setSortBy] = useState('default');     // sắp xếp danh sách đề
     const [searchQuery, setSearchQuery] = useState('');  // lọc đề theo tên
     const [searchFocused, setSearchFocused] = useState(false);
@@ -254,6 +257,19 @@ export default function ToeicScreen({ active }) {
                                 <option value="">Tất cả bộ đề</option>
                                 {seriesOptions.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
+                            {/* Độ khó chỉ hiện khi đề thực sự có nhiều mức — cả kho
+                                cùng một mức thì ô lọc này không lọc được gì. */}
+                            {levelOptions.length > 1 && (
+                                <select
+                                    className="toeic-sort-select"
+                                    value={levelFilter}
+                                    onChange={e => setLevelFilter(e.target.value)}
+                                    title="Lọc theo độ khó"
+                                >
+                                    <option value="">Mọi độ khó</option>
+                                    {levelOptions.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+                                </select>
+                            )}
                             <select
                                 className="toeic-sort-select"
                                 value={sortBy}
@@ -272,8 +288,8 @@ export default function ToeicScreen({ active }) {
                         {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
                         {/* Không truyền search: ô tìm chỉ phục vụ Full Test, để lọt sang
                             đây thì gõ ở tab kia rồi quay lại sẽ thấy danh sách hụt vô cớ. */}
-                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} onStart={(id) => openStartModal(id, true)} />}
+                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} level={levelFilter} onStart={(id) => openStartModal(id, false)} />}
+                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} level={levelFilter} onStart={(id) => openStartModal(id, true)} />}
                         {activeTab === 'my-history' && <HistoryList key={`history-${refreshKey}`} active={active && activeTab === 'my-history'} partFilter={partFilter} onView={handleViewResults} />}
                         {activeTab === 'analytics'  && <AnalyticsView key={`analytics-${refreshKey}`} active={active && activeTab === 'analytics'} />}
                     </div>

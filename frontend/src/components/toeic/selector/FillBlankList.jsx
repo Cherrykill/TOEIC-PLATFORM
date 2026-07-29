@@ -1,10 +1,10 @@
 import FillBlankCard from './FillBlankCard.jsx';
 import { sortTests } from './sortTests.js';
-import { testSeriesName, NEW_TESTS_LIMIT } from './testSeries.js';
+import { testSeriesName, testLevel, NEW_TESTS_LIMIT } from './testSeries.js';
 
 const FILL_BLANK_TYPES = ['mini-part1', 'mini-part2', 'mini-part3', 'mini-part4'];
 
-export default function FillBlankList({ tests, loading, onStart, partFilter = 'new', sortBy = 'default', search = '', series = '' }) {
+export default function FillBlankList({ tests, loading, onStart, partFilter = 'new', sortBy = 'default', search = '', series = '', level = '' }) {
     if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: 40 }}>
@@ -18,6 +18,7 @@ export default function FillBlankList({ tests, loading, onStart, partFilter = 'n
         t.isPublished === true && FILL_BLANK_TYPES.includes(t.testType)
         && (partFilter === 'new' || t.testType === `mini-part${partFilter}`)
         && (!series || testSeriesName(t) === series)
+        && (!level || testLevel(t) === level)
         && (!q || (t.testName || t.title || '').toLowerCase().includes(q))
     ), sortBy);
 

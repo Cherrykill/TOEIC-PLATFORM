@@ -1,9 +1,9 @@
 import EmptyState from './EmptyState.jsx';
 import TestCard from './TestCard.jsx';
 import { sortTests } from './sortTests.js';
-import { testSeriesName, NEW_TESTS_LIMIT } from './testSeries.js';
+import { testSeriesName, testLevel, NEW_TESTS_LIMIT } from './testSeries.js';
 
-export default function MiniTestList({ tests, loading, onStart, partFilter = 'new', sortBy = 'default', search = '', series = '' }) {
+export default function MiniTestList({ tests, loading, onStart, partFilter = 'new', sortBy = 'default', search = '', series = '', level = '' }) {
     if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: 40 }}>
@@ -17,6 +17,7 @@ export default function MiniTestList({ tests, loading, onStart, partFilter = 'ne
         t.testType?.startsWith('mini-part') && t.isPublished === true
         && (partFilter === 'new' || t.testType === `mini-part${partFilter}`)
         && (!series || testSeriesName(t) === series)
+        && (!level || testLevel(t) === level)
         && (!q || (t.testName || t.title || '').toLowerCase().includes(q))
     ), sortBy);
 
