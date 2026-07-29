@@ -326,8 +326,9 @@ router.get('/ai-usage', admin, async (req, res) => {
         const days = Math.max(1, Math.min(parseInt(req.query.days) || 30, 90));
         const since = new Date(Date.now() - days * 86400000);
         const matchRecent = { createdAt: { $gte: since } };
+        const providerCatalog = require('../services/aiProviders').listProviders();
 
-        const [overall, byFeature, byDay, recent, allTime] = await Promise.all([
+        const [overall, byFeature, byProvider, byModel, byDay, recent, allTime] = await Promise.all([
             // Tổng trong khoảng days
             AiUsageLog.aggregate([
                 { $match: matchRecent },
@@ -351,6 +352,31 @@ router.get('/ai-usage', admin, async (req, res) => {
                     calls: { $sum: 1 },
                 }},
                 { $sort: { tokens: -1 } },
+            ]),
+            // Theo NHÀ CUNG CẤP — log cũ chưa có field provider thì quy về openai
+            // (toàn bộ log trước thay đổi này đều là OpenAI).
+            AiUsageLog.aggregate([
+                { $match: matchRecent },
+                { $group: {
+                    _id: { $ifNull: ['$provider', 'openai'] },
+                    tokens: { $sum: '$totalTokens' },
+                    promptTokens: { $sum: '$promptTokens' },
+                    completionTokens: { $sum: '$completionTokens' },
+                    cost: { $sum: '$costUsd' },
+                    calls: { $sum: 1 },
+                }},
+                { $sort: { cost: -1 } },
+            ]),
+            // Theo MODEL trong từng nhà cung cấp — biết model nào đang đốt tiền.
+            AiUsageLog.aggregate([
+                { $match: matchRecent },
+                { $group: {
+                    _id: { provider: { $ifNull: ['$provider', 'openai'] }, model: '$model' },
+                    tokens: { $sum: '$totalTokens' },
+                    cost: { $sum: '$costUsd' },
+                    calls: { $sum: 1 },
+                }},
+                { $sort: { cost: -1 } },
             ]),
             // Theo ngày (chart)
             AiUsageLog.aggregate([
@@ -392,6 +418,16 @@ router.get('/ai-usage', admin, async (req, res) => {
                 calls: o.calls || 0,
                 users: (o.users || []).filter(Boolean).length,
                 byFeature,
+                // Kèm nhãn + tình trạng cấu hình để UI khỏi hardcode tên hãng.
+                byProvider: byProvider.map(p => {
+                    const meta = providerCatalog.find(x => x.id === p._id);
+                    return { ...p, label: meta?.label || p._id, configured: !!meta?.configured };
+                }),
+                byModel: byModel.map(m => ({
+                    provider: m._id.provider, model: m._id.model,
+                    tokens: m.tokens, cost: m.cost, calls: m.calls,
+                })),
+                providers: providerCatalog,
                 byDay,
                 recent: recentWithEmail,
                 allTime: allTime[0] || { totalTokens: 0, totalCost: 0, calls: 0 },
@@ -494,6 +530,68 @@ router.delete('/feature-unlocks/:id', admin, async (req, res) => {
         if (!data) return res.status(404).json({ success: false, message: 'Not found' });
         clearUnlockCache();
         res.json({ success: true, message: 'Đã xóa mốc mở khoá' });
+    } catch (err) { res.status(400).json({ success: false, message: err.message }); }
+});
+
+// ===== Cấu hình nhà cung cấp AI =====
+// API key vẫn ở .env (không lưu DB); ở đây chỉ chọn hãng + model.
+
+router.get('/ai-config', admin, async (req, res) => {
+    try {
+        const AiConfig = require('../models/AiConfig');
+        const { listProviders, DEFAULT_PROVIDER } = require('../services/aiProviders');
+        const cfg = await AiConfig.findOne({ key: 'default' }).lean();
+        res.json({
+            success: true,
+            data: {
+                provider: cfg?.provider || DEFAULT_PROVIDER,
+                model: cfg?.model || '',
+                overrides: cfg?.overrides || {},
+                providers: listProviders(),
+            },
+        });
+    } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+router.put('/ai-config', admin, async (req, res) => {
+    try {
+        const AiConfig = require('../models/AiConfig');
+        const { getProvider } = require('../services/aiProviders');
+        const { clearAiConfigCache } = require('../services/aiClient');
+
+        const providerId = String(req.body.provider || '').trim();
+        const provider = getProvider(providerId);
+        if (!provider) {
+            return res.status(400).json({ success: false, message: `Nhà cung cấp không hợp lệ: ${providerId}` });
+        }
+
+        const model = String(req.body.model || '').trim();
+        if (model && !provider.models[model]) {
+            return res.status(400).json({
+                success: false,
+                message: `${provider.label} không có model "${model}". Chọn: ${Object.keys(provider.models).join(', ')}`,
+            });
+        }
+        // Chặn chọn hãng chưa có key — không thì mọi tính năng AI gãy ngay sau
+        // khi lưu, mà lỗi lại chỉ hiện lúc dùng.
+        if (!process.env[provider.envKey]) {
+            return res.status(400).json({
+                success: false,
+                message: `Chưa có ${provider.envKey} trong .env nên không dùng được ${provider.label}`,
+            });
+        }
+
+        const doc = await AiConfig.findOneAndUpdate(
+            { key: 'default' },
+            { $set: { provider: providerId, model, updatedBy: req.user.id } },
+            { new: true, upsert: true, setDefaultsOnInsert: true },
+        );
+        clearAiConfigCache();
+        res.json({
+            success: true,
+            message: `Đã chuyển sang ${provider.label}${model ? ` · ${model}` : ''} (áp dụng ngay)`,
+            data: { provider: doc.provider, model: doc.model },
+        });
     } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 });
 

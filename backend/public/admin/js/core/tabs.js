@@ -612,7 +612,90 @@ const AI_FEATURE_LABELS = {
   unknown: "❔ Khác / chưa gắn nhãn",
 };
 
+// Danh mục nhà cung cấp + lựa chọn hiện tại, nạp cùng lúc với thống kê.
+let _aiProviders = [];
+
+/** Dựng 2 ô chọn (hãng → model) và nút Lưu. Hãng chưa có key thì khoá lại. */
+function renderProviderPicker(providers) {
+  _aiProviders = providers;
+  const pSel = document.getElementById("ai-provider-select");
+  const mSel = document.getElementById("ai-model-select");
+  const hint = document.getElementById("ai-provider-hint");
+  if (!pSel || !mSel) return;
+
+  fetch("/api/admin/ai-config", {
+    headers: { Authorization: `Bearer ${authToken}` },
+  })
+    .then((r) => r.json())
+    .then((j) => {
+      if (!j.success) return;
+      const cur = j.data;
+      pSel.innerHTML = providers
+        .map(
+          (p) =>
+            `<option value="${p.id}" ${p.configured ? "" : "disabled"} ${p.id === cur.provider ? "selected" : ""}>${p.label}${p.configured ? "" : " (chưa có key)"}</option>`,
+        )
+        .join("");
+
+      const fillModels = () => {
+        const p = providers.find((x) => x.id === pSel.value);
+        if (!p) return;
+        mSel.innerHTML = p.models
+          .map(
+            (m) =>
+              `<option value="${m}" ${m === cur.model && p.id === cur.provider ? "selected" : ""}>${m}${m === p.defaultModel ? " (mặc định)" : ""}</option>`,
+          )
+          .join("");
+        // Model không đọc được ảnh thì nói trước, đừng để lỗi lúc quét đáp án.
+        if (hint) {
+          hint.innerHTML = p.vision.length
+            ? `<i class="fas fa-image"></i> Đọc được ảnh: ${p.vision.join(", ")}`
+            : '<i class="fas fa-triangle-exclamation"></i> Hãng này chưa đọc được ảnh — không dùng cho quét đáp án.';
+        }
+      };
+      fillModels();
+      pSel.onchange = fillModels;
+    })
+    .catch(() => {});
+}
+
+async function saveAiProvider(btn) {
+  const provider = document.getElementById("ai-provider-select")?.value;
+  const model = document.getElementById("ai-model-select")?.value;
+  if (!provider) return;
+  const original = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...';
+  try {
+    const r = await fetch("/api/admin/ai-config", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ provider, model }),
+    });
+    const j = await r.json();
+    showToast(j.message || "Đã lưu", j.success ? "success" : "error");
+  } catch (e) {
+    showToast(`Lưu lỗi: ${e.message}`, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+}
+
+let _aiPickerInited = false;
+
 async function loadTokenStats() {
+  // Gắn listener MỘT lần cho cả vòng đời trang: loadTokenStats chạy lại mỗi lần
+  // mở tab, dùng { once: true } thì bấm Lưu lần hai trong cùng phiên sẽ không ăn.
+  if (!_aiPickerInited) {
+    _aiPickerInited = true;
+    document
+      .getElementById("btn-ai-provider-save")
+      ?.addEventListener("click", (e) => saveAiProvider(e.currentTarget));
+  }
   try {
     const days =
       parseInt(document.getElementById("ai-usage-days")?.value || "7", 10) || 7;
@@ -640,6 +723,62 @@ async function loadTokenStats() {
     set("ai-total-calls", fmt(d.calls));
     set("ai-calls-all", "All-time: " + fmt(d.allTime?.calls));
     set("ai-total-users", fmt(d.users));
+
+    // Bảng chi phí theo NHÀ CUNG CẤP — tỉ trọng vẽ theo COST (không phải token)
+    // vì cùng số token nhưng khác hãng thì tiền chênh nhau cả chục lần.
+    const pTb = document.getElementById("ai-provider-tbody");
+    if (pTb) {
+      const rows = d.byProvider || [];
+      if (!rows.length) {
+        pTb.innerHTML =
+          '<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--text-secondary)">Chưa có lượt gọi AI nào trong khoảng này.</td></tr>';
+      } else {
+        const maxCost = Math.max(...rows.map((p) => p.cost || 0), 1e-9);
+        pTb.innerHTML = rows
+          .map((p) => {
+            const pct = Math.round((p.cost / maxCost) * 100);
+            const key = p.configured
+              ? ""
+              : ' <span class="badge neutral" title="Chưa có API key trong .env">chưa cấu hình</span>';
+            return `
+                        <tr style="border-bottom:1px solid var(--border-color)">
+                            <td style="padding:10px"><b>${p.label || p._id}</b>${key}</td>
+                            <td style="padding:10px;text-align:right">${fmt(p.calls)}</td>
+                            <td style="padding:10px;text-align:right;font-family:monospace">${fmt(p.tokens)}</td>
+                            <td style="padding:10px;text-align:right;font-family:monospace">${usd(p.cost)}</td>
+                            <td style="padding:10px">
+                                <div style="background:var(--bg-tertiary);border-radius:4px;height:8px;overflow:hidden">
+                                    <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#f59e0b,#dc2626)"></div>
+                                </div>
+                            </td>
+                        </tr>`;
+          })
+          .join("");
+      }
+    }
+
+    // Bảng chi phí theo MODEL
+    const mTb = document.getElementById("ai-model-tbody");
+    if (mTb) {
+      const rows = d.byModel || [];
+      mTb.innerHTML = rows.length
+        ? rows
+            .map(
+              (m) => `
+                    <tr style="border-bottom:1px solid var(--border-color)">
+                        <td style="padding:10px;font-family:monospace;font-size:12px">${m.model || "—"}</td>
+                        <td style="padding:10px;font-size:12px;color:var(--text-secondary)">${m.provider}</td>
+                        <td style="padding:10px;text-align:right">${fmt(m.calls)}</td>
+                        <td style="padding:10px;text-align:right;font-family:monospace">${fmt(m.tokens)}</td>
+                        <td style="padding:10px;text-align:right;font-family:monospace">${usd(m.cost)}</td>
+                    </tr>`,
+            )
+            .join("")
+        : '<tr><td colspan="5" style="padding:18px;text-align:center;color:var(--text-secondary)">Chưa có dữ liệu.</td></tr>';
+    }
+
+    // Ô chọn nhà cung cấp — dựng từ danh mục server trả về, không hardcode.
+    renderProviderPicker(d.providers || []);
 
     // Bảng phân bổ theo feature
     const fTb = document.getElementById("ai-feature-tbody");

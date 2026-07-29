@@ -10,7 +10,10 @@ const aiUsageLogSchema = new mongoose.Schema(
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
         // Nhãn chức năng — phân loại trong UI. Để 'unknown' nếu caller quên set.
         feature: { type: String, default: 'unknown', index: true },
-        model: { type: String, default: 'gpt-3.5-turbo' },
+        // Nhà cung cấp AI — tách khỏi model để thống kê chi phí theo từng hãng
+        // (một hãng có nhiều model, và model có thể trùng tên giữa các hãng).
+        provider: { type: String, default: 'openai', index: true },
+        model: { type: String, default: 'unknown' },
         promptTokens: { type: Number, default: 0 },
         completionTokens: { type: Number, default: 0 },
         totalTokens: { type: Number, default: 0 },
@@ -22,5 +25,6 @@ const aiUsageLogSchema = new mongoose.Schema(
 
 aiUsageLogSchema.index({ createdAt: -1 });
 aiUsageLogSchema.index({ feature: 1, createdAt: -1 });
+aiUsageLogSchema.index({ provider: 1, createdAt: -1 });
 
 module.exports = mongoose.model('AiUsageLog', aiUsageLogSchema);
