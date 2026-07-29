@@ -7,6 +7,7 @@ import { GameState } from '@game/state.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Utils } from '@lib/utils.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
+import { useCosmetics } from '@game/cosmeticsStore.js';
 import { frameStyle, frameOverlayUrl } from '@game/frames.js';
 import { resolveAvatarSrc } from '@game/avatars.js';
 
@@ -97,6 +98,7 @@ export default function ProfileScreen({ active }) {
     const boostOn = (bx) => !!(bx?.active && bx.expiresAt && new Date(bx.expiresAt).getTime() > Date.now());
     const xpBoostOn = boostOn(boosts.xp);
     const coinsBoostOn = boostOn(boosts.coins);
+    useCosmetics(); // vẽ lại khi ảnh nền/khung từ catalog nạp xong
     const bgKey = bgKeyForUser({ isVip: vipActive, background: GameState.state?.equipped?.background });
     const headerStyle = bgStyle(bgKey);
     const avatarFrameStyle = frameStyle(GameState.state?.equipped?.frame);

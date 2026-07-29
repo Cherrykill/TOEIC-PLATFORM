@@ -3,6 +3,7 @@ import { GameState } from '@game/state.js';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { InventoryAPI } from '@api/inventory.js';
 import { BACKGROUNDS, bgStyle } from '@game/backgrounds.js';
+import { useCosmetics } from '@game/cosmeticsStore.js';
 import { FRAMES, frameStyle, frameOverlayUrl } from '@game/frames.js';
 import ItemThumb from '@ui/ItemThumb.jsx';
 import { Notification } from '@ui/Toaster.jsx';
@@ -33,6 +34,7 @@ const CONSUMABLE_META = {
 };
 
 export default function InventoryWardrobe() {
+    const cosmeticsVersion = useCosmetics(); // vẽ lại khi ảnh nền/khung nạp xong
     const [cat, setCat] = useState('active');
     const [inv, setInv] = useState([]);
     const [equipped, setEquipped] = useState({});
@@ -133,7 +135,9 @@ export default function InventoryWardrobe() {
         if (xp) list.push({ id: 'xp', kind: 'boost', name: `x${b.xp.multiplier} XP`, icon: 'fa-bolt', color: '#8b5cf6', desc: 'Nhân đôi XP', left: xp });
         if (co) list.push({ id: 'coins', kind: 'boost', name: `x${b.coins.multiplier} Coins`, icon: 'fa-coins', color: '#f59e0b', desc: 'Nhân đôi Coins', left: co });
         return list;
-    }, [cat, inv, equipped, r, b, now, defMap]);
+        // cosmeticsVersion: tên/ảnh cosmetic lấy từ FRAMES/BACKGROUNDS, hai
+        // registry đó được nạp thêm sau khi catalog về → phải tính lại.
+    }, [cat, inv, equipped, r, b, now, defMap, cosmeticsVersion]);
 
     const equip = async (item) => {
         if (busy || item.equipped) return;

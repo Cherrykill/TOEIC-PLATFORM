@@ -3,11 +3,13 @@ import { useGame } from '@game/GameContext.jsx';
 import { GameState } from '@game/state.js';
 import { RankingsAPI } from '@api/rankings.js';
 import { bgKeyForUser, bgStyle } from '@game/backgrounds.js';
+import { useCosmetics } from '@game/cosmeticsStore.js';
 import { frameStyle, frameOverlayUrl } from '@game/frames.js';
 import { resolveAvatarSrc } from '@game/avatars.js';
 import { authHeaders } from '@/auth/token.js';
 
 export default function LeaderboardScreen({ active }) {
+    useCosmetics(); // vẽ lại khi ảnh nền cosmetic từ catalog nạp xong
     const { showScreen } = useGame();
     const [period, setPeriod] = useState('daily');
     const [board, setBoard] = useState('vocab');     // 'vocab' | 'toeic'

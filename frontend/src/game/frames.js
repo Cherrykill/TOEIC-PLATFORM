@@ -1,3 +1,5 @@
+import { bumpCosmetics } from './cosmeticsStore.js';
+
 // Registry khung avatar (cosmetic_frame). Key = itemId (khớp item_definitions.itemId).
 // Khung mặc định = vòng viền + glow (CSS box-shadow) — đồng nhất Hồ sơ / Nav / BXH.
 // Admin có thể định nghĩa thêm khung ở Catalog (ảnh hoặc CSS màu) → nạp qua
@@ -9,17 +11,23 @@ export const FRAMES = {
 
 // Gộp khung do admin định nghĩa (effect.slot === 'frame') từ catalog vào FRAMES.
 export function registerFrameCosmetics(items) {
+    let changed = false;
     (items || []).forEach(d => {
         const eff = d.effect || {};
         if (eff.slot !== 'frame' || !eff.key) return;
-        FRAMES[eff.key] = {
-            ...(FRAMES[eff.key] || {}),
-            label: d.name || FRAMES[eff.key]?.label || eff.key,
-            styleMode: eff.styleMode || FRAMES[eff.key]?.styleMode || 'css',
-            css: eff.css || FRAMES[eff.key]?.css || '',
-            image: d.image || FRAMES[eff.key]?.image || '',
-        };
+        // Theo cả effect.key lẫn itemId — xem chú thích cùng chỗ ở backgrounds.js.
+        for (const key of new Set([eff.key, d.itemId].filter(Boolean))) {
+            FRAMES[key] = {
+                ...(FRAMES[key] || {}),
+                label: d.name || FRAMES[key]?.label || key,
+                styleMode: eff.styleMode || FRAMES[key]?.styleMode || 'css',
+                css: eff.css || FRAMES[key]?.css || '',
+                image: d.image || FRAMES[key]?.image || '',
+            };
+        }
+        changed = true;
     });
+    if (changed) bumpCosmetics(); // xem chú thích trong cosmeticsStore.js
 }
 
 // Style gắn vào phần tử avatar (tròn) để hiện khung. null nếu không có khung.

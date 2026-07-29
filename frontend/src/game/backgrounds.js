@@ -1,3 +1,5 @@
+import { bumpCosmetics } from './cosmeticsStore.js';
+
 // Registry nền cosmetic (dùng chung cho header Hồ sơ + dòng Bảng xếp hạng).
 // Ảnh động để ở BE: backend/public/uploads/background/ → phục vụ tại /uploads/background/.
 // `dark: true` → nền tối, dùng chữ sáng cho dễ đọc.
@@ -33,18 +35,29 @@ export const BACKGROUNDS = {
 // Gộp nền do admin định nghĩa (effect.slot === 'background') từ catalog vào BACKGROUNDS.
 // styleMode 'css' → dùng b.css (gradient/màu); 'image' → dùng ảnh (b.image).
 export function registerBackgroundCosmetics(items) {
+    let changed = false;
     (items || []).forEach(d => {
         const eff = d.effect || {};
         if (eff.slot !== 'background' || !eff.key) return;
-        BACKGROUNDS[eff.key] = {
-            ...(BACKGROUNDS[eff.key] || {}),
-            label: d.name || BACKGROUNDS[eff.key]?.label || eff.key,
-            styleMode: eff.styleMode || BACKGROUNDS[eff.key]?.styleMode || 'image',
-            css: eff.css || BACKGROUNDS[eff.key]?.css || '',
-            image: d.image || BACKGROUNDS[eff.key]?.image || '',
-            dark: BACKGROUNDS[eff.key]?.dark !== undefined ? BACKGROUNDS[eff.key].dark : true,
-        };
+        // Đăng ký theo CẢ effect.key LẪN itemId: chỗ tra cứu dùng itemId
+        // (equipped.background = itemId), còn ở đây dữ liệu vào theo effect.key.
+        // Hai thứ đó không phải lúc nào cũng trùng — vd bg-vip-week có
+        // key 'vip-royal' — lệch là trang bị xong không ra nền nào cả.
+        for (const key of new Set([eff.key, d.itemId].filter(Boolean))) {
+            BACKGROUNDS[key] = {
+                ...(BACKGROUNDS[key] || {}),
+                label: d.name || BACKGROUNDS[key]?.label || key,
+                styleMode: eff.styleMode || BACKGROUNDS[key]?.styleMode || 'image',
+                css: eff.css || BACKGROUNDS[key]?.css || '',
+                image: d.image || BACKGROUNDS[key]?.image || '',
+                dark: BACKGROUNDS[key]?.dark !== undefined ? BACKGROUNDS[key].dark : true,
+            };
+        }
+        changed = true;
     });
+    // Báo React vẽ lại: màn Hồ sơ/BXH thường đã render xong trước khi fetch này
+    // về, không báo thì chúng đứng mãi ở gradient dự phòng.
+    if (changed) bumpCosmetics();
 }
 
 // Chọn key nền cho 1 user: ưu tiên cosmetic đang TRANG BỊ (equipped.background),
