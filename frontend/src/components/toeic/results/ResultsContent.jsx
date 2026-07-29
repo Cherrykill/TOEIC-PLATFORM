@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toeicQuestionNumber } from '../toeicPartTime.js';
+import ResultsNavPopup from './ResultsNavPopup.jsx';
 
 function QuestionReviewItem({ q, index, expanded, onToggle }) {
     const isCorrect = q.userAnswer === q.correctAnswer;
@@ -12,7 +13,7 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
     const passageList = q.passages?.length ? q.passages : (q.passage ? [q.passage] : []);
 
     return (
-        <div className={`review-question-item ${statusClass}`}>
+        <div className={`review-question-item ${statusClass}`} id={`review-q-${index}`}>
             <div className="review-question-header" onClick={onToggle} style={{ cursor: 'pointer' }}>
                 <div className="review-question-number">
                     <i className={`fas ${statusIcon}`}></i>
@@ -54,13 +55,10 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
                                     <span dangerouslySetInnerHTML={{ __html: String(p).replace(/\n/g, '<br>') }} />
                                 </div>
                             ))}
-                            {/* Transcript (nếu đề có) — đọc kèm lúc nghe lại. */}
-                            {q.audioText && (
-                                <div className="question-passage" style={{ whiteSpace: 'pre-wrap' }}>
-                                    {q.audioText}
-                                </div>
-                            )}
-                            {!q.audioUrl && !q.audioText && !imageUrl && passageList.length === 0 && (
+                            {/* Cột trái CHỈ chứa ngữ cảnh: audio + ảnh + đoạn đọc.
+                                Không đặt transcript ở đây — nó lặp lại nguyên đề
+                                bài và đáp án vốn đã nằm bên phải. */}
+                            {!q.audioUrl && !imageUrl && passageList.length === 0 && (
                                 <div className="review-detail-left-empty">(Câu không có hình / đoạn văn)</div>
                             )}
                         </div>
@@ -104,10 +102,22 @@ function QuestionReviewItem({ q, index, expanded, onToggle }) {
 export default function ResultsContent({ data }) {
     const [expandedIndex, setExpandedIndex] = useState(null);
     const [filter, setFilter] = useState('all'); // all | correct | wrong
+    const [navOpen, setNavOpen] = useState(false);
 
     if (!data?.scores || !data?.stats) return <p>Không có dữ liệu kết quả.</p>;
 
     const toggle = (i) => setExpandedIndex(prev => (prev === i ? null : i));
+
+    // Chọn câu trong lưới: bỏ bộ lọc Đúng/Sai trước (câu được chọn có thể đang
+    // bị lọc ẩn → cuộn tới sẽ trượt), mở câu đó rồi cuộn tới sau khi React vẽ.
+    const jumpToQuestion = (i) => {
+        setFilter('all');
+        setExpandedIndex(i);
+        requestAnimationFrame(() => {
+            document.getElementById(`review-q-${i}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    };
 
     const isFull = data.testType === 'full-test';
     const totalQ = data.stats.totalQuestions || 0;
@@ -192,6 +202,9 @@ export default function ResultsContent({ data }) {
                 <div className="review-questions-bar">
                     <h3><i className="fas fa-list"></i> Chi tiết các câu hỏi</h3>
                     <div className="review-filter">
+                        <button className="toeic-part-btn" onClick={() => setNavOpen(true)} title="Mở lưới câu hỏi để nhảy nhanh">
+                            <i className="fas fa-th"></i> Danh sách câu
+                        </button>
                         <button className={`toeic-part-btn${filter === 'all' ? ' active' : ''}`} onClick={() => setFilter('all')}>Tất cả ({questions.length})</button>
                         <button className={`toeic-part-btn${filter === 'correct' ? ' active' : ''}`} onClick={() => setFilter('correct')}>Đúng ({correct})</button>
                         <button className={`toeic-part-btn${filter === 'wrong' ? ' active' : ''}`} onClick={() => setFilter('wrong')}>Sai ({(data.stats.wrongAnswers ?? (totalQ - correct)) || 0})</button>
@@ -209,6 +222,13 @@ export default function ResultsContent({ data }) {
                     )) : <p>Không có câu hỏi nào.</p>}
                 </div>
             </div>
+
+            <ResultsNavPopup
+                open={navOpen}
+                questions={questions}
+                onSelect={jumpToQuestion}
+                onClose={() => setNavOpen(false)}
+            />
         </div>
     );
 }

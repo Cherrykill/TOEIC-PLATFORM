@@ -883,6 +883,28 @@
   border-color: var(--success-color);
 }
 
+/* Lưới câu ở màn XEM LẠI: tô theo đúng/sai (câu bỏ qua giữ nền mặc định). */
+.toeic-nav-btn.res-correct,
+.toeic-legend-dot.res-correct {
+  background-color: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.toeic-nav-btn.res-wrong,
+.toeic-legend-dot.res-wrong {
+  background-color: var(--danger-color, #ef4444);
+  color: white;
+  border-color: var(--danger-color, #ef4444);
+}
+
+/* Số câu thật (101, 147…) rộng hơn ô 40px của lưới lúc làm bài. */
+.toeic-nav-btn {
+  min-width: 40px;
+  width: auto;
+  padding: 0 6px;
+}
+
 .toeic-nav-btn.marked {
   background-color: var(--warning-color);
   color: white;
