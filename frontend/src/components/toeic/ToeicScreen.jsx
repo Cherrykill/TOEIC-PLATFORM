@@ -203,9 +203,8 @@ export default function ToeicScreen({ active }) {
                         ))}
                     </div>
                     {/* Full Test: bày thẳng mọi đề thành menu ngang, cùng kiểu khối
-                        pill với hàng Part bên Mini Test. Chỉ hiện khi có từ 2 đề
-                        trở lên — một đề thì thanh chọn chẳng để làm gì. */}
-                    {activeTab === 'full-test' && fullTests.length > 1 && (
+                        pill với hàng Part bên Mini Test. */}
+                    {activeTab === 'full-test' && fullTests.length > 0 && (
                         <div className="toeic-part-filters">
                             <div className="toeic-part-group">
                                 <button
