@@ -72,15 +72,36 @@ async function toSupportedPng(imageBuffer) {
     try {
         meta = await sharp(imageBuffer).metadata();
     } catch (err) {
-        throw new Error('File tải lên không phải ảnh đọc được (hoặc đã hỏng). Hãy lưu lại dạng PNG/JPG rồi thử lại.');
+        // statusCode để errorHandler trả 400 kèm lời nhắn này, thay vì 500 trống
+        // khiến người dùng không biết ảnh hỏng ở đâu.
+        const e = new Error(
+            'File tải lên không phải ảnh đọc được (hoặc đã hỏng). '
+            + 'Hãy mở ảnh rồi "Save as" sang PNG/JPG và thử lại. '
+            + `(chi tiết: ${err.message})`,
+        );
+        e.statusCode = 400;
+        throw e;
     }
 
-    let img = sharp(imageBuffer).rotate(); // theo EXIF, ảnh chụp bằng điện thoại hay bị xoay
-    if (Math.max(meta.width || 0, meta.height || 0) > MAX_EDGE) {
-        img = img.resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true });
+    // Bọc CẢ khâu chuyển đổi, không chỉ đọc metadata: định dạng như HEIF/SVG
+    // đọc được header nhưng lúc encode mới hỏng (thiếu thư viện nền) — để lọt
+    // ra ngoài là thành 500 trống, người dùng không biết vì sao.
+    try {
+        let img = sharp(imageBuffer).rotate(); // theo EXIF, ảnh chụp bằng điện thoại hay bị xoay
+        if (Math.max(meta.width || 0, meta.height || 0) > MAX_EDGE) {
+            img = img.resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true });
+        }
+        const buffer = await img.png().toBuffer();
+        return { buffer, sourceFormat: meta.format, width: meta.width, height: meta.height };
+    } catch (err) {
+        const e = new Error(
+            `Không chuyển được ảnh "${meta.format || 'không rõ định dạng'}" sang PNG. `
+            + 'Hãy mở ảnh rồi "Save as" sang PNG/JPG và thử lại. '
+            + `(chi tiết: ${err.message})`,
+        );
+        e.statusCode = 400;
+        throw e;
     }
-    const buffer = await img.png().toBuffer();
-    return { buffer, sourceFormat: meta.format, width: meta.width, height: meta.height };
 }
 
 /**
@@ -95,8 +116,10 @@ async function scanAnswerKeyImage(imageBuffer, mimeType, range, { userId } = {})
         throw new Error('Chưa cấu hình OPENAI_API_KEY — không quét ảnh được');
     }
 
-    const { buffer: pngBuffer, sourceFormat } = await toSupportedPng(imageBuffer);
-    logger.info('Quét bảng đáp án: đã nắn ảnh về PNG', { sourceFormat, uploadedMime: mimeType });
+    const { buffer: pngBuffer, sourceFormat, width, height } = await toSupportedPng(imageBuffer);
+    logger.info('Quét bảng đáp án: đã nắn ảnh về PNG', {
+        sourceFormat, uploadedMime: mimeType, width, height, bytes: pngBuffer.length,
+    });
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -106,19 +129,31 @@ async function scanAnswerKeyImage(imageBuffer, mimeType, range, { userId } = {})
         ? `\n\nChỉ lấy các câu trong khoảng ${range.from} đến ${range.to}.`
         : '';
 
-    const res = await openai.chat.completions.create({
-        model,
-        temperature: 0, // đọc số liệu: cần lặp lại y hệt, không sáng tạo
-        max_tokens: 4000,
-        response_format: { type: 'json_object' },
-        messages: [{
-            role: 'user',
-            content: [
-                { type: 'text', text: SCAN_PROMPT + rangeHint },
-                { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
-            ],
-        }],
-    });
+    let res;
+    try {
+        res = await openai.chat.completions.create({
+            model,
+            temperature: 0, // đọc số liệu: cần lặp lại y hệt, không sáng tạo
+            max_tokens: 4000,
+            response_format: { type: 'json_object' },
+            messages: [{
+                role: 'user',
+                content: [
+                    { type: 'text', text: SCAN_PROMPT + rangeHint },
+                    { type: 'image_url', image_url: { url: dataUrl, detail: 'high' } },
+                ],
+            }],
+        });
+    } catch (err) {
+        // Lỗi từ OpenAI (model không đọc được ảnh, hết hạn mức, sai key…) nếu để
+        // nguyên sẽ thành 500 trống — người dùng không biết phải sửa gì.
+        logger.error('OpenAI từ chối ảnh bảng đáp án', {
+            status: err.status, code: err.code, message: err.message, model, sourceFormat,
+        });
+        const e = new Error(`AI không xử lý được ảnh: ${err.message}`);
+        e.statusCode = err.status && err.status < 500 ? 400 : 502;
+        throw e;
+    }
 
     try {
         await logUsage({
