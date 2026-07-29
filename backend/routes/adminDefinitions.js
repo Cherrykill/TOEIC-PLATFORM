@@ -18,15 +18,18 @@ const { clearGameConfigCache } = require('../services/gameConfig');
 const adminCtrl = require('../controllers/adminController');
 const { uploadShopImage, sanitizeRole } = require('../middleware/upload');
 const { removeIfOrphan } = require('../utils/uploadCleanup');
+const { optimizeUploaded } = require('../utils/imageOptimizer');
 
 const admin = [protect, authorize('admin')];
 
 // ── Upload ảnh vật phẩm — lưu theo KEY danh mục (role = category, vd consumable). ──
 // POST /api/admin/upload-image?role=<category-key>  (field: image). Folder tự tạo.
-router.post('/upload-image', admin, uploadShopImage.single('image'), (req, res) => {
+router.post('/upload-image', admin, uploadShopImage.single('image'), async (req, res) => {
     if (!req.file) return res.status(400).json({ success: false, message: 'Thiếu file ảnh' });
     const role = sanitizeRole(req.query.role);
-    const url = `/uploads/${role}/${req.file.filename}`;
+    // Nén ngay lúc upload: ảnh nền cosmetic còn vẽ cho từng dòng bảng xếp hạng,
+    // để nguyên PNG 2MB là mỗi lần mở BXH kéo vài MB.
+    const url = await optimizeUploaded(req.file.path, `/uploads/${role}/${req.file.filename}`);
     res.json({ success: true, url, role });
 });
 
