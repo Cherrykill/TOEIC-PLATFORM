@@ -60,8 +60,31 @@ QUY TẮC:
 
 Ví dụ kết quả: {"101":"A","102":"C","103":"B"}`;
 
+// OpenAI chỉ nhận png/jpeg/gif/webp và TỰ ĐỌC HEADER file, không tin phần mở
+// rộng. Ảnh chụp/scan hay là tiff/heif/bmp đặt tên .png → nó trả
+// "unsupported image". Vậy nên luôn nắn về PNG thật bằng sharp thay vì gửi
+// thẳng buffer người dùng tải lên.
+const MAX_EDGE = 2200; // đủ nét để đọc bảng đáp án in, không phình token vô ích
+
+async function toSupportedPng(imageBuffer) {
+    const sharp = require('sharp');
+    let meta;
+    try {
+        meta = await sharp(imageBuffer).metadata();
+    } catch (err) {
+        throw new Error('File tải lên không phải ảnh đọc được (hoặc đã hỏng). Hãy lưu lại dạng PNG/JPG rồi thử lại.');
+    }
+
+    let img = sharp(imageBuffer).rotate(); // theo EXIF, ảnh chụp bằng điện thoại hay bị xoay
+    if (Math.max(meta.width || 0, meta.height || 0) > MAX_EDGE) {
+        img = img.resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true });
+    }
+    const buffer = await img.png().toBuffer();
+    return { buffer, sourceFormat: meta.format, width: meta.width, height: meta.height };
+}
+
 /**
- * Gọi model đọc ảnh. `imageBuffer` là Buffer ảnh (jpg/png).
+ * Gọi model đọc ảnh. `imageBuffer` là Buffer ảnh (định dạng nào sharp đọc được).
  * @returns {Promise<{answers: object, skipped: array, usage: object}>}
  */
 async function scanAnswerKeyImage(imageBuffer, mimeType, range, { userId } = {}) {
@@ -72,9 +95,12 @@ async function scanAnswerKeyImage(imageBuffer, mimeType, range, { userId } = {})
         throw new Error('Chưa cấu hình OPENAI_API_KEY — không quét ảnh được');
     }
 
+    const { buffer: pngBuffer, sourceFormat } = await toSupportedPng(imageBuffer);
+    logger.info('Quét bảng đáp án: đã nắn ảnh về PNG', { sourceFormat, uploadedMime: mimeType });
+
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-    const dataUrl = `data:${mimeType || 'image/png'};base64,${imageBuffer.toString('base64')}`;
+    const dataUrl = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 
     const rangeHint = range
         ? `\n\nChỉ lấy các câu trong khoảng ${range.from} đến ${range.to}.`
@@ -119,4 +145,4 @@ async function scanAnswerKeyImage(imageBuffer, mimeType, range, { userId } = {})
     return { answers, skipped, usage: res.usage || {} };
 }
 
-module.exports = { scanAnswerKeyImage, parseRange, normalizeAnswers, SCAN_PROMPT };
+module.exports = { scanAnswerKeyImage, toSupportedPng, parseRange, normalizeAnswers, SCAN_PROMPT };

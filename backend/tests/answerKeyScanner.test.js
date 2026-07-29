@@ -5,8 +5,45 @@
  * Chốt lại điểm dễ hỏng nhất: AI đọc lẫn số câu ngoài dải. Giữ lại những số đó
  * là ghi đè nhầm sang phần đề khác — hỏng dữ liệu mà không ai biết.
  */
-const { parseRange, normalizeAnswers } = require('../services/answerKeyScanner');
+const sharp = require('sharp');
+const { parseRange, normalizeAnswers, toSupportedPng } = require('../services/answerKeyScanner');
 const { compareAnswers } = require('../controllers/answerKeyController');
+
+// Ảnh đặc, kích thước tuỳ ý — đủ để kiểm tra khâu nắn định dạng.
+const makeImage = (fmt, w = 300, h = 200) =>
+    sharp({ create: { width: w, height: h, channels: 3, background: { r: 255, g: 255, b: 255 } } })[fmt]().toBuffer();
+
+describe('toSupportedPng', () => {
+    test('TIFF (đặt tên .png) được nắn về PNG — OpenAI đọc header nên không nhận TIFF', async () => {
+        const tiff = await makeImage('tiff');
+        const { buffer, sourceFormat } = await toSupportedPng(tiff);
+        expect(sourceFormat).toBe('tiff');
+        expect((await sharp(buffer).metadata()).format).toBe('png');
+    });
+
+    test('WebP cũng nắn về PNG', async () => {
+        const { buffer } = await toSupportedPng(await makeImage('webp'));
+        expect((await sharp(buffer).metadata()).format).toBe('png');
+    });
+
+    test('ảnh quá to bị thu nhỏ để khỏi phình token', async () => {
+        const { buffer } = await toSupportedPng(await makeImage('png', 5000, 3000));
+        const m = await sharp(buffer).metadata();
+        expect(Math.max(m.width, m.height)).toBeLessThanOrEqual(2200);
+        expect(m.width / m.height).toBeCloseTo(5000 / 3000, 1); // giữ tỉ lệ
+    });
+
+    test('ảnh nhỏ không bị phóng to', async () => {
+        const { buffer } = await toSupportedPng(await makeImage('png', 400, 300));
+        const m = await sharp(buffer).metadata();
+        expect(m.width).toBe(400);
+    });
+
+    test('file không phải ảnh → báo lỗi dễ hiểu, không ném lỗi thư viện', async () => {
+        await expect(toSupportedPng(Buffer.from('day khong phai anh')))
+            .rejects.toThrow(/không phải ảnh đọc được/);
+    });
+});
 
 describe('parseRange', () => {
     test('đọc được các kiểu gạch nối thường gặp', () => {
