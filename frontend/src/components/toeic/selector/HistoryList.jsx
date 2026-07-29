@@ -3,9 +3,11 @@ import HistoryItem from './HistoryItem.jsx';
 import Pagination from './Pagination.jsx';
 import { useToeicHistory } from '../hooks/useToeicHistory.js';
 
-export default function HistoryList({ active, onView, partFilter = 'all' }) {
+export default function HistoryList({ active, onView, partFilter = 'new' }) {
     const { items, page, totalPages, loading, error, goToPage } = useToeicHistory({ enabled: active });
-    const shown = partFilter === 'all'
+    // 'new' = không lọc Part. Lịch sử vốn đã phân trang theo thứ tự mới nhất
+    // nên không cắt bớt như danh sách đề.
+    const shown = partFilter === 'new'
         ? items
         : items.filter(a => a.testType === `mini-part${partFilter}`);
 

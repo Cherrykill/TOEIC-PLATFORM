@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { Modal } from '@ui/Modal.jsx';
 import { Notification } from '@ui/Toaster.jsx';
@@ -10,6 +10,7 @@ import FillBlankList from './selector/FillBlankList.jsx';
 import HistoryList from './selector/HistoryList.jsx';
 import AnalyticsView from './selector/AnalyticsView.jsx';
 import StartTestModal from './runner/StartTestModal.jsx';
+import { listTestSeries } from './selector/testSeries.js';
 import TestRunner from './runner/TestRunner.jsx';
 import { GameState } from '@game/state.js';
 
@@ -20,8 +21,10 @@ const TABS = [
 ];
 
 // Bộ lọc theo Part — chỉ hiện ở các tab có ý nghĩa theo part.
+// 'new' thay cho 'all' cũ: đổ hết vài trăm đề ra một lúc thì không ai đọc, nên
+// mặc định chỉ đưa NEW_TESTS_LIMIT đề mới nhất; muốn xem đủ thì chọn Part.
 const PART_FILTERS = [
-    { key: 'all', label: 'All' },
+    { key: 'new', label: 'New' },
     ...[1, 2, 3, 4, 5, 6, 7].map(n => ({ key: n, label: `Part ${n}` })),
 ];
 const PART_FILTER_TABS = ['mini-test', 'fill-blank', 'my-history'];
@@ -35,7 +38,10 @@ export default function ToeicScreen({ active }) {
     const { tests, loading: testsLoading, reload: reloadTests } = useToeicTests();
     // Bump để remount History/Analytics (chúng tự fetch khi mount) → tải lại dữ liệu.
     const [refreshKey, setRefreshKey] = useState(0);
-    const [partFilter, setPartFilter] = useState('all'); // 'all' | 1..7
+    const [partFilter, setPartFilter] = useState('new'); // 'new' (9 đề mới nhất) | 1..7
+    const [seriesFilter, setSeriesFilter] = useState(''); // '' = mọi bộ đề
+    // Danh sách bộ đề suy từ chính dữ liệu — thêm bộ mới ở admin là tự có mặt.
+    const seriesOptions = useMemo(() => listTestSeries(tests), [tests]);
     const [sortBy, setSortBy] = useState('default');     // sắp xếp danh sách đề
     const [searchQuery, setSearchQuery] = useState('');  // lọc đề theo tên
     const [searchFocused, setSearchFocused] = useState(false);
@@ -155,11 +161,14 @@ export default function ToeicScreen({ active }) {
                     <i className="fas fa-arrow-left"></i>
                 </button>
                 <h2><i className="fas fa-graduation-cap"></i> Luyện tập TOEIC</h2>
-                <div className="toeic-search-bar in-header">
+                {/* Tìm theo tên chỉ có nghĩa ở Full Test — các tab kia lọc bằng
+                    nút Part / select bên dưới, để ô tìm ở đó chỉ gây nhiễu. */}
+                <div className="toeic-search-bar in-header" style={activeTab === 'full-test' ? undefined : { visibility: 'hidden' }}>
                     <i className="fas fa-search"></i>
                     <input
                         type="text"
                         placeholder="Tìm đề thi theo tên..."
+                        tabIndex={activeTab === 'full-test' ? 0 : -1}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         onFocus={() => setSearchFocused(true)}
@@ -234,6 +243,17 @@ export default function ToeicScreen({ active }) {
                                     {f.label}
                                 </button>
                             ))}
+                            {/* Lọc theo bộ đề — thay vai trò ô tìm kiếm (nay chỉ còn ở
+                                Full Test) để lần ra đề của một bộ cụ thể. */}
+                            <select
+                                className="toeic-sort-select"
+                                value={seriesFilter}
+                                onChange={e => setSeriesFilter(e.target.value)}
+                                title="Lọc theo bộ đề"
+                            >
+                                <option value="">Tất cả bộ đề</option>
+                                {seriesOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
                             <select
                                 className="toeic-sort-select"
                                 value={sortBy}
@@ -250,8 +270,10 @@ export default function ToeicScreen({ active }) {
                     )}
                     <div id="toeic-tab-content">
                         {activeTab === 'full-test'  && <FullTestList tests={tests} loading={testsLoading} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} search={searchQuery} onStart={(id) => openStartModal(id, false)} />}
-                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} search={searchQuery} onStart={(id) => openStartModal(id, true)} />}
+                        {/* Không truyền search: ô tìm chỉ phục vụ Full Test, để lọt sang
+                            đây thì gõ ở tab kia rồi quay lại sẽ thấy danh sách hụt vô cớ. */}
+                        {activeTab === 'mini-test'  && <MiniTestList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} onStart={(id) => openStartModal(id, false)} />}
+                        {activeTab === 'fill-blank' && <FillBlankList tests={tests} loading={testsLoading} partFilter={partFilter} sortBy={sortBy} series={seriesFilter} onStart={(id) => openStartModal(id, true)} />}
                         {activeTab === 'my-history' && <HistoryList key={`history-${refreshKey}`} active={active && activeTab === 'my-history'} partFilter={partFilter} onView={handleViewResults} />}
                         {activeTab === 'analytics'  && <AnalyticsView key={`analytics-${refreshKey}`} active={active && activeTab === 'analytics'} />}
                     </div>
