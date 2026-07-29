@@ -1,13 +1,13 @@
-          <!-- ===== QUÉT ĐÁP ÁN TỪ ẢNH ===== -->
+          <!-- ===== NẠP BỘ ĐÁP ÁN BẰNG JSON (server không gọi AI) ===== -->
           <div id="main-tab-answer-keys" class="main-tab-content">
             <div class="card">
               <div class="card-header">
-                <h2><i class="fas fa-list-check"></i> Quét đáp án từ ảnh</h2>
+                <h2><i class="fas fa-list-check"></i> Nạp bộ đáp án</h2>
               </div>
               <div style="padding: 0 4px 14px; font-size: 13px; color: var(--text-secondary)">
-                Tải ảnh <b>bảng đáp án</b> của đề in → AI đọc ra cặp "số câu → đáp án", lưu lại thành
-                <b>bộ đáp án</b> của mã đề rồi đối chiếu với đáp án đang lưu trong ngân hàng câu hỏi.
-                Ảnh chỉ dùng để đọc, không lưu lên server.
+                Dán <b>bộ đáp án</b> của một mã đề vào đây rồi đối chiếu với đáp án đang lưu trong ngân hàng câu hỏi.
+                Chỉ có ảnh bảng đáp án? Copy prompt bên dưới, dán vào chat AI kèm ảnh, rồi mang JSON nó trả về dán lại —
+                <b>server không tốn đồng token nào</b>. Nạp nhiều lần cho cùng mã đề sẽ <b>cộng dồn</b>.
               </div>
 
               <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px">
@@ -18,24 +18,55 @@
                   <datalist id="ak-source-list"></datalist>
                 </div>
                 <div>
-                  <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary)">Khoảng số câu</label>
+                  <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary)"
+                    title="Bỏ trống = nhận hết. Điền vào thì câu ngoài dải bị loại, tránh ghi đè nhầm sang phần đề khác.">Khoảng số câu</label>
                   <input type="text" id="ak-range" class="filter-select"
-                    placeholder="vd: 1-100" style="width: 150px; margin-top: 4px" />
+                    placeholder="vd: 1-200 (bỏ trống = nhận hết)"
+                    title="Bỏ trống = nhận hết. Điền vào (vd 1-200, 101-200) thì câu ngoài dải bị loại."
+                    style="width: 220px; margin-top: 4px" />
                 </div>
-                <div>
-                  <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary)">Ảnh bảng đáp án *</label>
-                  <input type="file" id="ak-image" accept="image/*" class="filter-select"
-                    style="width: 260px; margin-top: 4px; padding: 5px" />
-                </div>
-                <button class="btn btn-primary btn-sm" id="btn-ak-scan" style="height: 38px">
-                  <i class="fas fa-wand-magic-sparkles"></i> Quét ảnh
+                <!-- Hai nút prompt đứng ngay đây thay cho dòng ghi chú cũ: cùng
+                     một hàng nên đỡ tốn một dải màn hình, mà phần giải thích đã
+                     nằm trong placeholder + tooltip của chính ô nhập. -->
+                <button class="btn btn-secondary btn-sm" id="btn-ak-copy-prompt" style="height: 38px"
+                  title="Copy prompt để dán vào chat AI kèm ảnh bảng đáp án">
+                  <i class="fas fa-copy"></i> Copy prompt
                 </button>
+                <button class="btn btn-ghost btn-sm" id="btn-ak-toggle-prompt" style="height: 38px"
+                  title="Xem trước prompt (kèm khoảng số câu đang điền)">
+                  <i class="fas fa-eye"></i> Xem prompt
+                </button>
+                <div style="font-size: 12px; color: var(--text-secondary); flex: 1; min-width: 200px">
+                  <i class="fas fa-robot"></i> Chỉ có ảnh? Gửi ảnh + prompt này vào DeepSeek/ChatGPT/Gemini,
+                  rồi dán JSON nó trả về xuống dưới.
+                </div>
               </div>
 
-              <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 14px">
-                <i class="fas fa-circle-info"></i> Bỏ trống khoảng số câu = lấy hết những gì đọc được.
-                Điền vào (vd <code>101-200</code>) thì câu ngoài dải sẽ bị loại — tránh AI đọc lẫn số câu
-                của phần khác rồi ghi đè nhầm. Quét nhiều lần cho cùng mã đề sẽ <b>cộng dồn</b>.
+              <pre id="ak-prompt-preview" style="display: none; margin: 0 0 12px; padding: 10px; border-radius: 8px;
+                background: var(--bg-secondary); font-size: 12px; white-space: pre-wrap; max-height: 260px; overflow: auto"></pre>
+
+              <!-- ── Dán JSON vào đây ── -->
+              <div style="border: 1px solid var(--border-color, #e5e7eb); border-radius: 10px; padding: 12px; margin-bottom: 14px">
+                <div style="font-weight: 600; margin-bottom: 6px">
+                  <i class="fas fa-keyboard"></i> Đáp án dạng JSON
+                </div>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px">
+                  Nhận nhiều kiểu: <code>{"101":"A","102":"C"}</code> ·
+                  <code>["A","C","B"]</code> (đánh số liên tiếp từ đầu khoảng, mặc định câu 1) ·
+                  <code>[{"number":101,"answer":"A"}]</code> · hoặc danh sách thường
+                  <code>101. A 102) C</code>. Dán cả rào <code>```json</code> hay lời dẫn của AI cũng được — hệ thống tự cắt.
+                </div>
+                <textarea id="ak-json" class="filter-select" rows="6" spellcheck="false"
+                  style="width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 13px; padding: 8px; resize: vertical"
+                  placeholder='{"101":"A","102":"C","103":"B"}'></textarea>
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap">
+                  <button class="btn btn-primary btn-sm" id="btn-ak-import">
+                    <i class="fas fa-file-import"></i> Nhập đáp án
+                  </button>
+                  <button class="btn btn-ghost btn-sm" id="btn-ak-json-clear">
+                    <i class="fas fa-eraser"></i> Xoá ô nhập
+                  </button>
+                </div>
               </div>
 
               <div id="ak-result"></div>
@@ -54,7 +85,7 @@
                 <table class="data-table">
                   <thead><tr>
                     <th>Mã đề</th><th style="width:110px">Số đáp án</th>
-                    <th>Dải đã quét</th><th style="width:170px">Cập nhật</th><th style="width:190px">Thao tác</th>
+                    <th>Dải đã nạp</th><th style="width:170px">Cập nhật</th><th style="width:190px">Thao tác</th>
                   </tr></thead>
                   <tbody id="ak-tbody">
                     <tr><td colspan="5" class="loading"><i class="fas fa-spinner fa-spin"></i> Đang tải...</td></tr>
