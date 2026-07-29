@@ -10,7 +10,7 @@ import FillBlankList from './selector/FillBlankList.jsx';
 import HistoryList from './selector/HistoryList.jsx';
 import AnalyticsView from './selector/AnalyticsView.jsx';
 import StartTestModal from './runner/StartTestModal.jsx';
-import { listTestSeries, listTestLevels } from './selector/testSeries.js';
+import { listTestSeries, listTestLevels, TEST_LEVELS } from './selector/testSeries.js';
 import TestRunner from './runner/TestRunner.jsx';
 import { GameState } from '@game/state.js';
 
@@ -257,19 +257,22 @@ export default function ToeicScreen({ active }) {
                                 <option value="">Tất cả bộ đề</option>
                                 {seriesOptions.map(s => <option key={s} value={s}>{s}</option>)}
                             </select>
-                            {/* Độ khó chỉ hiện khi đề thực sự có nhiều mức — cả kho
-                                cùng một mức thì ô lọc này không lọc được gì. */}
-                            {levelOptions.length > 1 && (
-                                <select
-                                    className="toeic-sort-select"
-                                    value={levelFilter}
-                                    onChange={e => setLevelFilter(e.target.value)}
-                                    title="Lọc theo độ khó"
-                                >
-                                    <option value="">Mọi độ khó</option>
-                                    {levelOptions.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
-                                </select>
-                            )}
+                            {/* Đủ 3 mức, kể cả mức chưa đề nào dùng — mức nào đang
+                                trống thì ghi rõ "(chưa có đề)" để chọn vào thấy
+                                danh sách rỗng là hiểu ngay, không tưởng lỗi. */}
+                            <select
+                                className="toeic-sort-select"
+                                value={levelFilter}
+                                onChange={e => setLevelFilter(e.target.value)}
+                                title="Lọc theo độ khó"
+                            >
+                                <option value="">Mọi độ khó</option>
+                                {TEST_LEVELS.map(l => (
+                                    <option key={l.key} value={l.key}>
+                                        {l.label}{levelOptions.some(o => o.key === l.key) ? '' : ' (chưa có đề)'}
+                                    </option>
+                                ))}
+                            </select>
                             <select
                                 className="toeic-sort-select"
                                 value={sortBy}
