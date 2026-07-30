@@ -1,3 +1,40 @@
+// Ba loại boost dùng chung một cơ chế, chỉ khác tên field trên UserStats.
+// Gom lại một bảng để luật "không chồng chéo" áp đồng nhất cho cả ba —
+// trước đây nhánh xp/coins ghi đè vô điều kiện nên bật x2 lúc đang x3 là TỤT
+// hệ số, còn nhánh energy thì âm thầm bỏ qua làm người chơi mất thẻ.
+const BOOST_FIELDS = {
+    xp: ['xpBoostActive', 'xpBoostMultiplier', 'xpBoostExpiresAt'],
+    coins: ['coinsBoostActive', 'coinsBoostMultiplier', 'coinsBoostExpiresAt'],
+    energy: ['energyBoostActive', 'energyBoostMultiplier', 'energyBoostExpiresAt'],
+};
+
+/** Boost đang CHẠY của một loại (null nếu không có / đã hết hạn). */
+function activeBoost(stats, boostType, at = Date.now()) {
+    const f = BOOST_FIELDS[boostType];
+    if (!f) return null;
+    const [activeKey, multKey, expKey] = f;
+    if (!stats?.[activeKey] || !stats[expKey]) return null;
+    const until = new Date(stats[expKey]).getTime();
+    if (until <= at) return null;
+    return { multiplier: Math.max(1, stats[multKey] || 1), until };
+}
+
+/**
+ * Lý do KHÔNG được kích hoạt thẻ boost này, hoặc null nếu được.
+ * Mỗi loại boost chỉ một hiệu ứng chạy tại một thời điểm: đang x3 mà dùng x2
+ * thì chặn thẳng ở đây — để nó đi qua thì thẻ bị tiêu mà chẳng đổi được gì.
+ * Gọi TRƯỚC khi trừ đồ / trừ tiền.
+ */
+function boostBlockReason(stats, effect) {
+    if (effect?.type !== 'boost') return null;
+    const cur = activeBoost(stats, effect.boostType);
+    if (!cur) return null;
+    if ((Number(effect.multiplier) || 1) < cur.multiplier) {
+        return `Đang có hiệu ứng x${cur.multiplier} mạnh hơn đang chạy — thẻ x${effect.multiplier} sẽ không có tác dụng. Chờ hết hạn rồi hãy dùng.`;
+    }
+    return null;
+}
+
 /**
  * Apply a purchased shop item's effect onto a mutable stats object.
  * Pure domain logic (no DB / no req-res) — extracted verbatim from
@@ -33,30 +70,27 @@ function applyShopEffect(stats, effect) {
         case 'gems':
             stats.gems += effect.amount;
             break;
+        // Mỗi loại boost chỉ MỘT hiệu ứng chạy cùng lúc (không chồng chéo):
+        //  - hệ số cao hơn  → nâng cấp ngay, và không bao giờ rút ngắn hạn cũ
+        //    (thời gian đã mua không được phép mất);
+        //  - hệ số bằng nhau → GIA HẠN, cộng dồn thêm thời lượng thẻ;
+        //  - hệ số thấp hơn  → không làm gì (route đã chặn từ trước khi trừ đồ,
+        //    đây là chốt cuối để không bao giờ tụt hệ số).
         case 'boost': {
-            const expiresAt = new Date(Date.now() + effect.duration * 1000);
-            if (effect.boostType === 'xp') {
-                stats.xpBoostActive = true;
-                stats.xpBoostMultiplier = effect.multiplier;
-                stats.xpBoostExpiresAt = expiresAt;
-            } else if (effect.boostType === 'coins') {
-                stats.coinsBoostActive = true;
-                stats.coinsBoostMultiplier = effect.multiplier;
-                stats.coinsBoostExpiresAt = expiresAt;
-            } else if (effect.boostType === 'energy') {
-                // Dùng thẻ mạnh hơn khi đang có thẻ yếu → giữ hệ số CAO NHẤT,
-                // không hạ cấp boost đang chạy. Hạn thì luôn lấy mốc xa hơn.
-                const current = stats.energyBoostActive
-                    && stats.energyBoostExpiresAt
-                    && new Date(stats.energyBoostExpiresAt) > new Date();
-                stats.energyBoostActive = true;
-                stats.energyBoostMultiplier = current
-                    ? Math.max(stats.energyBoostMultiplier || 1, effect.multiplier)
-                    : effect.multiplier;
-                stats.energyBoostExpiresAt = current
-                    ? new Date(Math.max(new Date(stats.energyBoostExpiresAt).getTime(), expiresAt.getTime()))
-                    : expiresAt;
-            }
+            const fields = BOOST_FIELDS[effect.boostType];
+            if (!fields) break;   // boostType rỗng/lạ → bỏ qua, khỏi ghi rác lên stats
+            const [activeKey, multKey, expKey] = fields;
+
+            const ms = (Number(effect.duration) || 0) * 1000;
+            const mult = Number(effect.multiplier) || 1;
+            const cur = activeBoost(stats, effect.boostType);
+            if (cur && mult < cur.multiplier) break;
+
+            stats[activeKey] = true;
+            stats[multKey] = cur ? Math.max(cur.multiplier, mult) : mult;
+            if (!cur) stats[expKey] = new Date(Date.now() + ms);
+            else if (cur.multiplier === mult) stats[expKey] = new Date(cur.until + ms);
+            else stats[expKey] = new Date(Math.max(cur.until, Date.now() + ms));
             break;
         }
         case 'vip': {
@@ -77,4 +111,4 @@ function applyShopEffect(stats, effect) {
     }
 }
 
-module.exports = { applyShopEffect };
+module.exports = { applyShopEffect, activeBoost, boostBlockReason, BOOST_FIELDS };

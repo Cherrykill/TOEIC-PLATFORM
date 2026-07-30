@@ -3,7 +3,7 @@
  * behaviour before/while extracting it out of userStateController so a
  * future refactor that changes payouts is caught. Pure, no DB.
  */
-const { applyShopEffect } = require('../services/shopEffects');
+const { applyShopEffect, boostBlockReason } = require('../services/shopEffects');
 
 const baseStats = () => ({
     energy: 80, maxEnergy: 100,
@@ -11,6 +11,7 @@ const baseStats = () => ({
     coins: 100, gems: 5,
     xpBoostActive: false, xpBoostMultiplier: 1, xpBoostExpiresAt: null,
     coinsBoostActive: false, coinsBoostMultiplier: 1, coinsBoostExpiresAt: null,
+    energyBoostActive: false, energyBoostMultiplier: 1, energyBoostExpiresAt: null,
 });
 
 describe('applyShopEffect', () => {
@@ -49,7 +50,7 @@ describe('applyShopEffect', () => {
         expect(s.energy).toBe(10); // trần & số ⚡ giữ nguyên, chỉ tốc độ đổi
     });
 
-    test('dùng thẻ x3 khi đang chạy x2 → giữ hệ số CAO NHẤT, không bị hạ cấp', () => {
+    test('đang chạy x3 mà áp thẻ x2 → KHÔNG đổi gì (không tụt hệ số, không rút hạn)', () => {
         const s = baseStats();
         applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 3, duration: 7200 });
         const until = new Date(s.energyBoostExpiresAt).getTime();
@@ -57,6 +58,87 @@ describe('applyShopEffect', () => {
         applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 60 });
         expect(s.energyBoostMultiplier).toBe(3);                       // không tụt về 2
         expect(new Date(s.energyBoostExpiresAt).getTime()).toBe(until); // không rút ngắn hạn
+    });
+
+    test('đang chạy x2 mà kích hoạt x3 → nâng lên x3 ngay, hạn không bị rút ngắn', () => {
+        const s = baseStats();
+        applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 7200 });
+        const until2 = new Date(s.energyBoostExpiresAt).getTime();
+
+        // Thẻ x3 ngắn hơn phần x2 còn lại: hệ số lên 3, nhưng mốc hết hạn phải
+        // giữ mốc xa hơn — thời gian đã mua không được phép mất.
+        applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 3, duration: 60 });
+        expect(s.energyBoostMultiplier).toBe(3);
+        expect(new Date(s.energyBoostExpiresAt).getTime()).toBe(until2);
+    });
+
+    test('cùng hệ số → GIA HẠN (cộng dồn thời lượng), không phải tiêu thẻ vô ích', () => {
+        const s = baseStats();
+        applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 3600 });
+        const first = new Date(s.energyBoostExpiresAt).getTime();
+
+        applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 3600 });
+        expect(new Date(s.energyBoostExpiresAt).getTime()).toBe(first + 3600 * 1000);
+        expect(s.energyBoostMultiplier).toBe(2);
+    });
+
+    test('luật không-chồng-chéo áp cho CẢ xp/coins, không riêng energy', () => {
+        const s = baseStats();
+        applyShopEffect(s, { type: 'boost', boostType: 'xp', multiplier: 3, duration: 7200 });
+        const until = new Date(s.xpBoostExpiresAt).getTime();
+        // Trước đây nhánh xp ghi đè vô điều kiện → x2 sẽ HẠ CẤP boost x3 đang chạy.
+        applyShopEffect(s, { type: 'boost', boostType: 'xp', multiplier: 2, duration: 86400 });
+        expect(s.xpBoostMultiplier).toBe(3);
+        expect(new Date(s.xpBoostExpiresAt).getTime()).toBe(until);
+    });
+
+    test('boostType rỗng/lạ không ghi rác lên stats', () => {
+        const s = baseStats();
+        applyShopEffect(s, { type: 'boost', boostType: '', multiplier: 2, duration: 86400 });
+        expect(s.energyBoostActive).toBe(false);
+        expect(s.xpBoostActive).toBe(false);
+        expect(s.coinsBoostActive).toBe(false);
+    });
+
+    describe('boostBlockReason — chặn TRƯỚC khi trừ thẻ/trừ tiền', () => {
+        test('không có boost nào đang chạy → cho qua', () => {
+            expect(boostBlockReason(baseStats(), { type: 'boost', boostType: 'energy', multiplier: 2, duration: 60 })).toBeNull();
+        });
+
+        test('đang x2, kích hoạt x3 → cho qua (nâng cấp)', () => {
+            const s = baseStats();
+            applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 7200 });
+            expect(boostBlockReason(s, { type: 'boost', boostType: 'energy', multiplier: 3, duration: 86400 })).toBeNull();
+        });
+
+        test('đang x3, kích hoạt x2 → CHẶN, kèm lý do đọc được', () => {
+            const s = baseStats();
+            applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 3, duration: 7200 });
+            const msg = boostBlockReason(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 86400 });
+            expect(msg).toMatch(/x3/);
+            expect(msg).toMatch(/x2/);
+        });
+
+        test('cùng hệ số → cho qua (gia hạn)', () => {
+            const s = baseStats();
+            applyShopEffect(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 7200 });
+            expect(boostBlockReason(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 7200 })).toBeNull();
+        });
+
+        test('boost x3 đã HẾT HẠN thì không chặn thẻ x2 nữa', () => {
+            const s = {
+                ...baseStats(),
+                energyBoostActive: true, energyBoostMultiplier: 3,
+                energyBoostExpiresAt: new Date(Date.now() - 60000),
+            };
+            expect(boostBlockReason(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 60 })).toBeNull();
+        });
+
+        test('boost khác LOẠI không chặn nhau (x3 XP không cản thẻ ⚡ x2)', () => {
+            const s = baseStats();
+            applyShopEffect(s, { type: 'boost', boostType: 'xp', multiplier: 3, duration: 7200 });
+            expect(boostBlockReason(s, { type: 'boost', boostType: 'energy', multiplier: 2, duration: 60 })).toBeNull();
+        });
     });
 
     test('consumable counters add by amount', () => {

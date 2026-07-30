@@ -9,7 +9,7 @@
 const jwt = require('jsonwebtoken');
 const UserStats = require('../models/UserStats');
 const logger = require('../utils/logger');
-const { applyShopEffect } = require('../services/shopEffects');
+const { applyShopEffect, boostBlockReason } = require('../services/shopEffects');
 const Inventory = require('../services/inventoryService');
 const Transaction = require('../models/Transaction');
 const ItemDefinition = require('../models/ItemDefinition');
@@ -157,6 +157,15 @@ exports.purchaseItem = async (req, res, next) => {
                 });
             }
         }
+        // Boost áp THẲNG lúc mua (không phải thẻ) mà yếu hơn cái đang chạy thì
+        // mua về chỉ mất tiền: chặn trước khi trừ xu. Thẻ (on_use) không chặn ở
+        // đây — thẻ để trong túi tới lúc rảnh mới bật, route /inventory/use mới
+        // là chỗ kiểm.
+        if (item.effect?.type === 'boost' && item.durationType !== 'on_use') {
+            const blocked = boostBlockReason(stats, item.effect);
+            if (blocked) return res.status(409).json({ success: false, message: blocked });
+        }
+
         // Số đơn vị/gói (bundle) → tổng đơn vị nhận = bundle × số gói. Nhân cả giá lẫn đồ.
         const bundle = item.quantity || 1;
         const units = bundle * quantity;

@@ -6,7 +6,14 @@
  */
 const { applyEnergyRegen, energyRegenMultiplier } = require('../utils/userStateHelper');
 
-const minutesAgo = (n) => new Date(Date.now() - n * 60000);
+// Mọi mốc thời gian trong MỘT test phải suy từ cùng một `base`.
+// Trước đây helper gọi Date.now() riêng cho từng mốc, nên hạn thẻ và
+// lastEnergyUpdate lệch nhau vài ms — đủ để Math.floor(số phút) tụt 1 và bài
+// "thẻ hết hạn giữa quãng nghỉ" đỏ ngẫu nhiên (13 → 12).
+let base = Date.now();
+beforeEach(() => { base = Date.now(); });
+const minutesAgo = (n) => new Date(base - n * 60000);
+
 const stats = (over = {}) => ({
     energy: 0, maxEnergy: 60,
     lastEnergyUpdate: minutesAgo(10),

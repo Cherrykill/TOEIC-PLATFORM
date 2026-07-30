@@ -39,12 +39,17 @@ export const EnergyShop = {
             ? (Array.isArray(res.items) ? res.items : (Array.isArray(res.data) ? res.data : []))
             : [];
         _packsCache = items
+            // Loại THẺ (on_use): mua về nằm trong túi chờ kích hoạt, không hồi ⚡
+            // ngay — bày ở popup "hết năng lượng" thì người chơi trả tiền mà
+            // không vào được bài, còn popup lại báo "Đã nạp năng lượng".
+            .filter(it => it?.durationType !== 'on_use')
             .filter(it => (it?.effect?.type === 'energy' && it.effect.amount > 0)
                 || it?.effect?.type === 'energy_full')
             .map(it => ({
                 id: it.itemId || it.id,
                 name: it.name,
                 icon: it.icon || '⚡',
+                image: it.image || '',
                 full: it.effect.type === 'energy_full',
                 amount: it.effect.type === 'energy_full'
                     ? 0
@@ -120,6 +125,16 @@ export const EnergyShop = {
         // nhưng khoá sẵn ở đây để không ai bấm vào rồi ăn thông báo lỗi.
         const isFull = r.energy >= r.maxEnergy;
 
+        // `icon` trong catalog có thể là emoji ('⚡') HOẶC class FontAwesome
+        // ('fa-bolt'). Nối thẳng vào HTML thì loại sau in ra chữ "fa-bolt".
+        // Ưu tiên ảnh vật phẩm nếu admin đã tải lên.
+        const packGlyph = (p) => {
+            if (p.image) return `<img src="${p.image}" alt="" class="energy-pack-img">`;
+            return /^fa[srlbd]?-|^fa[srlbd]? /.test(p.icon)
+                ? `<i class="fas ${p.icon}"></i>`
+                : p.icon;
+        };
+
         const packButtons = packs.length
             ? packs.map((p, i) => {
                 const enough = p.currency === 'coins' ? coins >= p.price : (r.gems ?? 0) >= p.price;
@@ -132,7 +147,7 @@ export const EnergyShop = {
                     <button class="btn ${afford ? 'btn-primary' : 'btn-secondary'} energy-pack-btn${p.full ? ' energy-pack-full' : ''}"
                         data-pack="${i}" ${afford ? '' : 'disabled'}
                         title="${why || p.name}">
-                        <span>${p.icon} ${p.full ? `Nạp đầy ⚡${r.maxEnergy}` : `+${p.amount}⚡`}</span>
+                        <span>${packGlyph(p)} ${p.full ? `Nạp đầy ⚡${r.maxEnergy}` : `+${p.amount}⚡`}</span>
                         <strong>${p.price} ${cur}</strong>
                     </button>`;
             }).join('')

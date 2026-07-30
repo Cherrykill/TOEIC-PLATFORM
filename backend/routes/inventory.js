@@ -4,7 +4,7 @@ const { protect } = require('../middleware/auth');
 const ItemDefinition = require('../models/ItemDefinition');
 const UserStats = require('../models/UserStats');
 const Inventory = require('../services/inventoryService');
-const { applyShopEffect } = require('../services/shopEffects');
+const { applyShopEffect, boostBlockReason } = require('../services/shopEffects');
 
 // Catalog công khai — danh sách item đang bật.
 router.get('/items', async (req, res, next) => {
@@ -33,6 +33,16 @@ router.post('/use', protect, async (req, res, next) => {
 
         const def = await ItemDefinition.findOne({ itemId }).lean();
         if (!def) return res.status(404).json({ success: false, message: 'Item không tồn tại' });
+
+        // Chặn TRƯỚC khi trừ thẻ: đang chạy x3 mà bấm x2 thì thẻ x2 sẽ chẳng làm
+        // gì — tiêu nó là mất trắng. Chỉ một hiệu ứng mỗi loại được chạy.
+        if (def.effect?.type === 'boost') {
+            const cur = await UserStats.findOne({ userId: req.user.id })
+                .select('xpBoostActive xpBoostMultiplier xpBoostExpiresAt coinsBoostActive coinsBoostMultiplier coinsBoostExpiresAt energyBoostActive energyBoostMultiplier energyBoostExpiresAt')
+                .lean();
+            const blocked = cur && boostBlockReason(cur, def.effect);
+            if (blocked) return res.status(409).json({ success: false, message: blocked });
+        }
 
         const ok = await Inventory.consume(req.user.id, itemId, 1);
         if (!ok) return res.status(400).json({ success: false, message: 'Bạn không có vật phẩm này' });
