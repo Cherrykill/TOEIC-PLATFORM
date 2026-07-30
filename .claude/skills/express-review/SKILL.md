@@ -20,7 +20,7 @@ These are invisible to unit tests and to reading a single handler in isolation �
 
 | Concern | Owner |
 |---|---|
-| Is the guard *reachable/bypassable*, is input exploitable | `security-review` |
+| Is the guard *reachable/bypassable*, is input exploitable | `security-module-review` |
 | Is the response contract consistent, are errors distinguishable to the client | `api-review` |
 | Are layers separated, does dependency flow one way | `architecture-review` |
 | Query cost, indexes, payload size | `performance-review` |
@@ -196,7 +196,7 @@ guards are expected on which routes.
 - ❌ Running this lens on a NestJS or Fastify codebase (the gate exists for this reason)
 - ❌ "Add `express-async-errors`" as a top finding without showing a handler that actually hangs
 - ❌ Reporting a missing guard that a `router.use` above it already applies — check line order
-- ❌ Re-reporting an authorization hole already owned by `security-review`
+- ❌ Re-reporting an authorization hole already owned by `security-module-review`
 - ❌ Style findings about arrow vs. function handlers, or router file layout
 - ❌ Demanding graceful shutdown as High on a project with no deployment yet — set effort and
   severity by real consequence

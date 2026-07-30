@@ -7,7 +7,7 @@
 | resume context | `knowledge-sync` |
 | structure / stack / features / graph / partition | `repo-map` |
 | **order, dispatch, collect, discard** | **project-auditor** (this document) |
-| module review | the nine lens skills |
+| module review | the ten lens skills |
 | dedupe, rank, systemic promotion, roadmap | `report-merge` — **the merge algorithm lives there, not here** |
 
 Dispatch a delegated phase exactly like a lens: `Skill` inline, or `Agent` with the template in
@@ -62,7 +62,7 @@ Notes on the framework rows:
 
 Cross-cutting single passes (run once per audit, not per module):
 
-- **security-review** on a `secrets-and-dependencies` pseudo-module: `.env*`, CI files,
+- **security-module-review** on a `secrets-and-dependencies` pseudo-module: `.env*`, CI files,
   lockfile audit, dependency vulnerabilities.
 - **testing-review** on a `test-strategy` pseudo-module: runners, config, coverage shape,
   what the suite as a whole does and does not protect.

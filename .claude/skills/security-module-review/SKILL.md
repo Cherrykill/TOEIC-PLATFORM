@@ -1,16 +1,15 @@
 ---
-name: security-review
+name: security-module-review
 description: Defensive security audit of ONE module — XSS, CSRF, authentication, authorization, input validation, output escaping, secrets, environment variables, dependency vulnerabilities and insecure API surfaces. Use when auditing a module for exploitable weaknesses, or for a repo-wide secrets-and-dependencies pass. Invoked by project-auditor as part of a code audit; also usable standalone on a route, controller, or admin surface.
 allowed-tools: Read, Write, Glob, Grep, Bash
 ---
 
-# security-review
+# security-module-review
 
-> **Name note:** Claude Code ships a built-in `security-review` skill that reviews *pending
-> changes on the current branch*. This project skill reviews *one module of the existing
-> codebase* as part of an audit. If the name collides in your setup, rename this directory to
-> `security-module-review` and update the dispatch matrix in
-> `project-auditor/references/orchestration.md`.
+> **Not the built-in `security-review`.** Claude Code ships one of those, and it reviews *pending
+> changes on the current branch*. This skill reviews *one module of the existing codebase* as part
+> of an audit — different input, different job, deliberately different name so `/security-review`
+> stays unambiguous. Use the built-in before committing; use this one inside an audit.
 
 ## Purpose
 
@@ -243,6 +242,6 @@ REMAINING none
 ## Directory structure
 
 ```
-.claude/skills/security-review/
+.claude/skills/security-module-review/
 └── SKILL.md
 ```

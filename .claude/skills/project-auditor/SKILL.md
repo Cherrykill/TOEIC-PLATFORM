@@ -1,6 +1,6 @@
 ---
 name: project-auditor
-description: Orchestrates a full staff-engineer-level engineering audit of a codebase, module by module, without ever loading the whole repo into context. Use when asked to audit/review a project, assess code quality or technical debt at repo scale, produce an engineering audit report, or get a prioritized improvement roadmap. Also use to resume an interrupted audit. Delegates mapping to repo-map, resume context to knowledge-sync, review to the nine lens skills (architecture, react, css, performance, security, api, naming, technical-debt, testing), and consolidation to report-merge.
+description: Orchestrates a full staff-engineer-level engineering audit of a codebase, module by module, without ever loading the whole repo into context. Use when asked to audit/review a project, assess code quality or technical debt at repo scale, produce an engineering audit report, or get a prioritized improvement roadmap. Also use to resume an interrupted audit. Delegates mapping to repo-map, resume context to knowledge-sync, review to the ten lens skills (architecture, react, express, css, performance, security-module, api, naming, technical-debt, testing), and consolidation to report-merge.
 allowed-tools: Read, Write, Glob, Grep, Bash, Agent, TodoWrite, Skill
 ---
 
@@ -13,7 +13,7 @@ repos — by decomposing it into modules, reviewing each module through only the
 apply, and merging the results into one prioritized audit.
 
 You are the orchestrator. **You do not review code, map the repo, or merge reports yourself** —
-those are `repo-map`, the nine lenses, and `report-merge`. You decide *what gets reviewed, in
+those are `repo-map`, the ten lenses, and `report-merge`. You decide *what gets reviewed, in
 what order, through which lens*, and you keep your own context clean enough to make those
 decisions well. The moment you start reading application files in depth, the audit degrades:
 that is the failure mode this suite exists to prevent.
@@ -27,7 +27,7 @@ Depth over speed. The output is worth more than the time it took.
 | Resume context (step 0) | `knowledge-sync` | `.claude-audit/CONTEXT.md` |
 | Structure, stack, features, graph, module partition (steps 1–3) | `repo-map` | `PROJECT-MAP.md`, `modules.md` |
 | Order, dispatch, collect, discard (steps 4–8) | **this skill** | `state.md` |
-| Module review | the nine lens skills | `reports/<slug>.<lens>.md` |
+| Module review | the ten lens skills | `reports/<slug>.<lens>.md` |
 | Dedupe, rank, systemic promotion, roadmap (steps 9–10) | `report-merge` | `FINAL-AUDIT.md`, `ROADMAP.md` |
 
 Delegate by `Skill` (inline) or by `Agent` (subagent) — the choice is the same as for lenses,
@@ -268,7 +268,7 @@ with a current primer instead of re-deriving all of this.
 
 - ❌ Reading files to "get a feel" for a module before dispatching — that is the lens's job
   and it costs the context the whole audit depends on.
-- ❌ Invoking all nine lenses on every module. Produces volume, not insight, and buries the
+- ❌ Invoking every lens on every module. Produces volume, not insight, and buries the
   real findings.
 - ❌ Merging inline, or re-implementing the merge algorithm because "it is just this once".
   Two copies of that algorithm will drift, and the merge is where drift costs most.

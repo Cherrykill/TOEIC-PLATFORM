@@ -1,7 +1,7 @@
 # Review Skill Suite
 
-A modular code-review system for this repository. Thirteen skills in four tiers — one
-orchestrator, three foundation skills, nine specialized review lenses — plus a set of shared
+A modular code-review system for this repository. Fourteen skills in four tiers — one
+orchestrator, three foundation skills, ten specialized review lenses — plus a set of shared
 contracts they all obey.
 
 The design premise: **a single giant review skill degrades as the repo grows.** Loading 10,000
@@ -35,7 +35,7 @@ implementation detail disposable and findings durable.
 | **architecture-review** | Folder structure, boundaries, dependency direction, separation of concerns, cycles, abstraction quality, scalability. |
 | **css-review** | CSS architecture, naming, responsiveness, layout, spacing/typography/color consistency, tokens, accessibility, duplication. |
 | **performance-review** | Render cost, bundle size, lazy loading, expensive computation, network behaviour, caching. |
-| **security-review** | XSS, CSRF, auth, authorization, input validation, output escaping, secrets, dependencies, insecure APIs. |
+| **security-module-review** | XSS, CSRF, auth, authorization, input validation, output escaping, secrets, dependencies, insecure APIs. |
 | **api-review** | API layer structure, fetch logic, error handling, retries, loading state, response validation, REST consistency. |
 | **naming-review** | File/variable/function/component/hook names, consistency, readability, domain terminology. |
 | **technical-debt-review** | Duplication, dead code, TODOs, magic values, over/under-engineering, code smells. |
@@ -92,7 +92,7 @@ one-line registry edits — see `stack-detection.md` §5.
                              │ one (module, lens) at a time
       ┌──────────────┬───────┼───────┬──────────────┐
       ▼              ▼       ▼       ▼              ▼
-architecture      react     css   security   … 5 more lenses
+architecture    react   express   css   security   … 5 more
       │              │       │       │              │
       └──────────────┴───────┴───┬───┴──────────────┘
                                  │
@@ -269,7 +269,7 @@ A framework lens missing its registry rows will never be dispatched, no matter h
 **Add a universal lens** (e.g. `accessibility-review`, `db-review`, `i18n-review`, `docs-review`):
 
 1. `mkdir .claude/skills/<name>-review` and write `SKILL.md` with the same section layout the
-   nine lenses use: frontmatter (`name`, `description`, `allowed-tools`) → Purpose → Activation
+   ten lenses use: frontmatter (`name`, `description`, `allowed-tools`) → Purpose → Activation
    examples → Required reading → Inputs → Workflow → Review checklist → Detection recipes →
    Best practices → Anti-patterns → Output template → Directory structure.
 2. Frontmatter `description` must say **what it reviews and when to use it** — that text is how
@@ -369,7 +369,7 @@ These are the reasons a report from this suite can be trusted, and they are non-
 ├── architecture-review/SKILL.md       ← tier 3a: universal lenses
 ├── css-review/SKILL.md
 ├── performance-review/SKILL.md
-├── security-review/SKILL.md
+├── security-module-review/SKILL.md
 ├── api-review/SKILL.md
 ├── naming-review/SKILL.md
 ├── technical-debt-review/SKILL.md
@@ -387,18 +387,20 @@ These are the reasons a report from this suite can be trusted, and they are non-
 └── ROADMAP.md                         ← sequenced fix plan      (report-merge)
 ```
 
-## 8. Known name collision
+## 8. Why the security lens is called `security-module-review`
 
-Claude Code ships a built-in `security-review` skill that reviews **pending changes on the
-current branch**. This suite's `security-review` reviews **one module of the existing
-codebase**. Different jobs, same name.
+Claude Code ships a **built-in `security-review`** skill that reviews *pending changes on the
+current branch*. This suite's security lens reviews *one module of the existing codebase* — a
+different job with a different input, so it carries a different name rather than shadowing the
+built-in one.
 
-If your setup surfaces both ambiguously, rename this one:
+Both are useful and they do not overlap:
 
-```
-.claude/skills/security-review → .claude/skills/security-module-review
-```
+| Use | Skill |
+|---|---|
+| "Check the changes I'm about to commit" | built-in `security-review` |
+| "Audit `backend/routes/auth` as part of a full audit" | `security-module-review` (this suite) |
 
-and update the two places that name it: the dispatch matrix in
-`project-auditor/references/orchestration.md`, and the lens list in section 1 above. Nothing
-else references it.
+Keep the names distinct if you fork this suite. A project skill sharing a name with a built-in
+makes `/security-review` ambiguous, and the wrong one running silently gives you a review of the
+wrong input — which reads like a clean result rather than a mistake.
