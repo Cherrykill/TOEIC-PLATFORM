@@ -35,6 +35,12 @@ const { connectRedis, closeRedisConnection } = require('./config/redis');
 // Initialize Express app
 const app = express();
 
+// Sau reverse proxy (Render/Railway/Nginx), req.ip là IP của PROXY chứ không
+// phải của client → rate limit dồn mọi người vào một rổ và log IP vô nghĩa.
+// Đặt SỐ CHẶNG cụ thể, không dùng `true`: `true` là tin toàn bộ chuỗi
+// X-Forwarded-For, client tự bịa header là qua mặt được rate limit.
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
+
 const { requestMetricsMiddleware } = require('./utils/requestMetrics');
 
 // ===================================
@@ -91,13 +97,19 @@ app.use(requestMetricsMiddleware);
 // ===================================
 // SWAGGER API DOCS
 // ===================================
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: 'TOEIC API Docs',
-    customCss: '.swagger-ui .topbar { background-color: #1a1a2e; }',
-    swaggerOptions: { persistAuthorization: true },
-}));
-// JSON spec endpoint (để import vào Postman / Insomnia)
-app.get('/api-docs.json', (_, res) => res.json(swaggerSpec));
+// CHỈ mở ở môi trường dev. Trên production, /api-docs đưa cho người lạ bản đồ
+// đầy đủ mọi endpoint (kể cả nhóm admin) kèm sẵn client để bấm thử — không tự
+// nó cho quyền gì, nhưng xoá sạch công đoạn dò tìm. Bật lại bằng ENABLE_API_DOCS
+// nếu cần xem trên server thật.
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === 'true') {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+        customSiteTitle: 'TOEIC API Docs',
+        customCss: '.swagger-ui .topbar { background-color: #1a1a2e; }',
+        swaggerOptions: { persistAuthorization: true },
+    }));
+    // JSON spec endpoint (để import vào Postman / Insomnia)
+    app.get('/api-docs.json', (_, res) => res.json(swaggerSpec));
+}
 
 // ===================================
 // SERVE STATIC FILES
@@ -217,6 +229,7 @@ app.use(errorHandler);
 // ===================================
 const PORT = process.env.PORT || 5000;
 let emailWorker = null;
+let httpServer = null;   // giữ tay cầm để shutdown() ngừng nhận request trước khi đóng DB
 
 const { migrateUserDependents, seedAchievementDefinitions } = require('./services/startupTasks');
 
@@ -243,7 +256,7 @@ async function startServer() {
     checkAndAutoReset();
     setInterval(() => checkAndAutoReset(), 60 * 1000);
 
-    app.listen(PORT, async () => {
+    httpServer = app.listen(PORT, async () => {
         logger.info(`Server running on port ${PORT}`, {
             env: process.env.NODE_ENV || 'development',
             port: PORT,
@@ -270,6 +283,16 @@ async function shutdown(signal) {
         process.exit(1);
     }, 15_000);
     forceExit.unref();
+
+    // NGỪNG NHẬN REQUEST TRƯỚC, rồi mới đóng thứ mà request đang dùng. Đảo thứ
+    // tự này là mỗi lần deploy, request dở dang (đang chấm bài, đang trừ xu)
+    // gặp lỗi database. emailWorker.close() bên dưới vốn đã làm đúng thứ tự đó
+    // cho job; HTTP chỉ là thiếu tay cầm. Bộ đếm 15s ở trên bao luôn bước này
+    // nên một request treo không giữ deploy lại được.
+    if (httpServer) {
+        await new Promise(resolve => httpServer.close(resolve));
+        logger.info('HTTP server closed — no longer accepting requests.');
+    }
 
     await Promise.allSettled([
         closeMongoConnection(),

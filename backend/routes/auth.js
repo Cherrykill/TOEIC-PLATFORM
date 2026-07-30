@@ -38,6 +38,18 @@ const checkLockLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Đăng nhập admin siết chặt hơn user thường: tài khoản admin KHÔNG bị khoá theo
+// số lần sai (xem authController.login — nhánh `role !== 'admin'`), nên rate
+// limit là lớp chặn duy nhất còn lại. Admin đăng nhập vốn hiếm, 5 lần/15 phút
+// là thừa cho người thật.
+const adminLoginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    message: { success: false, message: 'Quá nhiều lần thử đăng nhập. Vui lòng thử lại sau 15 phút.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 /**
  * @swagger
  * /api/auth/login:
@@ -67,7 +79,7 @@ const checkLockLimiter = rateLimit({
  */
 router.post('/login', loginLimiter, authController.login);
 router.post('/google', loginLimiter, authController.googleLogin);
-router.post('/admin/login', authController.login);
+router.post('/admin/login', adminLoginLimiter, authController.login);
 
 /**
  * @swagger
