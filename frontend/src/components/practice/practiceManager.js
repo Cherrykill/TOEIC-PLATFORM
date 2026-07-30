@@ -10,6 +10,12 @@ import { Energy } from '@game/energy.js';
 import { Quest } from '@components/quest/quest.js';
 import { getQuestionTime, QUESTION_TIME_MODES } from '@components/practice/questionTime.js';
 import { stopQuestionTimer, freezeQuestionTimer, isQuestionTimerRunning } from '@components/practice/questionTimer.js';
+import { startPracticeBgm, stopPracticeBgm } from '@game/uiSounds.js';
+
+// Nhạc nền phải nằm DƯỚI âm đúng/sai (đang là 0.5) — ngang bằng thì phản hồi
+// đúng/sai không còn nổi lên, mà đó mới là tín hiệu quan trọng lúc học. Cùng lý
+// do khiến tiếng bấm nút để 0.22: thứ gì kêu liên tục thì phải nhỏ.
+const BGM_VOLUME = 0.25;
 
 // 9 chế độ hỏi–đáp: đếm ngược THEO TỪNG CÂU (mỗi câu một đồng hồ riêng).
 // Các chế độ đặc biệt (ghép từ, tốc độ, xếp câu, chép chính tả, phát âm…) giữ
@@ -166,10 +172,11 @@ export const PracticeManager = {
             return false;
         }
 
-        const settings = GameState.state?.settings || {};
-        if (settings.practiceSoundEnabled !== false) {
-            Utils.playSound(Config.sounds.making, 0.5);
-        }
+        // Nhạc nền lặp suốt phiên, không phải phát một lần rồi im: người học
+        // thường luyện lâu hơn độ dài bài nhạc. Tắt ở hai chỗ: làm xong bộ (ngay
+        // trước tiếng hoàn thành), và rời màn luyện tập (PracticeScreen). KHÔNG
+        // tắt trong exit() vì ở đó còn modal xác nhận — bấm Hủy là vẫn đang luyện.
+        startPracticeBgm(BGM_VOLUME);
 
         this.currentSession = {
             mode: mode,
@@ -697,6 +704,9 @@ export const PracticeManager = {
             ? Math.round((correct / (correct + wrong)) * 100)
             : 0;
 
+        // Tắt nhạc nền TRƯỚC tiếng hoàn thành — để nó chạy tiếp thì fanfare bị
+        // lấp, mà lúc này cũng hết luyện rồi.
+        stopPracticeBgm();
         Utils.playSound('assets/sounds/complete.mp3', 1.0);
 
         Modal.show({

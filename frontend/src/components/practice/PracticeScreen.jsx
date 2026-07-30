@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useGame } from '@game/GameContext.jsx';
 import { EventBus, GameEvents } from '@game/eventBus.js';
 import { PracticeManager } from '@components/practice/practiceManager.js';
+import { stopPracticeBgm } from '@game/uiSounds.js';
 import FavoriteButton from '@components/favorites/FavoriteButton.jsx';
 
 export default function PracticeScreen({ active }) {
@@ -54,6 +55,14 @@ export default function PracticeScreen({ active }) {
         const unsub = EventBus.on(GameEvents.PRACTICE_COMPLETED, () => syncFromState());
         return () => unsub();
     }, [syncFromState]);
+
+    // Chốt tắt nhạc nền: rời màn luyện tập là im, bất kể đi bằng đường nào
+    // (nút quay lại, menu, bỏ dở giữa chừng). Bật thì do PracticeManager lo —
+    // ở đây không bật, vì màn có thể active mà chưa chọn chế độ nào.
+    useEffect(() => {
+        if (active) return;
+        stopPracticeBgm();
+    }, [active]);
 
     const loadAndStart = useCallback(async (mode) => {
         if (engineLoading) return;
