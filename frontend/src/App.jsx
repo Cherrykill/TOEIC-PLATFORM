@@ -21,6 +21,7 @@ import Toaster, { Notification } from '@ui/Toaster.jsx';
 import SearchResults from '@components/search/SearchResults.jsx';
 import AuthModal from '@components/auth/AuthModal.jsx';
 import ExpiryNotice from '@components/vocab/upload/ExpiryNotice.jsx';
+import { playSfx, initUiClickSound } from '@game/uiSounds.js';
 
 // Eager: Home (mặc định) + Practice (engine vanilla inject vào #practice-content,
 // phải mount thường trực — không được unmount giữa chừng).
@@ -80,9 +81,16 @@ function AppInner() {
         }).catch(() => {});
     }, []);
 
+    // Tiếng bấm nút — một listener ở document, không rắc onClick khắp nơi.
+    useEffect(() => initUiClickSound(), []);
+
     // Lên cấp → nạp lại mốc & báo những gì vừa mở khoá.
     useEffect(() => {
         const onLevelUp = async ({ level }) => {
+            // Phát TRƯỚC mọi nhánh return: lên cấp mà không mở khoá gì thì hàm
+            // dưới thoát sớm, đặt tiếng ở đó là level nào cũng im.
+            playSfx('levelUp', 0.7);
+
             const data = await loadUnlocks(true).catch(() => null);
             const just = (data?.unlocks || []).filter(u => u.requiredLevel === level);
             if (just.length === 0) return;

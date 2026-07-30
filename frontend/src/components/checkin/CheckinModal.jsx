@@ -61,7 +61,9 @@ export default function CheckinModal({ open, onClose }) {
         setBusy(true);
         const res = await CheckinAPI.claim();
         if (res.success) {
-            Utils.playSound?.(Config.sounds?.achievement, 0.6, { ignoreSettings: true });
+            // Điểm danh trả THẲNG xu/gem → tiếng xu đúng nghĩa hơn tiếng thành
+            // tích (vốn dùng chung một file cho cả nhiệm vụ lẫn thành tích).
+            Utils.playSound?.(Config.sounds?.coin, 0.6, { ignoreSettings: true });
             const rw = res.data?.reward || {};
             GameState.creditServerRewards(rw);
             showRewardPopup({
