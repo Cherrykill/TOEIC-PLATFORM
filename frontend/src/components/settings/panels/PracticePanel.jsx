@@ -10,6 +10,38 @@ const TARGET_PRESETS = [0, 450, 600, 700, 800, 900];
 /** Điểm TOEIC hợp lệ: bội của 5, trong 10–990. */
 const clampTarget = (n) => Math.max(10, Math.min(990, Math.round(n / 5) * 5));
 
+/**
+ * Ô nhập số CHỐT KHI RỜI Ô (blur/Enter), không chốt theo từng phím.
+ *
+ * Kẹp giá trị ngay trong onChange thì mỗi phím bấm lại bị làm tròn/kẹp rồi ghi
+ * ngược vào ô: gõ "700" sẽ chạy 7→10, 100→100, 1000→990. Người dùng thấy số
+ * nhảy loạn mà không hiểu vì sao. Giữ bản nháp dạng CHUỖI trong lúc gõ, chỉ quy
+ * về số hợp lệ khi người ta gõ xong.
+ */
+function CommitNumberInput({ value, onCommit, clamp, ...rest }) {
+    const [draft, setDraft] = useState(null);   // null = không gõ dở
+    // `??` chứ không `||`: chuỗi rỗng (vừa xoá sạch ô) là bản nháp hợp lệ.
+    const shown = draft ?? (value ? String(value) : '');
+
+    const commit = () => {
+        if (draft === null) return;
+        const raw = parseInt(draft, 10);
+        onCommit(Number.isFinite(raw) ? clamp(raw) : 0);  // xoá trắng = bỏ đặt
+        setDraft(null);
+    };
+
+    return (
+        <input
+            {...rest}
+            type="number"
+            value={shown}
+            onChange={e => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        />
+    );
+}
+
 // Thụt lề + vạch trái cho cài đặt PHỤ THUỘC một toggle phía trên → nhìn ra quan hệ cha–con.
 const NESTED = { paddingLeft: 14, borderLeft: '2px solid var(--border-color)' };
 
@@ -151,17 +183,16 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                         <option value="custom">⚙️ Tùy chỉnh…</option>
                     </select>
                     {isGoalCustom && (
-                        <input
-                            type="number"
+                        // Cùng lỗi "số nhảy loạn" như ô mục tiêu điểm: gõ "30" từng
+                        // bị kẹp thành 5 rồi 50. Chốt khi rời ô.
+                        <CommitNumberInput
                             min={5}
                             max={600}
                             value={goalVal}
+                            clamp={v => Math.max(5, Math.min(600, v))}
+                            onCommit={v => updateSetting('dailyStudyGoalMin', v || 15)}
                             style={{ width: 90 }}
                             placeholder="phút"
-                            onChange={e => {
-                                const v = Math.max(5, Math.min(600, parseInt(e.target.value) || 5));
-                                updateSetting('dailyStudyGoalMin', v);
-                            }}
                         />
                     )}
                     {isGoalCustom && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>phút</span>}
@@ -192,20 +223,17 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                         <option value="custom">⚙️ Tùy chỉnh…</option>
                     </select>
                     {isTargetCustom && (
-                        <input
-                            type="number"
+                        // Điểm TOEIC là bội của 5, thang 10–990 — nhưng chỉ ép về
+                        // mốc hợp lệ KHI GÕ XONG, không phải sau mỗi phím.
+                        <CommitNumberInput
                             min={10}
                             max={990}
                             step={5}
                             value={targetVal}
+                            clamp={clampTarget}
+                            onCommit={v => updateSetting('toeicTargetScore', v)}
                             style={{ width: 90 }}
                             placeholder="điểm"
-                            onChange={e => {
-                                // Điểm TOEIC là bội của 5, thang 10–990. Ép ngay tại
-                                // đây để không lưu được con số không tồn tại trên đề thi.
-                                const raw = parseInt(e.target.value) || 0;
-                                updateSetting('toeicTargetScore', raw ? clampTarget(raw) : 0);
-                            }}
                         />
                     )}
                     {isTargetCustom && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>/ 990</span>}
