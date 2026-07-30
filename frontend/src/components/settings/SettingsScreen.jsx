@@ -18,14 +18,21 @@ import PracticePanel from './panels/PracticePanel.jsx';
 import AccountPanel from './panels/AccountPanel.jsx';
 import AboutPanel from './panels/AboutPanel.jsx';
 import ReportPanel from './panels/ReportPanel.jsx';
+import ToeicExamPanel from './panels/ToeicExamPanel.jsx';
 
+// Thứ tự = mức độ thường dùng, và gom theo LĨNH VỰC:
+//   Chung (mục tiêu + giao diện) · Âm thanh · Luyện tập từ vựng · Thi TOEIC
+//   → Tài khoản → hai mục thông tin (Về ứng dụng, Báo cáo) ở cuối.
+// "Thi TOEIC" tách khỏi "Luyện tập": trước đây một tab gánh cả hai lĩnh vực,
+// phình lên 12 mục và có hai mục TRÙNG TÊN "Tự động chuyển câu".
 const NAV_ITEMS = [
-    { key: 'general',  label: 'Chung',         icon: 'fa-sliders' },
-    { key: 'sound',    label: 'Âm thanh',      icon: 'fa-volume-high' },
-    { key: 'practice', label: 'Luyện tập',     icon: 'fa-gamepad' },
-    { key: 'account',  label: 'Tài khoản',     icon: 'fa-user' },
-    { key: 'about',    label: 'Về ứng dụng',   icon: 'fa-info-circle' },
-    { key: 'report',   label: 'Báo cáo',       icon: 'fa-flag' },
+    { key: 'general',   label: 'Chung',       icon: 'fa-sliders' },
+    { key: 'sound',     label: 'Âm thanh',    icon: 'fa-volume-high' },
+    { key: 'practice',  label: 'Luyện tập',   icon: 'fa-gamepad' },
+    { key: 'toeic',     label: 'Thi TOEIC',   icon: 'fa-graduation-cap' },
+    { key: 'account',   label: 'Tài khoản',   icon: 'fa-user' },
+    { key: 'about',     label: 'Về ứng dụng', icon: 'fa-info-circle', group: 'info' },
+    { key: 'report',    label: 'Báo cáo',     icon: 'fa-flag',        group: 'info' },
 ];
 
 
@@ -283,9 +290,15 @@ export default function SettingsScreen({ active }) {
 
             <div className="settings-layout">
                 <nav className="settings-nav">
-                    {NAV_ITEMS.map(item => (
+                    {NAV_ITEMS.map((item, i) => (
                         <button key={item.key}
-                            className={`settings-nav-item ${activeSection === item.key ? 'active' : ''}`}
+                            /* Vạch ngăn trước mục 'info' đầu tiên: tách nhóm CHỈNH
+                               SỬA khỏi nhóm chỉ để XEM/GỬI (Về ứng dụng, Báo cáo). */
+                            className={[
+                                'settings-nav-item',
+                                activeSection === item.key ? 'active' : '',
+                                item.group === 'info' && NAV_ITEMS[i - 1]?.group !== 'info' ? 'group-start' : '',
+                            ].filter(Boolean).join(' ')}
                             onClick={() => setActiveSection(item.key)}>
                             <i className={`fas ${item.icon}`}></i> {item.label}
                         </button>
@@ -302,10 +315,9 @@ export default function SettingsScreen({ active }) {
                     <div className={`settings-panel ${activeSection === 'general' ? 'active' : ''}`}>
                         <GeneralPanel
                             s={s}
+                            updateSetting={updateSetting}
                             canCustomizeColor={isLoggedIn}
                             handleTheme={handleTheme}
-                            reverseMode={reverseMode}
-                            handleReverseMode={handleReverseMode}
                             colorPrimary={colorPrimary}
                             setColorPrimary={setColorPrimary}
                             colorSecondary={colorSecondary}
@@ -339,7 +351,13 @@ export default function SettingsScreen({ active }) {
                             handleQPS={handleQPS}
                             updateSetting={updateSetting}
                             handleDifficulty={handleDifficulty}
+                            reverseMode={reverseMode}
+                            handleReverseMode={handleReverseMode}
                         />
+                    </div>
+
+                    <div className={`settings-panel ${activeSection === 'toeic' ? 'active' : ''}`}>
+                        <ToeicExamPanel s={s} updateSetting={updateSetting} />
                     </div>
 
                     <div className={`settings-panel ${activeSection === 'account' ? 'active' : ''}`}>

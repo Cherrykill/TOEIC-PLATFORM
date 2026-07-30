@@ -4030,6 +4030,27 @@ mark {
   color: #fff;
 }
 
+/* Vạch ngăn giữa nhóm CHỈNH SỬA và nhóm chỉ để xem/gửi (Về ứng dụng, Báo cáo) —
+   danh sách 7 mục phẳng lì thì mắt không nhận ra hai nhóm khác bản chất. */
+.settings-nav-item.group-start {
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+  border-radius: 0 0 var(--border-radius, 10px) var(--border-radius, 10px);
+}
+
+/* Dòng dẫn nhập đầu mỗi tab — nói phạm vi áp dụng trước khi người dùng chỉnh. */
+.settings-panel-hint {
+  margin: -4px 0 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--primary-color);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
 /* Nút đăng xuất — tách nhẹ khỏi nhóm trên, màu cảnh báo */
 .settings-locked-note {
   display: flex;

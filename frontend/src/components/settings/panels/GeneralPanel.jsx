@@ -1,6 +1,17 @@
-// "General" panel: theme mode, reverse mode, color theme.
-// Presentational — state/handlers passed from SettingsScreen. JSX verbatim.
-import Toggle from './Toggle.jsx';
+// Tab "Chung": MỤC TIÊU học tập + giao diện.
+//
+// Mục tiêu đứng đầu vì đó là thứ trả lời "tôi đang nhắm tới đâu" — câu hỏi định
+// hướng cả việc học, và màn Phân tích lấy thẳng con số đó ra đối chiếu. Trước
+// đây nó nằm lẫn giữa các cài đặt kỹ thuật trong tab Luyện tập.
+// Presentational — state/handlers truyền từ SettingsScreen.
+import { useState } from 'react';
+import CommitNumberInput from './CommitNumberInput.jsx';
+
+const GOAL_PRESETS = [10, 15, 30, 60, 90, 120, 180];
+const TARGET_PRESETS = [0, 450, 600, 700, 800, 900];
+
+/** Điểm TOEIC hợp lệ: bội của 5, trong 10–990. */
+const clampTarget = (n) => Math.max(10, Math.min(990, Math.round(n / 5) * 5));
 
 const COLOR_PRESETS = [
     { name: 'Hồng đỏ',    primary: '#E11D48', secondary: '#F97316' },
@@ -15,10 +26,9 @@ const COLOR_PRESETS = [
 
 export default function GeneralPanel({
     s,
+    updateSetting,
     canCustomizeColor = true,
     handleTheme,
-    reverseMode,
-    handleReverseMode,
     colorPrimary,
     setColorPrimary,
     colorSecondary,
@@ -27,8 +37,89 @@ export default function GeneralPanel({
     handleCustomColor,
     savedColor,
 }) {
+    const goalVal = s.dailyStudyGoalMin ?? 15;
+    const [goalCustom, setGoalCustom] = useState(false);
+    const isGoalCustom = goalCustom || !GOAL_PRESETS.includes(goalVal);
+
+    const targetVal = s.toeicTargetScore ?? 0;
+    const [targetCustom, setTargetCustom] = useState(false);
+    const isTargetCustom = targetCustom || !TARGET_PRESETS.includes(targetVal);
+
     return (
         <>
+            <div className="settings-section">
+                <h3>Mục tiêu</h3>
+                <div className="setting-item">
+                    <div className="setting-info">
+                        <h4>Mục tiêu điểm TOEIC</h4>
+                        <p>Phân tích sẽ đối chiếu điểm ước lượng của bạn với mốc này</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <select
+                            value={isTargetCustom ? 'custom' : targetVal}
+                            onChange={e => {
+                                if (e.target.value === 'custom') { setTargetCustom(true); }
+                                else { setTargetCustom(false); updateSetting('toeicTargetScore', parseInt(e.target.value)); }
+                            }}
+                        >
+                            <option value={0}>Chưa đặt</option>
+                            <option value={450}>450 — Đầu ra phổ biến</option>
+                            <option value={600}>600 — Tuyển dụng cơ bản ⭐</option>
+                            <option value={700}>700 — Khá</option>
+                            <option value={800}>800 — Giỏi</option>
+                            <option value={900}>900 — Xuất sắc</option>
+                            <option value="custom">⚙️ Tùy chỉnh…</option>
+                        </select>
+                        {isTargetCustom && (
+                            <CommitNumberInput
+                                min={10} max={990} step={5}
+                                value={targetVal}
+                                clamp={clampTarget}
+                                onCommit={v => updateSetting('toeicTargetScore', v)}
+                                style={{ width: 90 }}
+                                placeholder="điểm"
+                            />
+                        )}
+                        {isTargetCustom && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>/ 990</span>}
+                    </div>
+                </div>
+                <div className="setting-item">
+                    <div className="setting-info">
+                        <h4>Mục tiêu thời gian học mỗi ngày</h4>
+                        <p>Vòng tiến độ ở trang chủ tính theo mốc này</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <select
+                            value={isGoalCustom ? 'custom' : goalVal}
+                            onChange={e => {
+                                if (e.target.value === 'custom') { setGoalCustom(true); }
+                                else { setGoalCustom(false); updateSetting('dailyStudyGoalMin', parseInt(e.target.value)); }
+                            }}
+                        >
+                            <option value={10}>10 phút — Nhẹ nhàng</option>
+                            <option value={15}>15 phút — Khuyên dùng ⭐</option>
+                            <option value={30}>30 phút — Chăm chỉ</option>
+                            <option value={60}>60 phút — Cường độ cao</option>
+                            <option value={90}>90 phút — Bứt phá</option>
+                            <option value={120}>120 phút — Cày cuốc</option>
+                            <option value={180}>180 phút — Khổ luyện</option>
+                            <option value="custom">⚙️ Tùy chỉnh…</option>
+                        </select>
+                        {isGoalCustom && (
+                            <CommitNumberInput
+                                min={5} max={600}
+                                value={goalVal}
+                                clamp={v => Math.max(5, Math.min(600, v))}
+                                onCommit={v => updateSetting('dailyStudyGoalMin', v || 15)}
+                                style={{ width: 90 }}
+                                placeholder="phút"
+                            />
+                        )}
+                        {isGoalCustom && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>phút</span>}
+                    </div>
+                </div>
+            </div>
+
             <div className="settings-section">
                 <h3>Giao diện</h3>
                 <div className="setting-item">
@@ -38,13 +129,6 @@ export default function GeneralPanel({
                         <option value="light">☀️ Sáng</option>
                         <option value="auto">🔄 Tự động</option>
                     </select>
-                </div>
-                <div className="setting-item">
-                    <div className="setting-info">
-                        <h4>Đảo chiều luyện tập</h4>
-                        <p>Chuyển EN→VN ⇄ VN→EN. Áp dụng cho: Trắc nghiệm, Điền từ, Nghe &amp; chọn, Thẻ từ vựng, Tốc độ, Ôn lại từ sai.</p>
-                    </div>
-                    <Toggle checked={reverseMode} onChange={handleReverseMode} />
                 </div>
             </div>
 
