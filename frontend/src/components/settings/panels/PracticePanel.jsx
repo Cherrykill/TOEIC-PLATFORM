@@ -5,6 +5,10 @@ import { QUESTION_TIME_MODES, getQuestionTimeDefault } from '@components/practic
 
 const GOAL_PRESETS = [10, 15, 30, 60, 90, 120, 180];
 const SEC_OPTIONS = [10, 15, 20, 25, 30, 45, 60, 90, 120];
+const TARGET_PRESETS = [0, 450, 600, 700, 800, 900];
+
+/** Điểm TOEIC hợp lệ: bội của 5, trong 10–990. */
+const clampTarget = (n) => Math.max(10, Math.min(990, Math.round(n / 5) * 5));
 
 // Thụt lề + vạch trái cho cài đặt PHỤ THUỘC một toggle phía trên → nhìn ra quan hệ cha–con.
 const NESTED = { paddingLeft: 14, borderLeft: '2px solid var(--border-color)' };
@@ -13,6 +17,10 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
     const goalVal = s.dailyStudyGoalMin ?? 15;
     const [goalCustom, setGoalCustom] = useState(false);
     const isGoalCustom = goalCustom || !GOAL_PRESETS.includes(goalVal);
+
+    const targetVal = s.toeicTargetScore ?? 0;
+    const [targetCustom, setTargetCustom] = useState(false);
+    const isTargetCustom = targetCustom || !TARGET_PRESETS.includes(targetVal);
 
     // Thời gian mỗi câu (per-mode). Select 1 chọn chế độ ("all" = toàn bộ).
     // Fallback: giá trị cũ timePerQuestion (dùng chung) nếu chế độ chưa có riêng.
@@ -157,6 +165,50 @@ export default function PracticePanel({ s, handleQPS, updateSetting, handleDiffi
                         />
                     )}
                     {isGoalCustom && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>phút</span>}
+                </div>
+            </div>
+            {/* Mục tiêu điểm TOEIC — không chỉ để trưng: màn Phân tích lấy con số
+                này đối chiếu với điểm ước lượng từ các bài đã làm, ra khoảng cách
+                còn thiếu. 0 = chưa đặt (không hiện đối chiếu). */}
+            <div className="setting-item">
+                <div className="setting-info">
+                    <h4>Mục tiêu điểm TOEIC</h4>
+                    <p>Phân tích sẽ đối chiếu điểm ước lượng của bạn với mốc này</p>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <select
+                        value={isTargetCustom ? 'custom' : targetVal}
+                        onChange={e => {
+                            if (e.target.value === 'custom') { setTargetCustom(true); }
+                            else { setTargetCustom(false); updateSetting('toeicTargetScore', parseInt(e.target.value)); }
+                        }}
+                    >
+                        <option value={0}>Chưa đặt</option>
+                        <option value={450}>450 — Đầu ra phổ biến</option>
+                        <option value={600}>600 — Tuyển dụng cơ bản ⭐</option>
+                        <option value={700}>700 — Khá</option>
+                        <option value={800}>800 — Giỏi</option>
+                        <option value={900}>900 — Xuất sắc</option>
+                        <option value="custom">⚙️ Tùy chỉnh…</option>
+                    </select>
+                    {isTargetCustom && (
+                        <input
+                            type="number"
+                            min={10}
+                            max={990}
+                            step={5}
+                            value={targetVal}
+                            style={{ width: 90 }}
+                            placeholder="điểm"
+                            onChange={e => {
+                                // Điểm TOEIC là bội của 5, thang 10–990. Ép ngay tại
+                                // đây để không lưu được con số không tồn tại trên đề thi.
+                                const raw = parseInt(e.target.value) || 0;
+                                updateSetting('toeicTargetScore', raw ? clampTarget(raw) : 0);
+                            }}
+                        />
+                    )}
+                    {isTargetCustom && <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>/ 990</span>}
                 </div>
             </div>
             <div className="setting-item">

@@ -14,6 +14,9 @@ const settingsSchema = new mongoose.Schema(
         timePerQuestion: { type: Number, default: 30 },
         // Mục tiêu thời gian học mỗi ngày (phút) — vòng tiến độ ở trang chủ.
         dailyStudyGoalMin: { type: Number, default: 15 },
+        // Mục tiêu điểm TOEIC (0 = chưa đặt). Thang thật 10–990, bước 5.
+        // Phần phân tích lấy con số này để đối chiếu với điểm ước lượng.
+        toeicTargetScore: { type: Number, default: 0, min: 0, max: 990 },
         difficulty: {
             type: String,
             enum: ['easy', 'medium', 'hard', 'adaptive'],

@@ -201,5 +201,15 @@ export const ToeicAPI = {
             console.error('Error fetching speed analysis:', error);
             throw error;
         }
+    },
+
+    /** Ước lượng điểm nếu đi thi thật + đối chiếu mục tiêu đã đặt trong Cài đặt. */
+    async getScorePrediction() {
+        try {
+            return await Http.get(`${this.baseUrl}/analytics/prediction`);
+        } catch (error) {
+            console.error('Error fetching score prediction:', error);
+            throw error;
+        }
     }
 };

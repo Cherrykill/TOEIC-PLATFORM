@@ -10,6 +10,7 @@ export function useToeicAnalytics({ enabled = true } = {}) {
     const [progress, setProgress] = useState([]);
     const [parts, setParts] = useState([]);
     const [speed, setSpeed] = useState(null);
+    const [prediction, setPrediction] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -17,11 +18,12 @@ export function useToeicAnalytics({ enabled = true } = {}) {
         setLoading(true);
         setError(null);
         try {
-            const [ov, pr, pa, sp] = await Promise.all([
+            const [ov, pr, pa, sp, pd] = await Promise.all([
                 ToeicAPI.getAnalyticsOverview(),
                 ToeicAPI.getScoreProgress(10),
                 ToeicAPI.getPartAnalysis(),
                 ToeicAPI.getSpeedAnalysis(),
+                ToeicAPI.getScorePrediction(),
             ]);
             setOverview(unwrap(ov) || null);
             const prData = unwrap(pr);
@@ -29,6 +31,7 @@ export function useToeicAnalytics({ enabled = true } = {}) {
             const paData = unwrap(pa);
             setParts(Array.isArray(paData) ? paData : []);
             setSpeed(unwrap(sp) || null);
+            setPrediction(unwrap(pd) || null);
         } catch (err) {
             setError(err);
         }
@@ -39,5 +42,5 @@ export function useToeicAnalytics({ enabled = true } = {}) {
         if (enabled) load();
     }, [enabled, load]);
 
-    return { overview, progress, parts, speed, loading, error, reload: load };
+    return { overview, progress, parts, speed, prediction, loading, error, reload: load };
 }

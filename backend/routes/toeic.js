@@ -60,6 +60,7 @@ const {
     getScoreProgress,
     getPartAnalysis,
     getSpeedAnalysis,
+    getScorePrediction,
 } = require('../controllers/toeicAnalyticsController');
 
 // Admin practice-history / users-list (split out of toeicController, P4)
@@ -348,6 +349,19 @@ router.get('/analytics/progress', getScoreProgress);
  */
 router.get('/analytics/parts', getPartAnalysis);
 router.get('/analytics/speed', getSpeedAnalysis);
+
+/**
+ * @swagger
+ * /api/toeic/analytics/prediction:
+ *   get:
+ *     tags: [TOEIC Analytics]
+ *     summary: Ước lượng điểm nếu đi thi thật + đối chiếu mục tiêu đã đặt
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200:
+ *         description: Khoảng điểm dự đoán, mức tin cậy, khoảng cách tới mục tiêu
+ */
+router.get('/analytics/prediction', getScorePrediction);
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
 

@@ -2,6 +2,7 @@ import EmptyState from './EmptyState.jsx';
 import ProgressChart from './charts/ProgressChart.jsx';
 import ListeningReadingChart from './charts/ListeningReadingChart.jsx';
 import PartsChart from './charts/PartsChart.jsx';
+import ScorePredictionCard from './ScorePredictionCard.jsx';
 import { useToeicAnalytics } from '../hooks/useToeicAnalytics.js';
 
 const NoData = ({ icon, text }) => (
@@ -20,7 +21,7 @@ const NoData = ({ icon, text }) => (
 const PART_NAME = { 1: 'Part 1', 2: 'Part 2', 3: 'Part 3', 4: 'Part 4', 5: 'Part 5', 6: 'Part 6', 7: 'Part 7' };
 
 export default function AnalyticsView({ active }) {
-    const { overview, progress, parts, speed, loading, error } = useToeicAnalytics({ enabled: active });
+    const { overview, progress, parts, speed, prediction, loading, error } = useToeicAnalytics({ enabled: active });
 
     if (loading && !overview) {
         return (
@@ -46,6 +47,11 @@ export default function AnalyticsView({ active }) {
 
     return (
         <div className="toeic-analytics-container">
+            {/* Đặt TRÊN CÙNG: đây là câu hỏi người học thật sự muốn biết ("tôi
+                đang ở đâu so với mục tiêu"), các biểu đồ bên dưới là để giải
+                thích vì sao ra con số đó. */}
+            <ScorePredictionCard prediction={prediction} />
+
             <div className="analytics-overview">
                 <h3><i className="fas fa-chart-bar"></i> Tổng quan</h3>
                 <div className="analytics-grid">

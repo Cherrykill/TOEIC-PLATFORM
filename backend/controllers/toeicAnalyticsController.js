@@ -6,6 +6,8 @@
 // unchanged. routes/toeic.js imports these from here now.
 
 const ToeicAttempt = require('../models/ToeicAttempt');
+const UserProfile = require('../models/UserProfile');
+const { predictToeicScore } = require('../services/toeicPrediction');
 
 /**
  * @desc    Get user analytics overview
@@ -169,3 +171,34 @@ exports.getSpeedAnalysis = async (req, res, next) => {
 };
 
 module.exports = exports;
+
+/**
+ * @desc    Ước lượng điểm "nếu đi thi thật" + đối chiếu mục tiêu người dùng đặt
+ * @route   GET /api/toeic/analytics/prediction
+ * @access  Private
+ *
+ * Mục tiêu đọc từ settings của user (server-authoritative), không nhận từ query
+ * — để con số đối chiếu luôn là con số đã lưu, không phải thứ client gửi lên.
+ */
+exports.getScorePrediction = async (req, res, next) => {
+    try {
+        const [attempts, profile] = await Promise.all([
+            ToeicAttempt.find({ userId: req.user.id, status: 'completed' })
+                .sort({ completedAt: -1 })
+                .limit(30)   // đủ để thấy xu hướng; xa hơn nữa đã lỗi thời
+                .select('testType totalScore listeningScore readingScore partScores completedAt')
+                .lean(),
+            UserProfile.findOne({ userId: req.user.id }).select('settings.toeicTargetScore').lean(),
+        ]);
+
+        const target = Number(profile?.settings?.toeicTargetScore) || 0;
+        const data = predictToeicScore(attempts, target);
+
+        res.json({
+            success: true,
+            data: data || { enough: false, reason: 'Chưa làm bài thi nào', target: target || null },
+        });
+    } catch (error) {
+        next(error);
+    }
+};
