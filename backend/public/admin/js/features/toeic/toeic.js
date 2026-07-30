@@ -624,7 +624,7 @@ function renderTestsTable() {
             </td>
             <td><span class="badge">${formatTestType(t.testType)}</span></td>
             <td style="text-align: center;">
-                <strong>${t.randomQuestionCount || t.totalQuestions}</strong>
+                <strong>${t.totalQuestions}</strong>
                 ${hasQuestions ? '' : '<br><small style="color: #ff6b6b;">Trống</small>'}
             </td>
             <td style="text-align: center;">${Math.round(t.totalTime / 60)}</td>
@@ -1959,7 +1959,6 @@ function openTestModal(testId = null) {
     document.getElementById('test-duration').value = '120';
     document.getElementById('test-description').value = '';
     document.getElementById('test-level').value = 'intermediate';
-    document.getElementById('random-question-count').value = '';
     loadTestSourceOptions();
     document.getElementById('test-is-free').checked = true;
     document.getElementById('test-required-coins').value = '0';
@@ -1982,7 +1981,6 @@ function openTestModal(testId = null) {
     modal.style.display = 'flex';
 
     const testTypeSelect = document.getElementById('test-type');
-    const randomQuestionsField = document.getElementById('random-questions-field');
 
     const testTypeTimes = {
         'full-test': 120, 'mini-part1': 4, 'mini-part2': 10,
@@ -1994,14 +1992,28 @@ function openTestModal(testId = null) {
     const freshSelect = testTypeSelect.cloneNode(true);
     testTypeSelect.parentNode.replaceChild(freshSelect, testTypeSelect);
     freshSelect.addEventListener('change', function () {
-        const isFullTest = this.value === 'full-test';
-        randomQuestionsField.style.display = isFullTest ? 'none' : 'block';
-        if (isFullTest) document.getElementById('random-question-count').value = '';
+        syncTestTypeFields(this.value);
         const suggested = testTypeTimes[this.value];
         if (suggested) document.getElementById('test-duration').value = suggested;
     });
 
-    randomQuestionsField.style.display = 'none';
+    syncTestTypeFields(freshSelect.value);
+}
+
+/**
+ * Ẩn/hiện phần phụ thuộc loại đề. Full Test lấy đủ 7 part theo cấu hình cố định
+ * nên không có gì để đảo — trước đây khối này vẫn hiện kèm chú thích "không áp
+ * dụng Full Test", đọc xong vẫn không biết nó có tác dụng hay không.
+ */
+function syncTestTypeFields(testType) {
+    const box = document.getElementById('q-select-mode-box');
+    if (!box) return;
+    const isFullTest = testType === 'full-test';
+    box.style.display = isFullTest ? 'none' : 'block';
+    if (isFullTest) {
+        const def = document.querySelector('input[name="q-select-mode"][value="default"]');
+        if (def) def.checked = true;
+    }
 }
 
 function closeTestModal() {
@@ -2015,7 +2027,6 @@ function closeTestModal() {
     document.getElementById('test-duration').value = '';
     document.getElementById('test-description').value = '';
     document.getElementById('test-level').value = 'intermediate';
-    document.getElementById('random-question-count').value = '';
     const defMode = document.querySelector('input[name="q-select-mode"][value="default"]');
     if (defMode) defMode.checked = true;
 
@@ -2057,14 +2068,8 @@ async function editTest(testId) {
         document.getElementById('test-required-level').value = test.requiredLevel || 1;
         syncTestCoinsField();
 
-        const randomQuestionsField = document.getElementById('random-questions-field');
-        if (test.testType !== 'full-test') {
-            randomQuestionsField.style.display = 'block';
-            document.getElementById('random-question-count').value = test.randomQuestionCount || '';
-        } else {
-            randomQuestionsField.style.display = 'none';
-            document.getElementById('random-question-count').value = '';
-        }
+        // openTestModal đã set theo loại đề mặc định; gọi lại theo loại đề THẬT.
+        syncTestTypeFields(test.testType);
 
         const mode = test.questionSelectMode || 'default';
         const modeRadio = document.querySelector(`input[name="q-select-mode"][value="${mode}"]`);
@@ -2115,9 +2120,6 @@ async function handleTestSubmit(e) {
         alert('Đề premium phải có giá xu lớn hơn 0!');
         return;
     }
-
-    const randomCount = parseInt(document.getElementById('random-question-count').value);
-    if (!isNaN(randomCount) && randomCount > 0) testData.randomQuestionCount = randomCount;
 
     // Chế độ chọn câu hỏi (chỉ Mini Test): default | shuffle-same | shuffle-cross
     const selectMode = document.querySelector('input[name="q-select-mode"]:checked')?.value || 'default';
