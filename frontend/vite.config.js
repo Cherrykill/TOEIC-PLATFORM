@@ -35,7 +35,12 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
-      '/assets': {
+      // CHỈ /assets/audio (audio đề TOEIC nằm ở backend/public/assets/audio).
+      // Trước đây proxy cả '/assets' nên MỌI thứ dưới /assets bị đẩy sang backend,
+      // nuốt luôn '/assets/sounds/*' của chính frontend (public/assets/sounds) →
+      // backend không có thư mục đó → 404 → toàn bộ âm hiệu ứng câm trong lúc dev.
+      // Bản build không dính vì lúc đó không có proxy nào cả.
+      '/assets/audio': {
         target: 'http://localhost:5000',
         changeOrigin: true,
       },
