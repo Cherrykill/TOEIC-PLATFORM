@@ -1,4 +1,4 @@
-const { flattenSet, findQuestionById, findQuestionsByIds, recordAnswerStat } = require('../services/questionSetService');
+const { buildTestQuestions, findQuestionById, findQuestionsByIds, recordAnswerStat } = require('../services/questionSetService');
 const ToeicTest = require('../models/ToeicTest');
 const ToeicAttempt = require('../models/ToeicAttempt');
 const UserProfile = require('../models/UserProfile');
@@ -136,53 +136,10 @@ exports.startAttempt = async (req, res, next) => {
             });
         }
 
-        // Prepare questions with global numbering
-        const questions = [];
-        let globalQuestionNumber = 0;
-
-        // Define question ranges per part (TOEIC standard)
-        const partRanges = {
-            1: { start: 1, count: 6 },
-            2: { start: 7, count: 25 },
-            3: { start: 32, count: 39 },
-            4: { start: 71, count: 30 },
-            5: { start: 101, count: 30 },
-            6: { start: 131, count: 16 },
-            7: { start: 147, count: 54 },
-        };
-
-        // part.questions giờ là các MÀN (ToeicQuestionSet); mỗi màn dàn phẳng ra
-        // nhiều câu, mỗi câu đã kèm ngữ cảnh chung + groupId = id màn.
-        for (const part of test.parts) {
-            const partConfig = partRanges[part.partNumber];
-            let partQuestionIndex = 0;
-
-            for (const set of part.questions) {
-                if (!set) continue; // tham chiếu hỏng (màn đã bị xoá)
-                const plain = typeof set.toObject === 'function' ? set.toObject() : set;
-
-                for (const q of flattenSet(plain)) {
-                    // Số câu THẬT đã chuẩn TOEIC (P6 = 131…), dùng luôn. Chỉ khi
-                    // câu thiếu số mới quay lại cách đánh theo vị trí như trước.
-                    if (Number.isFinite(q.questionNumber)) {
-                        globalQuestionNumber = q.questionNumber;
-                    } else if (test.testType === 'full-test') {
-                        globalQuestionNumber = partConfig.start + partQuestionIndex;
-                    } else {
-                        globalQuestionNumber++;
-                    }
-
-                    // Chế độ thường: KHÔNG gửi đáp án đúng về client.
-                    if (!fillBlankMode) delete q.correctAnswer;
-
-                    q.globalQuestionNumber = globalQuestionNumber;
-                    q.section = part.partNumber <= 4 ? 'listening' : 'reading';
-
-                    questions.push(q);
-                    partQuestionIndex++;
-                }
-            }
-        }
+        // Dàn phẳng theo ĐÚNG THỨ TỰ THI (part → số câu). Thứ tự nằm trong
+        // buildTestQuestions, dùng chung với đường "tiếp tục bài dở" bên dưới —
+        // hai chỗ lệch nhau là làm bài một đằng, xem lại một nẻo.
+        const questions = buildTestQuestions(test, { includeAnswers: !!fillBlankMode });
 
         // Calculate section information
         const listeningQuestions = questions.filter(q => q.section === 'listening').length;
@@ -372,32 +329,9 @@ exports.resumeAttempt = async (req, res, next) => {
         // — mà options nằm trong questions[] của màn — nên tiếp tục bài xong là
         // cột đáp án trống trơn.
         const test = await ToeicTest.findById(attempt.testId).populate('parts.questions');
-        const partRanges = { 1: { start: 1 }, 2: { start: 7 }, 3: { start: 32 }, 4: { start: 71 }, 5: { start: 101 }, 6: { start: 131 }, 7: { start: 147 } };
-        const questions = [];
-        let globalQuestionNumber = 0;
-        if (test) {
-            for (const part of test.parts) {
-                let partQuestionIndex = 0;
-                for (const set of part.questions) {
-                    if (!set) continue; // tham chiếu hỏng (màn đã bị xoá)
-                    const plain = typeof set.toObject === 'function' ? set.toObject() : set;
-                    for (const q of flattenSet(plain)) {
-                        if (Number.isFinite(q.questionNumber)) {
-                            globalQuestionNumber = q.questionNumber;
-                        } else if (test.testType === 'full-test') {
-                            globalQuestionNumber = (partRanges[part.partNumber]?.start || 1) + partQuestionIndex;
-                        } else {
-                            globalQuestionNumber++;
-                        }
-                        delete q.correctAnswer;
-                        q.globalQuestionNumber = globalQuestionNumber;
-                        q.section = part.partNumber <= 4 ? 'listening' : 'reading';
-                        questions.push(q);
-                        partQuestionIndex++;
-                    }
-                }
-            }
-        }
+        // CÙNG một hàm với startAttempt: thứ tự lúc tiếp tục phải khớp tuyệt đối
+        // với lúc bắt đầu, vì đáp án đã lưu được map lại theo VỊ TRÍ trong mảng.
+        const questions = test ? buildTestQuestions(test) : [];
 
         const answerByQid = new Map((attempt.answers || []).map(a => [a.questionId?.toString(), a.userAnswer]));
         const answers = {};

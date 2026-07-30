@@ -50,6 +50,98 @@ function flattenSets(sets) {
     return sets.flatMap(flattenSet);
 }
 
+// ── THỨ TỰ CÂU HỎI ─────────────────────────────────────────────────────────
+// `part.questions` là mảng tham chiếu màn, lưu theo thứ tự ADMIN THÊM VÀO —
+// không phải thứ tự đề thi. Duyệt thẳng mảng đó là người thi thấy câu nhảy lung
+// tung (đề Full Test thật có 43 chỗ nhảy lùi: Part 1 ra 2,4,1,3,5,6…).
+// Số câu chuẩn TOEIC đã nằm sẵn ở `question.number` nên chỉ cần sắp theo nó.
+
+/** Số câu nhỏ nhất trong một màn (null nếu màn chưa câu nào có số). */
+function minQuestionNumber(set) {
+    let min = null;
+    for (const q of set?.questions || []) {
+        const n = Number(q?.number);
+        if (Number.isFinite(n) && (min === null || n < min)) min = n;
+    }
+    return min;
+}
+
+/**
+ * Sắp xếp ỔN ĐỊNH theo khoá số; phần tử không có số giữ nguyên thứ tự cũ và
+ * dồn xuống cuối — dữ liệu thiếu số câu thì để nguyên còn hơn xáo bừa.
+ */
+function stableSortByNumber(list, keyOf) {
+    return list
+        .map((item, i) => ({ item, i, key: keyOf(item) }))
+        .sort((a, b) => {
+            if (a.key === null) return b.key === null ? a.i - b.i : 1;
+            if (b.key === null) return -1;
+            return a.key === b.key ? a.i - b.i : a.key - b.key;
+        })
+        .map(x => x.item);
+}
+
+/**
+ * Dàn phẳng TOÀN BỘ câu của một đề, ĐÚNG THỨ TỰ THI: part tăng dần → màn theo
+ * số câu nhỏ nhất → câu theo số câu. Gán luôn globalQuestionNumber + section.
+ *
+ * Màn nhóm (Part 3/4/6/7) vẫn liền khối vì sắp theo số nhỏ nhất của cả màn,
+ * không xé lẻ từng câu.
+ *
+ * @param {object} test  document ToeicTest đã populate('parts.questions')
+ * @param {object} [opts]
+ * @param {boolean} [opts.includeAnswers=false] giữ correctAnswer (chế độ điền từ)
+ * @returns {Array} mảng câu đã dàn phẳng
+ */
+function buildTestQuestions(test, { includeAnswers = false } = {}) {
+    // Dải số câu chuẩn TOEIC — chỉ dùng khi dữ liệu THIẾU số câu.
+    const PART_START = { 1: 1, 2: 7, 3: 32, 4: 71, 5: 101, 6: 131, 7: 147 };
+
+    const parts = [...(test?.parts || [])].sort(
+        (a, b) => (Number(a?.partNumber) || 0) - (Number(b?.partNumber) || 0),
+    );
+
+    const out = [];
+    let globalQuestionNumber = 0;
+
+    for (const part of parts) {
+        const sets = (part.questions || [])
+            .filter(Boolean)   // tham chiếu hỏng (màn đã bị xoá)
+            .map(s => (typeof s.toObject === 'function' ? s.toObject() : s));
+
+        let partQuestionIndex = 0;
+        for (const set of stableSortByNumber(sets, minQuestionNumber)) {
+            const ordered = {
+                ...set,
+                questions: stableSortByNumber(set.questions || [], q => {
+                    const n = Number(q?.number);
+                    return Number.isFinite(n) ? n : null;
+                }),
+            };
+
+            for (const q of flattenSet(ordered)) {
+                // Số câu THẬT đã chuẩn TOEIC (P6 = 131…) thì dùng luôn; thiếu số
+                // mới quay lại cách đánh theo vị trí.
+                if (Number.isFinite(q.questionNumber)) {
+                    globalQuestionNumber = q.questionNumber;
+                } else if (test.testType === 'full-test' || test.testType === 'full') {
+                    globalQuestionNumber = (PART_START[part.partNumber] || 1) + partQuestionIndex;
+                } else {
+                    globalQuestionNumber++;
+                }
+
+                if (!includeAnswers) delete q.correctAnswer;
+                q.globalQuestionNumber = globalQuestionNumber;
+                q.section = Number(part.partNumber) <= 4 ? 'listening' : 'reading';
+
+                out.push(q);
+                partQuestionIndex++;
+            }
+        }
+    }
+    return out;
+}
+
 /** Tổng số CÂU của một danh sách màn (khác số lượng document). */
 function countQuestions(sets) {
     return sets.reduce((n, s) => n + (s.questions?.length || 0), 0);
@@ -105,6 +197,9 @@ module.exports = {
     flattenQuestion,
     flattenSet,
     flattenSets,
+    buildTestQuestions,
+    minQuestionNumber,
+    stableSortByNumber,
     countQuestions,
     findQuestionById,
     findQuestionsByIds,
