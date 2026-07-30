@@ -18,3 +18,6 @@ backend/public/images/
 backend/public/assets/
 
 node_modules
+
+# Báo cáo do bộ skill review sinh ra (.claude/skills) — chỉ là output, không track
+.claude-audit/
