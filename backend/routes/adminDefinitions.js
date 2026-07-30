@@ -235,9 +235,32 @@ router.put('/categories/:id', admin, async (req, res) => {
         res.json({ success: true, message: 'Đã cập nhật danh mục', data });
     } catch (err) { res.status(400).json({ success: false, message: err.message }); }
 });
+// Xoá danh mục đang có vật phẩm là làm mồ côi cả nhóm: lần sau mở vật phẩm đó
+// trong admin, select không còn option tương ứng nên value tụt về '' và bản lưu
+// sẽ xoá luôn category → vật phẩm biến mất khỏi mọi kênh mà không báo gì.
+// (Đúng thứ đã xảy ra với danh mục 'energy' + gói "Nạp đầy năng lượng".)
 router.delete('/categories/:id', admin, async (req, res) => {
-    const data = await Category.findByIdAndDelete(req.params.id);
-    if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+    const cat = await Category.findById(req.params.id).lean();
+    if (!cat) return res.status(404).json({ success: false, message: 'Not found' });
+
+    if (cat.domain === 'item') {
+        const used = await ItemDefinition.countDocuments({ category: cat.key });
+        if (used > 0) {
+            return res.status(409).json({
+                success: false,
+                message: `Còn ${used} vật phẩm thuộc danh mục "${cat.label}" — chuyển chúng sang danh mục khác trước, nếu không chúng sẽ mất khỏi cửa hàng/túi đồ.`,
+            });
+        }
+        const channels = await ChannelConfig.find({ categories: cat.key }).select('channel').lean();
+        if (channels.length) {
+            return res.status(409).json({
+                success: false,
+                message: `Các kênh [${channels.map(c => c.channel).join(', ')}] đang bày danh mục "${cat.label}" — bỏ chọn ở tab Kênh trước đã.`,
+            });
+        }
+    }
+
+    await Category.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Đã xóa danh mục' });
 });
 
@@ -251,37 +274,14 @@ router.get('/item-defs/:id', admin, async (req, res) => {
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
     res.json({ success: true, data });
 });
-// Suy `type` từ category. `type` là thứ TÚI ĐỒ lọc theo để chia tab, nên map
-// phải phủ mọi danh mục có tab riêng — ép hết về 'item' thì item vừa sửa trong
-// admin sẽ biến mất khỏi túi đồ dù vẫn nằm trong DB.
-const CATEGORY_TYPE = {
-    avatar: 'cosmetic_avatar',
-    background: 'cosmetic_background',
-    frame: 'cosmetic_frame',
-    boost: 'boost',
-    consumable: 'consumable',
-};
-const deriveType = (category) => CATEGORY_TYPE[category] || 'item';
-
-// Thẻ boost mà boostType sai thì applyShopEffect không khớp nhánh nào: người
-// chơi trả tiền, bấm kích hoạt, thẻ bị tiêu mà chẳng có gì bật. Chặn ngay ở
-// đây thay vì để dữ liệu chết nằm im trong catalog.
-const BOOST_TYPES = ['xp', 'coins', 'energy'];
-function badEffect(effect) {
-    if (effect?.type !== 'boost') return null;
-    if (!BOOST_TYPES.includes(effect.boostType)) {
-        return `Thẻ boost phải có boostType là một trong: ${BOOST_TYPES.join(', ')} (đang là "${effect.boostType ?? ''}")`;
-    }
-    if (!(Number(effect.multiplier) > 1)) return 'Hệ số boost phải lớn hơn 1';
-    if (!(Number(effect.duration) > 0)) return 'Thời lượng boost phải lớn hơn 0 giây';
-    return null;
-}
+// Quy tắc suy `type` + kiểm effect nằm ở utils/itemDefRules.js (thuần, có test).
+const { deriveType, badEffect, badListing } = require('../utils/itemDefRules');
 
 router.post('/item-defs', admin, async (req, res) => {
     try {
-        const bad = badEffect(req.body.effect);
+        const bad = badEffect(req.body.effect) || badListing(req.body);
         if (bad) return res.status(400).json({ success: false, message: bad });
-        req.body.type = deriveType(req.body.category);
+        req.body.type = deriveType(req.body.category, req.body.type);
         const data = await ItemDefinition.create(req.body);
         res.status(201).json({ success: true, message: 'Đã tạo vật phẩm', data });
     } catch (err) {
@@ -291,12 +291,16 @@ router.post('/item-defs', admin, async (req, res) => {
 router.put('/item-defs/:id', admin, async (req, res) => {
     try {
         const { itemId, _id, __v, ...fields } = req.body;
-        const bad = badEffect(fields.effect);
-        if (bad) return res.status(400).json({ success: false, message: bad });
-        if (fields.category !== undefined) fields.type = deriveType(fields.category); // đồng bộ type theo category
         if (fields.durationSec !== undefined) fields.durationSec = Number(fields.durationSec) || 0;
         if (fields.order !== undefined) fields.order = Number(fields.order) || 0;
-        const before = await ItemDefinition.findById(req.params.id).select('image').lean();
+        const before = await ItemDefinition.findById(req.params.id).select('image type category published price').lean();
+        if (!before) return res.status(404).json({ success: false, message: 'Not found' });
+        // Kiểm trên bản GỘP: PUT có thể chỉ gửi vài field, xét riêng req.body sẽ
+        // bỏ sót (vd chỉ gửi category:'' trong khi giá/published nằm ở bản cũ).
+        const bad = badEffect(fields.effect) || badListing({ ...before, ...fields });
+        if (bad) return res.status(400).json({ success: false, message: bad });
+        // đồng bộ type theo category, nhưng giữ type cũ nếu category không có tab riêng
+        if (fields.category !== undefined) fields.type = deriveType(fields.category, before?.type);
         const data = await ItemDefinition.findByIdAndUpdate(req.params.id, { $set: fields }, { new: true, runValidators: true });
         if (!data) return res.status(404).json({ success: false, message: 'Not found' });
         if (before?.image && before.image !== data.image) removeIfOrphan(before.image);

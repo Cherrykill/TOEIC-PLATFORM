@@ -11,8 +11,15 @@
       try { const r = await fetch(`${API_URL}/categories?domain=item`); const j = await r.json(); ITEM_CATS = j.success ? j.data : []; }
       catch (_) { ITEM_CATS = []; }
     }
-    sel.innerHTML = '<option value="">— Chưa phân loại —</option>' +
+    let opts = '<option value="">— Chưa phân loại —</option>' +
       ITEM_CATS.map(c => `<option value="${c.key}">${c.icon || ''} ${c.label}</option>`).join('');
+    // Danh mục của vật phẩm không còn trong danh sách (bị xoá) → GIỮ nó lại thành
+    // một option. Không giữ thì select tụt về '' và cú bấm Lưu sẽ âm thầm xoá
+    // danh mục, đá vật phẩm ra khỏi mọi kênh.
+    if (selected && !ITEM_CATS.some(c => c.key === selected)) {
+      opts += `<option value="${selected}">⚠ ${selected} (danh mục đã bị xoá)</option>`;
+    }
+    sel.innerHTML = opts;
     sel.value = selected || '';
   }
 

@@ -5,7 +5,10 @@ const mongoose = require('mongoose');
 // tham chiếu bằng `key`; frontend dựng tab từ danh sách này.
 const categorySchema = new mongoose.Schema(
     {
-        domain: { type: String, enum: ['shop', 'quest', 'achievement'], required: true },
+        // 'item' = bộ danh mục GỐC mà vật phẩm gán vào (các kênh lọc theo đây).
+        // Thiếu nó trong enum thì POST /admin/categories tạo danh mục vật phẩm sẽ
+        // bị validate chặn, dù dữ liệu domain 'item' đã dùng khắp nơi.
+        domain: { type: String, enum: ['item', 'shop', 'quest', 'achievement'], required: true },
         key: { type: String, required: true, trim: true }, // slug, duy nhất trong domain
         label: { type: String, required: true, trim: true },
         icon: { type: String, default: '' }, // FA class ('fa-store') hoặc emoji

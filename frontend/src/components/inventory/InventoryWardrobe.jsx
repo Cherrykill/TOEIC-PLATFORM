@@ -68,6 +68,36 @@ export default function InventoryWardrobe() {
         return h > 0 ? `${h}h ${m}m` : `${m}m`;
     };
 
+    /**
+     * Ảnh của thẻ đã sinh ra hiệu ứng đang chạy. Boost đọc từ UserStats nên chỉ
+     * biết (loại, hệ số) — dò ngược catalog để tab "Đang hiệu lực" dùng đúng ảnh
+     * thẻ thay vì icon chữ, khớp với ảnh ở tab "Thẻ tăng tốc".
+     */
+    const boostImage = (boostType, multiplier) => {
+        const hit = Object.values(defMap).find(d =>
+            d?.effect?.type === 'boost'
+            && d.effect.boostType === boostType
+            && Number(d.effect.multiplier) === Number(multiplier)
+            && d.image,
+        );
+        return hit?.image || '';
+    };
+
+    /**
+     * Thẻ này có đang bị hiệu ứng mạnh hơn CÙNG LOẠI chặn không → trả lý do.
+     * Chỉ để báo trước cho người chơi; quyết định thật vẫn ở server
+     * (boostBlockReason trong services/shopEffects.js).
+     */
+    const boostBlockedBy = (effect) => {
+        if (effect?.type !== 'boost') return null;
+        const cur = b[effect.boostType];
+        if (!cur?.active || !cur.expiresAt || new Date(cur.expiresAt).getTime() <= now) return null;
+        const curMult = Math.max(1, cur.multiplier || 1);
+        return (Number(effect.multiplier) || 1) < curMult
+            ? `Đang chạy x${curMult} mạnh hơn — chờ hết hạn rồi dùng`
+            : null;
+    };
+
     // Item của tab đang chọn (định dạng thống nhất cho lưới).
     const items = useMemo(() => {
         if (cat === 'cosmetic') {
@@ -121,6 +151,10 @@ export default function InventoryWardrobe() {
                     id: i.itemId, kind: 'boost-card', name: i.definition.name,
                     icon: i.definition.icon || 'fa-bolt', image: i.definition.image || '', color: '#8b5cf6',
                     desc: i.definition.description, count: i.quantity,
+                    // Cùng loại boost chỉ 1 hiệu ứng chạy: thẻ yếu hơn cái đang
+                    // chạy thì server chặn — nói trước ở đây để người chơi khỏi
+                    // bấm rồi ăn lỗi.
+                    blocked: boostBlockedBy(i.definition.effect),
                 }));
         }
         // Đang hiệu lực — buff ĐANG CHẠY (VIP + boost x2), chỉ xem đếm ngược.
@@ -132,8 +166,16 @@ export default function InventoryWardrobe() {
             const ms = vip.expiresAt - now, d = Math.floor(ms / 86400000), h = Math.floor((ms % 86400000) / 3600000);
             list.push({ id: 'vip', kind: 'boost', name: 'VIP', icon: 'fa-crown', color: '#f59e0b', desc: 'Năng lượng ∞ + x2 XP/Coins', left: d > 0 ? `${d} ngày ${h}h` : `${h}h` });
         }
-        if (xp) list.push({ id: 'xp', kind: 'boost', name: `x${b.xp.multiplier} XP`, icon: 'fa-bolt', color: '#8b5cf6', desc: 'Nhân đôi XP', left: xp });
-        if (co) list.push({ id: 'coins', kind: 'boost', name: `x${b.coins.multiplier} Coins`, icon: 'fa-coins', color: '#f59e0b', desc: 'Nhân đôi Coins', left: co });
+        if (xp) list.push({
+            id: 'xp', kind: 'boost', name: `x${b.xp.multiplier} XP`,
+            icon: 'fa-bolt', image: boostImage('xp', b.xp.multiplier), color: '#8b5cf6',
+            desc: `Nhân ${b.xp.multiplier} XP nhận được`, left: xp,
+        });
+        if (co) list.push({
+            id: 'coins', kind: 'boost', name: `x${b.coins.multiplier} Coins`,
+            icon: 'fa-coins', image: boostImage('coins', b.coins.multiplier), color: '#f59e0b',
+            desc: `Nhân ${b.coins.multiplier} xu nhận được`, left: co,
+        });
         // Boost ⚡ cũng phải hiện ở đây — bật rồi mà tab "Đang hiệu lực" trống thì
         // người chơi tưởng thẻ không ăn. Ghi rõ tốc độ để thấy ngay nó làm gì.
         const en = boostLeft(b.energy);
@@ -141,7 +183,7 @@ export default function InventoryWardrobe() {
             const mult = b.energy.multiplier || 1;
             list.push({
                 id: 'energy', kind: 'boost', name: `x${mult} tốc độ hồi ⚡`,
-                icon: 'fa-battery-full', color: '#22c55e',
+                icon: 'fa-battery-full', image: boostImage('energy', mult), color: '#22c55e',
                 desc: `Hồi ${mult} ⚡/phút (thường 1 ⚡/phút)`, left: en,
             });
         }
@@ -298,9 +340,20 @@ export default function InventoryWardrobe() {
                         {selected.kind === 'boost' && selected.left && <div className="preview-desc">Còn lại: {selected.left}</div>}
                         {selected.kind === 'cosmetic' && selected.left && <div className="preview-desc"><i className="fas fa-clock"></i> Còn lại: {selected.left}</div>}
                         {selected.kind === 'boost-card' && (
-                            <button className="btn btn-primary btn-sm preview-btn" disabled={busy} onClick={() => activate(selected)}>
-                                <i className="fas fa-bolt"></i> Kích hoạt
-                            </button>
+                            selected.blocked ? (
+                                <>
+                                    <div className="preview-desc" style={{ color: '#f59e0b' }}>
+                                        <i className="fas fa-triangle-exclamation"></i> {selected.blocked}
+                                    </div>
+                                    <button className="btn btn-secondary btn-sm preview-btn" disabled>
+                                        <i className="fas fa-ban"></i> Chưa dùng được
+                                    </button>
+                                </>
+                            ) : (
+                                <button className="btn btn-primary btn-sm preview-btn" disabled={busy} onClick={() => activate(selected)}>
+                                    <i className="fas fa-bolt"></i> Kích hoạt
+                                </button>
+                            )
                         )}
                         {selected.kind === 'consumable' && (
                             <button className="btn btn-primary btn-sm preview-btn" onClick={() => useConsumable(selected)}>

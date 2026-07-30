@@ -17,14 +17,9 @@ const ItemDefinition = require('../models/ItemDefinition');
 
 const DRY = process.argv.includes('--dry');
 
-const CATEGORY_TYPE = {
-    avatar: 'cosmetic_avatar',
-    background: 'cosmetic_background',
-    frame: 'cosmetic_frame',
-    boost: 'boost',
-    consumable: 'consumable',
-};
-const deriveType = (category) => CATEGORY_TYPE[category] || 'item';
+// Dùng đúng quy tắc mà route admin dùng — script vá và route ghi phải cùng một
+// định nghĩa, nếu không lần sửa sau trong admin lại làm hỏng lại.
+const { deriveType, BOOST_TYPES } = require('../utils/itemDefRules');
 
 // boostType chỉ suy được từ itemId khi tên đã nói rõ nó boost cái gì — đoán bừa
 // còn tệ hơn để nguyên cho admin tự sửa.
@@ -43,10 +38,10 @@ function guessBoostType(itemId) {
     for (const it of items) {
         const set = {};
 
-        const want = deriveType(it.category);
-        if (it.category && it.type !== want) set.type = want;
+        const want = deriveType(it.category, it.type);
+        if (it.type !== want) set.type = want;
 
-        if (it.effect?.type === 'boost' && !['xp', 'coins', 'energy'].includes(it.effect.boostType)) {
+        if (it.effect?.type === 'boost' && !BOOST_TYPES.includes(it.effect.boostType)) {
             const guess = guessBoostType(it.itemId);
             if (guess) set.effect = { ...it.effect, boostType: guess };
             else {
