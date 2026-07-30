@@ -7,7 +7,6 @@ import { Config } from '@game/config.js';
 import { Utils } from '@lib/utils.js';
 import { Notification } from '@ui/Toaster.jsx';
 import { Modal } from '@ui/Modal.jsx';
-import InventoryWardrobe from '@components/inventory/InventoryWardrobe.jsx';
 import ItemThumb from '@ui/ItemThumb.jsx';
 import { InventoryAPI } from '@api/inventory.js';
 import { authHeaders } from '@/auth/token.js';
@@ -151,18 +150,6 @@ export default function ShopScreen({ active }) {
         ? items
         : items.filter(it => it.category === activeTab);
 
-    // Túi đồ: bố cục tủ đồ (sidebar category + lưới + preview/trang bị).
-    function openInventory() {
-        const r = GameState.state.resources || {};
-        // Tiền tệ nằm cùng dòng tiêu đề (headerActionHtml của Modal).
-        const currencyHtml = `<span class="inventory-currency-inline">
-            <span><i class="fas fa-coins" style="color:#f59e0b"></i> ${r.coins || 0}</span>
-            <span><i class="fas fa-gem" style="color:#a855f7"></i> ${r.gems || 0}</span>
-            <span><i class="fas fa-bolt" style="color:#22c55e"></i> ${r.energy || 0}/${r.maxEnergy || 100}</span>
-        </span>`;
-        Modal.show({ title: '🎒 Túi đồ', wide: true, headerActionHtml: currencyHtml, contentJsx: <InventoryWardrobe /> });
-    }
-
     // Lịch sử chi tiêu (mua shop / đổi gems / VIP) — đọc state.transactions.
     function openHistory() {
         Modal.show({ title: '📜 Lịch sử giao dịch', wide: true, contentJsx: <TransactionHistory /> });
@@ -183,10 +170,12 @@ export default function ShopScreen({ active }) {
                 >
                     <i className="fas fa-receipt"></i> Lịch sử
                 </button>
+                {/* Giữ lối tắt này: đang mua đồ mà muốn xem đã có gì là hành vi
+                    thật. Chỉ đổi từ mở hộp thoại sang sang MÀN Túi đồ. */}
                 <button
                     className="inventory-btn"
                     title="Túi đồ — vật phẩm đang có"
-                    onClick={openInventory}
+                    onClick={() => showScreen('inventory-screen')}
                 >
                     <i className="fas fa-briefcase"></i> Túi đồ
                 </button>

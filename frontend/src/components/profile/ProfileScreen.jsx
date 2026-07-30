@@ -154,7 +154,7 @@ export default function ProfileScreen({ active }) {
                 >
                     <div
                         className="profile-avatar"
-                        title="Đổi ảnh đại diện trong Túi đồ (Cửa hàng)"
+                        title="Đổi ảnh đại diện trong Túi đồ"
                         style={avatarFrameStyle || undefined}
                     >
                         {avatarSrc

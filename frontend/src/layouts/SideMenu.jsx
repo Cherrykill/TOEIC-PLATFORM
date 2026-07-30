@@ -15,6 +15,9 @@ const MENU_ITEMS = [
     { label: 'Thành tích',     icon: 'fa-medal',            screen: 'achievements-screen', badgeKey: 'achievement',  feature: 'feature:achievements' },
     { label: 'Thống kê',       icon: 'fa-chart-bar',        screen: 'statistics-screen',   badgeKey: 'statsExport',  badgeStyle: 'dot', feature: 'feature:stats' },
     { label: 'Cửa hàng',       icon: 'fa-shopping-cart',    screen: 'shop-screen',         badgeKey: 'shopDiscount', badgeStyle: 'sale', feature: 'feature:shop' },
+    // KHÔNG khoá theo level (không có `feature:`): nhiệm vụ và thành tích phát
+    // vật phẩm ngay từ level 1, khoá túi đồ là người mới có đồ mà không có chỗ dùng.
+    { label: 'Túi đồ',         icon: 'fa-briefcase',        screen: 'inventory-screen' },
     { label: 'Cài đặt',        icon: 'fa-cog',              screen: 'settings-screen' },
 ];
 
