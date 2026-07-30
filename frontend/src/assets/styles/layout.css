@@ -808,19 +808,40 @@
    SCREEN HEADER
    =================================== */
 
+/* Một class dùng chung cho TOÀN BỘ 10 màn (Luyện tập TOEIC, Hồ sơ, Nhiệm vụ,
+   Cửa hàng, Thành tích, BXH, Thống kê, Cài đặt, Kết quả) → chỉnh ở đây là đổi
+   đồng loạt, không phải sờ vào từng màn.
+
+   Bản cũ cao ~82px mà chỉ 40px là NỘI DUNG, 42px còn lại là khoảng trắng thuần:
+   đệm dưới 16 + viền 2 + lề dưới 24. Nén xuống còn ~57px — tiết kiệm 25px trên
+   mọi màn, phần thấy được nhiều thêm gần một dòng nội dung. */
 .screen-header {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-    padding-bottom: var(--spacing-md);
-    border-bottom: 2px solid var(--border-color);
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .screen-header h2 {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    font-size: 1.25rem;   /* 24px → 20px: vẫn rõ là tiêu đề màn, bớt một nấc cao */
+}
+
+/* Nút TRONG header nhỏ lại — chính chúng quyết định chiều cao hàng, chứ không
+   phải chữ tiêu đề. Chỉ thu trong phạm vi .screen-header để không đụng nút ở
+   những chỗ khác trong app. */
+.screen-header .icon-btn {
+    width: 34px;
+    height: 34px;
+}
+.screen-header .btn,
+.screen-header .toeic-header-btn {
+    padding: 6px 14px;
+    font-size: 0.9rem;
 }
 
 .back-btn-screen {

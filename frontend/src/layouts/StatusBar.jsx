@@ -13,6 +13,47 @@ import { loadUnlocks, lockInfo } from '@game/featureUnlocks.js';
 const LEVEL_MAP = { easy: ['A1', 'A2'], medium: ['B1', 'B2'], hard: ['C1', 'C2'], adaptive: null };
 const LEVEL_LABEL = { easy: 'Dễ (A1-A2)', medium: 'Trung bình (B1-B2)', hard: 'Khó (C1-C2)', adaptive: 'Toàn bộ' };
 
+// Cuộn xuống bao nhiêu mới bắt đầu giấu thanh. Dưới mốc này luôn hiện — ở đầu
+// trang mà thanh chớp tắt theo từng cú lăn chuột thì rất khó chịu.
+const HIDE_AFTER = 90;
+// Ngưỡng chống rung: chuột lăn nhẹ hoặc màn cảm ứng nảy vài pixel không được
+// tính là "đổi hướng".
+const DELTA = 6;
+
+/**
+ * Ẩn khi cuộn XUỐNG, hiện lại khi cuộn LÊN — trả lại ~36px chiều cao lúc đang
+ * đọc, mà muốn xem ⚡/xu thì chỉ cần lăn ngược một chút, không phải về đỉnh trang.
+ */
+function useHideOnScrollDown() {
+    const [hidden, setHidden] = useState(false);
+
+    useEffect(() => {
+        let last = window.scrollY;
+        let ticking = false;
+
+        const update = () => {
+            ticking = false;
+            const y = window.scrollY;
+            const diff = y - last;
+            if (Math.abs(diff) < DELTA) return;   // rung lặt vặt → bỏ qua
+            last = y;
+            setHidden(y > HIDE_AFTER && diff > 0);
+        };
+
+        // rAF: sự kiện scroll bắn dày đặc, gom về mỗi khung hình một lần.
+        const onScroll = () => {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(update);
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    return hidden;
+}
+
 function computeSessionLabel() {
     const s = GameState.state?.settings || {};
     let mode;
@@ -29,6 +70,7 @@ export default function StatusBar() {
     const [questionsPerSession, setQuestionsPerSession] = useState('auto');
     const [difficulty, setDifficulty] = useState('adaptive');
     const [sessionLabel, setSessionLabel] = useState(computeSessionLabel);
+    const hidden = useHideOnScrollDown();
 
     const refreshSessionLabel = useCallback(() => setSessionLabel(computeSessionLabel()), []);
 
@@ -132,7 +174,13 @@ export default function StatusBar() {
     };
 
     return (
-        <div className="status-bar" id="status-bar">
+        // inert khi ẩn: thanh chỉ trượt ra ngoài chứ không display:none, nên
+        // không chặn thì Tab vẫn lọt vào hai ô chọn đang vô hình.
+        <div
+            className={`status-bar${hidden ? ' status-bar--hidden' : ''}`}
+            id="status-bar"
+            inert={hidden}
+        >
             <div className="status-bar-left">
                 {/* Always rendered so vanilla JS can show/hide via style.display */}
                 <div id="part-badge" className="part-badge" style={{ display: 'none' }}>
