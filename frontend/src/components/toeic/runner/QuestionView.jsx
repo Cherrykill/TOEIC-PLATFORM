@@ -81,12 +81,16 @@ export default function QuestionView({
             <div className="toeic-right-panel">
                 {/* Số câu THẬT theo chuẩn TOEIC (7, 101…) — Part đơn 1·2·5 trước đây
                     không hiện. Part 6·7 có số IN SẴN trong ảnh scan nên bỏ qua. */}
-                {(question.globalQuestionNumber ?? question.questionNumber) != null && question.part !== 6 && question.part !== 7 && (
-                    <div className="toeic-q-number">Câu {question.globalQuestionNumber ?? question.questionNumber}</div>
-                )}
-                {!isListening && question.questionText && (
-                    <div className="toeic-question-text" dangerouslySetInnerHTML={{ __html: question.questionText }} />
-                )}
+                {/* Số câu đứng CÙNG HÀNG với đề bài (giống màn nhóm) — tách hai
+                    dòng thì cái nhãn nằm xa chính thứ nó gán nhãn. */}
+                <div className="toeic-q-head">
+                    {(question.globalQuestionNumber ?? question.questionNumber) != null && question.part !== 6 && question.part !== 7 && (
+                        <span className="toeic-q-number">Câu {question.globalQuestionNumber ?? question.questionNumber}</span>
+                    )}
+                    {!isListening && question.questionText && (
+                        <span className="toeic-question-text" dangerouslySetInnerHTML={{ __html: question.questionText }} />
+                    )}
+                </div>
                 {optionsBlock}
             </div>
         </div>

@@ -40,11 +40,16 @@ export default function GroupQuestionView({ groupItems, answers, onSelectAnswer,
                 <div className="toeic-group-questions">
                     {groupItems.map(({ q, index }) => (
                         <div key={index} className="toeic-group-question">
-                            <div className="toeic-group-q-num">Câu {q.globalQuestionNumber ?? q.questionNumber ?? index + 1}</div>
-                            {/* Part 6 không có câu hỏi (chỉ chỗ trống + đáp án) */}
-                            {q.part !== 6 && q.questionText && (
-                                <div className="toeic-question-text" dangerouslySetInnerHTML={{ __html: q.questionText }} />
-                            )}
+                            {/* Số câu ĐỨNG CÙNG HÀNG với đề bài: xuống dòng riêng
+                                vừa tốn một dòng cho mỗi câu, vừa đẩy đề bài xa
+                                khỏi cái số vốn là nhãn của chính nó. */}
+                            <div className="toeic-group-q-head">
+                                <span className="toeic-group-q-num">Câu {q.globalQuestionNumber ?? q.questionNumber ?? index + 1}</span>
+                                {/* Part 6 không có câu hỏi (chỉ chỗ trống + đáp án) */}
+                                {q.part !== 6 && q.questionText && (
+                                    <span className="toeic-question-text" dangerouslySetInnerHTML={{ __html: q.questionText }} />
+                                )}
+                            </div>
                             <OptionList
                                 question={q}
                                 selected={answers[index]}

@@ -75,6 +75,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
     const isFullTestRef = useRef(false);
     const sectionRef = useRef('listening');
     const jumpToReadingRef = useRef(null);
+    const contentRef = useRef(null);   // khung 2 cột, để trả vị trí cuộn về đầu
     isFullTestRef.current = isFullTest;
     sectionRef.current = section;
 
@@ -250,6 +251,15 @@ export default function TestRunner({ config, onExit, onShowResults }) {
         return () => clearTimeout(t);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [attempt.currentIndex, phase]);
+
+    // Sang câu/nhóm mới → trả HAI CỘT về đầu. Hai cột cuộn độc lập với trang, nên
+    // giữ nguyên vị trí cuộn cũ là câu mới hiện ra ở lưng chừng: người thi tưởng
+    // mất phần đầu đề bài, hoặc tệ hơn là không thấy câu hỏi đâu cả.
+    useEffect(() => {
+        contentRef.current
+            ?.querySelectorAll('.toeic-left-panel, .toeic-right-panel')
+            .forEach(el => { el.scrollTop = 0; });
+    }, [attempt.currentIndex]);
 
     const doSubmit = useCallback(async () => {
         timer.pause();
@@ -533,7 +543,7 @@ export default function TestRunner({ config, onExit, onShowResults }) {
                 onSubmit={handleConfirmSubmit}
             />
 
-            <div className="toeic-question-container">
+            <div className="toeic-question-container" ref={contentRef}>
                 {isGroupView ? (
                     <GroupQuestionView
                         groupItems={groupItems}

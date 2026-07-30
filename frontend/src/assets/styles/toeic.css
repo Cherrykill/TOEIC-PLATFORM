@@ -521,9 +521,13 @@
   top: var(--app-sticky-offset, 96px);
   z-index: 30;
   background-color: var(--bg-primary);
-  padding: var(--spacing-md);
+  /* Header này DÍNH nên chiều cao của nó bị trừ khỏi vùng đọc suốt cả bài thi —
+     mỗi pixel thừa ở đây là pixel mất vĩnh viễn, không phải chỉ mất một lần khi
+     cuộn qua. Bản cũ cao ~93px mà chỉ 37px là nội dung: 32px đệm + 24px lề dưới
+     là khoảng trắng thuần. */
+  padding: 9px 14px;
   border-radius: var(--border-radius-large);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -574,9 +578,10 @@
   background: none;
   border: none;
   color: var(--text-primary);
-  font-size: 1.3rem;
+  /* Nút này to nhất hàng nên chính nó định chiều cao header, không phải tên đề. */
+  font-size: 1.05rem;
   cursor: pointer;
-  padding: var(--spacing-sm);
+  padding: 5px 7px;
   border-radius: var(--border-radius-large);
   transition: all 0.2s;
   display: flex;
@@ -602,7 +607,7 @@
 }
 
 .toeic-test-name {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -1267,6 +1272,110 @@
   flex-direction: column;
   gap: var(--spacing-xl);
 }
+
+/* ===================================================================
+   "NẾU THI THẬT BÂY GIỜ" — điểm ước lượng + đối chiếu mục tiêu.
+   Hiện một KHOẢNG chứ không một con số: dữ liệu chỉ đủ để nói "quanh
+   quanh chỗ này", còn một con số trần trụi sẽ bị đọc thành lời hứa.
+   =================================================================== */
+.score-prediction {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-large);
+  padding: var(--spacing-lg);
+}
+.score-prediction h3 {
+  margin: 0 0 var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.1rem;
+}
+.score-prediction-main { text-align: center; }
+
+/* Hai cận mờ và nhỏ, mức giữa nổi hẳn — đọc lướt vẫn ra ngay con số chính,
+   nhưng vẫn thấy nó nằm trong một dải chứ không phải điểm cố định. */
+.score-prediction-range {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+}
+.score-prediction-range .spr-edge {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+.score-prediction-range .spr-mid {
+  font-size: 2.6rem;
+  font-weight: 800;
+  line-height: 1;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.score-prediction-caption {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.score-prediction-badges {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.spr-badge {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.score-prediction-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: var(--spacing-md);
+}
+.score-prediction-sections > div {
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.score-prediction-sections span {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+.score-prediction-sections strong { font-size: 1.25rem; }
+.score-prediction-sections small { color: var(--text-secondary); font-size: 0.72rem; }
+
+.score-prediction-target {
+  margin-top: var(--spacing-md);
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--primary-color);
+  font-size: 0.9rem;
+}
+.score-prediction-target.reached {
+  border-left-color: var(--success-color, #16a34a);
+}
+
+.score-prediction-note,
+.score-prediction-empty {
+  margin: var(--spacing-md) 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.score-prediction-empty { font-size: 0.9rem; }
 
 .analytics-overview,
 .analytics-progress,
@@ -1984,25 +2093,39 @@
 .toeic-group-questions {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  /* Nới khoảng cách giữa các câu: 4 đáp án của câu này nằm sát câu kế thì lúc
+     lướt nhanh rất dễ tick nhầm sang câu bên cạnh. */
+  gap: 22px;
   padding: 14px 16px 16px;
 }
 .toeic-group-question {
   border: 1.5px solid var(--border-color, #e0e0e0);
   border-radius: 10px;
-  padding: 10px 12px;
+  /* Đáp án cuối chừa thêm chút đáy, khỏi dán vào viền dưới của thẻ. */
+  padding: 10px 12px 14px;
+}
+/* Số câu + đề bài trên CÙNG một hàng. baseline chứ không phải center: đề bài
+   dài xuống 2-3 dòng thì số câu phải thẳng hàng chữ ĐẦU TIÊN, không trôi ra
+   giữa khối. */
+.toeic-group-q-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .toeic-group-question .toeic-question-text {
-  padding: 0 0 6px;
+  padding: 0;
+  flex: 1;
+  min-width: 0;
 }
 .toeic-group-question .toeic-options {
   padding: 0;
 }
 .toeic-group-q-num {
+  flex: none;
   font-weight: 700;
   color: var(--primary-color, #e11d48);
   font-size: 0.85rem;
-  margin-bottom: 5px;
 }
 /* Số câu thật cho câu ĐƠN (Part 1·2·5). Cột phải là flex có gap 12px và các
    con thụt 16px — nhãn số phải cùng padding ngang mới thẳng hàng với đề bài,
@@ -2014,9 +2137,28 @@
   color: var(--primary-color, #e11d48);
   font-size: 0.9rem;
 }
-/* Có nhãn số ngay trên đề bài → đề bài khỏi chừa đệm trên nữa (tránh hở đôi). */
-.toeic-right-panel .toeic-q-number + .toeic-question-text {
-  padding-top: 4px;
+/* Số câu + đề bài CÙNG HÀNG (câu đơn Part 1·2·5).
+   Đệm chuyển hết lên khung bọc: để nguyên trên từng con thì hai cái cùng thụt
+   16px và cộng dồn thành 32px. baseline để số câu thẳng hàng chữ ĐẦU TIÊN khi
+   đề bài dài xuống nhiều dòng. */
+.toeic-q-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 16px 0;
+}
+/* Part 1·2 (nghe) không có cả số lẫn đề bài → khung bọc rỗng, ẩn đi kẻo hở
+   thêm một khoảng đệm chẳng vì cái gì. */
+.toeic-q-head:empty { display: none; }
+.toeic-right-panel .toeic-q-head .toeic-q-number {
+  flex: none;
+  padding: 0;
+}
+.toeic-right-panel .toeic-q-head .toeic-question-text {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  margin-bottom: 0;
 }
 [data-theme="dark"] .toeic-group-question {
   border-color: rgba(255, 255, 255, 0.12);
@@ -2193,9 +2335,17 @@
   padding-right: 16px;
 }
 .review-detail-left-title {
+  display: flex;
+  align-items: center;
   font-weight: 700;
   color: var(--text-secondary);
   margin-bottom: 8px;
+  gap: 10px; /* Khoảng cách giữa chữ "Câu hỏi" và thanh audio */
+}
+.review-detail-audio {
+  flex: 1; /* Co giãn theo chiều ngang */
+  min-width: 100px; /* Chiều rộng tối thiểu để không bị quá nhỏ */
+  height: 32px;
 }
 .review-detail-left-empty {
   color: var(--text-tertiary, #94a3b8);
@@ -2208,6 +2358,9 @@
   display: block;
 }
 .review-detail-content { flex: 1; min-width: 0; }
+/* Không có ngữ cảnh (Part 5) → câu hỏi + đáp án ăn trọn bề ngang, số dòng phải
+   xuống giảm hẳn. Đây là chỗ tiết kiệm chiều cao lớn nhất. */
+.review-detail-2col.no-context { display: block; }
 @media (max-width: 640px) {
   .review-detail-2col { flex-direction: column; }
   .review-detail-left {
@@ -2217,6 +2370,7 @@
     border-bottom: 1px solid var(--border-color);
     padding-right: 0;
     padding-bottom: 12px;
+
   }
 }
 
@@ -2269,7 +2423,312 @@
 }
 .review-questions-bar h3 { margin: 0; }
 .review-filter { display: flex; gap: 8px; flex-wrap: wrap; }
-.toeic-results-content { max-width: 1100px; margin: 0 auto; }
+.toeic-results-content { max-width: 1200px; margin: 0 auto; }
+
+/* ===================================================================
+   XEM LẠI: lưới câu DÍNH bên trái | chi tiết bên phải.
+   Bản cũ là popup phủ màn hình và tự đóng sau mỗi lần chọn, nên xem 7
+   câu sai là 7 vòng "cuộn lên → mở panel → bấm → đọc → cuộn lên lại".
+   Ở đây lưới luôn nằm đó, một cú bấm đổi thẳng nội dung bên phải.
+   =================================================================== */
+/* Cả khu xem lại KHOÁ vào khung nhìn: cuộn qua phần điểm số thì khối này ghim
+   lại, mọi thứ bên trong (lưới, nội dung, thanh điều hướng) đứng yên một chỗ.
+   Phải ghim ở CẤP KHỐI, không ghim từng cột: sticky chỉ dính trong phạm vi
+   `cao khung cha − cao phần tử`, mà hai cột cao đúng bằng khung cha nên phạm vi
+   đó bằng 0 → ghim từng cột thì chẳng dính được tí nào. Khối này thì có phạm vi
+   thật, bằng đúng chiều cao phần điểm số phía trên. */
+.review-questions-section {
+  /* Mốc ghim: dưới header dính của app (.top-nav 56px + .status-bar ~36px) rồi
+     thở 8px. Một biến duy nhất cho cả mốc ghim lẫn chiều cao — hai số đó lệch
+     nhau chính là thứ làm thanh điều hướng tụt quá mép màn hình. */
+  --review-top: 100px;
+  --review-gap-bottom: 14px;
+
+  position: sticky;
+  top: var(--review-top);
+  height: calc(100vh - var(--review-top) - var(--review-gap-bottom));
+  display: flex;
+  flex-direction: column;
+
+  /* Ngân sách chiều cao ở đây là cố định (một màn hình), nên mọi pixel dành cho
+     khung viền là pixel cướp của nội dung. Nén lại toàn bộ phần trang trí. */
+  padding: 12px 14px;
+  margin-top: var(--spacing-md);
+}
+.review-questions-bar { flex: none; margin-bottom: 10px; }
+.review-questions-section h3 { font-size: 1.15rem; margin-bottom: 0; }
+
+/* Thanh mang danh tính câu: [số câu · Part] — [đáp án đúng/của bạn] — [bộ lọc].
+   Phần đáp án ở GIỮA và co giãn, hai đầu giữ nguyên kích thước. */
+.review-questions-bar.has-question .review-question-number {
+  flex: none;
+  font-size: 1rem;
+}
+.review-questions-bar.has-question .review-answers {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+@media (max-width: 1100px) {
+  /* Hẹp thì bỏ chữ "Đáp án đúng:/Của bạn:", giữ lại hai ô chữ cái — màu sắc
+     và vị trí đã nói đủ nghĩa, mà chỗ thì không còn. */
+  .review-questions-bar.has-question .answer-label,
+  .review-questions-bar.has-question .answer-separator { display: none; }
+}
+
+/* Thẻ câu hỏi trong khung phải: bỏ viền + nền riêng, nó đã nằm trong khung của
+   chính nó rồi — hai lớp viền lồng nhau vừa rối vừa ăn 4 pixel mỗi cạnh. */
+.review-detail-scroll .review-question-item {
+  border: none;
+  background: transparent;
+}
+/* Ảnh ngữ cảnh (Part 1/3/4): bó vào đúng chiều cao cột và giữ tỉ lệ, thay vì
+   để nguyên khổ rồi bị cắt ngang — cắt ngang một sơ đồ thì phần khuất mới là
+   phần cần nhìn. Bấm vào để xem to. */
+.review-detail-scroll .review-detail-img {
+  flex: 0 1 auto;
+  min-height: 0;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  object-fit: contain;
+  cursor: zoom-in;
+}
+.review-detail-scroll .review-detail-audio { flex: none; }
+.review-detail-scroll .review-detail-left-title { flex: none; }
+.review-detail-scroll .review-question-header:hover { background: var(--bg-primary); }
+.review-detail-scroll .option-item { padding: 7px 12px; }
+.review-detail-scroll .option-text { line-height: 1.45; }
+.review-detail-scroll .question-text { margin-bottom: 8px; }
+.review-stepper { padding: 7px 10px; width: 680px; margin-left: auto;;}
+
+/* Khung chi tiết ăn TRỌN bề ngang. Lưới câu là ngăn kéo NỔI (absolute) nên
+   không chiếm cột nào — bật/tắt không làm nội dung co giãn nhảy chỗ. */
+.review-workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* sticky: cuộn đọc lời giải dài vẫn thấy lưới, khỏi cuộn ngược lên chọn câu kế. */
+/* Ngăn kéo trượt từ PHẢI, nổi đè lên nội dung, không đẩy gì cả.
+   Bật ra cùng phía với nút "Lưới câu" (góc phải thanh trên): mở panel ở trái
+   thì mỗi lần dùng là chuột phải chạy ngang cả màn hình rồi chạy ngược lại.
+   Đóng thì trượt hẳn ra ngoài chứ không display:none — có ở lại trong luồng vẽ
+   thì mới có cái để chạy hoạt ảnh. */
+.results-nav-sidebar {
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 250px;
+  max-width: 82%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-large);
+  box-shadow: -10px 0 34px rgba(0, 0, 0, 0.34);
+  transform: translateX(calc(100% + 14px));
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.22s ease, opacity 0.18s ease, visibility 0.22s;
+}
+.results-nav-sidebar.open {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .results-nav-sidebar { transition: none; }
+}
+
+.results-nav-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+.results-nav-sidebar-close {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+.results-nav-sidebar-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+/* Cột hẹp → ô số phải nhỏ lại, không thì số 3 chữ số (147…) tràn hàng. */
+.results-nav-sidebar .toeic-nav-btn {
+  min-width: 34px;
+  height: 34px;
+  font-size: 0.82rem;
+  padding: 0 4px;
+}
+.results-nav-sidebar .toeic-nav-groups { gap: var(--spacing-md); }
+
+/* Câu ĐANG XEM: viền nổi thay vì đổi nền — nền đang mang nghĩa đúng/sai,
+   ghi đè nó là mất thông tin quan trọng hơn vị trí con trỏ. */
+.toeic-nav-btn.res-current {
+  outline: 3px solid var(--primary-color, #e11d48);
+  outline-offset: 1px;
+  transform: scale(1.06);
+}
+
+/* Khung chi tiết tự cuộn RIÊNG, thanh điều hướng nằm NGOÀI vùng cuộn đó.
+   Nhờ vậy thanh luôn ở trong tầm mắt mà không bao giờ đè lên chữ —
+   `position:sticky;bottom:0` thì vẫn đè: nó chỉ chừa chỗ ở vị trí nghỉ,
+   lúc đang dính thì nội dung trôi ngay bên dưới nó. */
+.review-detail-pane {
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* Chiều cao chảy xuyên suốt xuống tận HAI CỘT, để mỗi cột tự cuộn phần thừa
+   của riêng nó. Nhờ vậy đoạn văn Part 7 dài bao nhiêu cũng được mà cột đáp án
+   bên phải vẫn hiện trọn — không phải cuộn cả khối đi tìm đáp án D. */
+.review-detail-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.review-detail-scroll > .review-question-item {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.review-detail-scroll .review-question-detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+}
+.review-detail-scroll .review-detail-2col {
+  flex: 1;
+  min-height: 0;
+}
+.review-detail-scroll .review-detail-content {
+  overflow-y: auto;
+  min-height: 0;
+}
+/* Cột ngữ cảnh là flex dọc để ẢNH nhận đúng phần chiều cao còn lại rồi tự co
+   theo tỉ lệ. Trước đây ảnh giữ nguyên khổ nên bị cắt ngang — mà phần khuất
+   của một sơ đồ mới là phần cần nhìn. Đoạn văn dài thì cuộn trong cột này. */
+.review-detail-scroll .review-detail-left {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.review-detail-scroll .review-detail-left > .question-passage { min-height: 0; }
+/* Chút khoảng thở để dòng cuối không dán vào mép dưới. */
+.review-detail-scroll .review-detail-left > *:last-child,
+.review-detail-scroll .review-detail-content > *:last-child { margin-bottom: 10px; }
+
+.review-detail-empty {
+  padding: 28px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+/* Nhãn Part cạnh số câu — lưới bên trái đã nhóm theo Part, khung phải cũng
+   phải nói rõ đang ở Part nào để hai bên khớp nhau. */
+.review-question-part {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+/* Chân khung: không co lại, không cuộn theo nội dung. */
+.review-stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-large);
+  background: var(--bg-primary);
+}
+.review-stepper-pos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+/* Gợi ý phím tắt — chỉ hiện trên máy có bàn phím. */
+.review-stepper-hint {
+  padding: 1px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  font-size: 0.72rem;
+  opacity: 0.7;
+}
+.review-stepper .toeic-part-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  /* Điện thoại: khoá vào 100vh thì còn vài dòng, đọc không nổi. Trả về cuộn cả
+     trang, thanh điều hướng nằm cuối nội dung. Ngăn kéo vẫn nổi nhưng bám theo
+     KHUNG NHÌN (fixed) — khung cha lúc này cao bằng cả trang, bám theo nó thì
+     ngăn kéo dài vô tận. */
+  .review-questions-section {
+    position: static;
+    height: auto;
+    display: block;
+  }
+  .review-detail-pane { height: auto; }
+  .review-stepper-hint { display: none; }
+  /* Gỡ hết ràng buộc chiều cao: trên màn nhỏ, cuộn một mạch cả trang dễ chịu
+     hơn nhiều so với ba vùng cuộn lồng nhau, mỗi vùng cao vài dòng. */
+  .review-detail-scroll,
+  .review-detail-scroll > .review-question-item,
+  .review-detail-scroll .review-question-detail,
+  .review-detail-scroll .review-detail-2col {
+    display: block;
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+  .review-detail-scroll .review-detail-left,
+  .review-detail-scroll .review-detail-content { overflow: visible; }
+
+  .results-nav-sidebar {
+    position: fixed;
+    top: var(--review-top);
+    bottom: 14px;
+    right: 8px;
+  }
+}
 
 /* Thu gọn chiều cao thẻ đề thi (~1/2) */
 .toeic-test-card { padding: 14px 16px; }
@@ -2328,12 +2787,28 @@
 /* 2 cột cuộn ĐỘC LẬP (đoạn văn Part 7 dài) — header panel ghim trên */
 .toeic-left-panel,
 .toeic-right-panel {
-  max-height: calc(100vh - 165px);
+  /* 165 → 135: header màn thi vừa thấp đi ~33px. Không hạ con số này thì phần
+     tiết kiệm được biến thành một dải trống ở đáy chứ không thành chỗ đọc. */
+  max-height: calc(100vh - 135px);
   overflow-y: auto;
+}
+/* Chừa khoảng chạy cuối cột: không có nó thì đáp án D của câu cuối nằm sát mép
+   dưới, trông y như bị cắt. Người thi không đoán được là phải cuộn thanh TRONG
+   (cột) chứ không phải thanh ngoài (trang) → tưởng mất đáp án. Khoảng trống này
+   cũng kéo câu cuối lên giữa tầm mắt thay vì đáy màn hình.
+   Đặt trên CON CUỐI chứ không trên panel: panel là flex + overflow, đệm dưới
+   của nó không phải trình duyệt nào cũng tính vào vùng cuộn. */
+.toeic-left-panel > *:last-child,
+.toeic-right-panel > *:last-child {
+  padding-bottom: 25vh;
 }
 @media (max-width: 700px) {
   .toeic-left-panel,
   .toeic-right-panel { max-height: none; overflow: visible; }
+  /* Điện thoại cuộn cả trang nên không cần khoảng chạy — thêm vào chỉ tổ có
+     một mảng trống dài ở cuối bài. */
+  .toeic-left-panel > *:last-child,
+  .toeic-right-panel > *:last-child { padding-bottom: 0; }
 }
 
 /* ===================================================================
