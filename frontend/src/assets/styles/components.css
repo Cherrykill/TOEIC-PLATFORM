@@ -6483,8 +6483,25 @@ mark {
        "Chưa đạt" cho quest chưa hoàn thành. */
     grid-template-columns: 1fr 160px;
     column-gap: var(--spacing-md);
-    row-gap: var(--spacing-sm);
+    /* Nén chiều cao: mỗi thẻ chỉ có 3 dòng nội dung mà chiếm ~150px, phần lớn
+       là khoảng trắng. Danh sách nhiệm vụ đọc theo kiểu lướt để tìm cái sắp
+       xong, nên thấy được nhiều thẻ một lúc quan trọng hơn thẻ thoáng. */
+    row-gap: 5px;
+    padding: 10px 14px;
 }
+.quest-card .quest-description {
+    line-height: 1.4;
+    margin: 0;
+}
+/* Vòng tròn icon cố định 32px là thứ định chiều cao hàng đầu — giảm mỗi cỡ
+   chữ thì vòng tròn vẫn nguyên, hàng không thấp đi được. */
+.quest-card .quest-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+.quests-container { gap: 10px; }
 .quest-card .quest-header,
 .quest-card .quest-description {
     grid-column: 1 / -1;

@@ -444,16 +444,19 @@
     padding: var(--spacing-sm);
 }
 
+/* Đệm dọc 16px × 8 mục = 256px chỉ để làm khoảng trắng, đủ để đẩy mục cuối
+   ("Cài đặt") ra khỏi màn hình thấp. Hạ xuống 10px: mỗi nút còn ~47px — vẫn
+   trên ngưỡng 44px cho vùng chạm, mà cả 8 mục vừa một màn. */
 .menu-item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
-    padding: var(--spacing-md);
+    gap: 12px;
+    padding: 10px 14px;
     border-radius: var(--border-radius);
     color: var(--text-primary);
     transition: all var(--transition-fast);
-    margin-bottom: var(--spacing-xs);
+    margin-bottom: 3px;
     cursor: pointer;
     text-decoration: none;
     width: 100%;
