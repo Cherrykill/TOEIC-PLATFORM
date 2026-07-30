@@ -69,6 +69,17 @@
                 <textarea id="ak-json" class="filter-select" rows="6" spellcheck="false"
                   style="width: 100%; font-family: ui-monospace, Consolas, monospace; font-size: 13px; padding: 8px; resize: vertical"
                   placeholder='{"101":"A","102":"C","103":"B"}'></textarea>
+                <!-- Nút thứ hai ngay dưới ô nhập: dán xong con trỏ đang ở đây,
+                     bấm luôn khỏi phải kéo ngược lên đầu khung. Cùng một hành
+                     động với nút trên header, chỉ khác id (id phải là duy nhất). -->
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap">
+                  <button class="btn btn-primary btn-sm" id="btn-ak-import-bottom">
+                    <i class="fas fa-file-import"></i> Nhập đáp án
+                  </button>
+                  <button class="btn btn-ghost btn-sm" id="btn-ak-json-clear-bottom">
+                    <i class="fas fa-eraser"></i> Xoá ô nhập
+                  </button>
+                </div>
               </div>
 
               <div id="ak-result"></div>

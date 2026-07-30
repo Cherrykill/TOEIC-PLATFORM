@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { normalizeSources, sourceMatch } = require('../utils/toeicSource');
 
 const PartConfigSchema = new mongoose.Schema({
     partNumber: {
@@ -52,10 +53,17 @@ const ToeicTestSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    // Nguồn đầu tiên — giữ lại cho dữ liệu cũ và cho chỗ hiển thị/lọc một nguồn.
     source: {
         type: String,
         trim: true,
         index: true,
+    },
+    // Danh sách nguồn để TRỘN câu hỏi (tối đa 3). Rỗng = lấy cả kho.
+    // Nguồn sự thật khi bốc câu; `source` luôn bằng sources[0].
+    sources: {
+        type: [String],
+        default: [],
     },
     instructions: {
         type: String,
@@ -362,7 +370,9 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
     let totalQuestions = 0;
     let totalTime = 0;
 
-    const sourceFilter = testData.source || null;
+    // Trộn được nhiều nguồn: {} nếu không chọn nguồn nào, $in nếu chọn 2-3.
+    const sources = normalizeSources(testData);
+    const srcFilter = sourceMatch(sources);
 
     // Check total available questions first
     // Đếm SỐ CÂU (mỗi màn chứa 1..N câu), không đếm document.
@@ -377,7 +387,7 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
     const totalAvailable = await countQ({
         isActive: true,
         isPublished: true,
-        ...(sourceFilter ? { source: sourceFilter } : {}),
+        ...srcFilter,
     });
 
     if (totalAvailable === 0) {
@@ -408,7 +418,7 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
             isActive: true,
             isPublished: true,
         };
-        if (sourceFilter) query.source = sourceFilter;
+        Object.assign(query, srcFilter);
 
         // If not allowing reuse, exclude already used questions
         if (testData.allowReuseQuestions === false && usedQuestionsByPart[config.partNumber]) {
@@ -457,7 +467,7 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
             part: config.partNumber,
             isActive: true,
             isPublished: true,
-            ...(sourceFilter ? { source: sourceFilter } : {}),
+            ...srcFilter,
             ...(excludeIds.length ? { _id: { $nin: excludeIds } } : {}),
         }).lean();
 
@@ -489,7 +499,8 @@ ToeicTestSchema.statics.createFullTest = async function(testData) {
         testType: 'full-test',
         testName: testData.testName,
         description: testData.description,
-        source: testData.source || null,
+        source: sources[0] || null,
+        sources,
         parts,
         totalQuestions,
         totalTime,

@@ -251,12 +251,36 @@ router.get('/item-defs/:id', admin, async (req, res) => {
     if (!data) return res.status(404).json({ success: false, message: 'Not found' });
     res.json({ success: true, data });
 });
-// Suy `type` từ category — avatar/background/frame → cosmetic_* (giữ logic trang bị theo slot).
-const COSMETIC_TYPE = { avatar: 'cosmetic_avatar', background: 'cosmetic_background', frame: 'cosmetic_frame' };
-const deriveType = (category) => COSMETIC_TYPE[category] || 'item';
+// Suy `type` từ category. `type` là thứ TÚI ĐỒ lọc theo để chia tab, nên map
+// phải phủ mọi danh mục có tab riêng — ép hết về 'item' thì item vừa sửa trong
+// admin sẽ biến mất khỏi túi đồ dù vẫn nằm trong DB.
+const CATEGORY_TYPE = {
+    avatar: 'cosmetic_avatar',
+    background: 'cosmetic_background',
+    frame: 'cosmetic_frame',
+    boost: 'boost',
+    consumable: 'consumable',
+};
+const deriveType = (category) => CATEGORY_TYPE[category] || 'item';
+
+// Thẻ boost mà boostType sai thì applyShopEffect không khớp nhánh nào: người
+// chơi trả tiền, bấm kích hoạt, thẻ bị tiêu mà chẳng có gì bật. Chặn ngay ở
+// đây thay vì để dữ liệu chết nằm im trong catalog.
+const BOOST_TYPES = ['xp', 'coins', 'energy'];
+function badEffect(effect) {
+    if (effect?.type !== 'boost') return null;
+    if (!BOOST_TYPES.includes(effect.boostType)) {
+        return `Thẻ boost phải có boostType là một trong: ${BOOST_TYPES.join(', ')} (đang là "${effect.boostType ?? ''}")`;
+    }
+    if (!(Number(effect.multiplier) > 1)) return 'Hệ số boost phải lớn hơn 1';
+    if (!(Number(effect.duration) > 0)) return 'Thời lượng boost phải lớn hơn 0 giây';
+    return null;
+}
 
 router.post('/item-defs', admin, async (req, res) => {
     try {
+        const bad = badEffect(req.body.effect);
+        if (bad) return res.status(400).json({ success: false, message: bad });
         req.body.type = deriveType(req.body.category);
         const data = await ItemDefinition.create(req.body);
         res.status(201).json({ success: true, message: 'Đã tạo vật phẩm', data });
@@ -267,6 +291,8 @@ router.post('/item-defs', admin, async (req, res) => {
 router.put('/item-defs/:id', admin, async (req, res) => {
     try {
         const { itemId, _id, __v, ...fields } = req.body;
+        const bad = badEffect(fields.effect);
+        if (bad) return res.status(400).json({ success: false, message: bad });
         if (fields.category !== undefined) fields.type = deriveType(fields.category); // đồng bộ type theo category
         if (fields.durationSec !== undefined) fields.durationSec = Number(fields.durationSec) || 0;
         if (fields.order !== undefined) fields.order = Number(fields.order) || 0;

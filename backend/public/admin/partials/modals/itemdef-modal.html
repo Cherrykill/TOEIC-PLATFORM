@@ -143,7 +143,10 @@
               <input type="number" id="eff-gems-amount" placeholder="Số đá tặng" style="width:100%;padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
             </div>
             <div class="eff-fields" data-eff="boost" style="display:none;gap:8px;grid-template-columns:1fr 1fr 1fr;display:none">
-              <select id="eff-boost-type" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px"><option value="xp">XP</option><option value="coins">Coins</option></select>
+              <!-- Phải có đủ 3 loại boost mà applyShopEffect xử lý. Thiếu option
+                   nào thì gán select.value = loại đó sẽ im lặng cho ra '' và lưu
+                   thẻ với boostType rỗng → thẻ tiêu mất mà không bật gì. -->
+              <select id="eff-boost-type" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px"><option value="xp">XP</option><option value="coins">Coins</option><option value="energy">Tốc độ hồi ⚡</option></select>
               <input type="number" id="eff-boost-mult" placeholder="Hệ số (2, 3)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
               <input type="number" id="eff-boost-dur" placeholder="Giây (86400 = 1 ngày)" style="padding:8px;border:1.5px solid var(--border-color);border-radius:8px">
             </div>

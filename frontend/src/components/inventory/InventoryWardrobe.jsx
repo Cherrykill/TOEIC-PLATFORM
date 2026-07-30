@@ -134,6 +134,17 @@ export default function InventoryWardrobe() {
         }
         if (xp) list.push({ id: 'xp', kind: 'boost', name: `x${b.xp.multiplier} XP`, icon: 'fa-bolt', color: '#8b5cf6', desc: 'Nhân đôi XP', left: xp });
         if (co) list.push({ id: 'coins', kind: 'boost', name: `x${b.coins.multiplier} Coins`, icon: 'fa-coins', color: '#f59e0b', desc: 'Nhân đôi Coins', left: co });
+        // Boost ⚡ cũng phải hiện ở đây — bật rồi mà tab "Đang hiệu lực" trống thì
+        // người chơi tưởng thẻ không ăn. Ghi rõ tốc độ để thấy ngay nó làm gì.
+        const en = boostLeft(b.energy);
+        if (en) {
+            const mult = b.energy.multiplier || 1;
+            list.push({
+                id: 'energy', kind: 'boost', name: `x${mult} tốc độ hồi ⚡`,
+                icon: 'fa-battery-full', color: '#22c55e',
+                desc: `Hồi ${mult} ⚡/phút (thường 1 ⚡/phút)`, left: en,
+            });
+        }
         return list;
         // cosmeticsVersion: tên/ảnh cosmetic lấy từ FRAMES/BACKGROUNDS, hai
         // registry đó được nạp thêm sau khi catalog về → phải tính lại.
@@ -181,6 +192,18 @@ export default function InventoryWardrobe() {
             if (res.boosts && GameState.state?.boosts) {
                 if (res.boosts.xp) GameState.state.boosts.xp = res.boosts.xp;
                 if (res.boosts.coins) GameState.state.boosts.coins = res.boosts.coins;
+                // Thiếu dòng này thì thẻ hồi ⚡ có ăn ở server nhưng client vẫn
+                // tính 1 ⚡/phút, rồi saveState ghi số cũ đè lên phần đã hồi.
+                if (res.boosts.energy) GameState.state.boosts.energy = res.boosts.energy;
+            }
+            // Thẻ đổi thẳng tài nguyên (hồi đầy ⚡) — lấy số server trả về, đừng
+            // để client giữ số cũ.
+            if (res.resources && GameState.state?.resources) {
+                const r0 = GameState.state.resources;
+                const { lastEnergyUpdate, ...rest } = res.resources;
+                Object.assign(r0, rest);
+                if (lastEnergyUpdate) r0.lastEnergyUpdate = new Date(lastEnergyUpdate).getTime();
+                EventBus.emit(GameEvents.ENERGY_CHANGED, { current: r0.energy, max: r0.maxEnergy, used: 0 });
             }
             EventBus.emit(GameEvents.STATE_CHANGED);
             await reload();

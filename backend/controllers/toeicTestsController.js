@@ -7,6 +7,7 @@
 
 const ToeicQuestionSet = require('../models/ToeicQuestionSet');
 const { countQuestions } = require('../services/questionSetService');
+const { normalizeSources, sourceMatch } = require('../utils/toeicSource');
 const ToeicTest = require('../models/ToeicTest');
 const UserProfile = require('../models/UserProfile');
 const UserStats = require('../models/UserStats');
@@ -99,8 +100,13 @@ exports.getTest = async (req, res, next) => {
  */
 exports.createTest = async (req, res, next) => {
     try {
-        const { testName, testType, description, source, level, totalTime: customTotalTime, questionSelectMode,
+        const { testName, testType, description, level, totalTime: customTotalTime, questionSelectMode,
             isFree, requiredCoins, requiredLevel, allowReuseQuestions } = req.body;
+
+        // Loại đề quyết định LẤY GÌ (full 200 câu / mini part N), danh sách nguồn
+        // quyết định LẤY TỪ ĐÂU — trộn được tối đa 3 nguồn.
+        const sources = normalizeSources(req.body);
+        const srcFilter = sourceMatch(sources);
 
         // Điều kiện vào bài, chuẩn hoá 1 lần rồi dùng cho cả full-test lẫn mini-test.
         const accessFields = {
@@ -123,7 +129,7 @@ exports.createTest = async (req, res, next) => {
                 const test = await ToeicTest.createFullTest({
                     testName,
                     description,
-                    source: source || null,
+                    sources,
                     createdBy: req.user.id,
                     isPublished: false,
                     // undefined (form không gửi) → createFullTest chỉ chặn khi === false,
@@ -185,8 +191,8 @@ exports.createTest = async (req, res, next) => {
                 part: partNumber,
                 isActive: true,
                 isPublished: true,
-                // shuffle-cross bỏ filter source để gộp câu từ các test khác
-                ...(selectMode !== 'shuffle-cross' && source ? { source } : {}),
+                // shuffle-cross bỏ filter nguồn để gộp câu từ mọi đề khác
+                ...(selectMode !== 'shuffle-cross' ? srcFilter : {}),
             };
 
             // Pool giờ là các MÀN hỏi. Một màn = một nhóm, nên nhánh "đảo theo
@@ -253,7 +259,8 @@ exports.createTest = async (req, res, next) => {
             testName,
             testType,
             description,
-            source: source || null,
+            source: sources[0] || null,
+            sources,
             level: level || 'intermediate',
             parts,
             totalQuestions,
@@ -340,7 +347,13 @@ exports.updateTest = async (req, res, next) => {
         if (testName) test.testName = testName;
         if (testType) test.testType = testType;
         if (description !== undefined) test.description = description;
-        if (source !== undefined) test.source = source;
+        // Gửi `sources` hoặc `source` đều nhận; giữ hai field khớp nhau để chỗ
+        // nào còn đọc `source` (đồng bộ đề, lọc cũ) vẫn đúng.
+        if (req.body.sources !== undefined || source !== undefined) {
+            const list = normalizeSources(req.body);
+            test.sources = list;
+            test.source = list[0] || null;
+        }
         if (level !== undefined) test.level = level;
         if (totalTime !== undefined) test.totalTime = totalTime;
         if (randomQuestionCount !== undefined) test.randomQuestionCount = randomQuestionCount;
@@ -431,7 +444,8 @@ exports.refillTest = async (req, res, next) => {
                 part: part.partNumber,
                 isActive: true,
                 isPublished: true,
-                ...(test.source ? { source: test.source } : {}),
+                // Đề trộn nhiều nguồn thì nạp lại cũng phải quét đủ các nguồn đó.
+                ...sourceMatch(normalizeSources(test)),
             }).sort({ 'questions.0.number': 1, createdAt: 1 }).select('questions').lean();
 
             const have = new Set((part.questions || []).map(String));

@@ -61,11 +61,28 @@
             </select>
           </div>
 
-          <div>
-            <label style="display:block;margin-bottom:4px;font-weight:500"><i class="fas fa-database"></i> Nguồn (Source)</label>
-            <input type="text" id="test-source" list="test-source-list" placeholder="để trống = tất cả nguồn" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px" autocomplete="off">
+          <!-- Trộn tối đa 3 nguồn: loại đề ở trên quyết định lấy gì, mấy ô này
+               quyết định lấy từ đâu. Dùng select thay vì ô gõ tay để không lệch
+               chữ (nguồn khớp phân biệt hoa/thường). -->
+          <div style="grid-column:1/-1">
+            <label style="display:block;margin-bottom:4px;font-weight:500">
+              <i class="fas fa-database"></i> Nguồn câu hỏi — trộn tối đa 3 đề
+            </label>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+              <select id="test-source-1" class="test-source-pick" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px"></select>
+              <select id="test-source-2" class="test-source-pick" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px"></select>
+              <select id="test-source-3" class="test-source-pick" style="width:100%;padding:9px;border:1.5px solid var(--border-color);border-radius:8px"></select>
+            </div>
+            <p style="margin:4px 0 0;font-size:12px;color:var(--text-secondary)">
+              Để trống hết = lấy toàn bộ kho. Chọn nhiều nguồn thì câu hỏi được bốc
+              lẫn từ các nguồn đó (vd <code>ets26t1</code> + <code>ets26t3</code> + <code>ets26t9</code>).
+              Chọn trùng nguồn thì chỉ tính một lần.
+            </p>
+            <p id="test-source-summary" style="margin:4px 0 0;font-size:12px;font-weight:500"></p>
+            <!-- Datalist DÙNG CHUNG: các ô nhập nguồn ở tab "Tạo câu đơn" và
+                 "Tạo nhóm câu" trỏ tới id này. Đừng xoá dù modal này không còn
+                 dùng ô gõ tay nữa. -->
             <datalist id="test-source-list"></datalist>
-            <p style="margin:4px 0 0;font-size:12px;color:var(--text-secondary)">Chọn từ danh sách để khớp chính xác nguồn của câu hỏi (khớp phân biệt hoa/thường).</p>
           </div>
 
           <!-- Điều kiện vào bài. Năng lượng tính tự động theo số câu (không chỉnh ở đây). -->

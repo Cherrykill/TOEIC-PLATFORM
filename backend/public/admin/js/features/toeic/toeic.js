@@ -1865,19 +1865,71 @@ window.editQuestion = (questionId) => {
 };
 window.deleteQuestion = deleteQuestion;
 
-// Nạp danh sách nguồn (distinct từ câu hỏi) vào datalist để tránh gõ lệch.
-async function loadTestSourceOptions() {
+// Ba ô chọn nguồn — thứ tự chỉ để nhìn, backend tự bỏ trùng và bỏ rỗng.
+const TEST_SOURCE_IDS = ['test-source-1', 'test-source-2', 'test-source-3'];
+
+/** Nguồn đang chọn, đã bỏ rỗng và bỏ trùng (giữ thứ tự chọn). */
+function getSelectedSources() {
+    const out = [];
+    for (const id of TEST_SOURCE_IDS) {
+        const v = document.getElementById(id)?.value.trim();
+        if (v && !out.includes(v)) out.push(v);
+    }
+    return out;
+}
+
+// Nói rõ đang trộn mấy nguồn — chọn 3 ô mà 2 ô trùng nhau thì dễ tưởng là 3.
+function syncTestSourceSummary() {
+    const el = document.getElementById('test-source-summary');
+    if (!el) return;
+    const list = getSelectedSources();
+    if (!list.length) {
+        el.style.color = 'var(--text-secondary)';
+        el.textContent = 'Đang lấy: toàn bộ kho câu hỏi';
+    } else {
+        el.style.color = 'var(--primary-color, #e11d48)';
+        el.textContent = `Đang trộn ${list.length} nguồn: ${list.join(' + ')}`;
+    }
+}
+
+// Nạp danh sách nguồn (distinct từ câu hỏi) vào 3 ô chọn của modal đề thi VÀ
+// datalist dùng chung — các ô nhập nguồn ở tab "Tạo câu đơn"/"Tạo nhóm câu"
+// đều trỏ tới datalist#test-source-list này.
+let _sourceLoadSeq = 0;
+
+async function loadTestSourceOptions(selected = []) {
+    const boxes = TEST_SOURCE_IDS.map(id => document.getElementById(id)).filter(Boolean);
     const dl = document.getElementById('test-source-list');
-    if (!dl) return;
+    if (!boxes.length && !dl) return;
+
+    // Sửa đề gọi hàm này hai lần (mở modal → rỗng, rồi nạp nguồn của đề). Hai
+    // fetch không đảm bảo thứ tự về, nên chỉ lượt GỌI SAU CÙNG được phép ghi
+    // giá trị — không thì lượt rỗng về muộn sẽ xoá trắng nguồn vừa nạp.
+    const seq = ++_sourceLoadSeq;
     try {
         const res = await fetch(`${TOEIC_API_BASE}/questions/sources`, {
             headers: { 'Authorization': `Bearer ${getToken()}` },
         });
         const data = await res.json();
-        if (data.success) {
-            dl.innerHTML = (data.data || [])
-                .map(s => `<option value="${String(s).replace(/"/g, '&quot;')}"></option>`).join('');
-        }
+        if (!data.success) return;
+
+        const esc = (s) => String(s).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        const list = data.data || [];
+        if (dl) dl.innerHTML = list.map(s => `<option value="${esc(s)}"></option>`).join('');
+
+        const opts = '<option value="">— không chọn —</option>'
+            + list.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+
+        if (seq !== _sourceLoadSeq) return; // đã có lượt gọi mới hơn
+        boxes.forEach((box, i) => {
+            box.innerHTML = opts;
+            box.value = selected[i] || '';
+            if (!box.dataset.bound) {
+                box.dataset.bound = '1';
+                box.addEventListener('change', syncTestSourceSummary);
+            }
+        });
+        syncTestSourceSummary();
     } catch (e) {
         console.error('Không tải được danh sách nguồn:', e);
     }
@@ -1906,7 +1958,6 @@ function openTestModal(testId = null) {
     document.getElementById('test-type').value = 'full-test';
     document.getElementById('test-duration').value = '120';
     document.getElementById('test-description').value = '';
-    document.getElementById('test-source').value = '';
     document.getElementById('test-level').value = 'intermediate';
     document.getElementById('random-question-count').value = '';
     loadTestSourceOptions();
@@ -1963,7 +2014,6 @@ function closeTestModal() {
     document.getElementById('test-type').value = 'full-test';
     document.getElementById('test-duration').value = '';
     document.getElementById('test-description').value = '';
-    document.getElementById('test-source').value = '';
     document.getElementById('test-level').value = 'intermediate';
     document.getElementById('random-question-count').value = '';
     const defMode = document.querySelector('input[name="q-select-mode"][value="default"]');
@@ -1998,7 +2048,8 @@ async function editTest(testId) {
         document.getElementById('test-name').value = test.testName || '';
         document.getElementById('test-type').value = test.testType || '';
         document.getElementById('test-description').value = test.description || '';
-        document.getElementById('test-source').value = test.source || '';
+        // Đề cũ chỉ có  (một nguồn) → coi như danh sách 1 phần tử.
+        loadTestSourceOptions(test.sources && test.sources.length ? test.sources : (test.source ? [test.source] : []));
         document.getElementById('test-level').value = test.level || 'intermediate';
         document.getElementById('test-duration').value = Math.round(test.totalTime / 60) || '';
         document.getElementById('test-is-free').checked = test.isFree !== false;
@@ -2035,7 +2086,7 @@ async function handleTestSubmit(e) {
     const testName = document.getElementById('test-name').value.trim();
     const testType = document.getElementById('test-type').value;
     const description = document.getElementById('test-description').value.trim();
-    const source = document.getElementById('test-source').value.trim();
+    const sources = getSelectedSources();
     const level = document.getElementById('test-level').value;
     const duration = parseInt(document.getElementById('test-duration').value);
 
@@ -2049,8 +2100,9 @@ async function handleTestSubmit(e) {
         return;
     }
 
-    const testData = { testName, testType, description, totalTime: duration * 60, level };
-    if (source) testData.source = source;
+    // Luôn gửi `sources` (kể cả mảng rỗng) để bỏ hết nguồn ở chế độ sửa cũng có
+    // hiệu lực — gửi kiểu "chỉ khi có giá trị" thì xoá nguồn sẽ không lưu được.
+    const testData = { testName, testType, description, totalTime: duration * 60, level, sources };
 
     // Điều kiện vào bài — đề free thì ép giá xu về 0 để không sót giá cũ.
     testData.isFree = document.getElementById('test-is-free').checked;

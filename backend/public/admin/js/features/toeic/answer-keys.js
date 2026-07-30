@@ -286,17 +286,23 @@ Ví dụ định dạng kết quả: {"101":"A","102":"C","103":"B"}`;
     window.loadAnswerKeysTab = function () {
         if (!inited) {
             inited = true;
-            document.getElementById('btn-ak-import')?.addEventListener('click', (e) => importJson(e.currentTarget));
+            // Hai bộ nút "Nhập / Xoá" (trên header + ngay dưới ô nhập) dùng chung
+            // một hành động, chỉ khác id — dán xong bấm cái nào gần tay hơn.
+            ['btn-ak-import', 'btn-ak-import-bottom'].forEach(id => {
+                document.getElementById(id)?.addEventListener('click', (e) => importJson(e.currentTarget));
+            });
+            ['btn-ak-json-clear', 'btn-ak-json-clear-bottom'].forEach(id => {
+                document.getElementById(id)?.addEventListener('click', () => {
+                    const ta = document.getElementById('ak-json');
+                    if (ta) { ta.value = ''; ta.focus(); }
+                });
+            });
             document.getElementById('btn-ak-copy-prompt')?.addEventListener('click', copyPrompt);
             document.getElementById('btn-ak-toggle-prompt')?.addEventListener('click', (e) => togglePrompt(e.currentTarget));
             // Đổi khoảng số câu thì prompt đang mở phải đổi theo, không thì copy nhầm dải cũ.
             document.getElementById('ak-range')?.addEventListener('input', () => {
                 const box = document.getElementById('ak-prompt-preview');
                 if (box && box.style.display !== 'none') box.textContent = buildPrompt();
-            });
-            document.getElementById('btn-ak-json-clear')?.addEventListener('click', () => {
-                const ta = document.getElementById('ak-json');
-                if (ta) { ta.value = ''; ta.focus(); }
             });
             document.getElementById('btn-ak-reload')?.addEventListener('click', loadKeys);
             loadSourceHints();
