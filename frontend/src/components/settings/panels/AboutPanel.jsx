@@ -10,7 +10,7 @@ const ABOUT_ROWS = [
 export default function AboutPanel() {
     return (
         <div className="settings-section">
-            <h3>TOEIC Learning Platform</h3>
+            <h3>TOEIC Platform</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {ABOUT_ROWS.map(({ icon, label, value }) => (
                     <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>

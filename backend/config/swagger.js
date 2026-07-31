@@ -5,10 +5,10 @@ const options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'TOEIC Learning Platform API',
+            title: 'TOEIC Platform API',
             version: '1.0.0',
             description: `
-## TOEIC Vocabulary Learning & Practice Game API
+## TOEIC Platform API
 
 Nền tảng học từ vựng và luyện thi TOEIC tích hợp:
 - **12 chế độ luyện tập** (Flashcard, Multiple Choice, Listening, Matching...)
