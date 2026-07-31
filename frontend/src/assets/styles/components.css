@@ -7764,6 +7764,14 @@ mark {
 .preview-visual { width: 100%; aspect-ratio: 16/9; border-radius: 10px; background: var(--bg-tertiary, #eef); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 40px; color: var(--primary-color); }
 .preview-name { font-weight: 700; text-align: center; }
 .preview-desc { font-size: 12px; color: var(--text-secondary); text-align: center; }
+/* "Đang dùng" tách khỏi nút: trước đây nó CHÍNH LÀ nút (xám, disabled) nên
+   trạng thái và hành động dính làm một — nhìn ra là không có đường gỡ. Giờ
+   dòng này báo trạng thái, nút bên dưới mới là hành động. */
+.preview-equipped-note {
+    color: var(--success-color, #16a34a);
+    font-weight: 600;
+    margin-bottom: 6px;
+}
 .preview-btn { margin-top: auto; width: 100%; justify-content: center; }
 
 @media (max-width: 640px) {

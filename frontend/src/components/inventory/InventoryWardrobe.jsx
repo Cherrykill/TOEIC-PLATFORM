@@ -214,6 +214,30 @@ export default function InventoryWardrobe() {
         }
     };
 
+    /**
+     * Gỡ trang bị → về mặc định của slot đó (nền gradient, không khung, avatar
+     * gốc). Gỡ theo SLOT chứ không theo itemId: server dọn cả slot, và người
+     * dùng nghĩ theo kiểu "bỏ nền đi", không phải "bỏ đúng cái nền này".
+     */
+    const unequip = async (item) => {
+        if (busy || !item.equipped) return;
+        const slot = item.slot || 'background';
+        setBusy(true);
+        const res = await InventoryAPI.unequip(slot);
+        setBusy(false);
+        if (res?.success) {
+            // Xoá khỏi state ngay để hồ sơ/topnav trả về mặc định, khỏi chờ đồng bộ.
+            if (GameState.state.equipped) delete GameState.state.equipped[slot];
+            if (GameState.state.equippedImages) delete GameState.state.equippedImages[slot];
+            EventBus.emit(GameEvents.STATE_CHANGED);
+            await reload();
+            setSelected({ ...item, equipped: false });
+            Notification.show({ type: 'success', message: `Đã gỡ "${item.name}"`, duration: 1500 });
+        } else {
+            Notification.error(res?.message || 'Không gỡ được');
+        }
+    };
+
     // Dùng vật phẩm tiêu hao: vé quay → mở Vòng quay; hint/dừng giờ → về trang chủ (dùng khi luyện tập).
     const useConsumable = (item) => {
         Modal.close(); // đóng túi đồ
@@ -362,7 +386,17 @@ export default function InventoryWardrobe() {
                         )}
                         {selected.kind === 'cosmetic' && (
                             selected.equipped ? (
-                                <button className="btn btn-secondary btn-sm preview-btn" disabled><i className="fas fa-check"></i> Đang dùng</button>
+                                <>
+                                    <div className="preview-desc preview-equipped-note">
+                                        <i className="fas fa-circle-check"></i> Đang dùng
+                                    </div>
+                                    {/* Trang bị được thì phải gỡ được. Trước đây chỗ này là
+                                        nút xám disabled → vào rồi không có đường ra, muốn về
+                                        nền/khung mặc định là bó tay. */}
+                                    <button className="btn btn-secondary btn-sm preview-btn" disabled={busy} onClick={() => unequip(selected)}>
+                                        <i className="fas fa-xmark"></i> Gỡ ra
+                                    </button>
+                                </>
                             ) : (
                                 <button className="btn btn-primary btn-sm preview-btn" disabled={busy} onClick={() => equip(selected)}>
                                     <i className="fas fa-check"></i> Trang bị
