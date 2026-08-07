@@ -14,7 +14,8 @@ const userCheckinSchema = new mongoose.Schema(
     { timestamps: true, collection: 'user_checkin', versionKey: false }
 );
 
-userCheckinSchema.index({ userId: 1 }, { unique: true });
+// `unique: true` ngay trên field userId đã tạo index duy nhất trên {userId:1}
+// rồi — khai lại ở đây là index thứ hai y hệt.
 userCheckinSchema.index({ userId: 1, weekKey: 1 });
 
 module.exports = mongoose.model('UserCheckin', userCheckinSchema);

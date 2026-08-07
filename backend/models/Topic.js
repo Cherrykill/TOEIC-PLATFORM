@@ -9,7 +9,8 @@ const topicSchema = new mongoose.Schema(
                 validator: (v) => Array.isArray(v) && v.length > 0,
                 message: 'Phải có ít nhất một sourceKey',
             },
-            index: true,
+            // Index khai ở cuối file cùng các index khác — khai cả `index: true`
+            // ở đây nữa là Mongoose dựng HAI index y hệt trên {sourceKeys:1}.
         },
         displayName: {
             type: String,
