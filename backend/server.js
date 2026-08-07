@@ -46,18 +46,32 @@ const { requestMetricsMiddleware } = require('./utils/requestMetrics');
 // ===================================
 // MIDDLEWARE
 // ===================================
+// Google Identity Services cần cả bốn kênh: tải script, tải stylesheet của
+// nút, nhúng iframe chọn tài khoản, và gọi API. Thiếu bất kỳ cái nào là đăng
+// nhập Google hỏng — mà lỗi hiện ra rất khó lần (nút trắng trơn, popup kẹt).
+const GOOGLE_SIGNIN = ['https://accounts.google.com', 'https://*.googleusercontent.com'];
+
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", ...GOOGLE_SIGNIN],
+            scriptSrcElem: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", ...GOOGLE_SIGNIN],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", ...GOOGLE_SIGNIN],
             fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://*.onrender.com"],
+            connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com", "https://*.onrender.com", ...GOOGLE_SIGNIN],
+            // frame-src chưa khai thì rơi về defaultSrc 'self' → iframe chọn tài
+            // khoản của Google bị chặn thẳng.
+            frameSrc: ["'self'", ...GOOGLE_SIGNIN],
         }
-    }
+    },
+    // Mặc định helmet đặt COOP = 'same-origin', header này CẮT window.opener
+    // của popup. Google đăng nhập xong gọi opener.postMessage(token) → opener là
+    // null → popup kẹt trắng, không đăng nhập được, không có lỗi nào chỉ ra
+    // nguyên nhân. 'same-origin-allow-popups' vẫn chặn tab-nabbing (tab mình mở
+    // ra không truy cập ngược được), chỉ nới đúng phần popup trả kết quả về.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 app.use(compression({
     level: 6,           // Compression level (0-9, 6 is good balance)
