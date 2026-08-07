@@ -7,9 +7,13 @@
  */
 jest.mock('../models/FeatureUnlock', () => ({ find: jest.fn() }));
 jest.mock('../models/UserProfile', () => ({ findOne: jest.fn() }));
+// Bắt buộc mock: featureUnlock đọc công tắc tổng qua service này. Không mock thì
+// test đi thẳng vào MongoDB, treo tới lúc mongoose hết giờ chờ.
+jest.mock('../services/gameConfig', () => ({ getGameConfig: jest.fn() }));
 
 const FeatureUnlock = require('../models/FeatureUnlock');
 const UserProfile = require('../models/UserProfile');
+const { getGameConfig } = require('../services/gameConfig');
 const { requireLevel, clearUnlockCache } = require('../services/featureUnlock');
 
 // Mốc: feature:shop mở ở Level 4.
@@ -36,6 +40,7 @@ beforeEach(() => {
     clearUnlockCache();
     jest.clearAllMocks();
     mockUnlocks([{ key: 'feature:shop', requiredLevel: 4, isActive: true }]);
+    getGameConfig.mockResolvedValue({ featureUnlockEnabled: true });   // mặc định: đang khoá
 });
 
 describe('requireLevel + bypassFeatureLock', () => {
@@ -78,5 +83,49 @@ describe('requireLevel + bypassFeatureLock', () => {
         mockLevel(1);
         const r = await run(requireLevel('feature:shop'), { id: 'u1', bypassFeatureLock: false });
         expect(r.blocked).toBe(false);
+    });
+});
+
+/**
+ * Công tắc TỔNG (GameConfig.featureUnlockEnabled) — khác cờ ngoại lệ ở trên:
+ * cờ kia miễn cho MỘT tài khoản, cái này tắt khoá cho TẤT CẢ.
+ */
+describe('requireLevel + công tắc tổng', () => {
+    test('tắt công tắc → user level 1 vào được tính năng Level 4', async () => {
+        getGameConfig.mockResolvedValue({ featureUnlockEnabled: false });
+        mockLevel(1);
+        const r = await run(requireLevel('feature:shop'), { id: 'u1', bypassFeatureLock: false });
+        expect(r.blocked).toBe(false);
+    });
+
+    test('tắt công tắc thì không tra level trong DB nữa', async () => {
+        getGameConfig.mockResolvedValue({ featureUnlockEnabled: false });
+        const r = await run(requireLevel('feature:shop'), { id: 'u1', bypassFeatureLock: false });
+        expect(r.blocked).toBe(false);
+        expect(UserProfile.findOne).not.toHaveBeenCalled();
+    });
+
+    test('bật lại → chặn đúng như cũ (mốc không bị mất)', async () => {
+        getGameConfig.mockResolvedValue({ featureUnlockEnabled: true });
+        mockLevel(2);
+        const r = await run(requireLevel('feature:shop'), { id: 'u1', bypassFeatureLock: false });
+        expect(r.blocked).toBe(true);
+        expect(r.payload.requiredLevel).toBe(4);
+    });
+
+    test('config cũ chưa có trường này → coi như ĐANG BẬT, vẫn chặn', async () => {
+        // Quan trọng: thiếu trường không được hiểu thành "tắt" — dữ liệu lưu từ
+        // trước khi có công tắc mà mở toang mọi tính năng thì rất khó lần ra.
+        getGameConfig.mockResolvedValue({});
+        mockLevel(2);
+        const r = await run(requireLevel('feature:shop'), { id: 'u1', bypassFeatureLock: false });
+        expect(r.blocked).toBe(true);
+    });
+
+    test('đọc config lỗi → vẫn chặn, không mở toang vì một sự cố', async () => {
+        getGameConfig.mockRejectedValue(new Error('mất kết nối DB'));
+        mockLevel(2);
+        const r = await run(requireLevel('feature:shop'), { id: 'u1', bypassFeatureLock: false });
+        expect(r.blocked).toBe(true);
     });
 });
